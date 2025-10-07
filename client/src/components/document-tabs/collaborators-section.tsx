@@ -1,0 +1,321 @@
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Mail, Trash2, UserPlus, Users } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+
+interface CollaboratorsSectionProps {
+  documentId: number;
+  isOwner: boolean;
+  user: any;
+}
+
+interface Collaborator {
+  id: number;
+  email: string;
+  permission: "Edit" | "Assist";
+  status: "pending" | "active" | "removed";
+  invitedAt: string;
+  acceptedAt?: string;
+}
+
+export function CollaboratorsSection({ documentId, isOwner, user }: CollaboratorsSectionProps) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [invitePermission, setInvitePermission] = useState<"Edit" | "Assist">("Assist");
+  const [collaboratorToRemove, setCollaboratorToRemove] = useState<Collaborator | null>(null);
+
+  // Fetch collaborators
+  const { data: collaborators = [], isLoading } = useQuery<Collaborator[]>({
+    queryKey: [`/api/cim/${documentId}/collaborators`],
+    enabled: !!documentId,
+  });
+
+  // Get subscription limit
+  const collaboratorLimit = user.subscriptionStatus === 'starter' ? 1
+    : user.subscriptionStatus === 'standard' ? 3
+    : user.subscriptionStatus === 'enterprise' || user.subscriptionStatus === 'admin' ? 999
+    : 0;
+
+  const activeCollaboratorCount = collaborators.filter(c => c.status === 'active').length;
+  const canAddMore = activeCollaboratorCount < collaboratorLimit;
+
+  // Invite collaborator mutation
+  const inviteMutation = useMutation({
+    mutationFn: async (data: { email: string; permission: "Edit" | "Assist" }) => {
+      const response = await apiRequest("POST", `/api/cim/${documentId}/invite`, { body: data });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Invitation sent",
+        description: "The collaborator has been invited via email.",
+      });
+      setInviteEmail("");
+      queryClient.invalidateQueries({ queryKey: [`/api/cim/${documentId}/collaborators`] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to send invitation",
+        description: error.message || "Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update permission mutation
+  const updatePermissionMutation = useMutation({
+    mutationFn: async ({ collaboratorId, permission }: { collaboratorId: number; permission: string }) => {
+      await apiRequest("PATCH", `/api/cim/${documentId}/collaborators/${collaboratorId}`, { body: { permission } });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Permission updated",
+        description: "Collaborator permission has been changed.",
+      });
+      queryClient.invalidateQueries({ queryKey: [`/api/cim/${documentId}/collaborators`] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to update permission",
+        description: error.message || "Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Remove collaborator mutation
+  const removeMutation = useMutation({
+    mutationFn: async (collaboratorId: number) => {
+      await apiRequest("DELETE", `/api/cim/${documentId}/collaborators/${collaboratorId}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Collaborator removed",
+        description: "The collaborator has been removed from this document.",
+      });
+      queryClient.invalidateQueries({ queryKey: [`/api/cim/${documentId}/collaborators`] });
+      setCollaboratorToRemove(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to remove collaborator",
+        description: error.message || "Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleInvite = () => {
+    if (!inviteEmail.trim()) {
+      toast({
+        title: "Email required",
+        description: "Please enter an email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!canAddMore) {
+      toast({
+        title: "Collaborator limit reached",
+        description: `Your subscription plan allows up to ${collaboratorLimit} collaborator${collaboratorLimit === 1 ? '' : 's'} per document.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    inviteMutation.mutate({ email: inviteEmail, permission: invitePermission });
+  };
+
+  if (!isOwner) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-6">
+        {/* Subscription limit info */}
+        <div className="bg-muted/50 p-3 rounded-lg text-sm">
+          <p className="text-muted-foreground">
+            {collaboratorLimit === 0
+              ? "Upgrade your plan to add collaborators."
+              : `${activeCollaboratorCount} of ${collaboratorLimit} collaborator${collaboratorLimit === 1 ? '' : 's'} used.`}
+          </p>
+        </div>
+
+        {/* Current Collaborators */}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : collaborators.length > 0 ? (
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">Current Collaborators</Label>
+            <div className="space-y-2">
+              {collaborators
+                .filter(c => c.status !== 'removed')
+                .map((collaborator) => (
+                  <div
+                    key={collaborator.id}
+                    className="flex items-center justify-between p-3 border rounded-lg bg-card"
+                  >
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-medium">{collaborator.email}</span>
+                          {collaborator.status === 'pending' && (
+                            <Badge variant="secondary" className="text-xs">
+                              Pending
+                            </Badge>
+                          )}
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          Invited {new Date(collaborator.invitedAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Select
+                        value={collaborator.permission}
+                        onValueChange={(value) =>
+                          updatePermissionMutation.mutate({
+                            collaboratorId: collaborator.id,
+                            permission: value,
+                          })
+                        }
+                      >
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Edit">Edit</SelectItem>
+                          <SelectItem value="Assist">Assist</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setCollaboratorToRemove(collaborator)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-6 text-sm text-muted-foreground">
+            No collaborators yet. Invite someone below.
+          </div>
+        )}
+
+        {/* Invite Form */}
+        {collaboratorLimit > 0 && (
+          <div className="space-y-4">
+            <Label className="text-sm font-medium">Invite Collaborator</Label>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <Input
+                  type="email"
+                  placeholder="colleague@example.com"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  disabled={inviteMutation.isPending || !canAddMore}
+                />
+              </div>
+              <Select
+                value={invitePermission}
+                onValueChange={(value: "Edit" | "Assist") => setInvitePermission(value)}
+                disabled={inviteMutation.isPending || !canAddMore}
+              >
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Edit">Edit</SelectItem>
+                  <SelectItem value="Assist">Assist</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                onClick={handleInvite}
+                disabled={inviteMutation.isPending || !canAddMore}
+              >
+                {inviteMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Invite
+                  </>
+                )}
+              </Button>
+            </div>
+            {!canAddMore && (
+              <p className="text-sm text-muted-foreground">
+                You've reached your collaborator limit. Remove a collaborator or upgrade your plan to add more.
+              </p>
+            )}
+            <div className="bg-muted/50 p-3 rounded-lg text-sm space-y-1">
+              <p className="font-medium">Permission Levels:</p>
+              <ul className="space-y-1 text-muted-foreground">
+                <li><strong>Edit:</strong> Can edit document, manage sharing, and approve NDAs</li>
+                <li><strong>Assist:</strong> Can manage sharing and approve NDAs (cannot edit content)</li>
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {/* Remove Confirmation Dialog */}
+        <AlertDialog open={!!collaboratorToRemove} onOpenChange={() => setCollaboratorToRemove(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remove Collaborator</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to remove {collaboratorToRemove?.email} from this document?
+                They will no longer have access and will be notified via email.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => collaboratorToRemove && removeMutation.mutate(collaboratorToRemove.id)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {removeMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Remove"
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+    </div>
+  );
+}

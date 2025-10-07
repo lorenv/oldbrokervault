@@ -1,5 +1,7 @@
+import { useEffect } from "react";
 import { CimDisplay } from "@/components/cim-display";
 import { UploadedCimFileManager } from "@/components/uploaded-cim-file-manager";
+import { DocumentLockIndicator, useDocumentLock } from "@/components/document-lock-indicator";
 
 interface DocumentEditTabProps {
   cimDocument: any;
@@ -8,6 +10,19 @@ interface DocumentEditTabProps {
 }
 
 export function DocumentEditTab({ cimDocument, financialFiles, customSections }: DocumentEditTabProps) {
+  // Acquire document lock when user is on edit tab
+  const { acquireLock, releaseLock, hasLock } = useDocumentLock(cimDocument.id);
+
+  // Acquire lock when component mounts (user enters edit tab)
+  useEffect(() => {
+    acquireLock();
+
+    // Release lock when component unmounts (user leaves edit tab)
+    return () => {
+      releaseLock();
+    };
+  }, []);
+
   // Check if this is an uploaded file CIM or AI-generated CIM
   const isUploadedFile = cimDocument.isUploadedFile;
 
@@ -58,6 +73,13 @@ export function DocumentEditTab({ cimDocument, financialFiles, customSections }:
 
         </div>
       </div>
+
+      {/* Document Lock Indicator */}
+      <DocumentLockIndicator
+        documentId={cimDocument.id}
+        onLockAcquired={acquireLock}
+        onLockReleased={releaseLock}
+      />
 
       {/* Content */}
       {isUploadedFile ? (

@@ -771,6 +771,184 @@ async function sendRejectionEmail(
   });
 }
 
+async function sendCollaborationInvitationEmail(
+  inviteeEmail: string,
+  inviteeName: string,
+  documentTitle: string,
+  inviterName: string,
+  permission: 'Edit' | 'Assist',
+  acceptToken: string
+): Promise<boolean> {
+  const baseUrl = process.env.BASE_URL || 'https://cimshare.com';
+  const acceptUrl = `${baseUrl}/accept-collaboration/${acceptToken}`;
+
+  const permissionDescription = permission === 'Edit'
+    ? 'You can edit the document, manage sharing settings, and approve NDAs.'
+    : 'You can manage sharing settings and approve NDAs, but cannot edit the document content.';
+
+  return await sendEmail({
+    to: inviteeEmail,
+    from: 'system@cimshare.com',
+    subject: `You've been invited to collaborate on "${documentTitle}"`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Collaboration Invitation</h2>
+        <p>Hello ${inviteeName},</p>
+
+        <p><strong>${inviterName}</strong> has invited you to collaborate on their CIM document:</p>
+
+        <p style="font-size: 18px; font-weight: bold; color: #333; margin: 20px 0;">
+          ${documentTitle}
+        </p>
+
+        <p><strong>Permission Level:</strong> ${permission}</p>
+        <p style="color: #666; font-size: 14px;">${permissionDescription}</p>
+
+        <div style="margin: 30px 0;">
+          <a href="${acceptUrl}" style="display: inline-block; padding: 12px 30px; background-color: #4F46E5; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">
+            Accept Invitation
+          </a>
+        </div>
+
+        <p style="color: #666; font-size: 14px;">
+          This invitation will expire in 7 days. If you don't have a CIM Share account, you'll be prompted to create one when accepting the invitation.
+        </p>
+
+        <p>Best regards,<br>The CIM Share Team</p>
+
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+        <p style="color: #666; font-size: 12px;">
+          This is an automated notification from CIM Share. If you received this in error, you can safely ignore it.
+        </p>
+      </div>
+    `,
+    text: `
+      Collaboration Invitation
+
+      Hello ${inviteeName},
+
+      ${inviterName} has invited you to collaborate on their CIM document: "${documentTitle}"
+
+      Permission Level: ${permission}
+      ${permissionDescription}
+
+      Accept this invitation by visiting:
+      ${acceptUrl}
+
+      This invitation will expire in 7 days.
+
+      Best regards,
+      The CIM Share Team
+    `
+  });
+}
+
+async function sendCollaboratorRemovedEmail(
+  collaboratorEmail: string,
+  collaboratorName: string,
+  documentTitle: string,
+  removedByName: string
+): Promise<boolean> {
+  return await sendEmail({
+    to: collaboratorEmail,
+    from: 'system@cimshare.com',
+    subject: `Access removed for "${documentTitle}"`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Collaboration Access Removed</h2>
+        <p>Hello ${collaboratorName},</p>
+
+        <p>You have been removed as a collaborator from the document:</p>
+
+        <p style="font-size: 18px; font-weight: bold; color: #333; margin: 20px 0;">
+          ${documentTitle}
+        </p>
+
+        <p>You no longer have access to this document.</p>
+
+        <p style="color: #666; font-size: 14px; margin-top: 30px;">
+          If you believe this was done in error, please contact ${removedByName} directly.
+        </p>
+
+        <p>Best regards,<br>The CIM Share Team</p>
+
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+        <p style="color: #666; font-size: 12px;">
+          This is an automated notification from CIM Share.
+        </p>
+      </div>
+    `,
+    text: `
+      Collaboration Access Removed
+
+      Hello ${collaboratorName},
+
+      You have been removed as a collaborator from the document: "${documentTitle}"
+
+      You no longer have access to this document.
+
+      If you believe this was done in error, please contact ${removedByName} directly.
+
+      Best regards,
+      The CIM Share Team
+    `
+  });
+}
+
+async function sendEditLockTakenOverEmail(
+  previousEditorEmail: string,
+  previousEditorName: string,
+  documentTitle: string,
+  newEditorName: string
+): Promise<boolean> {
+  return await sendEmail({
+    to: previousEditorEmail,
+    from: 'system@cimshare.com',
+    subject: `Your editing session was interrupted on "${documentTitle}"`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Editing Session Interrupted</h2>
+        <p>Hello ${previousEditorName},</p>
+
+        <p><strong>${newEditorName}</strong> has taken over editing the document:</p>
+
+        <p style="font-size: 18px; font-weight: bold; color: #333; margin: 20px 0;">
+          ${documentTitle}
+        </p>
+
+        <p style="color: #d97706; font-weight: bold;">
+          ⚠️ Any unsaved changes you made may have been lost.
+        </p>
+
+        <p style="color: #666; font-size: 14px; margin-top: 20px;">
+          Multiple people were trying to edit the same document at the same time. To avoid conflicts, only one person can edit at a time.
+        </p>
+
+        <p>Best regards,<br>The CIM Share Team</p>
+
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+        <p style="color: #666; font-size: 12px;">
+          This is an automated notification from CIM Share.
+        </p>
+      </div>
+    `,
+    text: `
+      Editing Session Interrupted
+
+      Hello ${previousEditorName},
+
+      ${newEditorName} has taken over editing the document: "${documentTitle}"
+
+      ⚠️ Any unsaved changes you made may have been lost.
+
+      Multiple people were trying to edit the same document at the same time. To avoid conflicts, only one person can edit at a time.
+
+      Best regards,
+      The CIM Share Team
+    `
+  });
+}
+
 export {
   sendEmail,
   sendNdaSignedEmail,
@@ -780,5 +958,8 @@ export {
   sendPasswordResetEmail,
   sendApprovalEmail,
   sendOwnerApprovalNotification,
-  sendRejectionEmail
+  sendRejectionEmail,
+  sendCollaborationInvitationEmail,
+  sendCollaboratorRemovedEmail,
+  sendEditLockTakenOverEmail
 };

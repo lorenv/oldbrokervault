@@ -53,7 +53,8 @@
       "Read(//proc/595/net/**)",
       "Bash(git fetch:*)",
       "Bash(git merge-base:*)",
-      "Read(//proc/132/fd/**)"
+      "Read(//proc/132/fd/**)",
+      "Bash(psql:*)"
     ],
     "deny": [],
     "ask": [],

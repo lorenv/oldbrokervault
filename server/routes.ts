@@ -29,7 +29,7 @@ import JSZip from 'jszip';
 import sharp from 'sharp';
 import archiver from 'archiver';
 import { addCertificateToNda } from "./pdf-utils";
-import { sendNdaSignedEmail, sendEmail, sendApprovalEmail, sendOwnerApprovalNotification, sendRejectionEmail } from "./email";
+import { sendNdaSignedEmail, sendEmail, sendApprovalEmail, sendOwnerApprovalNotification, sendRejectionEmail, sendCollaborationInvitationEmail, sendCollaboratorRemovedEmail, sendEditLockTakenOverEmail } from "./email";
 import { generateSecureToken, generateRedirectId } from "./token-utils";
 import { sanitizeUser, sanitizeUserForSharing, sanitizeForLogging, validateResponseSafety } from "./data-sanitizer";
 import { responseSanitizationMiddleware, securityHeadersMiddleware, sensitiveEndpointLimiter } from "./security-middleware";
@@ -741,15 +741,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(410).json({ error: "This shared link has expired" });
       }
 
-      // Check if the current user is the document owner
+      // Check if the current user is the document owner or collaborator
       const isOwner = req.isAuthenticated() && req.user && req.user.id === cimDoc.userId;
-      
+      let isCollaborator = false;
+      if (req.isAuthenticated() && req.user && !isOwner) {
+        const collaboration = await storage.getUserCollaboration(cimDoc.id, req.user.id);
+        isCollaborator = !!collaboration;
+      }
+
       const result = {
-        requiresNda: Boolean(cimDoc.ndaProtected) && !isOwner, // Bypass NDA for owner
+        requiresNda: Boolean(cimDoc.ndaProtected) && !isOwner && !isCollaborator, // Bypass NDA for owner and collaborators
         requiresApproval: Boolean(cimDoc.ndaApprovalRequired),
         title: cimDoc.title || 'Untitled Document',
         documentId: cimDoc.id,
         isOwner: isOwner,
+        isCollaborator: isCollaborator,
+        bypassedNda: (isOwner || isCollaborator) && Boolean(cimDoc.ndaProtected), // Let frontend know NDA was bypassed
         currentUserId: req.user?.id || null
       };
 
@@ -1033,9 +1040,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("Total optimized response time:", Date.now() - startTime + "ms");
 
-      // Check if the current user is the document owner
+      // Check if the current user is the document owner or collaborator
       const isOwner = req.isAuthenticated() && req.user && req.user.id === cimDoc.userId;
-      
+      let isCollaborator = false;
+      if (req.isAuthenticated() && req.user && !isOwner) {
+        const collaboration = await storage.getUserCollaboration(cimDoc.id, req.user.id);
+        isCollaborator = !!collaboration;
+      }
+
       const responseData = {
         cim: {
           id: cimDoc.id,
@@ -1062,7 +1074,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         selectedImages: absoluteSelectedImages,
         logoUrl: absoluteLogoUrl,
         userProfileData: sanitizedUserProfile,
-        requiresNda: (cimDoc.ndaProtected || false) && !isOwner, // Bypass NDA for owner
+        requiresNda: (cimDoc.ndaProtected || false) && !isOwner && !isCollaborator, // Bypass NDA for owner and collaborators
         ndaUrl,
         customSections: customSections ? customSections.map(section => ({
           ...section,
@@ -1071,6 +1083,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })) : [],
         ndaApprovalStatus,
         isOwner: isOwner,
+        isCollaborator: isCollaborator,
+        bypassedNda: (isOwner || isCollaborator) && Boolean(cimDoc.ndaProtected), // Let frontend know NDA was bypassed
         currentUserId: req.user?.id || null
       };
 
@@ -3673,6 +3687,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Collaboration features are now available to all users
       const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
 
       // Validate request body
       const validation = insertCollaboratorSchema.safeParse({
@@ -3691,10 +3708,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Only document owner can invite collaborators" });
       }
 
+      // Check subscription limits
+      const currentCollaboratorCount = await storage.getCollaboratorCount(docId);
+      const subscriptionPlan = subscriptionPlans[user.subscriptionStatus as keyof typeof subscriptionPlans] || subscriptionPlans.free;
+
+      let collaboratorLimit = 0;
+      switch (user.subscriptionStatus) {
+        case 'starter':
+          collaboratorLimit = 1;
+          break;
+        case 'standard':
+          collaboratorLimit = 3;
+          break;
+        case 'enterprise':
+        case 'admin':
+          collaboratorLimit = 999; // Unlimited
+          break;
+        default:
+          collaboratorLimit = 0; // Free users can't add collaborators
+          break;
+      }
+
+      if (currentCollaboratorCount >= collaboratorLimit) {
+        return res.status(403).json({
+          error: "Collaborator limit reached for your subscription plan",
+          limit: collaboratorLimit,
+          current: currentCollaboratorCount
+        });
+      }
+
       const collaborator = await storage.inviteCollaborator(validation.data);
 
-      // TODO: Send invitation email
-      // await sendCollaborationInviteEmail(collaborator);
+      // Send invitation email
+      const inviteeName = validation.data.email.split('@')[0]; // Use email prefix if no name provided
+      const inviterProfile = await storage.getUserProfile(userId);
+      const inviterName = inviterProfile?.firstName
+        ? `${inviterProfile.firstName}${inviterProfile.lastName ? ' ' + inviterProfile.lastName : ''}`
+        : (inviterProfile?.name || inviterProfile?.email || 'Someone');
+
+      await sendCollaborationInvitationEmail(
+        validation.data.email,
+        inviteeName,
+        doc.title,
+        inviterName,
+        validation.data.permission,
+        collaborator.inviteToken
+      );
+
+      await storage.logActivity(docId, userId, req.user!.name || null, req.user!.email, "collaborator_invited", {
+        collaboratorEmail: validation.data.email,
+        permission: validation.data.permission
+      });
 
       res.json(collaborator);
     } catch (error) {
@@ -3804,11 +3868,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Collaborator not found" });
       }
 
+      const doc = await storage.getCimDocument(docId);
+      if (!doc) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
       await storage.deleteCollaborator(collaboratorId);
 
       if (collaborator.userId) {
         await storage.releaseUserLocks(collaborator.userId, docId);
       }
+
+      // Send removal email notification
+      const collaboratorName = collaborator.email.split('@')[0];
+      const removerProfile = await storage.getUserProfile(userId);
+      const removerName = removerProfile?.firstName
+        ? `${removerProfile.firstName}${removerProfile.lastName ? ' ' + removerProfile.lastName : ''}`
+        : (removerProfile?.name || removerProfile?.email || 'The document owner');
+
+      await sendCollaboratorRemovedEmail(
+        collaborator.email,
+        collaboratorName,
+        doc.title,
+        removerName
+      );
 
       await storage.logActivity(docId, userId, req.user!.name || null, req.user!.email, "collaborator_removed", {
         collaboratorId,
@@ -3972,8 +4055,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const existingLock = await storage.getLock(docId);
       const previousUser = existingLock ? existingLock.userName : null;
       const previousUserId = existingLock ? existingLock.userId : null;
+      const previousUserEmail = existingLock ? existingLock.userEmail : null;
+
+      const doc = await storage.getCimDocument(docId);
+      if (!doc) {
+        return res.status(404).json({ error: "Document not found" });
+      }
 
       const lock = await storage.createLock(docId, userId, req.user!.name || "Unknown", req.user!.email, previousUserId || undefined);
+
+      // Send email notification to previous editor
+      if (previousUserEmail && previousUser) {
+        const newEditorName = req.user!.name || req.user!.email || "Another user";
+        await sendEditLockTakenOverEmail(
+          previousUserEmail,
+          previousUser,
+          doc.title,
+          newEditorName
+        );
+      }
 
       await storage.logActivity(docId, userId, req.user!.name || null, req.user!.email, "lock_taken_over", {
         previousUser,

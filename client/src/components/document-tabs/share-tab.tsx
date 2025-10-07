@@ -29,11 +29,14 @@ import {
   ChevronsDown,
   ChevronsUp,
   Send,
-  Loader2
+  Loader2,
+  Users
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { DocumentExport } from "@/components/document-export";
+import { CollaboratorsSection } from "@/components/document-tabs/collaborators-section";
+import { DocumentActivityLog } from "@/components/document-activity-log";
 
 interface DocumentShareTabProps {
   cimDocument: any;
@@ -262,7 +265,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
 
   // Expand/Collapse all functions
   const expandAll = () => {
-    setAccordionValue(['share-link', 'email', 'export', 'embed']);
+    setAccordionValue(['collaborators', 'share-link', 'email', 'export', 'embed']);
   };
 
   const collapseAll = () => {
@@ -403,6 +406,30 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
         onValueChange={setAccordionValue}
         className="space-y-4"
       >
+        {/* Collaborators Section */}
+        <AccordionItem value="collaborators" className="border rounded-xl bg-white shadow-lg">
+          <AccordionTrigger className="px-6 py-4 hover:no-underline">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-lg">
+                <Users className="h-5 w-5 text-white" />
+              </div>
+              <div className="text-left">
+                <h3 className="text-lg font-semibold">Collaborators</h3>
+                <p className="text-sm text-muted-foreground">Invite others to help manage this document</p>
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-6 pb-6">
+            <div className="pt-4">
+              <CollaboratorsSection
+                documentId={cimDocument.id}
+                isOwner={cimDocument.userId === user?.id}
+                user={user}
+              />
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
         {/* Share Link & Settings */}
         <AccordionItem value="share-link" className="border rounded-xl bg-white shadow-lg">
           <AccordionTrigger className="px-6 py-4 hover:no-underline">
@@ -738,6 +765,11 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
           </AccordionContent>
         </AccordionItem>
       </Accordion>
+
+      {/* Activity Log */}
+      <div className="mt-6">
+        <DocumentActivityLog documentId={cimDocument.id} />
+      </div>
     </div>
   );
 }
