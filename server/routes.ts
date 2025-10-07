@@ -3740,20 +3740,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const collaborator = await storage.inviteCollaborator(validation.data);
 
       // Send invitation email
-      const inviteeName = validation.data.email.split('@')[0]; // Use email prefix if no name provided
-      const inviterProfile = await storage.getUserProfile(userId);
-      const inviterName = inviterProfile?.firstName
-        ? `${inviterProfile.firstName}${inviterProfile.lastName ? ' ' + inviterProfile.lastName : ''}`
-        : (inviterProfile?.name || inviterProfile?.email || 'Someone');
+      try {
+        const inviteeName = validation.data.email.split('@')[0]; // Use email prefix if no name provided
+        const inviterProfile = await storage.getUserProfile(userId);
+        const inviterName = inviterProfile?.firstName
+          ? `${inviterProfile.firstName}${inviterProfile.lastName ? ' ' + inviterProfile.lastName : ''}`
+          : (inviterProfile?.name || inviterProfile?.email || 'Someone');
 
-      await sendCollaborationInvitationEmail(
-        validation.data.email,
-        inviteeName,
-        doc.title,
-        inviterName,
-        validation.data.permission,
-        collaborator.inviteToken
-      );
+        await sendCollaborationInvitationEmail(
+          validation.data.email,
+          inviteeName,
+          doc.title,
+          inviterName,
+          validation.data.permission,
+          collaborator.inviteToken
+        );
+      } catch (emailError) {
+        console.error("Failed to send invitation email:", emailError);
+        // Continue even if email fails - collaborator is already added
+      }
 
       await storage.logActivity(docId, userId, req.user!.name || null, req.user!.email, "collaborator_invited", {
         collaboratorEmail: validation.data.email,
@@ -3763,7 +3768,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(collaborator);
     } catch (error) {
       console.error("Invite collaborator error:", error);
-      res.status(500).json({ error: "Failed to invite collaborator" });
+      res.status(500).json({ error: "Failed to invite collaborator", details: error instanceof Error ? error.message : String(error) });
     }
   });
 
