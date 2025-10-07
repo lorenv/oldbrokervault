@@ -28,6 +28,7 @@ import CookiePolicyPage from "@/pages/cookie-policy-page";
 import { SharePage } from "@/pages/share-page";
 import { NdaRedirectPage } from "@/pages/nda-redirect-page";
 import { UnsubscribePage } from "@/pages/unsubscribe-page";
+import { AcceptCollaborationPage } from "@/pages/accept-collaboration-page";
 import NotFound from "@/pages/not-found";
 import { ProtectedRoute } from "./lib/protected-route";
 import PremiumDashboard from "@/pages/premium-dashboard";
@@ -89,6 +90,7 @@ function Router() {
             <Route path="/auth" component={LoginPage} />
             <Route path="/reset-password" component={LoginPage} />
             <Route path="/unsubscribe" component={UnsubscribePage} />
+            <Route path="/accept-collaboration/:token" component={AcceptCollaborationPage} />
             <Route path="/share/:shareSlug" component={SharePage} />
             <Route path="/cims/:shareSlug" component={SharePage} />
             <Route path="/nda/redirect/:redirectId" component={NdaRedirectPage} />
