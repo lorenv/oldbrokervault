@@ -15,21 +15,35 @@ export const initGA = () => {
     return;
   }
 
+  // Initialize dataLayer immediately
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = function() {
+    window.dataLayer.push(arguments);
+  };
+  
+  // Set initial timestamp
+  window.gtag('js', new Date());
+  
+  // Configure GA with initial page view
+  window.gtag('config', measurementId, {
+    send_page_view: true
+  });
+
   // Add Google Analytics script to the head
   const script1 = document.createElement('script');
   script1.async = true;
   script1.src = `https://www.googletagmanager.com/gtag/js?id=${measurementId}`;
+  
+  // Log when script loads successfully
+  script1.onload = () => {
+    console.log('Google Analytics loaded successfully');
+  };
+  
+  script1.onerror = () => {
+    console.error('Failed to load Google Analytics script');
+  };
+  
   document.head.appendChild(script1);
-
-  // Initialize gtag
-  const script2 = document.createElement('script');
-  script2.textContent = `
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', '${measurementId}');
-  `;
-  document.head.appendChild(script2);
 };
 
 // Track page views - useful for single-page applications
