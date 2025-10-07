@@ -157,17 +157,16 @@ export function CollaboratorsSection({ documentId, isOwner, user }: Collaborator
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Users className="h-5 w-5" />
-          Collaborators
-        </CardTitle>
-        <CardDescription>
-          Invite others to help manage this document. {collaboratorLimit === 0 ? "Upgrade your plan to add collaborators." : `${activeCollaboratorCount} of ${collaboratorLimit} collaborators used.`}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
+    <div className="space-y-6">
+        {/* Subscription limit info */}
+        <div className="bg-muted/50 p-3 rounded-lg text-sm">
+          <p className="text-muted-foreground">
+            {collaboratorLimit === 0
+              ? "Upgrade your plan to add collaborators."
+              : `${activeCollaboratorCount} of ${collaboratorLimit} collaborator${collaboratorLimit === 1 ? '' : 's'} used.`}
+          </p>
+        </div>
+
         {/* Current Collaborators */}
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
@@ -317,7 +316,6 @@ export function CollaboratorsSection({ documentId, isOwner, user }: Collaborator
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </CardContent>
-    </Card>
+    </div>
   );
 }
