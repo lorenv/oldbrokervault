@@ -3910,6 +3910,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get invitation details (public - no auth required)
+  app.get("/api/collaborator/invitation/:token", async (req, res) => {
+    try {
+      const token = req.params.token;
+
+      const collaborator = await storage.getCollaboratorByToken(token);
+      if (!collaborator) {
+        return res.status(404).json({ error: "Invalid or expired invitation" });
+      }
+
+      // Get document details
+      const document = await storage.getCimDocument(collaborator.cimDocumentId);
+      if (!document) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      // Get inviter details
+      const inviter = await storage.getUserById(collaborator.invitedBy);
+      if (!inviter) {
+        return res.status(404).json({ error: "Inviter not found" });
+      }
+
+      // Return public invitation info
+      res.json({
+        documentTitle: document.title,
+        inviterName: inviter.firstName && inviter.lastName
+          ? `${inviter.firstName} ${inviter.lastName}`
+          : (inviter.name || inviter.email),
+        inviterEmail: inviter.email,
+        permission: collaborator.permission,
+        invitedEmail: collaborator.email,
+        status: collaborator.status,
+        alreadyAccepted: collaborator.status === "active"
+      });
+    } catch (error) {
+      console.error("Get invitation details error:", error);
+      res.status(500).json({ error: "Failed to get invitation details" });
+    }
+  });
+
   // Accept collaboration invitation
   app.post("/api/collaborator/accept/:token", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);

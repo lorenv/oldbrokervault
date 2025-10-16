@@ -54,7 +54,9 @@
       "Bash(git fetch:*)",
       "Bash(git merge-base:*)",
       "Read(//proc/132/fd/**)",
-      "Bash(psql:*)"
+      "Bash(psql:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": [],

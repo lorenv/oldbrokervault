@@ -480,8 +480,14 @@ export default function DocumentsPage() {
                     </CardHeader>
                     <CardContent className="pt-0 p-3 sm:p-6 sm:pt-0">
                       <div className="flex items-center justify-between gap-2">
-                        {/* NDA Protected badge and Pending Approvals */}
-                        <div className="flex items-center gap-2">
+                        {/* Shared document badge, NDA Protected badge and Pending Approvals */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {(doc as any).isSharedWithUser && (
+                            <div className="flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-700 rounded-full text-xs font-medium border border-blue-200 shadow-sm">
+                              <Users className="h-3 w-3 flex-shrink-0" />
+                              <span>Shared with you</span>
+                            </div>
+                          )}
                           {doc.ndaProtected && (
                             <div className="flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-700 rounded-full text-xs font-medium border border-purple-200 shadow-sm">
                               <Shield className="h-3 w-3 flex-shrink-0" />
@@ -753,6 +759,13 @@ export default function DocumentsPage() {
 
                       {/* Right side - Status and Actions */}
                       <div className="flex items-center gap-3">
+                        {/* Shared with you badge */}
+                        {(doc as any).isSharedWithUser && (
+                          <div className="hidden sm:flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-700 rounded-full text-xs font-medium border border-blue-200 shadow-sm">
+                            <Users className="h-3 w-3" />
+                            <span>Shared with you</span>
+                          </div>
+                        )}
                         {/* NDA Protected badge */}
                         {doc.ndaProtected && (
                           <div className="hidden sm:flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-700 rounded-full text-xs font-medium border border-purple-200 shadow-sm">

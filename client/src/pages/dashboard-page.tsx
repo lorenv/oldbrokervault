@@ -112,9 +112,16 @@ export default function DashboardPage() {
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex-1 min-w-0">
-                              <h3 className="font-medium text-sm text-gray-900 group-hover:text-blue-700 transition-colors truncate">
-                                {doc.title}
-                              </h3>
+                              <div className="flex items-center gap-2">
+                                <h3 className="font-medium text-sm text-gray-900 group-hover:text-blue-700 transition-colors truncate">
+                                  {doc.title}
+                                </h3>
+                                {(doc as any).isSharedWithUser && (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200 flex-shrink-0">
+                                    Shared
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-xs text-gray-500 mt-0.5">
                                 {new Date(doc.createdAt || doc.created_at).toLocaleDateString()}
                               </p>

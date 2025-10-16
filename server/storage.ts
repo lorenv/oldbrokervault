@@ -770,11 +770,20 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
     const offset = (page - 1) * limit;
     const search = options?.search?.trim();
 
-    // Build base query with conditional search, excluding soft-deleted documents
+    // Build base query that includes:
+    // 1. Documents owned by the user
+    // 2. Documents where the user is an active collaborator
     const baseCondition = and(
-      eq(cimDocuments.userId, userId),
+      or(
+        eq(cimDocuments.userId, userId), // Owned documents
+        and(
+          eq(collaborators.userId, userId), // Shared documents where user is collaborator
+          eq(collaborators.status, 'active')
+        )
+      ),
       isNull(cimDocuments.deletedAt)
     );
+
     const whereCondition = search
       ? and(
           baseCondition,
@@ -787,6 +796,7 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
 
     // For dashboard, only select essential fields to minimize data transfer
     // Include signature count via LEFT JOIN with ndaSignatures table
+    // Include collaborator info to determine if this is a shared document
     const results = await db
       .select({
         id: cimDocuments.id,
@@ -804,11 +814,15 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
         isExample: cimDocuments.isExample,
         sectionDirections: cimDocuments.sectionDirections,
         formattingProfile: cimDocuments.formattingProfile,
-        ndaSignatureCount: sql<number>`COALESCE(COUNT(${ndaSignatures.id}), 0)`,
+        ndaSignatureCount: sql<number>`COALESCE(COUNT(DISTINCT ${ndaSignatures.id}), 0)`,
         ndaApprovalRequired: cimDocuments.ndaApprovalRequired,
-        pendingNdaCount: sql<number>`COALESCE(SUM(CASE WHEN ${cimDocuments.ndaApprovalRequired} = true AND ${ndaSignatures.id} IS NOT NULL AND ${ndaSignatures.approved} = false THEN 1 ELSE 0 END), 0)`
+        pendingNdaCount: sql<number>`COALESCE(SUM(CASE WHEN ${cimDocuments.ndaApprovalRequired} = true AND ${ndaSignatures.id} IS NOT NULL AND ${ndaSignatures.approved} = false THEN 1 ELSE 0 END), 0)`,
+        // Add field to indicate if this is a shared document
+        isSharedWithUser: sql<boolean>`CASE WHEN ${cimDocuments.userId} != ${userId} THEN true ELSE false END`,
+        collaboratorPermission: sql<string>`MAX(CASE WHEN ${collaborators.userId} = ${userId} THEN ${collaborators.permission} ELSE NULL END)`
       })
       .from(cimDocuments)
+      .leftJoin(collaborators, eq(cimDocuments.id, collaborators.cimDocumentId))
       .leftJoin(ndaSignatures, eq(cimDocuments.id, ndaSignatures.cimDocumentId))
       .where(whereCondition)
       .groupBy(
@@ -882,7 +896,13 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
       // Add new fields with defaults
       sectionDirections: result.sectionDirections || null,
       formattingProfile: result.formattingProfile || null,
-      pendingNdaCount: result.pendingNdaCount || 0
+      pendingNdaCount: result.pendingNdaCount || 0,
+      // Add collaboration info
+      isSharedWithUser: result.isSharedWithUser || false,
+      collaboratorPermission: result.collaboratorPermission || null,
+      // Add missing fields
+      copyMeOnEmails: false,
+      deletedAt: null
     }));
 
     // For dashboard, we don't need exact total count - just use estimated
