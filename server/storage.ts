@@ -201,6 +201,7 @@ export interface IStorage {
   getCollaboratorByToken(token: string): Promise<Collaborator | null>;
   getCollaboratorCount(documentId: number): Promise<number>;
   getUserCollaboration(documentId: number, userId: number): Promise<Collaborator | null>;
+  getPendingInvitationsByEmail(email: string): Promise<Collaborator[]>;
   updateCollaborator(id: number, updates: Partial<Collaborator>): Promise<void>;
   deleteCollaborator(id: number): Promise<void>;
   // Document Locks
@@ -2048,6 +2049,19 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
       );
 
     return collaborator || null;
+  }
+
+  async getPendingInvitationsByEmail(email: string): Promise<Collaborator[]> {
+    const invitations = await db.select()
+      .from(collaborators)
+      .where(
+        and(
+          eq(collaborators.email, email),
+          eq(collaborators.status, 'pending')
+        )
+      );
+
+    return invitations;
   }
 
   async updateCollaborator(id: number, updates: Partial<Collaborator>): Promise<void> {

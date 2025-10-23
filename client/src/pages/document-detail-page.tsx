@@ -335,37 +335,10 @@ export function DocumentDetailPage() {
       </div>
     );
   }
-  
-  // Ensure user owns the document
-  if (cimDocument.userId !== user?.id) {
-    return (
-      <div className="min-h-screen bg-background">
-        <main className="container mx-auto px-4 py-8">
-          <div className="flex items-center gap-4 mb-6">
-            <Link href="/documents">
-              <Button variant="ghost" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Documents
-              </Button>
-            </Link>
-          </div>
-          <Card>
-            <CardContent className="p-6 text-center">
-              <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
-              <p className="text-gray-600 mb-4">You don't have permission to view this document.</p>
-              <Link href="/documents">
-                <Button>
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Documents
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </main>
-      </div>
-    );
-  }
-  
+
+  // Access control is handled by the backend - if we successfully fetched the document,
+  // the user has permission to view it (either as owner, admin, or collaborator)
+
   return (
     <div className="min-h-screen bg-background">
       <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">

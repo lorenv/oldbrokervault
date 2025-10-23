@@ -3012,19 +3012,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get individual CIM document
   app.get("/api/cim/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     try {
       const docId = parseInt(req.params.id);
       if (isNaN(docId)) {
         return res.status(400).json({ error: "Invalid document ID" });
       }
-      
+
       const doc = await storage.getCimDocument(docId);
       if (!doc) {
         return res.status(404).json({ error: "Document not found" });
       }
-      
-      if (doc.userId !== req.user!.id && !req.user!.isAdmin) {
+
+      // Check if user is owner, admin, or collaborator
+      const isOwner = doc.userId === req.user!.id;
+      const isAdmin = req.user!.isAdmin;
+      const collaboration = await storage.getUserCollaboration(docId, req.user!.id);
+      const isCollaborator = !!collaboration;
+
+      if (!isOwner && !isAdmin && !isCollaborator) {
         return res.status(403).json({ error: "You don't have permission to view this document" });
       }
       
@@ -3045,26 +3051,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update CIM document (for financial and other field updates)
   app.patch("/api/cim/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     console.log("=== CIM PATCH REQUEST ===");
     // Security: Don't log user objects that may contain sensitive data
     console.log("Request user ID:", req.user?.id);
     console.log("Request body:", req.body);
     console.log("Request params:", req.params);
-    
+
     try {
       const docId = parseInt(req.params.id);
       if (isNaN(docId)) {
         return res.status(400).json({ error: "Invalid document ID" });
       }
-      
+
       // Check if document exists and belongs to user
       const doc = await storage.getCimDocument(docId);
       if (!doc) {
         return res.status(404).json({ error: "Document not found" });
       }
-      
-      if (doc.userId !== req.user!.id && !req.user!.isAdmin) {
+
+      // Check if user is owner, admin, or collaborator with Edit permission
+      const isOwner = doc.userId === req.user!.id;
+      const isAdmin = req.user!.isAdmin;
+      const collaboration = await storage.getUserCollaboration(docId, req.user!.id);
+      const hasEditAccess = collaboration?.permission === "Edit";
+
+      if (!isOwner && !isAdmin && !hasEditAccess) {
         return res.status(403).json({ error: "You don't have permission to update this document" });
       }
       
@@ -3910,6 +3922,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get pending invitations for current user
+  app.get("/api/collaborator/pending", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const userEmail = req.user!.email;
+      const pendingInvitations = await storage.getPendingInvitationsByEmail(userEmail);
+
+      // Enrich with document details
+      const enrichedInvitations = await Promise.all(
+        pendingInvitations.map(async (invitation) => {
+          const document = await storage.getCimDocument(invitation.cimDocumentId);
+          const inviter = await storage.getUser(invitation.invitedBy);
+
+          return {
+            id: invitation.id,
+            documentId: invitation.cimDocumentId,
+            documentTitle: document?.title || "Unknown Document",
+            inviterName: inviter?.firstName && inviter?.lastName
+              ? `${inviter.firstName} ${inviter.lastName}`
+              : (inviter?.name || inviter?.email || "Unknown"),
+            inviterEmail: inviter?.email || "",
+            permission: invitation.permission,
+            invitedAt: invitation.invitedAt,
+            inviteToken: invitation.inviteToken
+          };
+        })
+      );
+
+      res.json(enrichedInvitations);
+    } catch (error) {
+      console.error("Get pending invitations error:", error);
+      res.status(500).json({ error: "Failed to get pending invitations" });
+    }
+  });
+
   // Get invitation details (public - no auth required)
   app.get("/api/collaborator/invitation/:token", async (req, res) => {
     try {
@@ -3927,7 +3975,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get inviter details
-      const inviter = await storage.getUserById(collaborator.invitedBy);
+      const inviter = await storage.getUser(collaborator.invitedBy);
       if (!inviter) {
         return res.status(404).json({ error: "Inviter not found" });
       }
@@ -4029,6 +4077,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const lock = await storage.getLock(docId);
       if (!lock) {
+        return res.json({ locked: false });
+      }
+
+      // If the lock belongs to the current user, don't show it as "locked by someone else"
+      if (lock.userId === userId) {
         return res.json({ locked: false });
       }
 

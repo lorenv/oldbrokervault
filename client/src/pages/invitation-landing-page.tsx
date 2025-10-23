@@ -59,7 +59,7 @@ export function InvitationLandingPage() {
 
   const handleSignUp = () => {
     if (params?.token) {
-      setLocation(`/register?redirect=/accept-collaboration/${params.token}`);
+      setLocation(`/login?tab=register&redirect=/accept-collaboration/${params.token}`);
     }
   };
 

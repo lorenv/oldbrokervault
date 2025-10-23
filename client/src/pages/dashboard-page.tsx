@@ -6,12 +6,15 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SubscriptionCard } from "@/components/ui/subscription-card";
 import { AnalyticsOverviewCard } from "@/components/analytics-overview-card";
-import { FileText, Clock, ArrowRight } from "lucide-react";
+import { FileText, Clock, ArrowRight, Mail } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useLocation } from "wouter";
 
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const [cimMode, setCimMode] = useState<'choice' | 'generate' | 'upload'>('choice');
+  const [, setLocation] = useLocation();
 
   // Removed guided tour - now using get started checklist instead
   const { data: documentsResponse, isLoading: documentsLoading } = useQuery({
@@ -26,6 +29,13 @@ export default function DashboardPage() {
   // Fetch user profile for personalized welcome message
   const { data: userProfile } = useQuery({
     queryKey: ["/api/profile"],
+    enabled: !!user,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
+  // Fetch pending invitations
+  const { data: pendingInvitations = [], isLoading: invitationsLoading } = useQuery({
+    queryKey: ["/api/collaborator/pending"],
     enabled: !!user,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
@@ -75,6 +85,52 @@ export default function DashboardPage() {
               : 'opacity-0 scale-95 max-h-0 overflow-hidden pointer-events-none'
           }`}>
             <div className="space-y-6 pb-8">
+            {/* Pending Invitations Card */}
+            {(pendingInvitations as any[]).length > 0 && (
+              <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 shadow-md border-2 border-blue-200 hover:shadow-lg transition-shadow duration-200 rounded-lg">
+                <CardHeader className="pb-3 pt-5 px-5">
+                  <CardTitle className="flex items-center gap-2 text-base font-semibold text-blue-900">
+                    <Mail className="w-4 h-4 text-blue-600" />
+                    <span>Pending Invitations</span>
+                    <span className="ml-auto bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                      {(pendingInvitations as any[]).length}
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-5 pb-5">
+                  <div className="space-y-3">
+                    {(pendingInvitations as any[]).map((invitation: any) => (
+                      <div
+                        key={invitation.id}
+                        className="p-3 bg-white border border-blue-200 rounded-md shadow-sm"
+                      >
+                        <div className="flex flex-col gap-2">
+                          <div>
+                            <h3 className="font-medium text-sm text-gray-900 truncate">
+                              {invitation.documentTitle}
+                            </h3>
+                            <p className="text-xs text-gray-600 mt-0.5">
+                              From: {invitation.inviterName}
+                            </p>
+                            <p className="text-xs text-blue-600 mt-0.5">
+                              Permission: {invitation.permission}
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => setLocation(`/accept-collaboration/${invitation.inviteToken}`)}
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs"
+                          >
+                            Accept Invitation
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Recent Documents Card */}
             <Card className="bg-white shadow-md border border-gray-200 hover:shadow-lg transition-shadow duration-200 rounded-lg">
               <CardHeader className="pb-3 pt-5 px-5">
