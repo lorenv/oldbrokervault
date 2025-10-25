@@ -413,7 +413,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
                 <Users className="h-5 w-5 text-white" />
               </div>
               <div className="text-left">
-                <h3 className="text-lg font-semibold">Collaborators</h3>
+                <h3 className="text-lg font-semibold">Collaborate</h3>
                 <p className="text-sm text-muted-foreground">Invite others to help manage this document</p>
               </div>
             </div>

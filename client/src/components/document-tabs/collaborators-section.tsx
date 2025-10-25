@@ -166,7 +166,17 @@ export function CollaboratorsSection({ documentId, isOwner, user }: Collaborator
   };
 
   if (!isOwner) {
-    return null;
+    return (
+      <div className="space-y-4">
+        <div className="text-center py-8 px-4 bg-muted/50 rounded-lg border border-dashed">
+          <UserPlus className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
+          <h3 className="font-semibold text-lg mb-2">Collaboration</h3>
+          <p className="text-sm text-muted-foreground">
+            You are a collaborator on this document. Only the document owner can manage collaborators and view activity logs.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -175,7 +185,7 @@ export function CollaboratorsSection({ documentId, isOwner, user }: Collaborator
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="collaborators">
             <UserPlus className="h-4 w-4 mr-2" />
-            Collaborators ({activeCollaboratorCount})
+            Collaborate ({activeCollaboratorCount})
           </TabsTrigger>
           <TabsTrigger value="activity">
             <History className="h-4 w-4 mr-2" />
@@ -188,7 +198,7 @@ export function CollaboratorsSection({ documentId, isOwner, user }: Collaborator
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
               {collaboratorLimit === 0
-                ? "Upgrade your plan to add collaborators."
+                ? "Collaboration is a premium feature. Upgrade your plan to invite collaborators."
                 : `${activeCollaboratorCount} of ${collaboratorLimit} collaborator${collaboratorLimit === 1 ? '' : 's'} used`}
             </div>
             {collaboratorLimit > 0 && (

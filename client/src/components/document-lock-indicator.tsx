@@ -164,9 +164,13 @@ export function useDocumentLock(documentId: number) {
   const { toast } = useToast();
   const [hasLock, setHasLock] = useState(false);
   const [heartbeatInterval, setHeartbeatInterval] = useState<NodeJS.Timeout | null>(null);
+  const [isReleasingLock, setIsReleasingLock] = useState(false);
+  const [hasShownExpiredToast, setHasShownExpiredToast] = useState(false);
 
   const acquireLock = async () => {
     try {
+      setIsReleasingLock(false);
+      setHasShownExpiredToast(false);
       const response = await apiRequest("POST", `/api/cim/${documentId}/lock`);
       const data = await response.json();
 
@@ -183,6 +187,7 @@ export function useDocumentLock(documentId: number) {
   };
 
   const releaseLock = async () => {
+    setIsReleasingLock(true);
     stopHeartbeat();
     try {
       await apiRequest("DELETE", `/api/cim/${documentId}/lock`);
@@ -195,17 +200,27 @@ export function useDocumentLock(documentId: number) {
   const startHeartbeat = () => {
     // Send heartbeat every 30 seconds
     const interval = setInterval(async () => {
+      // Don't send heartbeat if we're releasing the lock
+      if (isReleasingLock) {
+        return;
+      }
+
       try {
         await apiRequest("POST", `/api/cim/${documentId}/lock/heartbeat`);
       } catch (error) {
         console.error("Heartbeat failed:", error);
         stopHeartbeat();
         setHasLock(false);
-        toast({
-          title: "Edit session expired",
-          description: "Your edit session has expired. Please refresh to continue editing.",
-          variant: "destructive",
-        });
+
+        // Only show toast once and only if we didn't intentionally release the lock
+        if (!hasShownExpiredToast && !isReleasingLock) {
+          setHasShownExpiredToast(true);
+          toast({
+            title: "Edit session expired",
+            description: "Your edit session has expired. Please refresh to continue editing.",
+            variant: "destructive",
+          });
+        }
       }
     }, 30000);
 

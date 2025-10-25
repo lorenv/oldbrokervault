@@ -780,7 +780,7 @@ async function sendCollaborationInvitationEmail(
   acceptToken: string
 ): Promise<boolean> {
   const baseUrl = process.env.BASE_URL || 'https://cimshare.com';
-  const acceptUrl = `${baseUrl}/accept-collaboration/${acceptToken}`;
+  const acceptUrl = `${baseUrl}/invitation/${acceptToken}`;
 
   const permissionDescription = permission === 'Edit'
     ? 'You can edit the document, manage sharing settings, and approve NDAs.'

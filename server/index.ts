@@ -119,16 +119,23 @@ app.get('/api/health', (req, res) => {
 
 // MEMORY-EFFICIENT JSON PARSING (Fix #3: Add memory-efficient JSON handling)
 // Reduce limits from 100mb to 50mb and implement streaming for large payloads
-app.use(express.json({ 
-  limit: '50mb',
-  type: 'application/json',
-  verify: (req: any, res, buf) => {
-    // Memory monitoring for large payloads in production
-    if (buf.length > 10 * 1024 * 1024 && process.env.NODE_ENV === 'development') { 
-      console.log(`⚠️ Large JSON payload detected: ${(buf.length / 1024 / 1024).toFixed(2)}MB`);
-    }
+// IMPORTANT: Skip webhook endpoints that need raw body for signature verification
+app.use((req, res, next) => {
+  // Skip JSON parsing for Stripe webhook - it needs raw body for signature verification
+  if (req.path === '/api/webhook/stripe') {
+    return next();
   }
-}));
+  express.json({
+    limit: '50mb',
+    type: 'application/json',
+    verify: (req: any, res, buf) => {
+      // Memory monitoring for large payloads in production
+      if (buf.length > 10 * 1024 * 1024 && process.env.NODE_ENV === 'development') {
+        console.log(`⚠️ Large JSON payload detected: ${(buf.length / 1024 / 1024).toFixed(2)}MB`);
+      }
+    }
+  })(req, res, next);
+});
 
 app.use(express.urlencoded({ 
   extended: true, 
