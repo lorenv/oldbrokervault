@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Loader2, CheckCircle, FileText, Zap, Upload, Database, Sparkles, Lightbulb } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
@@ -35,6 +35,12 @@ const HELPFUL_TIPS = [
   "Successful brokers maintain relationships with buyers even after deals close.",
   "Use data visualization for complex financial information - charts speak louder than tables.",
   "The first page sets the tone - make sure it captures attention immediately.",
+  "Upload your own custom NDA template in Account Settings to automatically include it with every CIM.",
+  "Customize your PDF background in Account Settings to match your brand and stand out from competitors.",
+  "Use the Analytics tab to see where signers are located geographically and run detailed reports for specific documents.",
+  "Collaborate with teammates on CIMs using the 'Collaborate' feature in the 'Share CIM' tab.",
+  "Password protect your CIM to add an extra layer of security and control who can access it.",
+  "Create a custom branded URL ending for your share links in Account Settings for a more professional appearance.",
 ];
 
 const stageConfig = {
@@ -120,6 +126,18 @@ export function CimGenerationProgress({
     
     return () => clearInterval(interval);
   }, [targetProgress]);
+
+  // Generate stable particle data - only once, won't change on re-renders
+  const floatingParticles = useMemo(() => {
+    return Array.from({ length: 30 }, (_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      size: Math.random() * 8 + 2, // 2-10px particles
+      delay: 0, // No delay - all particles float together
+      duration: 5, // 5 seconds fixed duration
+    }));
+  }, []);
 
   // Get relevant stages based on content type
   const getRelevantStages = (): CimGenerationStage[] => {
@@ -259,11 +277,41 @@ export function CimGenerationProgress({
     </div>
   );
 
-  // Render as modal with darkened background
+  // Render as modal with light background and floating particles
   if (showAsModal) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-        <div className="max-w-2xl w-full mx-4">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-50/95 via-purple-50/95 to-pink-50/95 backdrop-blur-sm">
+        {/* Floating particles */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {floatingParticles.map((particle) => (
+            <div
+              key={particle.id}
+              className="absolute rounded-full bg-gradient-to-br from-blue-400/30 to-purple-400/30 animate-float-up blur-[0.5px]"
+              style={{
+                left: `${particle.left}%`,
+                top: `${particle.top}%`,
+                width: `${particle.size}px`,
+                height: `${particle.size}px`,
+                animationDelay: `${particle.delay}s`,
+                animationDuration: `${particle.duration}s`,
+              }}
+            />
+          ))}
+        </div>
+
+        <div className="max-w-2xl w-full mx-4 relative z-10">
+          {/* Modal Title */}
+          <div className="text-center mb-6">
+            <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-2 flex items-center justify-center gap-3">
+              <Sparkles className="h-8 w-8 text-purple-500 animate-pulse" />
+              Generating Your CIM
+              <Sparkles className="h-8 w-8 text-purple-500 animate-pulse" />
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Our AI is crafting your professional Confidential Information Memorandum
+            </p>
+          </div>
+
           {progressContent}
 
           {/* Tips section */}
