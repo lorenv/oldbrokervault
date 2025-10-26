@@ -34,41 +34,41 @@ export function FormattingProfileSelector({
     color: string;
   }> = [
     {
+      profile: 'memo',
+      title: 'Concise Bullet Points',
+      description: 'Quick, scannable format with bullet points and short sentences',
+      features: ['Bullet points', 'Short sentences', 'Numbered lists', 'Bold emphasis'],
+      wordCount: '~800 words',
+      bestFor: 'Quick overviews, executive summaries',
+      icon: ListChecks,
+      color: 'text-emerald-600'
+    },
+    {
       profile: 'balanced',
-      title: 'Balanced',
-      description: 'Mix of paragraphs and lists for comprehensive coverage',
-      features: ['Mixed format', 'Moderate length', 'Lists + paragraphs', 'Clear structure'],
-      wordCount: '800-1200 words',
+      title: 'Standard Mixed Format',
+      description: 'Balanced mix of paragraphs and lists for comprehensive coverage',
+      features: ['Mixed format', 'Lists + paragraphs', 'Clear structure', 'Industry standard'],
+      wordCount: '~1,000 words',
       bestFor: 'General business documents',
       icon: Scale,
       color: 'text-blue-600'
     },
     {
       profile: 'professional',
-      title: 'Professional',
-      description: 'Clean, formal documents with structured paragraphs',
-      features: ['Paragraph format only', 'Minimal formatting', 'Bold for key terms', 'Italic for market terms'],
-      wordCount: '1000-1200 words',
+      title: 'Professional Narrative',
+      description: 'Clean, formal writing with structured paragraphs and minimal formatting',
+      features: ['Paragraph format', 'Flowing narrative', 'Bold for key terms', 'Professional tone'],
+      wordCount: '~1,200 words',
       bestFor: 'Investor presentations, formal CIMs',
       icon: Briefcase,
       color: 'text-indigo-600'
     },
     {
-      profile: 'memo',
-      title: 'Memo Style',
-      description: 'Concise, scannable format with bullet points',
-      features: ['Bullet points', 'Short sentences', 'Numbered lists', 'Bold emphasis'],
-      wordCount: 'Under 800 words',
-      bestFor: 'Quick overviews, executive summaries',
-      icon: ListChecks,
-      color: 'text-emerald-600'
-    },
-    {
       profile: 'robust',
-      title: 'Robust',
-      description: 'Detailed analysis with comprehensive formatting',
+      title: 'Comprehensive Analysis',
+      description: 'Detailed, in-depth analysis with rich formatting and extensive details',
       features: ['Detailed paragraphs', 'Rich formatting', 'Tables supported', 'Comprehensive lists'],
-      wordCount: '1200-1800 words',
+      wordCount: '~1,800 words',
       bestFor: 'Due diligence, detailed analysis',
       icon: FileText,
       color: 'text-purple-600'
@@ -102,7 +102,7 @@ export function FormattingProfileSelector({
           Writing Style
         </Label>
         <p className="text-sm text-muted-foreground">
-          Choose the tone and format for your document.
+          Select how the AI writes your content. This controls the tone, format, and level of detail.
         </p>
       </div>
 
@@ -120,23 +120,25 @@ export function FormattingProfileSelector({
             )}
           </SelectValue>
         </SelectTrigger>
-        <SelectContent className="max-w-md">
-          {profiles.map(({ profile, title, description, features, wordCount, icon: Icon, color }) => (
+        <SelectContent className="max-w-2xl">
+          {profiles.map(({ profile, title, description, features, wordCount, icon: Icon, color }, index) => (
             <SelectItem
               key={profile}
               value={profile}
-              className="py-4 cursor-pointer hover:bg-slate-50 transition-colors"
+              className={`py-4 cursor-pointer hover:bg-slate-50 transition-colors ${
+                index !== profiles.length - 1 ? 'border-b border-slate-200' : ''
+              }`}
             >
-              <div className="flex gap-3">
+              <div className="flex gap-3 w-full">
                 <div className={`flex-shrink-0 ${color}`}>
                   <Icon className="h-5 w-5" />
                 </div>
-                <div className="flex flex-col gap-1.5 flex-1">
+                <div className="flex flex-col gap-1.5 flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-base">{title}</span>
                     <span className="text-xs text-muted-foreground">• {wordCount}</span>
                   </div>
-                  <span className="text-xs text-muted-foreground leading-relaxed">{description}</span>
+                  <span className="text-sm text-muted-foreground leading-relaxed whitespace-normal">{description}</span>
                   <div className="flex flex-wrap gap-1 mt-1">
                     {features.slice(0, 3).map((feature, idx) => (
                       <Badge key={idx} variant="secondary" className="text-[10px] px-1.5 py-0.5 font-normal">

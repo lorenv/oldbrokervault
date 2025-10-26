@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertCimDocumentSchema, DEFAULT_CIM_DIRECTIONS, DEFAULT_ANALYSIS_TEMPLATES, subscriptionPlans } from "@shared/schema";
@@ -67,10 +67,9 @@ const DEFAULT_SECTION_LINES = [
 
 interface CimGeneratorProps {
   onModeChange?: (mode: 'choice' | 'generate' | 'upload') => void;
-  onSidebarChange?: (content: React.ReactNode) => void;
 }
 
-export function CimGenerator({ onModeChange, onSidebarChange }: CimGeneratorProps = {}) {
+export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [cimMode, setCimMode] = useState<'choice' | 'generate' | 'upload'>('choice');
@@ -891,310 +890,29 @@ export function CimGenerator({ onModeChange, onSidebarChange }: CimGeneratorProp
   const hasCoverImage = !!selectedCoverImage;
 
   const transcriptWordCount = form.watch('transcript')?.split(/\s+/).filter(word => word.length > 0).length || 0;
-  const transcriptText = form.watch('transcript') || '';
-
-  // Memoized sidebar content to prevent unnecessary re-renders
-  const sidebarContent = useMemo(() => {
-    if (cimMode !== 'generate' || analysis) return null;
-
-    return (
-      <div className="sticky top-4 space-y-3">
-        {/* Progress Checklist Card */}
-        <Card className="border border-gray-200 shadow-sm bg-gray-50/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-bold text-gray-700 flex items-center gap-2">
-              <svg className="h-4 w-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-              </svg>
-              Progress
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-1.5">
-            {/* Cover Image */}
-            <button
-              type="button"
-              onClick={() => document.getElementById('cover-image-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
-              className="w-full text-left flex items-center gap-2 p-1.5 rounded-lg hover:bg-white transition-colors"
-            >
-              <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
-                hasCoverImage ? 'bg-green-500' : 'bg-gray-300'
-              }`}>
-                {hasCoverImage && <Check className="h-3 w-3 text-white" />}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium ${hasCoverImage ? 'text-gray-900' : 'text-gray-500'}`}>
-                  Cover Image
-                </p>
-                {hasCoverImage && (
-                  <p className="text-xs text-green-600">Added</p>
-                )}
-              </div>
-            </button>
-
-            {/* Document Title */}
-            <button
-              type="button"
-              onClick={() => document.getElementById('document-info-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
-              className="w-full text-left flex items-center gap-2 p-1.5 rounded-lg hover:bg-white transition-colors"
-            >
-              <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
-                hasTitle ? 'bg-green-500' : 'bg-gray-300'
-              }`}>
-                {hasTitle && <Check className="h-3 w-3 text-white" />}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium ${hasTitle ? 'text-gray-900' : 'text-gray-500'}`}>
-                  Document Title
-                </p>
-                {hasTitle && (
-                  <p className="text-xs text-gray-500 truncate">{form.watch('title')}</p>
-                )}
-              </div>
-            </button>
-
-            {/* Website Analysis */}
-            <button
-              type="button"
-              onClick={() => document.getElementById('document-info-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
-              className="w-full text-left flex items-center gap-2 p-1.5 rounded-lg hover:bg-white transition-colors"
-            >
-              <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
-                hasWebsite && enableWebsiteAnalysis ? 'bg-green-500' : 'bg-gray-300'
-              }`}>
-                {hasWebsite && enableWebsiteAnalysis && <Check className="h-3 w-3 text-white" />}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium ${hasWebsite && enableWebsiteAnalysis ? 'text-gray-900' : 'text-gray-500'}`}>
-                  Website Analyzed by AI
-                </p>
-                {hasWebsite && enableWebsiteAnalysis && (
-                  <p className="text-xs text-green-600">Enabled</p>
-                )}
-              </div>
-            </button>
-
-            {/* Business Notes */}
-            <button
-              type="button"
-              onClick={() => document.getElementById('business-notes-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
-              className="w-full text-left flex items-center gap-2 p-1.5 rounded-lg hover:bg-white transition-colors"
-            >
-              <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
-                hasTranscript ? 'bg-green-500' : 'bg-gray-300'
-              }`}>
-                {hasTranscript && <Check className="h-3 w-3 text-white" />}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium ${hasTranscript ? 'text-gray-900' : 'text-gray-500'}`}>
-                  Business Notes
-                </p>
-                {hasTranscript && (
-                  <p className="text-xs text-gray-500">{transcriptWordCount} words</p>
-                )}
-              </div>
-            </button>
-
-            {/* Financial Data */}
-            <button
-              type="button"
-              onClick={() => document.getElementById('financial-info-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
-              className="w-full text-left flex items-center gap-2 p-1.5 rounded-lg hover:bg-white transition-colors"
-            >
-              <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
-                hasFinancials ? 'bg-green-500' : 'bg-gray-300'
-              }`}>
-                {hasFinancials && <Check className="h-3 w-3 text-white" />}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium ${hasFinancials ? 'text-gray-900' : 'text-gray-500'}`}>
-                  Financial Data
-                </p>
-                <p className="text-xs text-gray-500">Optional</p>
-              </div>
-            </button>
-          </CardContent>
-        </Card>
-
-        {/* Separator */}
-        <div className="border-t border-gray-200"></div>
-
-        {/* NDA Protection Card */}
-        <Card className="border border-gray-200 shadow-sm bg-gray-50/50">
-          <CardHeader className="pb-2">
-            <div className="flex items-center gap-2">
-              <Shield className="h-4 w-4 text-purple-600" />
-              <CardTitle className="text-base font-bold text-gray-700">NDA Protection</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="nda-protected-sidebar"
-                checked={ndaSettings.ndaProtected}
-                onCheckedChange={(checked) => {
-                  setNdaSettings(prev => ({ ...prev, ndaProtected: checked }));
-                  if (!checked) {
-                    setNdaSettings(prev => ({ ...prev, ndaTemplateId: null, ndaApprovalRequired: false }));
-                  }
-                }}
-              />
-              <Label htmlFor="nda-protected-sidebar" className="text-sm font-medium cursor-pointer">
-                Enable NDA Protection
-              </Label>
-            </div>
-
-            {ndaSettings.ndaProtected && (
-              <div className="space-y-3 pl-1">
-                <div className="space-y-2">
-                  <Label className="text-xs text-gray-600">NDA Template</Label>
-                  <Select
-                    value={ndaSettings.ndaTemplateId?.toString() || ''}
-                    onValueChange={(value) => {
-                      setNdaSettings(prev => ({ ...prev, ndaTemplateId: value ? parseInt(value) : null }));
-                    }}
-                  >
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Select template" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ndaTemplates.length > 0 ? (
-                        ndaTemplates.map((template: any) => (
-                          <SelectItem key={template.id} value={template.id.toString()}>
-                            {template.name}
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <SelectItem value="" disabled>
-                          {ndaTemplatesLoading ? "Loading..." : "No templates"}
-                        </SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex items-start space-x-2">
-                  <Switch
-                    id="manual-approval-sidebar"
-                    checked={ndaSettings.ndaApprovalRequired}
-                    onCheckedChange={(checked) => {
-                      setNdaSettings(prev => ({ ...prev, ndaApprovalRequired: checked }));
-                    }}
-                    className="mt-1"
-                  />
-                  <div className="space-y-1">
-                    <Label htmlFor="manual-approval-sidebar" className="text-xs font-medium cursor-pointer">
-                      Require Manual Approval
-                    </Label>
-                    <p className="text-xs text-gray-500">
-                      Approve each viewer manually
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Generate Button */}
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="w-full">
-                <Button
-                  type="submit"
-                  form="cim-form"
-                  className={`w-full border-0 shadow-xl h-14 text-lg ${
-                    userLimits && !userLimits.canCreateDocument && !generateMutation.isPending
-                      ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed opacity-50"
-                      : "bg-gradient-to-r from-slate-600 to-blue-600 hover:from-slate-700 hover:to-blue-700"
-                  } text-white`}
-                  disabled={generateMutation.isPending || (userLimits && !userLimits.canCreateDocument)}
-                >
-                  {generateMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="mr-2 h-5 w-5" />
-                      Generate CIM
-                    </>
-                  )}
-                </Button>
-              </div>
-            </TooltipTrigger>
-            {userLimits && !userLimits.canCreateDocument && !generateMutation.isPending && (
-              <TooltipContent>
-                <p>You've reached your monthly limit ({userLimits.documentsCreated}/{userLimits.documentLimit})</p>
-              </TooltipContent>
-            )}
-          </Tooltip>
-        </TooltipProvider>
-
-        {/* Show progress during generation */}
-        {generateMutation.isPending && generationStage && (
-          <div className="p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
-            <div className="text-sm text-blue-600 mb-2 font-medium">
-              Generating your CIM...
-            </div>
-            <CimGenerationProgress
-              stage={generationStage}
-              hasFinancials={hasFinancials}
-              hasLargeContent={(transcriptText?.length || 0) > 4000}
-            />
-          </div>
-        )}
-      </div>
-    );
-  }, [
-    cimMode,
-    analysis,
-    hasCoverImage,
-    hasTitle,
-    hasWebsite,
-    enableWebsiteAnalysis,
-    hasTranscript,
-    transcriptWordCount,
-    hasFinancials,
-    ndaSettings,
-    ndaTemplates,
-    ndaTemplatesLoading,
-    generateMutation.isPending,
-    generationStage,
-    userLimits
-  ]);
-
-  // Pass sidebar content to parent
-  useEffect(() => {
-    onSidebarChange?.(sidebarContent);
-  }, [sidebarContent, onSidebarChange]);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {!analysis && (
-        <div className="flex items-center justify-between gap-4 mb-2">
+        <div className="flex items-center justify-between gap-4">
           <Button
             variant="ghost"
             onClick={() => setCimMode('choice')}
-            className="gap-2 text-slate-600 hover:text-slate-900"
+            className="gap-2"
           >
             ← Back to Options
           </Button>
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-1 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-              New CIM
-            </h1>
-          </div>
-          <div className="w-[160px]"></div> {/* Spacer for centering */}
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+            New CIM
+          </h1>
+          <div className="w-[120px]"></div> {/* Spacer for centering */}
         </div>
       )}
 
       {!analysis ? (
-        <form id="cim-form" onSubmit={form.handleSubmit(handleGenerate)} className="space-y-5">
+        <form onSubmit={form.handleSubmit(handleGenerate)} className="lg:grid lg:grid-cols-12 lg:gap-8 space-y-5 lg:space-y-0 relative">
           {/* Main Form Content */}
-          <div className="space-y-5">
+          <div className="lg:col-span-9 space-y-5">
 
           {/* Cover Image Section - Now at the top */}
           <div id="cover-image-section" className="space-y-0 scroll-mt-8">
@@ -1206,7 +924,7 @@ export function CimGenerator({ onModeChange, onSidebarChange }: CimGeneratorProp
               </div>
               {selectedCoverImage && <Badge variant="secondary" className="bg-white/20 text-white border-white/30">Set</Badge>}
             </div>
-            <div className="p-4 border border-t-0 rounded-b-lg bg-white space-y-4">
+            <div className="p-3 border border-t-0 rounded-b-lg bg-white space-y-4">
               {selectedCoverImage && (
                 <div className="space-y-3">
                   <DraggableImagePositioner
@@ -1341,7 +1059,7 @@ export function CimGenerator({ onModeChange, onSidebarChange }: CimGeneratorProp
               </div>
             </div>
 
-            <div className="space-y-4 p-4 border border-t-0 rounded-b-lg bg-white">
+            <div className="space-y-4 p-3 border border-t-0 rounded-b-lg bg-white">
                   <div>
                     <Input
                       placeholder="Document Title"
@@ -1423,7 +1141,7 @@ export function CimGenerator({ onModeChange, onSidebarChange }: CimGeneratorProp
                   <p className="text-sm text-slate-200">Select images to include in your CIM document</p>
                 </div>
               </div>
-              <div className="p-4 border border-t-0 rounded-b-lg bg-white">
+              <div className="p-3 border border-t-0 rounded-b-lg bg-white">
                 <div className="space-y-3">
                   <div className="text-xs text-muted-foreground">
                     Click to select/deselect images:
@@ -1518,7 +1236,7 @@ export function CimGenerator({ onModeChange, onSidebarChange }: CimGeneratorProp
               </div>
             </div>
 
-            <div className="p-4 border border-t-0 rounded-b-lg bg-white">
+            <div className="p-3 border border-t-0 rounded-b-lg bg-white">
               {/* Upload Progress Indicator */}
               {isUploadingFile && (
                 <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
@@ -1598,7 +1316,7 @@ export function CimGenerator({ onModeChange, onSidebarChange }: CimGeneratorProp
               </div>
             </div>
 
-            <div className="space-y-6 p-4 border border-t-0 rounded-b-lg bg-white">
+            <div className="space-y-6 p-3 border border-t-0 rounded-b-lg bg-white">
                   <div className="grid md:grid-cols-3 gap-4">
                     {/* Asking Price */}
                     <div className="space-y-2">
@@ -1857,41 +1575,283 @@ export function CimGenerator({ onModeChange, onSidebarChange }: CimGeneratorProp
 
               {/* Show progress during generation */}
               {generateMutation.isPending && generationStage && (
-                <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="text-sm text-blue-600 mb-2 font-medium">
-                    Generating your CIM document...
-                  </div>
-                  <CimGenerationProgress
-                    stage={generationStage}
-                    hasFinancials={
-                      financialFiles.length > 0 ||
-                      !!financialData.askingPrice ||
-                      !!financialData.revenue ||
-                      !!financialData.ebitda
-                    }
-                    hasLargeContent={(form.getValues("transcript")?.length || 0) > 4000}
-                  />
-                </div>
+                <CimGenerationProgress
+                  stage={generationStage}
+                  hasFinancials={
+                    financialFiles.length > 0 ||
+                    !!financialData.askingPrice ||
+                    !!financialData.revenue ||
+                    !!financialData.ebitda
+                  }
+                  hasLargeContent={(form.getValues("transcript")?.length || 0) > 4000}
+                  showAsModal={true}
+                />
               )}
           </div>
+          </div>
+
+          {/* Sticky Summary Sidebar - Desktop Only */}
+          <div className="hidden lg:block lg:col-span-3">
+            <div className="sticky top-4 space-y-3">
+              {/* Progress Checklist Card */}
+              <Card className="border border-slate-100 shadow-none bg-white/50 backdrop-blur-sm">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold text-slate-500 flex items-center gap-2">
+                    <svg className="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    </svg>
+                    Progress
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1.5">
+                  {/* Cover Image */}
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById('cover-image-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                    className="w-full text-left flex items-center gap-2 p-1.5 rounded-lg hover:bg-white transition-colors"
+                  >
+                    <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
+                      hasCoverImage ? 'bg-green-500' : 'bg-gray-300'
+                    }`}>
+                      {hasCoverImage && <Check className="h-3 w-3 text-white" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium ${hasCoverImage ? 'text-gray-900' : 'text-gray-500'}`}>
+                        Cover Image
+                      </p>
+                      {hasCoverImage && (
+                        <p className="text-xs text-green-600">Added</p>
+                      )}
+                    </div>
+                  </button>
+
+                  {/* Document Title */}
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById('document-info-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                    className="w-full text-left flex items-center gap-2 p-1.5 rounded-lg hover:bg-white transition-colors"
+                  >
+                    <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
+                      hasTitle ? 'bg-green-500' : 'bg-gray-300'
+                    }`}>
+                      {hasTitle && <Check className="h-3 w-3 text-white" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium ${hasTitle ? 'text-gray-900' : 'text-gray-500'}`}>
+                        Document Title
+                      </p>
+                      {hasTitle && (
+                        <p className="text-xs text-gray-500 truncate">{form.watch('title')}</p>
+                      )}
+                    </div>
+                  </button>
+
+                  {/* Website Analysis */}
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById('document-info-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                    className="w-full text-left flex items-center gap-2 p-1.5 rounded-lg hover:bg-white transition-colors"
+                  >
+                    <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
+                      hasWebsite && enableWebsiteAnalysis ? 'bg-green-500' : 'bg-gray-300'
+                    }`}>
+                      {hasWebsite && enableWebsiteAnalysis && <Check className="h-3 w-3 text-white" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium ${hasWebsite && enableWebsiteAnalysis ? 'text-gray-900' : 'text-gray-500'}`}>
+                        Website Analyzed by AI
+                      </p>
+                      {hasWebsite && enableWebsiteAnalysis && (
+                        <p className="text-xs text-green-600">Enabled</p>
+                      )}
+                    </div>
+                  </button>
+
+                  {/* Business Notes */}
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById('business-notes-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                    className="w-full text-left flex items-center gap-2 p-1.5 rounded-lg hover:bg-white transition-colors"
+                  >
+                    <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
+                      hasTranscript ? 'bg-green-500' : 'bg-gray-300'
+                    }`}>
+                      {hasTranscript && <Check className="h-3 w-3 text-white" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium ${hasTranscript ? 'text-gray-900' : 'text-gray-500'}`}>
+                        Business Notes
+                      </p>
+                      {hasTranscript && (
+                        <p className="text-xs text-gray-500">{transcriptWordCount} words</p>
+                      )}
+                    </div>
+                  </button>
+
+                  {/* Financial Data */}
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById('financial-info-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                    className="w-full text-left flex items-center gap-2 p-1.5 rounded-lg hover:bg-white transition-colors"
+                  >
+                    <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
+                      hasFinancials ? 'bg-green-500' : 'bg-gray-300'
+                    }`}>
+                      {hasFinancials && <Check className="h-3 w-3 text-white" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium ${hasFinancials ? 'text-gray-900' : 'text-gray-500'}`}>
+                        Financial Data
+                      </p>
+                      <p className="text-xs text-gray-500">Optional</p>
+                    </div>
+                  </button>
+                </CardContent>
+              </Card>
+
+              {/* Separator */}
+              <div className="border-t border-slate-100"></div>
+
+              {/* NDA Protection Card */}
+              <Card className="border border-slate-100 shadow-none bg-white/50 backdrop-blur-sm">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-slate-400" />
+                    <CardTitle className="text-sm font-semibold text-slate-500">NDA Protection</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="nda-protected-sidebar"
+                      checked={ndaSettings.ndaProtected}
+                      onCheckedChange={(checked) => {
+                        setNdaSettings(prev => ({ ...prev, ndaProtected: checked }));
+                        if (!checked) {
+                          setNdaSettings(prev => ({ ...prev, ndaTemplateId: null, ndaApprovalRequired: false }));
+                        }
+                      }}
+                    />
+                    <Label htmlFor="nda-protected-sidebar" className="text-sm font-medium cursor-pointer">
+                      Enable NDA Protection
+                    </Label>
+                  </div>
+
+                  {ndaSettings.ndaProtected && (
+                    <div className="space-y-3 pl-1">
+                      <div className="space-y-2">
+                        <Label className="text-xs text-gray-600">NDA Template</Label>
+                        <Select
+                          value={ndaSettings.ndaTemplateId?.toString() || ''}
+                          onValueChange={(value) => {
+                            setNdaSettings(prev => ({ ...prev, ndaTemplateId: value ? parseInt(value) : null }));
+                          }}
+                        >
+                          <SelectTrigger className="h-9">
+                            <SelectValue placeholder="Select template" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ndaTemplates.length > 0 ? (
+                              ndaTemplates.map((template: any) => (
+                                <SelectItem key={template.id} value={template.id.toString()}>
+                                  {template.name}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <SelectItem value="" disabled>
+                                {ndaTemplatesLoading ? "Loading..." : "No templates"}
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="flex items-start space-x-2">
+                        <Switch
+                          id="manual-approval-sidebar"
+                          checked={ndaSettings.ndaApprovalRequired}
+                          onCheckedChange={(checked) => {
+                            setNdaSettings(prev => ({ ...prev, ndaApprovalRequired: checked }));
+                          }}
+                          className="mt-1"
+                        />
+                        <div className="space-y-1">
+                          <Label htmlFor="manual-approval-sidebar" className="text-xs font-medium cursor-pointer">
+                            Require Manual Approval
+                          </Label>
+                          <p className="text-xs text-gray-500">
+                            Approve each viewer manually
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Generate Button */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="w-full">
+                      <Button
+                        type="submit"
+                        className={`w-full border-0 shadow-xl h-14 text-lg ${
+                          userLimits && !userLimits.canCreateDocument && !generateMutation.isPending
+                            ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed opacity-50"
+                            : "bg-gradient-to-r from-slate-600 to-blue-600 hover:from-slate-700 hover:to-blue-700"
+                        } text-white`}
+                        disabled={generateMutation.isPending || (userLimits && !userLimits.canCreateDocument)}
+                      >
+                        {generateMutation.isPending ? (
+                          <>
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Zap className="mr-2 h-5 w-5" />
+                            Generate CIM
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </TooltipTrigger>
+                  {userLimits && !userLimits.canCreateDocument && !generateMutation.isPending && (
+                    <TooltipContent>
+                      <p>You've reached your monthly limit ({userLimits.documentsCreated}/{userLimits.documentLimit})</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
+
+              {/* Show progress during generation */}
+              {generateMutation.isPending && generationStage && (
+                <CimGenerationProgress
+                  stage={generationStage}
+                  hasFinancials={hasFinancials}
+                  hasLargeContent={(form.getValues("transcript")?.length || 0) > 4000}
+                  showAsModal={true}
+                />
+              )}
+            </div>
           </div>
         </form>
       ) : (
         <div className="space-y-6">
           {/* Show progress when generating */}
           {generationStage && (
-            <div className="mb-6">
-              <CimGenerationProgress
-                stage={generationStage}
-                hasFinancials={
-                  financialFiles.length > 0 || 
-                  !!financialData.askingPrice || 
-                  !!financialData.revenue || 
-                  !!financialData.ebitda
-                }
-                hasLargeContent={(form.getValues("transcript")?.length || 0) > 4000}
-              />
-            </div>
+            <CimGenerationProgress
+              stage={generationStage}
+              hasFinancials={
+                financialFiles.length > 0 ||
+                !!financialData.askingPrice ||
+                !!financialData.revenue ||
+                !!financialData.ebitda
+              }
+              hasLargeContent={(form.getValues("transcript")?.length || 0) > 4000}
+              showAsModal={true}
+            />
           )}
 
           <div className="flex items-center justify-between">

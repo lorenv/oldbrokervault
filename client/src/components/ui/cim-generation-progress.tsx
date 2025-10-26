@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, CheckCircle, FileText, Zap, Upload, Database, Sparkles } from "lucide-react";
+import { Loader2, CheckCircle, FileText, Zap, Upload, Database, Sparkles, Lightbulb } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
 export type CimGenerationStage = 
@@ -16,7 +16,26 @@ type CimGenerationProgressProps = {
   stage: CimGenerationStage;
   hasFinancials?: boolean;
   hasLargeContent?: boolean;
+  showAsModal?: boolean;
 };
+
+const HELPFUL_TIPS = [
+  "A strong executive summary can make or break a CIM. Keep it concise but compelling.",
+  "Include specific financial metrics and growth trends to demonstrate business value.",
+  "Use clear, jargon-free language that both industry insiders and outsiders can understand.",
+  "Quality photos and professional formatting increase perceived business value by up to 30%.",
+  "Always highlight unique selling propositions and competitive advantages early in the document.",
+  "Business brokers who respond to inquiries within 1 hour are 7x more likely to convert leads.",
+  "The best CIMs tell a story - connect the numbers to the narrative of business growth.",
+  "Include customer testimonials or case studies when possible to build credibility.",
+  "Address potential buyer concerns proactively rather than waiting for due diligence.",
+  "Market comparable sales data strengthens your asking price justification.",
+  "Professional NDAs protect both seller and buyer - never skip this step.",
+  "Organize financial data chronologically to show clear trends and patterns.",
+  "Successful brokers maintain relationships with buyers even after deals close.",
+  "Use data visualization for complex financial information - charts speak louder than tables.",
+  "The first page sets the tone - make sure it captures attention immediately.",
+];
 
 const stageConfig = {
   initializing: {
@@ -61,13 +80,26 @@ const stageConfig = {
   }
 };
 
-export function CimGenerationProgress({ 
-  stage, 
+export function CimGenerationProgress({
+  stage,
   hasFinancials = false,
-  hasLargeContent = false 
+  hasLargeContent = false,
+  showAsModal = false
 }: CimGenerationProgressProps) {
   const [currentProgress, setCurrentProgress] = useState(0);
+  const [currentTipIndex, setCurrentTipIndex] = useState(0);
   const targetProgress = stageConfig[stage].progress;
+
+  // Rotate tips every 20 seconds
+  useEffect(() => {
+    if (!showAsModal) return;
+
+    const tipInterval = setInterval(() => {
+      setCurrentTipIndex((prev) => (prev + 1) % HELPFUL_TIPS.length);
+    }, 20000);
+
+    return () => clearInterval(tipInterval);
+  }, [showAsModal]);
   
   // Smooth progress animation with faster completion for final stages
   useEffect(() => {
@@ -131,28 +163,8 @@ export function CimGenerationProgress({
     }
   };
 
-  if (stage === "complete") {
-    return (
-      <div className="flex flex-col items-center w-full space-y-4 p-6 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
-        <CheckCircle className="h-12 w-12 text-green-600 dark:text-green-400" />
-        <div className="text-center">
-          <h3 className="text-lg font-semibold text-green-700 dark:text-green-300">
-            CIM Generation Complete!
-          </h3>
-          <p className="text-sm text-green-600 dark:text-green-400 mt-1">
-            Your confidential information memorandum has been successfully created.
-          </p>
-          <div className="flex items-center justify-center mt-3 text-sm text-green-600 dark:text-green-400">
-            <div className="animate-spin rounded-full h-4 w-4 border-2 border-green-600 border-t-transparent mr-2"></div>
-            <span>Redirecting to edit interface...</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col w-full space-y-4 p-6 bg-card border rounded-lg">
+  const progressContent = (
+    <div className="flex flex-col w-full space-y-4 p-6 bg-white dark:bg-card border rounded-lg shadow-xl">
       {/* Main progress indicator */}
       <div className="flex items-center space-x-3">
         <CurrentIcon className="h-6 w-6 text-primary animate-pulse" />
@@ -246,4 +258,34 @@ export function CimGenerationProgress({
       )}
     </div>
   );
+
+  // Render as modal with darkened background
+  if (showAsModal) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div className="max-w-2xl w-full mx-4">
+          {progressContent}
+
+          {/* Tips section */}
+          <div className="mt-4 p-4 bg-white dark:bg-card rounded-lg border border-blue-200 dark:border-blue-800 shadow-lg">
+            <div className="flex items-start gap-3">
+              <Lightbulb className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Pro Tip</p>
+                <p
+                  key={currentTipIndex}
+                  className="text-sm text-gray-600 dark:text-gray-400 mt-1 animate-in fade-in duration-700"
+                >
+                  {HELPFUL_TIPS[currentTipIndex]}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Render inline
+  return progressContent;
 }

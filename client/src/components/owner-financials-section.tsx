@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Upload, FileText, X, Download, CheckCircle, Loader2, BarChart3, DollarSign, TrendingUp, Banknote } from "lucide-react";
+import { Upload, FileText, X, Download, CheckCircle, Loader2, BarChart3, DollarSign, TrendingUp, Banknote, Trash2 } from "lucide-react";
 import { useCimDocument, useFinancialFiles } from "@/hooks/use-cim-document";
 
 interface Financials {
@@ -470,11 +470,12 @@ export function OwnerFinancialsSection({ docId, cimDocument: propCimDocument }: 
                     
                     <Button
                       size="sm"
+                      variant="ghost"
                       onClick={() => deleteFileMutation.mutate(file.id)}
                       disabled={deleteFileMutation.isPending}
-                      className="h-7 w-7 p-0 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-sm hover:shadow-md transition-all flex-shrink-0 ml-2"
+                      className="h-7 w-7 p-0 text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors flex-shrink-0 ml-2"
                     >
-                      <X className="h-3 w-3" />
+                      <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 ))}
