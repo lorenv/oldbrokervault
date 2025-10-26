@@ -449,27 +449,37 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
     mutationFn: async (data: FormValues) => {
       console.log('🚀 MUTATION STARTED - Form data:', data);
       console.log('🚀 NDA Settings at mutation start:', ndaSettings);
-      
+
       // Initialize progress tracking
       setGenerationStage("initializing");
       setProgressStartTime(Date.now());
 
       // Determine content characteristics for progress estimation
-      const hasFinancials = financialFiles.length > 0 || 
-        financialData.askingPrice || 
-        financialData.revenue || 
+      const hasFinancials = financialFiles.length > 0 ||
+        financialData.askingPrice ||
+        financialData.revenue ||
         financialData.ebitda;
       const hasLargeContent = data.transcript.length > 4000;
 
       // Set up website analysis tracking
       const hasWebsiteUrl = !!data.websiteUrl?.trim();
 
-      // Stage 2: Processing transcript
-      setTimeout(() => setGenerationStage("processing_transcript"), 500);
-      
-      // Stage 3: Website analysis (if enabled)
+      // Start stage progression timers immediately (run independently while API works)
+      // Stage 2: Processing transcript (3 second delay)
+      setTimeout(() => setGenerationStage("processing_transcript"), 3000);
+
+      // Stage 3: Website analysis (if enabled, 6 second delay, otherwise skip to analyzing_content at 6 seconds)
       if (data.websiteUrl?.trim() && enableWebsiteAnalysis) {
-        setTimeout(() => setGenerationStage("analyzing_website"), 1000);
+        setTimeout(() => setGenerationStage("analyzing_website"), 6000);
+        // Stage 4: Analyzing content (9 seconds)
+        setTimeout(() => setGenerationStage("analyzing_content"), 9000);
+        // Stage 5: Generating document (12 seconds)
+        setTimeout(() => setGenerationStage("generating_document"), 12000);
+      } else {
+        // Stage 4: Analyzing content (6 seconds - no website)
+        setTimeout(() => setGenerationStage("analyzing_content"), 6000);
+        // Stage 5: Generating document (9 seconds - no website)
+        setTimeout(() => setGenerationStage("generating_document"), 9000);
       }
 
       if (data.transcript.length > 4000 || financialFiles.length > 0) {
@@ -537,14 +547,7 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
         formData.append('ndaSettings', JSON.stringify(ndaSettings));
 
         try {
-          // Stage 4: Analyzing content
-          const contentStageDelay = (data.websiteUrl?.trim() && enableWebsiteAnalysis) ? 1500 : 1000;
-          setTimeout(() => setGenerationStage("analyzing_content"), contentStageDelay);
-
-          // Stage 5: Generating document (before API call)
-          const documentStageDelay = (data.websiteUrl?.trim() && enableWebsiteAnalysis) ? 2500 : 2000;
-          setTimeout(() => setGenerationStage("generating_document"), documentStageDelay);
-
+          // Start API call immediately (runs in background while stage timers progress)
           const res = await fetch('/api/cim/upload', {
             method: 'POST',
             body: formData,
@@ -555,15 +558,6 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
             const error = await res.json();
             throw new Error(error.error || "Failed to generate CIM");
           }
-
-          // Smooth completion sequence after AI response received
-          // Stage 5: Processing financials (quick transition to show progress)
-          setGenerationStage("processing_financials");
-          await new Promise(resolve => setTimeout(resolve, 400));
-          
-          // Stage 6: Finalizing (another quick visual update)
-          setGenerationStage("finalizing");
-          await new Promise(resolve => setTimeout(resolve, 300));
 
           return res.json();
         } catch (error) {
@@ -598,14 +592,6 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
         console.log("Payload size:", JSON.stringify(payload).length);
 
         try {
-          // Stage 4: Analyzing content
-          const contentStageDelay = (data.websiteUrl?.trim() && enableWebsiteAnalysis) ? 1500 : 1000;
-          setTimeout(() => setGenerationStage("analyzing_content"), contentStageDelay);
-
-          // Stage 5: Generating document (before API call)
-          const documentStageDelay = (data.websiteUrl?.trim() && enableWebsiteAnalysis) ? 2500 : 2000;
-          setTimeout(() => setGenerationStage("generating_document"), documentStageDelay);
-
           // Include formatting parameters and section directions in payload
           const enhancedPayload = {
             ...payload,
@@ -616,18 +602,9 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
             audience: data.audience || "investors",
             ndaSettings
           };
-          
-          
-          const response = await apiRequest("POST", "/api/cim/generate", { body: enhancedPayload });
 
-          // Smooth completion sequence after AI response received
-          // Stage 5: Processing financials (quick transition to show progress)
-          setGenerationStage("processing_financials");
-          await new Promise(resolve => setTimeout(resolve, 400));
-          
-          // Stage 6: Finalizing (another quick visual update)
-          setGenerationStage("finalizing");
-          await new Promise(resolve => setTimeout(resolve, 300));
+          // Start API call immediately (runs in background while stage timers progress)
+          const response = await apiRequest("POST", "/api/cim/generate", { body: enhancedPayload });
 
           return response.json();
         } catch (error) {
@@ -636,8 +613,7 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
         }
       }
     },
-    onSuccess: (result) => {
-      
+    onSuccess: async (result) => {
       // Store in session storage so we can check after redirect
       if (result.id) {
         sessionStorage.setItem(`doc_${result.id}_nda`, JSON.stringify({
@@ -647,56 +623,27 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
           timestamp: new Date().toISOString()
         }));
       }
-      
-      // Final completion stage for visual satisfaction
+
+      // API has completed - now smoothly transition through final stages
+      setGenerationStage("processing_financials");
+      await new Promise(resolve => setTimeout(resolve, 400));
+
+      setGenerationStage("finalizing");
+      await new Promise(resolve => setTimeout(resolve, 400));
+
+      // Show completion stage with checkmark animation
       setGenerationStage("complete");
-      
-      // Reset progress after a brief moment to show completion
-      setTimeout(() => {
-        setGenerationStage(null);
-        setProgressStartTime(null);
-      }, 300);
-
-      // Show remaining stages quickly for visual completion
-      const hasFinancials = financialFiles.length > 0 || 
-        !!financialData.askingPrice || 
-        !!financialData.revenue || 
-        !!financialData.ebitda;
-
-      if (hasFinancials) {
-        // Already handled in the API call completion sequence
-        setGenerationStage("processing_financials");
-        setTimeout(() => {
-          setGenerationStage("finalizing");
-          setTimeout(() => {
-            setGenerationStage("complete");
-            setWebsiteAnalysisStage(null);
-          }, 300); // Quick 300ms to show finalizing
-        }, 400); // Quick 400ms to show processing_financials
-      } else {
-        // Skip to finalizing then complete
-        setGenerationStage("finalizing");
-        setTimeout(() => {
-          setGenerationStage("complete");
-          setWebsiteAnalysisStage(null);
-        }, 400); // Quick 400ms to show finalizing
-      }
-
-      toast({
-        title: "CIM Generated Successfully",
-        description: "Your document has been created successfully! Redirecting you to the editor...",
-      });
+      setWebsiteAnalysisStage(null);
 
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/recent"] });
-      // Invalidate the specific document query to ensure fresh data when navigating
       queryClient.invalidateQueries({ queryKey: [`/api/cim/${result.id}`] });
 
-      // Show completion for a moment, then redirect with first-time parameter
+      // Wait for celebration animation to show (600ms to reach, then 2s to display), then redirect
       setTimeout(() => {
         setGenerationStage(null);
         setProgressStartTime(null);
         window.location.assign(`/documents/${result.id}?tab=edit&first-time=true`);
-      }, 2500); // Slightly longer to accommodate the quick completion sequence
+      }, 2600); // 600ms to show progress at 100% + 2000ms to display celebration
     },
     onError: (error) => {
       // Reset progress state on error
@@ -1573,8 +1520,8 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
             </Tooltip>
           </TooltipProvider>
 
-              {/* Show progress during generation */}
-              {generateMutation.isPending && generationStage && (
+              {/* Show progress during generation and completion */}
+              {generationStage && (
                 <CimGenerationProgress
                   stage={generationStage}
                   hasFinancials={
@@ -1825,8 +1772,8 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
                 </Tooltip>
               </TooltipProvider>
 
-              {/* Show progress during generation */}
-              {generateMutation.isPending && generationStage && (
+              {/* Show progress during generation and completion */}
+              {generationStage && (
                 <CimGenerationProgress
                   stage={generationStage}
                   hasFinancials={hasFinancials}

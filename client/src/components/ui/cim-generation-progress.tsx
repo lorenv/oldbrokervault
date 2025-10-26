@@ -94,6 +94,7 @@ export function CimGenerationProgress({
 }: CimGenerationProgressProps) {
   const [currentProgress, setCurrentProgress] = useState(0);
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
+  const [showCelebration, setShowCelebration] = useState(false);
   const targetProgress = stageConfig[stage].progress;
 
   // Rotate tips every 20 seconds
@@ -106,6 +107,18 @@ export function CimGenerationProgress({
 
     return () => clearInterval(tipInterval);
   }, [showAsModal]);
+
+  // When we reach complete stage, wait for progress bar to hit 100%, then show celebration
+  useEffect(() => {
+    if (stage === "complete" && currentProgress >= 99 && !showCelebration) {
+      // Give a moment to see the progress at 100%, then show celebration
+      const timer = setTimeout(() => {
+        setShowCelebration(true);
+      }, 600); // 600ms delay to see the progress bar at 100%
+
+      return () => clearTimeout(timer);
+    }
+  }, [stage, currentProgress, showCelebration]);
   
   // Smooth progress animation with faster completion for final stages
   useEffect(() => {
@@ -160,27 +173,6 @@ export function CimGenerationProgress({
   const currentStageIndex = relevantStages.indexOf(stage);
   const CurrentIcon = stageConfig[stage].icon;
 
-  const getEstimatedTime = (): string => {
-    switch (stage) {
-      case "initializing":
-        return "5-10 seconds";
-      case "processing_transcript":
-        return hasLargeContent ? "15-30 seconds" : "10-20 seconds";
-      case "analyzing_content":
-        return "20-40 seconds";
-      case "generating_document":
-        return "30-60 seconds";
-      case "processing_financials":
-        return "10-20 seconds";
-      case "finalizing":
-        return "5-15 seconds";
-      case "complete":
-        return "Complete";
-      default:
-        return "Processing";
-    }
-  };
-
   const progressContent = (
     <div className="flex flex-col w-full space-y-4 p-6 bg-white dark:bg-card border rounded-lg shadow-xl">
       {/* Main progress indicator */}
@@ -197,11 +189,6 @@ export function CimGenerationProgress({
           </div>
           <Progress value={currentProgress} className="h-2" />
         </div>
-      </div>
-
-      {/* Estimated time */}
-      <div className="text-xs text-muted-foreground text-center">
-        Estimated time: {getEstimatedTime()}
       </div>
 
       {/* Stage breakdown */}
@@ -279,6 +266,58 @@ export function CimGenerationProgress({
 
   // Render as modal with light background and floating particles
   if (showAsModal) {
+    // Completion state - show animated checkmark (only after progress reaches 100%)
+    if (stage === "complete" && showCelebration) {
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-50/95 via-purple-50/95 to-pink-50/95 backdrop-blur-sm">
+          {/* Floating particles */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            {floatingParticles.map((particle) => (
+              <div
+                key={particle.id}
+                className="absolute rounded-full bg-gradient-to-br from-blue-400/30 to-purple-400/30 animate-float-up blur-[0.5px]"
+                style={{
+                  left: `${particle.left}%`,
+                  top: `${particle.top}%`,
+                  width: `${particle.size}px`,
+                  height: `${particle.size}px`,
+                  animationDelay: `${particle.delay}s`,
+                  animationDuration: `${particle.duration}s`,
+                }}
+              />
+            ))}
+          </div>
+
+          <div className="max-w-2xl w-full mx-4 relative z-10">
+            <div className="text-center space-y-6 bg-white dark:bg-card border rounded-lg shadow-xl p-12 animate-in fade-in duration-300">
+              {/* Animated Checkmark */}
+              <div className="flex justify-center">
+                <div className="relative w-24 h-24">
+                  {/* Background circle with scale animation */}
+                  <div className="absolute inset-0 w-24 h-24 bg-green-500 rounded-full flex items-center justify-center animate-in zoom-in duration-500 fill-mode-both">
+                    <CheckCircle className="h-16 w-16 text-white" />
+                  </div>
+                  {/* Pulsing ring effect - runs continuously after initial animation */}
+                  <div className="absolute inset-0 w-24 h-24 bg-green-500 rounded-full opacity-20" style={{ animation: 'ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite 0.5s' }}></div>
+                </div>
+              </div>
+
+              {/* Completion Text */}
+              <div className="space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300 fill-mode-both">
+                <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100">
+                  CIM Complete!
+                </h2>
+                <p className="text-lg text-gray-600 dark:text-gray-400">
+                  Redirecting you...
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Normal progress state
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-50/95 via-purple-50/95 to-pink-50/95 backdrop-blur-sm">
         {/* Floating particles */}
