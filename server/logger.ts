@@ -42,25 +42,53 @@ class Logger {
 
   private sanitizeData(data: any): any {
     if (!data) return data;
-    
-    // Deep clone to avoid modifying original object
-    const sanitized = JSON.parse(JSON.stringify(data));
-    
-    // Recursively sanitize sensitive fields
+
+    // Handle circular references and Error objects
+    const seen = new WeakSet();
+
     const sanitizeObject = (obj: any): any => {
-      if (typeof obj !== 'object' || obj === null) return obj;
-      
+      if (obj === null || typeof obj !== 'object') return obj;
+
+      // Handle Error objects specially
+      if (obj instanceof Error) {
+        return {
+          message: obj.message,
+          name: obj.name,
+          stack: obj.stack
+        };
+      }
+
+      // Detect circular references
+      if (seen.has(obj)) {
+        return '[Circular]';
+      }
+      seen.add(obj);
+
+      // Handle arrays
+      if (Array.isArray(obj)) {
+        return obj.map(item => sanitizeObject(item));
+      }
+
+      // Handle objects
+      const result: any = {};
       for (const key in obj) {
-        if (typeof obj[key] === 'object' && obj[key] !== null) {
-          obj[key] = sanitizeObject(obj[key]);
-        } else if (this.isSensitiveField(key)) {
-          obj[key] = '[REDACTED]';
+        if (obj.hasOwnProperty(key)) {
+          if (this.isSensitiveField(key)) {
+            result[key] = '[REDACTED]';
+          } else {
+            try {
+              result[key] = sanitizeObject(obj[key]);
+            } catch (e) {
+              result[key] = '[Error sanitizing]';
+            }
+          }
         }
       }
-      return obj;
+
+      return result;
     };
-    
-    return sanitizeObject(sanitized);
+
+    return sanitizeObject(data);
   }
 
   private isSensitiveField(key: string): boolean {

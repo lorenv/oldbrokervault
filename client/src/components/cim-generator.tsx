@@ -894,7 +894,7 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {!analysis && (
-        <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between gap-4">
           <Button
             variant="ghost"
             onClick={() => setCimMode('choice')}
@@ -902,6 +902,8 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
           >
             ← Back to Options
           </Button>
+          <h1 className="text-3xl font-bold text-gray-900">New CIM</h1>
+          <div className="w-[120px]"></div> {/* Spacer for centering */}
         </div>
       )}
 

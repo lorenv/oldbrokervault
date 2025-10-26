@@ -50,20 +50,22 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
       {/* Get Started Checklist moved to App.tsx for global visibility */}
-      {/* Welcome Header */}
-      <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 border-b border-slate-200 shadow-lg">
-        <div className="container mx-auto px-4 py-12">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-bold text-white mb-3">
-                {welcomeMessage}
-              </h1>
-              <p className="text-slate-200 text-lg font-medium">Create professional CIM documents with AI-powered analysis</p>
+      {/* Welcome Header - Only show when in 'choice' mode */}
+      {cimMode === 'choice' && (
+        <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 border-b border-slate-200 shadow-lg">
+          <div className="container mx-auto px-4 py-12">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-4xl font-bold text-white mb-3">
+                  {welcomeMessage}
+                </h1>
+                <p className="text-slate-200 text-lg font-medium">Create professional CIM documents with AI-powered analysis</p>
+              </div>
+
             </div>
-            
           </div>
         </div>
-      </div>
+      )}
 
       <main className="container mx-auto px-2 lg:px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-4">
