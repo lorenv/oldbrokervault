@@ -121,11 +121,13 @@ export function FormattingProfileSelector({
           </SelectValue>
         </SelectTrigger>
         <SelectContent className="max-w-2xl">
-          {profiles.map(({ profile, title, description, features, wordCount, icon: Icon, color }) => (
+          {profiles.map(({ profile, title, description, features, wordCount, icon: Icon, color }, index) => (
             <SelectItem
               key={profile}
               value={profile}
-              className="py-4 cursor-pointer hover:bg-slate-50 transition-colors"
+              className={`py-4 cursor-pointer hover:bg-slate-50 transition-colors ${
+                index !== profiles.length - 1 ? 'border-b border-slate-200' : ''
+              }`}
             >
               <div className="flex gap-3 w-full">
                 <div className={`flex-shrink-0 ${color}`}>
