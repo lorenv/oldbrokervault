@@ -15,7 +15,6 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const [cimMode, setCimMode] = useState<'choice' | 'generate' | 'upload'>('choice');
   const [, setLocation] = useLocation();
-  const [generatorSidebar, setGeneratorSidebar] = useState<React.ReactNode>(null);
 
   // Removed guided tour - now using get started checklist instead
   const { data: documentsResponse, isLoading: documentsLoading } = useQuery({
@@ -71,22 +70,13 @@ export default function DashboardPage() {
       <main className="container mx-auto px-2 lg:px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-6">
           {/* Main Content Area */}
-          <div className={`transition-all duration-[2000ms] ease-in-out ${
-            cimMode === 'choice' ? 'lg:col-span-9' : (generatorSidebar ? 'lg:col-span-9' : 'lg:col-span-12')
-          }`}>
+          <div className={cimMode === 'choice' ? 'lg:col-span-9' : 'lg:col-span-12'}>
             <div className="bg-white rounded-xl shadow-xl border-2 border-blue-100 ring-2 ring-blue-50">
               <div className="p-3 lg:p-4">
-                <CimGenerator onModeChange={setCimMode} onSidebarChange={setGeneratorSidebar} />
+                <CimGenerator onModeChange={setCimMode} />
               </div>
             </div>
           </div>
-
-          {/* Generator Sidebar - Outside container */}
-          {generatorSidebar && (
-            <div className="hidden lg:block lg:col-span-3">
-              {generatorSidebar}
-            </div>
-          )}
 
           {/* Sidebar - Only show when in 'choice' mode */}
           <div className={`lg:col-span-3 transition-all duration-[2000ms] ease-in-out ${

@@ -864,17 +864,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("Password authentication successful");
       }
 
+      // Check if the current user is the document owner (before view tracking and NDA checks)
+      const isOwner = req.isAuthenticated() && req.user && req.user.id === cimDoc.userId;
+
       // PERFORMANCE OPTIMIZATION 2: Async view tracking (non-blocking)
       console.log("Starting async view tracking for document:", cimDoc.id);
-      
+
       const viewTrackingPromise = (async () => {
         try {
           const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
           const userAgent = req.get('User-Agent') || 'unknown';
-          
-          // Check if the current user is the document owner
-          const isOwner = req.isAuthenticated() && req.user && req.user.id === cimDoc.userId;
-          
+
           if (isOwner) {
             // Track owner view but don't increment general view count to avoid inflating analytics
             console.log("Tracking document owner view (skipping to avoid inflating analytics)");
@@ -910,15 +910,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // PERFORMANCE OPTIMIZATION 3: Parallel data fetching with timeout protection
       const dataFetchStart = Date.now();
       let userProfile, customSections, ndaApprovalStatus;
-      
+
       try {
         [userProfile, customSections, ndaApprovalStatus] = await Promise.all([
           storage.getUser(cimDoc.userId),
           storage.getCustomSections(cimDoc.id),
         // NDA approval check as async operation
         (async () => {
+          // Skip NDA approval requirement for document owners
+          if (isOwner) {
+            return null;
+          }
+
           if (!cimDoc.ndaProtected || !cimDoc.ndaApprovalRequired) return null;
-          
+
           if (token) {
             try {
               const accessToken = await storage.getNdaAccessToken(token as string);
@@ -938,7 +943,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               console.error('NDA approval check error:', error);
             }
           }
-          
+
           return {
             requiresApproval: true,
             isApproved: false,
@@ -1040,8 +1045,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("Total optimized response time:", Date.now() - startTime + "ms");
 
-      // Check if the current user is the document owner or collaborator
-      const isOwner = req.isAuthenticated() && req.user && req.user.id === cimDoc.userId;
+      // Check if the current user is a collaborator (isOwner already computed earlier)
       let isCollaborator = false;
       if (req.isAuthenticated() && req.user && !isOwner) {
         const collaboration = await storage.getUserCollaboration(cimDoc.id, req.user.id);

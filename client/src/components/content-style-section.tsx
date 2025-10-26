@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Plus, X, Settings2, Save, FolderOpen, Trash2 } from "lucide-react";
+import { Plus, X, Settings2, Save, FolderOpen, Trash2, Edit2 } from "lucide-react";
 import { FormattingProfileSelector } from "./formatting-profile-selector";
 import type { FormattingProfile } from "@shared/formatting-config";
 import { useToast } from "@/hooks/use-toast";
@@ -59,6 +59,7 @@ export function ContentStyleSection({
   const [loadDialogOpen, setLoadDialogOpen] = useState(false);
   const [templateName, setTemplateName] = useState("");
   const [setAsDefault, setSetAsDefault] = useState(false);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
   // Fetch user's content style templates
   const { data: templates = [], refetch: refetchTemplates } = useQuery<ContentStyleTemplate[]>({
@@ -181,7 +182,7 @@ export function ContentStyleSection({
           <Settings2 className="h-5 w-5" />
           <div>
             <h3 className="font-semibold">Content & Style</h3>
-            <p className="text-sm text-slate-200">Customize your CIM structure and formatting</p>
+            <p className="text-sm text-slate-200">Customize which sections to include and how the AI writes your content</p>
           </div>
         </div>
         
@@ -298,7 +299,7 @@ export function ContentStyleSection({
         </div>
       </div>
 
-      <div className="space-y-6 p-4 border border-t-0 rounded-b-lg bg-white">
+      <div className="space-y-6 p-3 border border-t-0 rounded-b-lg bg-white">
         {/* Section Directions - Above */}
         <div className="space-y-4">
           <div className="space-y-1">
@@ -309,30 +310,62 @@ export function ContentStyleSection({
               Sections
             </Label>
             <p className="text-sm text-muted-foreground">
-              AI will generate these sections with your specific instructions.
+              Customize which sections to include in your CIM. Add, remove, or reorder sections to match your needs.
             </p>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {sectionDirections.map((line, index) => (
-              <div key={line.id} className="flex items-center space-x-2">
+              <div key={line.id} className="group flex items-center space-x-3 py-2">
                 <span className="text-sm font-medium text-gray-400 w-6 flex-shrink-0">{index + 1}.</span>
-                <Input
-                  value={line.content}
-                  onChange={(e) => updateSectionLine(index, e.target.value)}
-                  placeholder="Section Name - Description of what to include..."
-                  className="flex-1"
-                />
-                {sectionDirections.length > 1 && (
+
+                {editingIndex === index ? (
+                  <Input
+                    value={line.content}
+                    onChange={(e) => updateSectionLine(index, e.target.value)}
+                    onBlur={() => setEditingIndex(null)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') setEditingIndex(null);
+                      if (e.key === 'Escape') setEditingIndex(null);
+                    }}
+                    placeholder="Section Name - Description of what to include..."
+                    className="flex-1"
+                    autoFocus
+                  />
+                ) : (
+                  <div
+                    className="flex-1 group/text cursor-pointer"
+                    onClick={() => setEditingIndex(index)}
+                  >
+                    <div className="text-sm text-gray-700 pb-1 border-b border-gray-200 group-hover/text:border-blue-400 transition-colors">
+                      {line.content || (
+                        <span className="text-gray-400 italic">Click to add section...</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => removeSectionLine(index)}
-                    className="shrink-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={() => setEditingIndex(index)}
+                    className="h-7 w-7 p-0 text-gray-400 hover:text-blue-600 hover:bg-blue-50"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Edit2 className="h-3.5 w-3.5" />
                   </Button>
-                )}
+                  {sectionDirections.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeSectionLine(index)}
+                      className="h-7 w-7 p-0 text-gray-400 hover:text-red-600 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
