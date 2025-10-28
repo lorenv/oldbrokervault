@@ -2934,12 +2934,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/cim", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 12;
     const search = req.query.search as string;
-    
-    const result = await storage.getCimDocuments(req.user!.id, { page, limit, search });
+    const filters = req.query.filters ? (req.query.filters as string).split(',') : [];
+
+    const result = await storage.getCimDocuments(req.user!.id, { page, limit, search, filters });
     res.json(result);
   });
 

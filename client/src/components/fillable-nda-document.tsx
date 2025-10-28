@@ -362,16 +362,15 @@ export default function FillableNdaDocument({
           <CardContent className="p-3 sm:p-6">
             {/* Document with Overlay Fields */}
             <div className="mb-6 sm:mb-8">
-              {documentImages.length > 0 || (imagesLoaded && signatureFields.length > 0) ? (
+              {documentImages.length > 0 ? (
+                // Show PDF with overlay fields when images are loaded
                 renderDocumentWithFields()
-              ) : signatureFields.length > 0 && !imagesLoaded ? (
-                // Fallback: Show fields in a form layout if images fail to load after 5 seconds
+              ) : imageLoadError && signatureFields.length > 0 ? (
+                // Fallback: Show fields in a form layout ONLY if images failed to load
                 <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
                   <div className="text-sm text-gray-600 mb-4">
-                    {imageLoadError ? (
-                      <AlertCircle className="inline-block w-4 h-4 mr-2 text-yellow-600" />
-                    ) : null}
-                    Please fill in the following fields:
+                    <AlertCircle className="inline-block w-4 h-4 mr-2 text-yellow-600" />
+                    Unable to load PDF preview. Please fill in the following fields:
                   </div>
                   {signatureFields.map((field) => {
                     const Icon = FIELD_ICONS[field.type];
@@ -414,6 +413,7 @@ export default function FillableNdaDocument({
                   })}
                 </div>
               ) : (
+                // Show loading spinner while PDF images are being generated
                 <div className="flex items-center justify-center h-48 sm:h-64 bg-gray-100 rounded-lg">
                   <div className="text-center">
                     <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-primary mx-auto mb-4"></div>

@@ -1,4 +1,5 @@
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import fontkit from '@pdf-lib/fontkit';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -38,8 +39,15 @@ export class PdfSignatureProcessor {
   async embedFields(signatureFields: SignatureField[], fieldValues: FieldValue): Promise<string> {
     try {
       console.log('Starting PDF field embedding...');
-      
-      // Try to use default font first - no embedding needed
+
+      // Register fontkit to enable custom font embedding
+      this.pdfDoc.registerFontkit(fontkit);
+
+      // Load handwriting font for signature fields
+      const fontPath = path.join(process.cwd(), 'public', 'fonts', 'handwritania.ttf');
+      const fontBytes = fs.readFileSync(fontPath);
+      const handwritingFont = await this.pdfDoc.embedFont(fontBytes);
+
       const pages = this.pdfDoc.getPages();
       console.log(`PDF has ${pages.length} pages, processing ${signatureFields.length} fields`);
 
@@ -79,13 +87,20 @@ export class PdfSignatureProcessor {
         });
 
         try {
-          // Use simple text drawing without custom fonts to avoid embedding issues
-          page.drawText(value, {
+          // Use handwriting font for signature fields, standard for others
+          const drawOptions: any = {
             x: x + 2,
             y: y + 2,
-            size: field.type === 'signature' ? 16 : (field.fontSize || 12),
-            color: field.type === 'signature' ? rgb(0, 0, 0.8) : rgb(0, 0, 0),
-          });
+            size: field.type === 'signature' ? 20 : (field.fontSize || 12),
+            color: field.type === 'signature' ? rgb(0.1, 0.1, 0.4) : rgb(0, 0, 0),
+          };
+
+          // Apply handwriting font only to signature fields
+          if (field.type === 'signature') {
+            drawOptions.font = handwritingFont;
+          }
+
+          page.drawText(value, drawOptions);
           console.log(`Field ${field.id} processed successfully`);
         } catch (drawError) {
           console.error(`Error drawing field ${field.id}:`, drawError);

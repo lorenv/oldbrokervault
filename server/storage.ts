@@ -108,7 +108,7 @@ export interface IStorage {
     mimeType: string;
   }): Promise<any>;
   getUploadedFiles(cimDocumentId: number): Promise<any[]>;
-  getCimDocuments(userId: number, options?: { page?: number; limit?: number; search?: string }): Promise<{ documents: CimDocument[]; total: number; hasMore: boolean }>;
+  getCimDocuments(userId: number, options?: { page?: number; limit?: number; search?: string; filters?: string[] }): Promise<{ documents: CimDocument[]; total: number; hasMore: boolean }>;
   getAllUsers(): Promise<User[]>;
   getAllCimDocuments(): Promise<CimDocument[]>;
   getCimDocument(id: number): Promise<CimDocument | undefined>;
@@ -765,11 +765,12 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
       .where(eq(uploadedFiles.cimDocumentId, cimDocumentId));
   }
 
-  async getCimDocuments(userId: number, options?: { page?: number; limit?: number; search?: string }): Promise<{ documents: CimDocument[]; total: number; hasMore: boolean }> {
+  async getCimDocuments(userId: number, options?: { page?: number; limit?: number; search?: string; filters?: string[] }): Promise<{ documents: CimDocument[]; total: number; hasMore: boolean }> {
     const page = options?.page || 1;
     const limit = options?.limit || 12;
     const offset = (page - 1) * limit;
     const search = options?.search?.trim();
+    const filters = options?.filters || [];
 
     // Build base query that includes:
     // 1. Documents owned by the user
@@ -785,20 +786,43 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
       isNull(cimDocuments.deletedAt)
     );
 
+    // Build filter conditions
+    const filterConditions = [];
+
+    // NDA Protected filter
+    if (filters.includes('nda-protected')) {
+      filterConditions.push(eq(cimDocuments.ndaProtected, true));
+    }
+
+    // Created This Week filter
+    if (filters.includes('created-this-week')) {
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      filterConditions.push(sql`${cimDocuments.createdAt} >= ${oneWeekAgo}`);
+    }
+
+    // Has Views filter
+    if (filters.includes('has-views')) {
+      filterConditions.push(sql`${cimDocuments.shareViewCount} > 0`);
+    }
+
+    // Combine base condition with filters
+    const conditionsToApply = [baseCondition, ...filterConditions];
+
     const whereCondition = search
       ? and(
-          baseCondition,
+          ...conditionsToApply,
           or(
             ilike(cimDocuments.title, `%${search}%`),
             ilike(cimDocuments.directions, `%${search}%`)
           )
         )
-      : baseCondition;
+      : (conditionsToApply.length > 1 ? and(...conditionsToApply) : conditionsToApply[0]);
 
     // For dashboard, only select essential fields to minimize data transfer
     // Include signature count via LEFT JOIN with ndaSignatures table
     // Include collaborator info to determine if this is a shared document
-    const results = await db
+    let query = db
       .select({
         id: cimDocuments.id,
         userId: cimDocuments.userId,
@@ -843,7 +867,14 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
         cimDocuments.sectionDirections,
         cimDocuments.formattingProfile,
         cimDocuments.ndaApprovalRequired
-      )
+      );
+
+    // Add HAVING clause for 'has-signatures' filter
+    if (filters.includes('has-signatures')) {
+      query = query.having(sql`COUNT(DISTINCT ${ndaSignatures.id}) > 0`);
+    }
+
+    const results = await query
       .orderBy(desc(cimDocuments.createdAt))
       .limit(limit + 1) // Get one extra to check for more
       .offset(offset);
