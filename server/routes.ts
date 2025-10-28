@@ -4787,7 +4787,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const docIds = userDocs.map(doc => doc.id);
 
-      // Get all pending signatures (approved = false)
+      // Get all pending signatures (approved = false AND rejected = false)
       const pendingSignatures = await db
         .select({
           id: ndaSignatures.id,
@@ -4800,7 +4800,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(ndaSignatures)
         .where(and(
           inArray(ndaSignatures.cimDocumentId, docIds),
-          eq(ndaSignatures.approved, false)
+          eq(ndaSignatures.approved, false),
+          eq(ndaSignatures.rejected, false)
         ))
         .orderBy(desc(ndaSignatures.signedAt));
 

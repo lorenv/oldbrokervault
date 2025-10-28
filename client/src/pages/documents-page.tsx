@@ -81,6 +81,20 @@ export default function DocumentsPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [activeFilters]);
+
+  // Reset to page 1 when sorting changes
+  useEffect(() => {
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [sortBy, sortOrder]);
+
   // Fetch documents with pagination
   const { data: paginatedData, isLoading: documentsLoading } = useQuery<{
     documents: CimDocumentWithAnalysis[];
