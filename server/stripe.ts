@@ -9,25 +9,27 @@ import { invalidateUserCache } from "./auth";
 function validateStripeConfig() {
   const coreRequiredVars = [
     'STRIPE_SECRET_KEY',
-    'STRIPE_PUBLISHABLE_KEY', 
+    'STRIPE_PUBLISHABLE_KEY',
     'STRIPE_WEBHOOK_SECRET'
   ];
-  
+
   const priceVars = [
     'STRIPE_PRICE_ID_STARTER',
-    'STRIPE_PRICE_ID_STANDARD'
+    'STRIPE_PRICE_ID_STANDARD',
+    'STRIPE_PRICE_ID_STARTER_MONTHLY',
+    'STRIPE_PRICE_ID_PRO_MONTHLY'
   ];
-  
+
   const missingCore = coreRequiredVars.filter(varName => !process.env[varName]);
   const missingPrices = priceVars.filter(varName => !process.env[varName]);
-  
+
   if (missingCore.length > 0) {
     console.error('=== STRIPE CONFIGURATION ERROR ===');
     console.error('Missing core Stripe environment variables:', missingCore);
     console.error('Please ensure all Stripe environment variables are configured');
     throw new Error(`Missing core Stripe environment variables: ${missingCore.join(', ')}`);
   }
-  
+
   if (missingPrices.length > 0) {
     if (process.env.NODE_ENV === 'production') {
       console.error('=== STRIPE CONFIGURATION ERROR ===');
@@ -39,7 +41,7 @@ function validateStripeConfig() {
       console.warn('⚠️ Running in development mode - payment features will be limited');
     }
   }
-  
+
   if (missingPrices.length === 0) {
     console.log('✅ All required Stripe environment variables are configured');
   } else {
@@ -69,7 +71,13 @@ export function getPriceIdForPlan(planId: string): string {
   switch (planId) {
     case 'starter':
       return process.env.STRIPE_PRICE_ID_STARTER!;
-    case 'standard':
+    case 'starter_monthly':
+      return process.env.STRIPE_PRICE_ID_STARTER_MONTHLY!;
+    case 'pro':
+      return process.env.STRIPE_PRICE_ID_STANDARD!; // Using existing env var for backward compatibility
+    case 'pro_monthly':
+      return process.env.STRIPE_PRICE_ID_PRO_MONTHLY!;
+    case 'standard': // Legacy - kept for backward compatibility
       return process.env.STRIPE_PRICE_ID_STANDARD!;
     default:
       throw new Error(`No price ID configured for plan: ${planId}`);
@@ -81,8 +89,12 @@ export function getPlanFromPriceId(priceId: string): string {
   switch (priceId) {
     case process.env.STRIPE_PRICE_ID_STARTER:
       return 'starter';
+    case process.env.STRIPE_PRICE_ID_STARTER_MONTHLY:
+      return 'starter_monthly';
+    case process.env.STRIPE_PRICE_ID_PRO_MONTHLY:
+      return 'pro_monthly';
     case process.env.STRIPE_PRICE_ID_STANDARD:
-      return 'standard';
+      return 'pro'; // Return 'pro' instead of 'standard' for consistency
     default:
       console.error(`Unknown price ID: ${priceId}. Cannot determine plan.`);
       throw new Error(`Unknown price ID: ${priceId}. Cannot determine plan - this is a configuration error.`);

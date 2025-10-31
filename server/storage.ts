@@ -418,17 +418,17 @@ export class DatabaseStorage implements IStorage {
     }
 
     const plan = subscriptionPlans[user.subscriptionStatus as keyof typeof subscriptionPlans];
-    
-    // For annual plans, check subscription expiry
-    if (plan && plan.billing === 'annual') {
+
+    // For annual and monthly plans (both have yearly limits), check subscription expiry
+    if (plan && (plan.billing === 'annual' || plan.billing === 'monthly')) {
       // If subscription has expired, deny access
       if (user.subscriptionEndsAt && new Date() > user.subscriptionEndsAt) {
         return false;
       }
-      // Use annual counter for annual plans
+      // Use annual counter for both annual and monthly plans (both have yearly limits)
       return user.annualDocumentsCreated < plan.limit;
     } else {
-      // Legacy monthly plan logic
+      // Legacy free trial monthly logic
       const now = new Date();
       const lastReset = new Date(user.lastUsageReset);
       if (now.getMonth() !== lastReset.getMonth() || now.getFullYear() !== lastReset.getFullYear()) {

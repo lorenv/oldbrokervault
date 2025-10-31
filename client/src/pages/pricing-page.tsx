@@ -8,17 +8,28 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { PricingToggle } from "@/components/ui/pricing-toggle";
 import { useAuth } from "@/hooks/use-auth";
 import { Check, Star, Zap, Shield, Users, Sparkles, Sprout } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function PricingPage() {
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [billingPeriod, setBillingPeriod] = useState<"monthly" | "annual">("monthly");
+  const [showSignupModal, setShowSignupModal] = useState(false);
 
   // Try to get user data with fallback for database issues
   useEffect(() => {
@@ -65,19 +76,19 @@ export default function PricingPage() {
         return;
       }
 
-      if (planId === 'starter' || planId === 'standard') {
+      if (planId === 'starter' || planId === 'starter_monthly' || planId === 'pro' || planId === 'pro_monthly' || planId === 'standard') {
         // Track conversions
         if (window.lintrk) {
-          if (planId === 'starter') {
+          if (planId === 'starter' || planId === 'starter_monthly') {
             window.lintrk('track', { conversion_id: 21789780 });
-          } else if (planId === 'standard') {
+          } else if (planId === 'pro' || planId === 'pro_monthly' || planId === 'standard') {
             window.lintrk('track', { conversion_id: 21789788 });
           }
         }
 
         // Only authenticated users can create checkout sessions
         if (!user) {
-          const planName = planId === 'starter' ? 'Starter plan' : 'Pro plan';
+          const planName = (planId === 'starter' || planId === 'starter_monthly') ? 'Starter plan' : 'Pro plan';
           toast({
             title: "Account Required",
             description: `Please sign up for an account to subscribe to the ${planName}.`,
@@ -140,10 +151,10 @@ export default function PricingPage() {
       popular: false,
     },
     {
-      id: "starter",
+      id: billingPeriod === "monthly" ? "starter_monthly" : "starter",
       name: "Starter Plan",
-      price: "$599",
-      priceLabel: "/year",
+      price: billingPeriod === "monthly" ? "$59" : "$599",
+      priceLabel: billingPeriod === "monthly" ? "/month" : "/year",
       description: "Perfect for individual professionals",
       features: [
         "3 CIM documents per year",
@@ -154,16 +165,17 @@ export default function PricingPage() {
         "Email support",
         "Custom branding options",
       ],
-      current: user?.subscriptionStatus === "starter",
+      current: user?.subscriptionStatus === "starter" || user?.subscriptionStatus === "starter_monthly",
       icon: <Sprout className="h-6 w-6" />,
       color: "border-green-500",
       popular: false,
+      subtext: billingPeriod === "annual" ? "$50/month billed annually" : null,
     },
     {
-      id: "standard",
+      id: billingPeriod === "monthly" ? "pro_monthly" : "pro",
       name: "Pro Plan",
-      price: "$999",
-      priceLabel: "/year",
+      price: billingPeriod === "monthly" ? "$99" : "$999",
+      priceLabel: billingPeriod === "monthly" ? "/month" : "/year",
       description: "Everything you need for your business",
       features: [
         "10 CIM documents per year",
@@ -174,11 +186,12 @@ export default function PricingPage() {
         "Priority email support",
         "Custom branding options",
       ],
-      current: user?.subscriptionStatus === "standard",
+      current: user?.subscriptionStatus === "pro" || user?.subscriptionStatus === "pro_monthly" || user?.subscriptionStatus === "standard",
       icon: <Zap className="h-6 w-6" />,
       color: "border-blue-500",
       popular: true,
       badge: "Most Popular",
+      subtext: billingPeriod === "annual" ? "$83/month billed annually" : null,
     },
     {
       id: "enterprise",
@@ -227,12 +240,18 @@ export default function PricingPage() {
           <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
             Choose Your Perfect Plan
           </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            {!user 
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
+            {!user
               ? "Start with our free trial and upgrade anytime. No credit card required to get started."
               : "Flexible pricing that scales with your business needs. Switch plans anytime."
             }
           </p>
+
+          {/* Pricing Toggle */}
+          <PricingToggle
+            billingPeriod={billingPeriod}
+            onToggle={setBillingPeriod}
+          />
         </div>
 
         {/* Pricing Cards */}
@@ -281,11 +300,8 @@ export default function PricingPage() {
                         <span className="text-muted-foreground text-lg ml-1">{plan.priceLabel}</span>
                       )}
                     </div>
-                    {plan.id === 'starter' && (
-                      <p className="text-xs text-gray-400 mt-1">that's only $50/month!</p>
-                    )}
-                    {plan.id === 'standard' && (
-                      <p className="text-xs text-gray-400 mt-1">that's only $83/month!</p>
+                    {plan.subtext && (
+                      <p className="text-xs text-gray-400 mt-1">{plan.subtext}</p>
                     )}
                   </div>
                 </CardHeader>
@@ -307,7 +323,7 @@ export default function PricingPage() {
                   {!user ? (
                     <div className="w-full">
                       {plan.isEnterprise ? (
-                        <Button 
+                        <Button
                           className="w-full bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white shadow-lg"
                           size="lg"
                           onClick={() => handleSubscriptionAction('enterprise')}
@@ -316,18 +332,18 @@ export default function PricingPage() {
                           Contact Sales
                         </Button>
                       ) : plan.id === 'free' ? (
-                        <Button 
+                        <Button
                           className="w-full bg-gradient-to-r from-slate-600 to-slate-500 hover:from-slate-700 hover:to-slate-600 text-white shadow-lg"
                           size="lg"
-                          onClick={() => window.location.href = '/login?tab=register'}
+                          onClick={() => setShowSignupModal(true)}
                         >
                           Start Free Trial
                         </Button>
                       ) : (
-                        <Button 
+                        <Button
                           className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white shadow-lg"
                           size="lg"
-                          onClick={() => window.location.href = '/login?tab=register'}
+                          onClick={() => setShowSignupModal(true)}
                         >
                           Get Started
                         </Button>
@@ -351,21 +367,21 @@ export default function PricingPage() {
                       <Users className="mr-2 h-4 w-4" />
                       Contact Sales
                     </Button>
-                  ) : plan.id === 'standard' ? (
-                    <Button 
+                  ) : (plan.id === 'pro' || plan.id === 'pro_monthly') ? (
+                    <Button
                       className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white shadow-lg"
                       size="lg"
-                      onClick={() => handleSubscriptionAction('standard')}
+                      onClick={() => handleSubscriptionAction(plan.id)}
                     >
                       Upgrade Now
                     </Button>
-                  ) : plan.id === 'starter' ? (
-                    <Button 
+                  ) : (plan.id === 'starter' || plan.id === 'starter_monthly') ? (
+                    <Button
                       className="w-full bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white shadow-lg"
                       size="lg"
-                      onClick={() => handleSubscriptionAction('starter')}
+                      onClick={() => handleSubscriptionAction(plan.id)}
                     >
-                      {user?.subscriptionStatus === 'standard' ? 'Change Plan' : 'Upgrade Now'}
+                      {user?.subscriptionStatus === 'pro' || user?.subscriptionStatus === 'standard' ? 'Change Plan' : 'Upgrade Now'}
                     </Button>
                   ) : (
                     <Button 
@@ -432,6 +448,37 @@ export default function PricingPage() {
           </div>
         </div>
       </div>
+
+      {/* Signup Modal */}
+      <Dialog open={showSignupModal} onOpenChange={setShowSignupModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-center">Great choice!</DialogTitle>
+            <DialogDescription className="text-center text-lg pt-2">
+              First, let's create an account.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col sm:flex-col gap-3 mt-4">
+            <Button
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white"
+              size="lg"
+              onClick={() => {
+                setShowSignupModal(false);
+                window.location.href = '/login?tab=register';
+              }}
+            >
+              Create Account
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => setShowSignupModal(false)}
+            >
+              Maybe Later
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

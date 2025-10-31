@@ -68,7 +68,7 @@ export function CollaboratorsSection({ documentId, isOwner, user }: Collaborator
 
   // Get subscription limit
   const collaboratorLimit = user.subscriptionStatus === 'starter' ? 1
-    : user.subscriptionStatus === 'standard' ? 3
+    : (user.subscriptionStatus === 'pro' || user.subscriptionStatus === 'pro_monthly' || user.subscriptionStatus === 'standard') ? 3
     : user.subscriptionStatus === 'enterprise' || user.subscriptionStatus === 'admin' ? 999
     : 0;
 
