@@ -45,6 +45,7 @@ import { GetStartedChecklist } from "@/components/get-started-checklist";
 import { useAuth } from "@/hooks/use-auth";
 import MarketingHomePage from "@/pages/marketing-home-page";
 import VirtualDataRoomPage from "@/pages/virtual-data-room-page";
+import SDEAnalyzerPage from "@/pages/sde-analyzer-page";
 
 // Lazy load SEO pages for better performance
 const NdaProtectionPage = lazy(() => import("@/pages/features/nda-protection"));
@@ -75,6 +76,7 @@ function Router() {
             <ProtectedRoute path="/analytics" component={AnalyticsPage} />
             <ProtectedRoute path="/premium" component={PremiumDashboard} />
             <ProtectedRoute path="/investor-database" component={InvestorDatabasePage} />
+            <ProtectedRoute path="/sde-analyzer" component={SDEAnalyzerPage} />
             <ProtectedRoute path="/messages" component={Messages} />
             <ProtectedRoute path="/account" component={AccountPage} />
             <ProtectedRoute path="/profile" component={AccountPage} />

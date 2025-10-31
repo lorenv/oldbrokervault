@@ -32,10 +32,12 @@ export function SubscriptionCard({
 }: SubscriptionCardProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const isPremium = status === "premium";
-  const isStandard = status === "standard";
+
+  // Check if user has any paid plan status
+  const isPaidPlan = status && ["starter", "starter_monthly", "pro", "pro_monthly", "standard", "premium", "enterprise"].includes(status);
   const isAdmin = status === "admin";
   const isCanceled = status === "canceled";
+  const isFree = status === "free" || !status;
 
   const getLimit = () => {
     switch (status) {
@@ -160,7 +162,7 @@ export function SubscriptionCard({
                   )}
                 </div>
               </div>
-            ) : status !== "free" && !hideActiveUntil ? (
+            ) : !isFree && !hideActiveUntil ? (
               <>
                 <p className="text-sm text-muted-foreground">
                   Your {status} subscription is active until:
@@ -169,7 +171,7 @@ export function SubscriptionCard({
                   {endsAt ? new Date(endsAt).toLocaleDateString() : "N/A"}
                 </p>
               </>
-            ) : status === "free" ? (
+            ) : isFree ? (
               <div className="flex items-center space-x-2 text-muted-foreground">
                 <Lock className="h-4 w-4" />
                 <span className="text-sm">
@@ -213,7 +215,7 @@ export function SubscriptionCard({
             )}
           </div>
 
-          {!isPremium && !isAdmin && !isCanceled && !isStandard && (
+          {isFree && !isAdmin && (
             <Button
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200"
               size={subtle ? "sm" : "lg"}
@@ -223,8 +225,8 @@ export function SubscriptionCard({
             </Button>
           )}
 
-          {(isPremium || isStandard || isCanceled) && !isAdmin &&
-           !(hideProButtons && isStandard) && (
+          {(isPaidPlan || isCanceled) && !isAdmin &&
+           !(hideProButtons && (status === "standard" || status === "pro" || status === "pro_monthly")) && (
             <Button
               className={`w-full font-semibold shadow-md hover:shadow-lg transition-all duration-200 ${
                 isCanceled
@@ -239,9 +241,9 @@ export function SubscriptionCard({
             </Button>
           )}
 
-          
 
-          {status === "free" && (
+
+          {isFree && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
               <p className="text-sm font-semibold text-gray-800 mb-3">Unlock More with Premium:</p>
               <ul className="space-y-2 text-sm text-gray-700">

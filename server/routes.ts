@@ -50,6 +50,8 @@ import messageAttachmentRoutes from "./routes/message-attachments";
 import { registerMonitoringRoutes } from "./routes/monitoring-routes";
 import { setupSEORoutes } from "./seo-routes";
 import { textExtractionRouter } from "./routes/text-extraction";
+import { registerSDEAnalyzerRoutes } from "./routes/sde-analyzer-routes";
+import { sdeProcessor } from "./sde-processor";
 
 
 // Directory paths
@@ -473,6 +475,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register text extraction routes
   app.use('/api/text-extraction', textExtractionRouter);
+
+  // Register SDE Analyzer routes
+  registerSDEAnalyzerRoutes(app);
+
+  // Start SDE background processor
+  sdeProcessor.start();
+  console.log('✅ SDE Analyzer processor started');
 
   // Public health check endpoint for debugging shared document access
   app.get("/api/public-health", (req, res) => {
