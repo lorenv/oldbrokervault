@@ -66,9 +66,9 @@ export default function SDEAnalyzerPage() {
     enabled: !!user && !!usageData?.hasAccess,
     retry: false,
     staleTime: 1000 * 60 * 2,
-    refetchInterval: (data) => {
+    refetchInterval: (query) => {
       // Auto-refresh every 10 seconds if there are any pending/processing analyses
-      const hasPending = data?.analyses.some(a => a.status === 'pending' || a.status === 'processing');
+      const hasPending = query.state.data?.analyses.some((a: Analysis) => a.status === 'pending' || a.status === 'processing');
       return hasPending ? 10000 : false;
     }
   });
@@ -265,6 +265,18 @@ export default function SDEAnalyzerPage() {
             Failed to load SDE Analyzer access information. Please try refreshing the page.
           </AlertDescription>
         </Alert>
+      </div>
+    );
+  }
+
+  // Show loading state while checking access
+  if (!usageData) {
+    return (
+      <div className="max-w-4xl mx-auto p-6 flex items-center justify-center min-h-[50vh]">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-gray-400 mb-2" />
+          <p className="text-sm text-muted-foreground">Loading SDE Analyzer...</p>
+        </div>
       </div>
     );
   }
