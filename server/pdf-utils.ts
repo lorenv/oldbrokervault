@@ -1,5 +1,8 @@
 import PDFDocument from 'pdfkit';
 import * as pdfLib from 'pdf-lib';
+import fontkit from '@pdf-lib/fontkit';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export function addSignatureToNda(
   originalNdaBase64: string,
@@ -24,7 +27,10 @@ export function addSignatureToNda(
           
           const pdfDoc = await pdfLib.PDFDocument.load(originalPdfBytes);
           console.log('✅ Original PDF loaded successfully, pages:', pdfDoc.getPageCount());
-          
+
+          // Register fontkit for custom font support
+          pdfDoc.registerFontkit(fontkit);
+
           // Create signature page
           const signaturePage = pdfDoc.addPage([612, 792]); // Standard letter size
           const { width, height } = signaturePage.getSize();
@@ -49,17 +55,19 @@ export function addSignatureToNda(
             size: 12,
           });
           
-          // Add signer name (signature style) - handwriting appearance without tilt
-          const signatureFont = await pdfDoc.embedFont(pdfLib.StandardFonts.TimesRomanItalic);
-          
-          // Create a handwriting-like appearance without rotation
+          // Add signer name with handwriting font
+          // Load the handwritania font from public/fonts directory
+          const fontPath = path.join(process.cwd(), 'public', 'fonts', 'handwritania.ttf');
+          const fontBytes = fs.readFileSync(fontPath);
+          const signatureFont = await pdfDoc.embedFont(fontBytes);
+
+          // Create a handwriting-like appearance
           signaturePage.drawText(signerName, {
             x: 60,
             y: height - 230,
-            size: 32,
+            size: 36, // Slightly larger for better handwriting appearance
             font: signatureFont,
             color: pdfLib.rgb(0.1, 0.1, 0.4),
-            // Removed rotation for cleaner signature appearance
           });
           
           // Add a subtle underline for signature authenticity
@@ -132,10 +140,12 @@ export function addSignatureToNda(
             font: headerFont,
             color: pdfLib.rgb(0.0, 0.6, 0.0),
           });
-          
+
           // Document details section
           const regularFont = await pdfDoc.embedFont(pdfLib.StandardFonts.Helvetica);
-          
+
+          // Reuse the handwriting font already loaded earlier
+
           // Document information box
           certificatePage.drawRectangle({
             x: 30,
@@ -145,7 +155,7 @@ export function addSignatureToNda(
             borderColor: pdfLib.rgb(0.8, 0.8, 0.8),
             borderWidth: 1,
           });
-          
+
           certificatePage.drawText('Document: Non-Disclosure Agreement', {
             x: 50,
             y: certHeight - 160,
@@ -153,15 +163,25 @@ export function addSignatureToNda(
             font: regularFont,
             color: pdfLib.rgb(0.3, 0.3, 0.3),
           });
-          
-          certificatePage.drawText(`Signer: ${signerName}`, {
+
+          // Signer label in regular font
+          certificatePage.drawText('Signer:', {
             x: 50,
             y: certHeight - 180,
             size: 12,
             font: regularFont,
             color: pdfLib.rgb(0.3, 0.3, 0.3),
           });
-          
+
+          // Signer name in handwriting font
+          certificatePage.drawText(signerName, {
+            x: 110,
+            y: certHeight - 182,
+            size: 18,
+            font: signatureFont,
+            color: pdfLib.rgb(0.1, 0.1, 0.4),
+          });
+
           certificatePage.drawText(`Email: ${signerEmail || 'Not provided'}`, {
             x: 50,
             y: certHeight - 200,
@@ -169,7 +189,7 @@ export function addSignatureToNda(
             font: regularFont,
             color: pdfLib.rgb(0.3, 0.3, 0.3),
           });
-          
+
           // Signature section header
           certificatePage.drawRectangle({
             x: 0,
@@ -178,7 +198,7 @@ export function addSignatureToNda(
             height: 30,
             color: pdfLib.rgb(0.95, 0.95, 0.95),
           });
-          
+
           certificatePage.drawText('Signature Events', {
             x: 50,
             y: certHeight - 270,
@@ -186,7 +206,7 @@ export function addSignatureToNda(
             font: headerFont,
             color: pdfLib.rgb(0.2, 0.2, 0.2),
           });
-          
+
           // Signature details
           certificatePage.drawText(`Signed: ${signedDate.toLocaleString()}`, {
             x: 50,
@@ -194,21 +214,21 @@ export function addSignatureToNda(
             size: 12,
             font: regularFont,
           });
-          
+
           certificatePage.drawText(`IP Address: ${signerIpAddress || 'Not recorded'}`, {
             x: 50,
             y: certHeight - 340,
             size: 12,
             font: regularFont,
           });
-          
+
           certificatePage.drawText('Security Level: Email Verification', {
             x: 50,
             y: certHeight - 360,
             size: 12,
             font: regularFont,
           });
-          
+
           // Record tracking section
           certificatePage.drawRectangle({
             x: 0,
@@ -217,7 +237,7 @@ export function addSignatureToNda(
             height: 30,
             color: pdfLib.rgb(0.95, 0.95, 0.95),
           });
-          
+
           certificatePage.drawText('Record Tracking', {
             x: 50,
             y: certHeight - 420,
@@ -225,21 +245,21 @@ export function addSignatureToNda(
             font: headerFont,
             color: pdfLib.rgb(0.2, 0.2, 0.2),
           });
-          
+
           certificatePage.drawText('Status: Original', {
             x: 50,
             y: certHeight - 460,
             size: 12,
             font: regularFont,
           });
-          
+
           certificatePage.drawText(`Document ID: CIM-NDA-${Date.now().toString().slice(-8)}`, {
             x: 50,
             y: certHeight - 480,
             size: 12,
             font: regularFont,
           });
-          
+
           // Legal compliance footer
           certificatePage.drawText('Electronic Record and Signature Disclosure:', {
             x: 50,
@@ -248,7 +268,7 @@ export function addSignatureToNda(
             font: headerFont,
             color: pdfLib.rgb(0.4, 0.4, 0.4),
           });
-          
+
           certificatePage.drawText('This document has been completed in compliance with the Electronic Signatures', {
             x: 50,
             y: certHeight - 560,
@@ -256,7 +276,7 @@ export function addSignatureToNda(
             font: regularFont,
             color: pdfLib.rgb(0.4, 0.4, 0.4),
           });
-          
+
           certificatePage.drawText('in Global and National Commerce Act (ESIGN) and applicable state laws.', {
             x: 50,
             y: certHeight - 575,
@@ -264,7 +284,7 @@ export function addSignatureToNda(
             font: regularFont,
             color: pdfLib.rgb(0.4, 0.4, 0.4),
           });
-          
+
           console.log('📝 Creating signature page...');
           console.log('📝 Adding certificate of completion...');
           
@@ -315,7 +335,10 @@ export function addCertificateToNda(
           
           const pdfDoc = await pdfLib.PDFDocument.load(originalPdfBytes);
           console.log('✅ Original PDF loaded successfully, pages:', pdfDoc.getPageCount());
-          
+
+          // Register fontkit for custom font support
+          pdfDoc.registerFontkit(fontkit);
+
           // Create Certificate of Completion page (skip signature page)
           const certificatePage = pdfDoc.addPage([612, 792]);
           const certWidth = certificatePage.getSize().width;
@@ -351,7 +374,12 @@ export function addCertificateToNda(
           
           // Document details section
           const regularFont = await pdfDoc.embedFont(pdfLib.StandardFonts.Helvetica);
-          
+
+          // Load handwriting font for signer name
+          const fontPath = path.join(process.cwd(), 'public', 'fonts', 'handwritania.ttf');
+          const fontBytes = fs.readFileSync(fontPath);
+          const signatureFont = await pdfDoc.embedFont(fontBytes);
+
           // Document information box
           certificatePage.drawRectangle({
             x: 30,
@@ -370,12 +398,22 @@ export function addCertificateToNda(
             color: pdfLib.rgb(0.3, 0.3, 0.3),
           });
           
-          certificatePage.drawText(`Signer: ${signerName}`, {
+          // Signer label in regular font
+          certificatePage.drawText('Signer:', {
             x: 50,
             y: certHeight - 180,
             size: 12,
             font: regularFont,
             color: pdfLib.rgb(0.3, 0.3, 0.3),
+          });
+
+          // Signer name in handwriting font
+          certificatePage.drawText(signerName, {
+            x: 110,
+            y: certHeight - 182,
+            size: 18,
+            font: signatureFont,
+            color: pdfLib.rgb(0.1, 0.1, 0.4),
           });
           
           certificatePage.drawText(`Email: ${signerEmail || 'Not provided'}`, {

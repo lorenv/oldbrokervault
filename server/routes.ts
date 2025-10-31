@@ -2934,12 +2934,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/cim", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 12;
     const search = req.query.search as string;
-    
-    const result = await storage.getCimDocuments(req.user!.id, { page, limit, search });
+    const filters = req.query.filters ? (req.query.filters as string).split(',') : [];
+
+    const result = await storage.getCimDocuments(req.user!.id, { page, limit, search, filters });
     res.json(result);
   });
 
@@ -4787,7 +4788,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const docIds = userDocs.map(doc => doc.id);
 
-      // Get all pending signatures (approved = false)
+      // Get all pending signatures (approved = false AND rejected = false)
       const pendingSignatures = await db
         .select({
           id: ndaSignatures.id,
@@ -4800,7 +4801,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(ndaSignatures)
         .where(and(
           inArray(ndaSignatures.cimDocumentId, docIds),
-          eq(ndaSignatures.approved, false)
+          eq(ndaSignatures.approved, false),
+          eq(ndaSignatures.rejected, false)
         ))
         .orderBy(desc(ndaSignatures.signedAt));
 

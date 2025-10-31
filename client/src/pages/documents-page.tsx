@@ -81,13 +81,27 @@ export default function DocumentsPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [activeFilters]);
+
+  // Reset to page 1 when sorting changes
+  useEffect(() => {
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [sortBy, sortOrder]);
+
   // Fetch documents with pagination
   const { data: paginatedData, isLoading: documentsLoading } = useQuery<{
     documents: CimDocumentWithAnalysis[];
     total: number;
     hasMore: boolean;
   }>({
-    queryKey: ["/api/cim", currentPage, debouncedSearchQuery],
+    queryKey: ["/api/cim", currentPage, debouncedSearchQuery, activeFilters],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: currentPage.toString(),
@@ -95,6 +109,9 @@ export default function DocumentsPage() {
       });
       if (debouncedSearchQuery) {
         params.append("search", debouncedSearchQuery);
+      }
+      if (activeFilters.length > 0) {
+        params.append("filters", activeFilters.join(','));
       }
       const response = await fetch(`/api/cim?${params}`, {
         credentials: 'include'
@@ -108,28 +125,12 @@ export default function DocumentsPage() {
 
   const rawDocuments = paginatedData?.documents || [];
 
-  // Apply client-side filters and sorting
+  // Apply client-side sorting only (filters are now handled by backend)
   const documents = useMemo(() => {
-    let filtered = [...rawDocuments];
-
-    // Apply filters
-    if (activeFilters.includes('nda-protected')) {
-      filtered = filtered.filter(doc => doc.ndaProtected);
-    }
-    if (activeFilters.includes('has-signatures')) {
-      filtered = filtered.filter(doc => doc.ndaSignatureCount && doc.ndaSignatureCount > 0);
-    }
-    if (activeFilters.includes('created-this-week')) {
-      const oneWeekAgo = new Date();
-      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-      filtered = filtered.filter(doc => new Date(doc.createdAt) >= oneWeekAgo);
-    }
-    if (activeFilters.includes('has-views')) {
-      filtered = filtered.filter(doc => doc.shareViewCount && doc.shareViewCount > 0);
-    }
+    let sorted = [...rawDocuments];
 
     // Apply sorting
-    filtered.sort((a, b) => {
+    sorted.sort((a, b) => {
       let compareValue = 0;
 
       if (sortBy === 'date') {
@@ -143,8 +144,8 @@ export default function DocumentsPage() {
       return sortOrder === 'asc' ? compareValue : -compareValue;
     });
 
-    return filtered;
-  }, [rawDocuments, activeFilters, sortBy, sortOrder]);
+    return sorted;
+  }, [rawDocuments, sortBy, sortOrder]);
 
   const totalDocuments = paginatedData?.total || 0;
   const hasMore = paginatedData?.hasMore || false;

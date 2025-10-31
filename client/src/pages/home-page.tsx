@@ -6,6 +6,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { PricingToggle } from "@/components/ui/pricing-toggle";
 import { Link } from "wouter";
 import {
   Shield,
@@ -32,6 +33,7 @@ import {
   TrendingUp,
   Award,
   MessageSquare,
+  Sprout,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -42,6 +44,7 @@ export default function HomePage() {
     new Set(),
   );
   const [scrollY, setScrollY] = useState(0);
+  const [billingPeriod, setBillingPeriod] = useState<"monthly" | "annual">("monthly");
   const observerRef = useRef<IntersectionObserver | null>(null);
   const { toast } = useToast();
 
@@ -50,9 +53,9 @@ export default function HomePage() {
     if (window.lintrk) {
       if (planId === 'enterprise') {
         window.lintrk('track', { conversion_id: 21789796 });
-      } else if (planId === 'starter') {
+      } else if (planId === 'starter' || planId === 'starter_monthly') {
         window.lintrk('track', { conversion_id: 21789780 });
-      } else if (planId === 'standard') {
+      } else if (planId === 'pro' || planId === 'pro_monthly' || planId === 'standard') {
         window.lintrk('track', { conversion_id: 21789788 });
       }
     }
@@ -714,9 +717,15 @@ export default function HomePage() {
             <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-2">
               Choose the plan that fits your deal flow
             </p>
-            <p className="text-lg font-semibold text-blue-600">
+            <p className="text-lg font-semibold text-blue-600 mb-8">
               As low as $100 per CIM document
             </p>
+
+            {/* Pricing Toggle */}
+            <PricingToggle
+              billingPeriod={billingPeriod}
+              onToggle={setBillingPeriod}
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
@@ -761,12 +770,19 @@ export default function HomePage() {
             <Card className="relative border-2 border-green-500 hover:shadow-xl transition-all duration-300">
               <CardHeader className="pb-4">
                 <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center mb-4">
-                  <Users className="w-6 h-6 text-green-600" />
+                  <Sprout className="w-6 h-6 text-green-600" />
                 </div>
                 <CardTitle className="text-xl">Starter Plan</CardTitle>
                 <div className="mt-4">
-                  <span className="text-3xl font-bold">$599</span>
-                  <span className="text-gray-600 ml-1">/year</span>
+                  <span className="text-3xl font-bold">
+                    {billingPeriod === "monthly" ? "$59" : "$599"}
+                  </span>
+                  <span className="text-gray-600 ml-1">
+                    {billingPeriod === "monthly" ? "/month" : "/year"}
+                  </span>
+                  {billingPeriod === "annual" && (
+                    <p className="text-xs text-gray-400 mt-1">$50/month billed annually</p>
+                  )}
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
@@ -792,7 +808,7 @@ export default function HomePage() {
                 <Button
                   className="w-full mt-6"
                   variant="outline"
-                  onClick={() => handlePricingClick('starter')}
+                  onClick={() => handlePricingClick(billingPeriod === "monthly" ? "starter_monthly" : "starter")}
                 >
                   Get Started
                 </Button>
@@ -812,8 +828,15 @@ export default function HomePage() {
                 </div>
                 <CardTitle className="text-xl">Pro Plan</CardTitle>
                 <div className="mt-4">
-                  <span className="text-3xl font-bold">$999</span>
-                  <span className="text-gray-600 ml-1">/year</span>
+                  <span className="text-3xl font-bold">
+                    {billingPeriod === "monthly" ? "$99" : "$999"}
+                  </span>
+                  <span className="text-gray-600 ml-1">
+                    {billingPeriod === "monthly" ? "/month" : "/year"}
+                  </span>
+                  {billingPeriod === "annual" && (
+                    <p className="text-xs text-gray-400 mt-1">$83/month billed annually</p>
+                  )}
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
@@ -838,7 +861,7 @@ export default function HomePage() {
                 </ul>
                 <Button
                   className="w-full mt-6"
-                  onClick={() => handlePricingClick('standard')}
+                  onClick={() => handlePricingClick(billingPeriod === "monthly" ? "pro_monthly" : "pro")}
                 >
                   Get Started
                 </Button>

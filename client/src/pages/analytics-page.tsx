@@ -95,6 +95,21 @@ export default function AnalyticsPage() {
       const response = await apiRequest("POST", `/api/cim/${docId}/nda-signatures/${signatureId}/approve`, {});
       return response.json();
     },
+    onMutate: async ({ signatureId }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["/api/analytics/pending-approvals"] });
+
+      // Snapshot the previous value
+      const previousApprovals = queryClient.getQueryData(["/api/analytics/pending-approvals"]);
+
+      // Optimistically update by removing the approved item
+      queryClient.setQueryData(["/api/analytics/pending-approvals"], (old: any) => {
+        if (!old) return old;
+        return old.filter((approval: any) => approval.id !== signatureId);
+      });
+
+      return { previousApprovals };
+    },
     onSuccess: () => {
       toast({
         title: "Approved",
@@ -103,7 +118,11 @@ export default function AnalyticsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/analytics/pending-approvals"] });
       queryClient.invalidateQueries({ queryKey: ["/api/analytics/overview"] });
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      // Rollback on error
+      if (context?.previousApprovals) {
+        queryClient.setQueryData(["/api/analytics/pending-approvals"], context.previousApprovals);
+      }
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to approve NDA",
@@ -118,6 +137,21 @@ export default function AnalyticsPage() {
       const response = await apiRequest("POST", `/api/cim/${docId}/nda-signatures/${signatureId}/reject`, {});
       return response.json();
     },
+    onMutate: async ({ signatureId }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["/api/analytics/pending-approvals"] });
+
+      // Snapshot the previous value
+      const previousApprovals = queryClient.getQueryData(["/api/analytics/pending-approvals"]);
+
+      // Optimistically update by removing the rejected item
+      queryClient.setQueryData(["/api/analytics/pending-approvals"], (old: any) => {
+        if (!old) return old;
+        return old.filter((approval: any) => approval.id !== signatureId);
+      });
+
+      return { previousApprovals };
+    },
     onSuccess: () => {
       toast({
         title: "Rejected",
@@ -126,7 +160,11 @@ export default function AnalyticsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/analytics/pending-approvals"] });
       queryClient.invalidateQueries({ queryKey: ["/api/analytics/overview"] });
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      // Rollback on error
+      if (context?.previousApprovals) {
+        queryClient.setQueryData(["/api/analytics/pending-approvals"], context.previousApprovals);
+      }
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to reject NDA",
@@ -149,15 +187,37 @@ export default function AnalyticsPage() {
         )
       );
     },
-    onSuccess: () => {
+    onMutate: async () => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["/api/analytics/pending-approvals"] });
+
+      // Snapshot the previous value
+      const previousApprovals = queryClient.getQueryData(["/api/analytics/pending-approvals"]);
+
+      // Get the IDs of all items being approved
+      const approvingIds = filteredPendingApprovals.map((approval: any) => approval.id);
+
+      // Optimistically update by removing all approved items
+      queryClient.setQueryData(["/api/analytics/pending-approvals"], (old: any) => {
+        if (!old) return old;
+        return old.filter((approval: any) => !approvingIds.includes(approval.id));
+      });
+
+      return { previousApprovals, count: filteredPendingApprovals.length };
+    },
+    onSuccess: (data, variables, context) => {
       toast({
         title: "Bulk Approved",
-        description: `${filteredPendingApprovals.length} NDA signatures have been approved`,
+        description: `${context?.count || 0} NDA signatures have been approved`,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/analytics/pending-approvals"] });
       queryClient.invalidateQueries({ queryKey: ["/api/analytics/overview"] });
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      // Rollback on error
+      if (context?.previousApprovals) {
+        queryClient.setQueryData(["/api/analytics/pending-approvals"], context.previousApprovals);
+      }
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to approve NDAs",
