@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface SubscriptionCardProps {
   status?: string;
@@ -30,6 +31,7 @@ export function SubscriptionCard({
   hideRegenerations = false
 }: SubscriptionCardProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
   const isPremium = status === "premium";
   const isStandard = status === "standard";
   const isAdmin = status === "admin";
@@ -73,9 +75,16 @@ export function SubscriptionCard({
       const data = await response.json();
       if (data.url) {
         window.location.href = data.url;
+      } else {
+        throw new Error("No portal URL received");
       }
     } catch (error) {
       console.error("Error accessing customer portal:", error);
+      toast({
+        title: "Unable to open billing portal",
+        description: error instanceof Error ? error.message : "Please try again or contact support if the issue persists.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
