@@ -232,43 +232,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           spread: 70,
           origin: { y: 0.6 }
         });
-      
-        // Additional confetti bursts
-        setTimeout(() => {
-          confetti({
-            particleCount: 50,
-            angle: 60,
-            spread: 55,
-            origin: { x: 0 }
-          });
-        }, 200);
-        
-        setTimeout(() => {
-          confetti({
-            particleCount: 50,
-            angle: 120,
-            spread: 55,
-            origin: { x: 1 }
-          });
-        }, 400);
-        
-        // Extra confetti burst for more celebration
+
+        // Additional confetti burst
         setTimeout(() => {
           confetti({
             particleCount: 75,
             spread: 100,
             origin: { y: 0.5 }
           });
-        }, 600);
+        }, 250);
       } catch (error) {
         // Silently handle any confetti errors
       }
       
       // Mark user as new for get started checklist
       localStorage.setItem('show-get-started-checklist', 'true');
-      
-      // Redirect to dashboard after successful registration (increased delay to see confetti)
-      setTimeout(() => setLocation("/dashboard"), 2500);
+
+      // Redirect to dashboard after successful registration
+      setTimeout(() => setLocation("/dashboard"), 1800);
     },
     onError: (error: Error) => {
       toast({

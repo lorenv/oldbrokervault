@@ -7,6 +7,14 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { PricingToggle } from "@/components/ui/pricing-toggle";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Link } from "wouter";
 import {
   Shield,
@@ -45,6 +53,7 @@ export default function HomePage() {
   );
   const [scrollY, setScrollY] = useState(0);
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "annual">("monthly");
+  const [showSignupModal, setShowSignupModal] = useState(false);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const { toast } = useToast();
 
@@ -63,24 +72,9 @@ export default function HomePage() {
     if (planId === 'enterprise') {
       // For Enterprise plan, open contact form
       window.open('mailto:contact@cimshare.com?subject=Enterprise Plan Inquiry&body=I am interested in learning more about your Enterprise plan for unlimited CIM generation.', '_blank');
-    } else if (planId === 'free') {
-      // For free trial, go to register page
-      toast({
-        title: "🎉 Awesome choice!",
-        description: "Let's get you set up with your free trial. Create your account in just 30 seconds!",
-      });
-      setTimeout(() => {
-        window.location.href = '/login?tab=register';
-      }, 1000);
     } else {
-      // For paid plans, notify and redirect to register
-      toast({
-        title: "🚀 Great decision!",
-        description: "You're one step away from creating professional CIMs in minutes. Let's set up your account!",
-      });
-      setTimeout(() => {
-        window.location.href = '/login?tab=register';
-      }, 1500);
+      // For all other plans, show signup modal
+      setShowSignupModal(true);
     }
   };
 
@@ -1645,6 +1639,37 @@ export default function HomePage() {
           animation: gentle-float 6s ease-in-out infinite;
         }
       `}</style>
+
+      {/* Signup Modal */}
+      <Dialog open={showSignupModal} onOpenChange={setShowSignupModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-center">Great choice!</DialogTitle>
+            <DialogDescription className="text-center text-lg pt-2">
+              First, let's create an account.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col sm:flex-col gap-3 mt-4">
+            <Button
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white"
+              size="lg"
+              onClick={() => {
+                setShowSignupModal(false);
+                window.location.href = '/login?tab=register';
+              }}
+            >
+              Create Account
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => setShowSignupModal(false)}
+            >
+              Maybe Later
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
