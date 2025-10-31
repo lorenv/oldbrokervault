@@ -11,6 +11,7 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import OpenAI from 'openai';
 import * as XLSX from 'xlsx';
+import { promises as fsPromises } from 'fs';
 
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -21,6 +22,42 @@ const writeFileAsync = promisify(fs.writeFile);
 const readFileAsync = promisify(fs.readFile);
 
 const PYTHON_SCRIPT_PATH = path.join(__dirname, 'sde-analyzer-package', 'sde_analyzer.py');
+
+/**
+ * Helper: Store file with fallback to filesystem if App Storage unavailable
+ */
+async function storeFile(storagePath: string, buffer: Buffer): Promise<{ success: boolean; useFilesystem: boolean; path: string }> {
+  // Try App Storage first
+  try {
+    await objectStorage.uploadBuffer(storagePath, buffer);
+    return { success: true, useFilesystem: false, path: storagePath };
+  } catch (error) {
+    logger.warn('App Storage unavailable, falling back to filesystem:', error);
+
+    // Fall back to filesystem
+    try {
+      const filesystemPath = path.join(process.cwd(), 'storage', 'sde-files', storagePath);
+      await fsPromises.mkdir(path.dirname(filesystemPath), { recursive: true });
+      await fsPromises.writeFile(filesystemPath, buffer);
+      return { success: true, useFilesystem: true, path: storagePath };
+    } catch (fsError) {
+      logger.error('Failed to store file in filesystem:', fsError);
+      throw new Error('Failed to store file');
+    }
+  }
+}
+
+/**
+ * Helper: Retrieve file with fallback to filesystem
+ */
+async function retrieveFile(storagePath: string, useFilesystem: boolean): Promise<Buffer> {
+  if (useFilesystem) {
+    const filesystemPath = path.join(process.cwd(), 'storage', 'sde-files', storagePath);
+    return await fsPromises.readFile(filesystemPath);
+  } else {
+    return await objectStorage.downloadBuffer(storagePath);
+  }
+}
 
 // OpenAI client (lazy initialization)
 let openai: OpenAI | null = null;
@@ -202,7 +239,8 @@ CRITICAL:
 
       // Spawn Python process
       const pythonProcess = spawn('python3', args, {
-        cwd: path.join(__dirname, 'sde-analyzer-package')
+        cwd: path.join(__dirname, 'sde-analyzer-package'),
+        env: process.env // Pass the full environment including PATH
       });
 
       let stdout = '';
@@ -271,8 +309,8 @@ CRITICAL:
 
       const startTime = Date.now();
 
-      // Step 1: Read the original file from storage
-      const fileBuffer = await objectStorage.downloadBuffer(analysis.originalFilePath);
+      // Step 1: Read the original file from storage (App Storage or filesystem fallback)
+      const fileBuffer = await retrieveFile(analysis.originalFilePath, analysis.useFilesystemStorage || false);
 
       // Step 2: Write to temporary input file
       const tempDir = '/tmp';
@@ -309,13 +347,17 @@ CRITICAL:
         // Step 4: Read result file
         const resultBuffer = await readFileAsync(tempOutputPath);
 
-        // Step 5: Store result in object storage
+        // Step 5: Store result (try App Storage, fall back to filesystem)
         const timestamp = Date.now();
         const resultFilename = analysis.originalFilename.replace(/\.(xlsx|xls)$/i, '_SDE.xlsx');
         const safeName = resultFilename.replace(/[^a-zA-Z0-9._-]/g, '_');
         const resultStoragePath = `sde-results/user-${analysis.userId}/${timestamp}-${safeName}`;
 
-        await objectStorage.uploadBuffer(resultStoragePath, resultBuffer);
+        const storageResult = await storeFile(resultStoragePath, resultBuffer);
+
+        if (!storageResult.success) {
+          throw new Error('Failed to store result file');
+        }
 
         // Step 6: Update database with success
         const processingTime = Math.round((Date.now() - startTime) / 1000);
@@ -330,7 +372,8 @@ CRITICAL:
             resultFilename,
             resultFilePath: resultStoragePath,
             resultFileSize: resultBuffer.length,
-            processingTimeSeconds: processingTime
+            processingTimeSeconds: processingTime,
+            useFilesystemStorage: storageResult.useFilesystem
           })
           .where(eq(sdeAnalyses.id, analysisId));
 
