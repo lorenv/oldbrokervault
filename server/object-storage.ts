@@ -2,12 +2,75 @@ import { Client } from '@replit/object-storage';
 import { log } from './vite';
 
 class ObjectStorageService {
-  private client: Client;
+  private client: Client | null = null;
   private bucketName: string;
+  private initializationPromise: Promise<void> | null = null;
+  private initializationError: Error | null = null;
 
   constructor() {
-    this.client = new Client();
     this.bucketName = 'Bucket1';
+  }
+
+  /**
+   * Lazily initialize the client only when needed
+   */
+  private async ensureClient(): Promise<Client> {
+    // If already initialized successfully, return the client
+    if (this.client) {
+      return this.client;
+    }
+
+    // If initialization previously failed, throw the error
+    if (this.initializationError) {
+      throw this.initializationError;
+    }
+
+    // If initialization is in progress, wait for it
+    if (this.initializationPromise) {
+      await this.initializationPromise;
+      if (this.client) {
+        return this.client;
+      }
+      if (this.initializationError) {
+        throw this.initializationError;
+      }
+    }
+
+    // Start initialization
+    this.initializationPromise = (async () => {
+      try {
+        this.client = new Client();
+        log('✅ Object storage client initialized successfully');
+      } catch (error) {
+        this.initializationError = error instanceof Error ? error : new Error(String(error));
+        log(`❌ Failed to initialize object storage client: ${this.initializationError.message}`);
+        throw this.initializationError;
+      } finally {
+        this.initializationPromise = null;
+      }
+    })();
+
+    await this.initializationPromise;
+    if (!this.client) {
+      throw new Error('Failed to initialize object storage client');
+    }
+    return this.client;
+  }
+
+  /**
+   * Get the initialized client (for advanced use cases)
+   * @returns Initialized Client instance
+   */
+  async getClient(): Promise<Client> {
+    return await this.ensureClient();
+  }
+
+  /**
+   * Get bucket name
+   * @returns Bucket name
+   */
+  getBucketName(): string {
+    return this.bucketName;
   }
 
   /**
@@ -19,7 +82,8 @@ class ObjectStorageService {
    */
   async uploadBuffer(key: string, buffer: Buffer, contentType?: string): Promise<{ url: string }> {
     try {
-      const result = await this.client.uploadFromBytes(key, buffer, {
+      const client = await this.ensureClient();
+      const result = await client.uploadFromBytes(key, buffer, {
         compress: false // Don't compress files
       });
       
@@ -46,7 +110,8 @@ class ObjectStorageService {
    */
   async uploadImage(buffer: Buffer, key: string): Promise<string> {
     try {
-      const result = await this.client.uploadFromBytes(key, buffer, {
+      const client = await this.ensureClient();
+      const result = await client.uploadFromBytes(key, buffer, {
         compress: false // Don't compress images as they're already optimized
       });
       
@@ -72,7 +137,8 @@ class ObjectStorageService {
    */
   async downloadBuffer(key: string): Promise<Buffer> {
     try {
-      const result = await this.client.downloadAsBytes(key);
+      const client = await this.ensureClient();
+      const result = await client.downloadAsBytes(key);
       if (!result.ok) {
         throw new Error(`Download failed: ${result.error.message}`);
       }
@@ -90,7 +156,8 @@ class ObjectStorageService {
    */
   async downloadImage(key: string): Promise<Buffer> {
     try {
-      const result = await this.client.downloadAsBytes(key);
+      const client = await this.ensureClient();
+      const result = await client.downloadAsBytes(key);
       if (!result.ok) {
         throw new Error(`Download failed: ${result.error.message}`);
       }
@@ -107,7 +174,8 @@ class ObjectStorageService {
    */
   async deleteImage(key: string): Promise<void> {
     try {
-      const result = await this.client.delete(key);
+      const client = await this.ensureClient();
+      const result = await client.delete(key);
       if (!result.ok) {
         throw new Error(`Delete failed: ${result.error.message}`);
       }
@@ -124,7 +192,8 @@ class ObjectStorageService {
    */
   async deleteFile(key: string): Promise<void> {
     try {
-      const result = await this.client.delete(key);
+      const client = await this.ensureClient();
+      const result = await client.delete(key);
       if (!result.ok) {
         throw new Error(`Delete failed: ${result.error.message}`);
       }
@@ -142,7 +211,8 @@ class ObjectStorageService {
    */
   async imageExists(key: string): Promise<boolean> {
     try {
-      const result = await this.client.exists(key);
+      const client = await this.ensureClient();
+      const result = await client.exists(key);
       return result.ok ? result.value : false;
     } catch (error) {
       return false;
@@ -156,7 +226,8 @@ class ObjectStorageService {
    */
   async listImages(prefix: string = ''): Promise<string[]> {
     try {
-      const result = await this.client.list({ prefix });
+      const client = await this.ensureClient();
+      const result = await client.list({ prefix });
       if (!result.ok) {
         throw new Error(`List failed: ${result.error.message}`);
       }

@@ -1,201 +1,239 @@
-import Anthropic from '@anthropic-ai/sdk';
 import { objectStorage } from './object-storage';
 import { db } from './db';
 import { sdeAnalyses } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { logger } from './logger';
+import { spawn } from 'child_process';
+import * as path from 'path';
+import * as fs from 'fs';
+import { promisify } from 'util';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import OpenAI from 'openai';
+import * as XLSX from 'xlsx';
 
-if (!process.env.ANTHROPIC_API_KEY) {
-  throw new Error('ANTHROPIC_API_KEY environment variable is required for SDE Analyzer');
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const unlinkAsync = promisify(fs.unlink);
+const writeFileAsync = promisify(fs.writeFile);
+const readFileAsync = promisify(fs.readFile);
+
+const PYTHON_SCRIPT_PATH = path.join(__dirname, 'sde-analyzer-package', 'sde_analyzer.py');
+
+// OpenAI client (lazy initialization)
+let openai: OpenAI | null = null;
+
+function getOpenAIClient(): OpenAI | null {
+  if (!process.env.OPENAI_API_KEY) {
+    logger.warn('OPENAI_API_KEY not set - AI-enhanced add-back detection will be skipped');
+    return null;
+  }
+
+  if (!openai) {
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+    logger.info('OpenAI client initialized');
+  }
+
+  return openai;
 }
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+interface AddBack {
+  row: number;
+  label: string;
+  category: string;
+}
 
-const SKILL_ID = 'analyzing-sde-financials';
-const SKILL_VERSION = 'latest'; // Use 'latest' for development, pin version for production
+interface AIAnalysisResult {
+  revenue_row: number | null;
+  noi_row: number | null;
+  addbacks: AddBack[];
+}
 
 export class SDEAnalyzerService {
   /**
-   * Upload a file to Claude Files API
-   * @param fileBuffer The Excel file buffer
-   * @param filename Original filename
-   * @returns File ID from Claude API
+   * Use AI to analyze P&L and identify revenue, NOI, and add-backs
+   * @param filePath Path to Excel file
+   * @returns Analysis result with revenue row, NOI row, and add-backs
    */
-  async uploadToClaudeFiles(fileBuffer: Buffer, filename: string): Promise<string> {
-    try {
-      logger.info(`Uploading file to Claude Files API: ${filename}`);
+  async identifyAddBacksWithAI(filePath: string): Promise<AIAnalysisResult> {
+    const client = getOpenAIClient();
 
-      // Create a File object from buffer (Claude SDK expects a File or Blob)
-      const file = new File([fileBuffer], filename, {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      });
-
-      // Upload to Claude Files API
-      const uploadResponse = await anthropic.files.create({
-        file: file,
-        purpose: 'batch' // Files API purpose
-      });
-
-      logger.info(`File uploaded successfully. File ID: ${uploadResponse.id}`);
-      return uploadResponse.id;
-    } catch (error) {
-      logger.error('Error uploading file to Claude:', error);
-      throw new Error(`Failed to upload file to Claude: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    if (!client) {
+      logger.warn('⚠️ OPENAI_API_KEY not set - AI analysis will be skipped. Add OpenAI key to Repl Secrets for better add-back detection.');
+      return { revenue_row: null, noi_row: null, addbacks: [] };
     }
-  }
 
-  /**
-   * Invoke the SDE Sheet skill to analyze the financial document
-   * @param fileId File ID from Claude Files API
-   * @param analysisId Database ID for tracking
-   * @returns Message response from Claude
-   */
-  async invokeSdeSkill(fileId: string, analysisId: number): Promise<any> {
     try {
-      logger.info(`Invoking SDE skill for analysis ID: ${analysisId}, file ID: ${fileId}`);
+      logger.info('📊 Reading Excel file for AI analysis...');
 
-      // Update status to processing
-      await db.update(sdeAnalyses)
-        .set({
-          status: 'processing',
-          processingStartedAt: new Date(),
-          claudeFileId: fileId
+      // Read Excel file
+      const workbook = XLSX.readFile(filePath);
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+
+      // Convert to JSON (array of arrays)
+      const data: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+      // Take first 200 rows (to avoid token limits)
+      const limitedData = data.slice(0, 200);
+
+      // Convert to text representation with better formatting
+      const textData = limitedData
+        .map((row, idx) => {
+          const rowStr = row.map(cell => cell === null || cell === undefined ? '' : String(cell)).join(' | ');
+          return `Row ${idx + 1}: ${rowStr}`;
         })
-        .where(eq(sdeAnalyses.id, analysisId));
+        .join('\n');
 
-      const startTime = Date.now();
+      logger.info('🤖 Sending to OpenAI GPT-4o-mini for comprehensive P&L analysis...');
 
-      // Call Claude Messages API with code execution and skills
-      const message = await anthropic.messages.create({
-        model: 'claude-sonnet-4-5-20250929',
-        max_tokens: 8192,
-        // Required beta headers for skills
-        betas: ['code-execution-2025-08-25', 'skills-2025-10-02'],
+      // Call OpenAI
+      const response = await client.chat.completions.create({
+        model: 'gpt-4o-mini',
         messages: [
           {
+            role: 'system',
+            content: `You are a financial analyst expert in analyzing P&L statements and identifying SDE (Seller's Discretionary Earnings) components.
+
+Your tasks:
+1. Find the TOTAL REVENUE row (may be labeled as: "Total Income", "Total for Income", "Total Revenue", "Gross Revenue", "Total Sales", "Income Total", etc.)
+2. Find the NET OPERATING INCOME row (may be labeled as: "Net Income", "Net Operating Income", "NOI", "Operating Income", "Net Profit", "Bottom Line", etc.)
+3. Identify ALL add-back expenses BETWEEN revenue and NOI
+
+SDE Add-backs are expenses that can be added back to calculate true earnings:
+
+**MUST LOOK FOR THESE (even with variations in naming):**
+- Depreciation (depreciation expense, deprec, D&A)
+- Amortization (amortization expense, amort)
+- Officer Compensation (officer comp, officer salary, officer wages, officer payroll)
+- Owner Compensation (owner comp, owner salary, owner wages, owner draw, owner payroll)
+- Interest Expense (interest paid, interest on debt, loan interest, financing costs)
+- Meals & Entertainment (meals, entertainment, M&E, business meals, dining)
+- Travel Expenses (travel, business travel, travel costs)
+- Auto/Vehicle Expenses (auto expense, vehicle expense, car expense, transportation)
+- Insurance (health insurance, life insurance, owner's insurance)
+- Payroll Taxes (payroll tax, 941, FUTA, SUTA, employment taxes, employer taxes)
+- Legal & Professional Fees (legal fees, attorney, accounting fees, professional services)
+- Bonuses (bonus expense, discretionary bonuses)
+- Rent to Owner (rent expense, lease expense - if paid to owner)
+- One-time Expenses (consulting, restructuring, non-recurring)
+
+Return ONLY a JSON object with this EXACT structure:
+{
+  "revenue_row": <row_number or null>,
+  "noi_row": <row_number or null>,
+  "addbacks": [
+    {"row": <row_number>, "label": "<exact_expense_name_from_file>", "category": "<category>"},
+    ...
+  ]
+}
+
+CRITICAL:
+- Use row numbers as they appear in the data (1-based indexing)
+- Include the EXACT label text from the file
+- Only include expenses BETWEEN revenue and NOI rows
+- If you can't find revenue/NOI, set to null
+- If no add-backs found, use empty array []`
+          },
+          {
             role: 'user',
-            content: `Analyze this Excel document and generate an SDE (Seller's Discretionary Earnings) Sheet. Please provide a comprehensive financial analysis including revenue, expenses, add-backs, and normalized earnings.`
+            content: `Analyze this P&L data and identify the revenue row, NOI row, and all SDE add-backs:\n\n${textData}`
           }
         ],
-        // Attach the uploaded file
-        tools: [
-          {
-            type: 'code_execution_2025_08_25',
-            name: 'code_execution',
-            container: {
-              skills: [
-                {
-                  type: 'custom',
-                  skill_id: SKILL_ID,
-                  version: SKILL_VERSION
-                }
-              ]
-            }
-          }
-        ]
+        temperature: 0.1,
+        max_tokens: 2000
       });
 
-      const processingTime = Math.round((Date.now() - startTime) / 1000);
-      logger.info(`SDE skill completed in ${processingTime} seconds`);
+      const content = response.choices[0]?.message?.content || '{"revenue_row":null,"noi_row":null,"addbacks":[]}';
 
-      // Extract file_id from response if present
-      let resultFileId: string | null = null;
+      logger.info(`✅ OpenAI response received`);
+      logger.info(`Response: ${content}`);
 
-      // Look for file outputs in the response
-      if (message.content && Array.isArray(message.content)) {
-        for (const block of message.content) {
-          // Check for tool use blocks with file outputs
-          if ('type' in block && block.type === 'tool_use' && 'output' in block) {
-            const output = block.output as any;
-            if (output?.file_id) {
-              resultFileId = output.file_id;
-              logger.info(`Found result file ID: ${resultFileId}`);
-              break;
-            }
-          }
-        }
+      // Parse JSON response
+      const result: AIAnalysisResult = JSON.parse(content);
+
+      logger.info(`📈 AI Analysis Results:`);
+      logger.info(`   Revenue row: ${result.revenue_row || 'Not found'}`);
+      logger.info(`   NOI row: ${result.noi_row || 'Not found'}`);
+      logger.info(`   Add-backs identified: ${result.addbacks.length}`);
+
+      if (result.addbacks.length > 0) {
+        logger.info(`   Add-backs: ${result.addbacks.map(ab => ab.label).join(', ')}`);
       }
 
-      return {
-        message,
-        resultFileId,
-        processingTime,
-        requestId: message.id
-      };
+      return result;
+
     } catch (error) {
-      logger.error('Error invoking SDE skill:', error);
-
-      // Update database with error
-      await db.update(sdeAnalyses)
-        .set({
-          status: 'failed',
-          errorMessage: error instanceof Error ? error.message : 'Unknown error during processing'
-        })
-        .where(eq(sdeAnalyses.id, analysisId));
-
-      throw error;
+      logger.error('❌ Error in AI analysis:', error);
+      return { revenue_row: null, noi_row: null, addbacks: [] }; // Fall back to Python's built-in detection
     }
   }
 
   /**
-   * Download the result file from Claude Files API
-   * @param fileId Result file ID from Claude
-   * @returns File buffer and metadata
+   * Run the Python SDE analyzer script
+   * @param inputPath Path to input Excel file
+   * @param outputPath Path for output Excel file
+   * @param companyName Optional company name
+   * @param addBacks Optional AI-identified add-backs
+   * @returns Promise that resolves when analysis completes
    */
-  async downloadResultFile(fileId: string): Promise<{ buffer: Buffer; filename: string }> {
-    try {
-      logger.info(`Downloading result file: ${fileId}`);
+  async runPythonAnalyzer(
+    inputPath: string,
+    outputPath: string,
+    companyName?: string
+  ): Promise<{ success: boolean; error?: string }> {
+    return new Promise((resolve, reject) => {
+      logger.info(`Running Python SDE analyzer: ${inputPath} -> ${outputPath}`);
 
-      // Get file metadata first
-      const fileMetadata = await anthropic.files.retrieve(fileId);
-      logger.info(`File metadata: ${JSON.stringify(fileMetadata)}`);
+      // Build command arguments
+      const args = [
+        PYTHON_SCRIPT_PATH,
+        inputPath,
+        outputPath
+      ];
 
-      // Download the actual file content
-      const fileContent = await anthropic.files.content(fileId);
+      if (companyName) {
+        args.push(companyName);
+      }
 
-      // Convert the response to a Buffer
-      const arrayBuffer = await fileContent.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
+      // Spawn Python process
+      const pythonProcess = spawn('python3', args, {
+        cwd: path.join(__dirname, 'sde-analyzer-package')
+      });
 
-      logger.info(`Downloaded file successfully. Size: ${buffer.length} bytes`);
+      let stdout = '';
+      let stderr = '';
 
-      return {
-        buffer,
-        filename: fileMetadata.filename || `SDE_Sheet_${Date.now()}.xlsx`
-      };
-    } catch (error) {
-      logger.error('Error downloading result file from Claude:', error);
-      throw new Error(`Failed to download result: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }
+      pythonProcess.stdout.on('data', (data) => {
+        stdout += data.toString();
+      });
 
-  /**
-   * Store the result file in object storage
-   * @param buffer File buffer
-   * @param filename Original filename
-   * @param userId User ID for organization
-   * @returns Object storage path
-   */
-  async storeResultFile(buffer: Buffer, filename: string, userId: number): Promise<{ path: string; size: number }> {
-    try {
-      const timestamp = Date.now();
-      const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const storagePath = `sde-results/user-${userId}/${timestamp}-${safeName}`;
+      pythonProcess.stderr.on('data', (data) => {
+        stderr += data.toString();
+      });
 
-      logger.info(`Storing result file at: ${storagePath}`);
+      pythonProcess.on('close', (code) => {
+        if (code === 0) {
+          logger.info('Python SDE analyzer completed successfully');
+          logger.info(`Output: ${stdout}`);
+          resolve({ success: true });
+        } else {
+          logger.error(`Python SDE analyzer failed with code ${code}`);
+          logger.error(`stderr: ${stderr}`);
+          logger.error(`stdout: ${stdout}`);
+          reject(new Error(`SDE analysis failed: ${stderr || 'Unknown error'}`));
+        }
+      });
 
-      await objectStorage.uploadBuffer(storagePath, buffer);
-
-      return {
-        path: storagePath,
-        size: buffer.length
-      };
-    } catch (error) {
-      logger.error('Error storing result file:', error);
-      throw new Error(`Failed to store result file: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+      pythonProcess.on('error', (error) => {
+        logger.error('Failed to start Python process:', error);
+        reject(new Error(`Failed to run analysis: ${error.message}`));
+      });
+    });
   }
 
   /**
@@ -203,6 +241,8 @@ export class SDEAnalyzerService {
    * @param analysisId Database ID of the analysis to process
    */
   async processAnalysis(analysisId: number): Promise<void> {
+    logger.info(`⚙️ processAnalysis called for ID: ${analysisId}`);
+
     try {
       // Get the analysis record
       const [analysis] = await db.select()
@@ -219,50 +259,110 @@ export class SDEAnalyzerService {
         return;
       }
 
-      logger.info(`Processing analysis ${analysisId}: ${analysis.originalFilename}`);
+      logger.info(`📝 Processing analysis ${analysisId}: ${analysis.originalFilename}`);
+
+      // Update status to processing
+      await db.update(sdeAnalyses)
+        .set({
+          status: 'processing',
+          processingStartedAt: new Date()
+        })
+        .where(eq(sdeAnalyses.id, analysisId));
+
+      const startTime = Date.now();
 
       // Step 1: Read the original file from storage
       const fileBuffer = await objectStorage.downloadBuffer(analysis.originalFilePath);
 
-      // Step 2: Upload to Claude Files API
-      const claudeFileId = await this.uploadToClaudeFiles(fileBuffer, analysis.originalFilename);
+      // Step 2: Write to temporary input file
+      const tempDir = '/tmp';
+      const tempInputPath = path.join(tempDir, `sde_input_${analysisId}_${Date.now()}.xlsx`);
+      const tempOutputPath = path.join(tempDir, `sde_output_${analysisId}_${Date.now()}.xlsx`);
 
-      // Step 3: Invoke the SDE skill
-      const result = await this.invokeSdeSkill(claudeFileId, analysisId);
+      await writeFileAsync(tempInputPath, fileBuffer);
 
-      if (!result.resultFileId) {
-        throw new Error('No result file generated by Claude skill');
+      try {
+        // Step 3: Use AI to analyze P&L (revenue, NOI, add-backs)
+        logger.info(`🔍 Starting AI analysis for file: ${tempInputPath}`);
+        const aiResult = await this.identifyAddBacksWithAI(tempInputPath);
+        logger.info(`🔍 AI analysis completed. Result: ${JSON.stringify(aiResult)}`);
+
+        // Write AI results to JSON file for Python to use
+        const analysisPath = tempInputPath.replace('.xlsx', '_ai_analysis.json');
+        if (aiResult.revenue_row || aiResult.noi_row || aiResult.addbacks.length > 0) {
+          await writeFileAsync(analysisPath, JSON.stringify(aiResult, null, 2));
+          logger.info(`📝 Wrote AI analysis to ${analysisPath}`);
+          logger.info(`   Revenue: Row ${aiResult.revenue_row || 'not found'}`);
+          logger.info(`   NOI: Row ${aiResult.noi_row || 'not found'}`);
+          logger.info(`   Add-backs: ${aiResult.addbacks.length} found`);
+        } else {
+          logger.info('⚠️ No AI results to write - Python will use built-in detection');
+        }
+
+        // Step 4: Run Python analyzer
+        await this.runPythonAnalyzer(
+          tempInputPath,
+          tempOutputPath,
+          analysis.originalFilename.replace(/\.(xlsx|xls)$/i, '')
+        );
+
+        // Step 4: Read result file
+        const resultBuffer = await readFileAsync(tempOutputPath);
+
+        // Step 5: Store result in object storage
+        const timestamp = Date.now();
+        const resultFilename = analysis.originalFilename.replace(/\.(xlsx|xls)$/i, '_SDE.xlsx');
+        const safeName = resultFilename.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const resultStoragePath = `sde-results/user-${analysis.userId}/${timestamp}-${safeName}`;
+
+        await objectStorage.uploadBuffer(resultStoragePath, resultBuffer);
+
+        // Step 6: Update database with success
+        const processingTime = Math.round((Date.now() - startTime) / 1000);
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 30); // 30 days from now
+
+        await db.update(sdeAnalyses)
+          .set({
+            status: 'completed',
+            completedAt: new Date(),
+            expiresAt: expiresAt,
+            resultFilename,
+            resultFilePath: resultStoragePath,
+            resultFileSize: resultBuffer.length,
+            processingTimeSeconds: processingTime
+          })
+          .where(eq(sdeAnalyses.id, analysisId));
+
+        logger.info(`Analysis ${analysisId} completed successfully in ${processingTime}s`);
+
+      } finally {
+        // Clean up temp files
+        const analysisPath = tempInputPath.replace('.xlsx', '_ai_analysis.json');
+
+        try {
+          await unlinkAsync(tempInputPath);
+        } catch (e) {
+          logger.warn(`Failed to delete temp input file: ${e}`);
+        }
+
+        try {
+          if (fs.existsSync(tempOutputPath)) {
+            await unlinkAsync(tempOutputPath);
+          }
+        } catch (e) {
+          logger.warn(`Failed to delete temp output file: ${e}`);
+        }
+
+        try {
+          if (fs.existsSync(analysisPath)) {
+            await unlinkAsync(analysisPath);
+          }
+        } catch (e) {
+          logger.warn(`Failed to delete temp AI analysis file: ${e}`);
+        }
       }
 
-      // Step 4: Download the result
-      const { buffer: resultBuffer, filename: resultFilename } = await this.downloadResultFile(result.resultFileId);
-
-      // Step 5: Store the result in object storage
-      const { path: resultPath, size: resultSize } = await this.storeResultFile(
-        resultBuffer,
-        resultFilename,
-        analysis.userId
-      );
-
-      // Step 6: Update database with success
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 30); // 30 days from now
-
-      await db.update(sdeAnalyses)
-        .set({
-          status: 'completed',
-          completedAt: new Date(),
-          expiresAt: expiresAt,
-          resultFilename,
-          resultFilePath: resultPath,
-          resultFileSize: resultSize,
-          claudeResultFileId: result.resultFileId,
-          claudeRequestId: result.requestId,
-          processingTimeSeconds: result.processingTime
-        })
-        .where(eq(sdeAnalyses.id, analysisId));
-
-      logger.info(`Analysis ${analysisId} completed successfully`);
     } catch (error) {
       logger.error(`Error processing analysis ${analysisId}:`, error);
 

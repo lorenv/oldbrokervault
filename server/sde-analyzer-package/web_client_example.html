@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SDE Analyzer - Upload</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        input[type="text"],
+        input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        input[type="file"] {
+            padding: 10px;
+        }
+        button {
+            width: 100%;
+            padding: 14px;
+            background: #366092;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #2a4d75;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 6px;
+            display: none;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.loading {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid rgba(0,0,0,0.1);
+            border-radius: 50%;
+            border-top-color: #0c5460;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .file-info {
+            margin-top: 10px;
+            font-size: 13px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SDE Analyzer</h1>
+        <p class="subtitle">Upload your P&L to generate a professional SDE analysis</p>
+        
+        <form id="uploadForm">
+            <div class="form-group">
+                <label for="file">P&L Excel File *</label>
+                <input type="file" id="file" name="file" accept=".xlsx,.xls" required>
+                <div class="file-info">Accepts .xlsx and .xls files (max 10MB)</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="company_name">Company Name (optional)</label>
+                <input type="text" id="company_name" name="company_name" placeholder="e.g., Acme Corporation">
+            </div>
+            
+            <button type="submit" id="submitBtn">Generate SDE Analysis</button>
+        </form>
+        
+        <div id="status" class="status"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000';  // Update with your API URL
+        
+        const form = document.getElementById('uploadForm');
+        const fileInput = document.getElementById('file');
+        const companyNameInput = document.getElementById('company_name');
+        const submitBtn = document.getElementById('submitBtn');
+        const statusDiv = document.getElementById('status');
+        
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Validate file
+            if (!fileInput.files[0]) {
+                showStatus('Please select a file', 'error');
+                return;
+            }
+            
+            // Check file size (10MB)
+            if (fileInput.files[0].size > 10 * 1024 * 1024) {
+                showStatus('File too large. Maximum size is 10MB', 'error');
+                return;
+            }
+            
+            // Prepare form data
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            if (companyNameInput.value) {
+                formData.append('company_name', companyNameInput.value);
+            }
+            
+            // Show loading state
+            submitBtn.disabled = true;
+            showStatus('Analyzing your P&L...', 'loading');
+            
+            try {
+                const response = await fetch(`${API_URL}/analyze-sde`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Analysis failed');
+                }
+                
+                // Download the file
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileInput.files[0].name.replace('.xlsx', '_SDE.xlsx');
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                showStatus('✓ Success! Your SDE analysis has been downloaded.', 'success');
+                
+                // Reset form
+                setTimeout(() => {
+                    form.reset();
+                    hideStatus();
+                }, 3000);
+                
+            } catch (error) {
+                showStatus(`Error: ${error.message}`, 'error');
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+        
+        function showStatus(message, type) {
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+            
+            if (type === 'loading') {
+                const spinner = document.createElement('span');
+                spinner.className = 'spinner';
+                statusDiv.insertBefore(spinner, statusDiv.firstChild);
+            }
+        }
+        
+        function hideStatus() {
+            statusDiv.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
