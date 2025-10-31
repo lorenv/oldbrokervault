@@ -69,17 +69,16 @@ export class FileStorageManager {
    */
   private async uploadFile(buffer: Buffer, key: string): Promise<string> {
     try {
-      const client = objectStorage['client']; // Access the client directly
-      const bucketName = objectStorage['bucketName'];
-      
+      const client = await objectStorage.getClient();
+
       const result = await client.uploadFromBytes(key, buffer, {
         compress: false
       });
-      
+
       if (!result.ok) {
         throw new Error(`Upload failed: ${result.error.message}`);
       }
-      
+
       // Generate server-side URL for Replit Object Storage
       // Object storage files must be served through our application server
       const publicUrl = `/api/object-storage/${key}`;
@@ -96,7 +95,7 @@ export class FileStorageManager {
    */
   async downloadFile(storageKey: string): Promise<Buffer> {
     try {
-      const client = objectStorage['client'];
+      const client = await objectStorage.getClient();
       const result = await client.downloadAsBytes(storageKey);
       if (!result.ok) {
         throw new Error(`Download failed: ${result.error.message}`);
@@ -113,7 +112,7 @@ export class FileStorageManager {
    */
   async deleteFile(storageKey: string): Promise<void> {
     try {
-      const client = objectStorage['client'];
+      const client = await objectStorage.getClient();
       const result = await client.delete(storageKey);
       if (!result.ok) {
         throw new Error(`Delete failed: ${result.error.message}`);
@@ -130,7 +129,7 @@ export class FileStorageManager {
    */
   async fileExists(storageKey: string): Promise<boolean> {
     try {
-      const client = objectStorage['client'];
+      const client = await objectStorage.getClient();
       const result = await client.exists(storageKey);
       return result.ok ? result.value : false;
     } catch (error) {
@@ -144,7 +143,6 @@ export class FileStorageManager {
    * Get public URL for file
    */
   getPublicUrl(storageKey: string): string {
-    const bucketName = objectStorage['bucketName'];
     return `/api/object-storage/${storageKey}`;
   }
 
@@ -152,7 +150,7 @@ export class FileStorageManager {
    * Extract storage key from URL
    */
   extractStorageKey(url: string): string | null {
-    const bucketName = objectStorage['bucketName'];
+    const bucketName = objectStorage.getBucketName();
     const urlPattern = new RegExp(`https://storage\\.googleapis\\.com/${bucketName}/(.+)`);
     const match = url.match(urlPattern);
     return match ? match[1] : null;
@@ -164,7 +162,7 @@ export class FileStorageManager {
   async listUserFiles(userId: number, type?: 'financial-files' | 'uploaded-cims' | 'documents'): Promise<string[]> {
     const prefix = type ? `users/${userId}/${type}/` : `users/${userId}/`;
     try {
-      const client = objectStorage['client'];
+      const client = await objectStorage.getClient();
       const result = await client.list({ prefix });
       if (!result.ok) {
         throw new Error(`List failed: ${result.error.message}`);

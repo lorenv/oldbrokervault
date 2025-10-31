@@ -1110,6 +1110,9 @@ export const sdeAnalyses = pgTable("sde_analyses", {
   claudeRequestId: text("claude_request_id"),
   processingTimeSeconds: integer("processing_time_seconds"),
 
+  // Storage tracking
+  useFilesystemStorage: boolean("use_filesystem_storage").default(false),
+
   // Tracking
   downloadCount: integer("download_count").default(0).notNull(),
   lastDownloadedAt: timestamp("last_downloaded_at")

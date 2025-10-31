@@ -60,7 +60,9 @@
       "Bash(git checkout:*)",
       "Bash(git merge:*)",
       "Bash(git stash:*)",
-      "Bash(pm2 logs:*)"
+      "Bash(pm2 logs:*)",
+      "Bash(unzip:*)",
+      "Bash(nix-env:*)"
     ],
     "deny": [],
     "ask": [],

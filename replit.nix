@@ -8,5 +8,8 @@
     pkgs.poppler_utils
     pkgs.chromium
     pkgs.postgresql
+    pkgs.python311
+    pkgs.python311Packages.pandas
+    pkgs.python311Packages.openpyxl
   ];
 }

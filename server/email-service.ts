@@ -1,11 +1,22 @@
 import { MailService } from '@sendgrid/mail';
 
-if (!process.env.SENDGRID_API_KEY) {
-  throw new Error("SENDGRID_API_KEY environment variable must be set");
-}
+// Lazy initialization - don't crash if key is missing
+let mailService: MailService | null = null;
 
-const mailService = new MailService();
-mailService.setApiKey(process.env.SENDGRID_API_KEY);
+function getMailService(): MailService | null {
+  if (!process.env.SENDGRID_API_KEY) {
+    console.warn('SENDGRID_API_KEY not set - email functionality will be disabled');
+    return null;
+  }
+
+  if (!mailService) {
+    mailService = new MailService();
+    mailService.setApiKey(process.env.SENDGRID_API_KEY);
+    console.log('SendGrid mail service initialized');
+  }
+
+  return mailService;
+}
 
 interface SendTemplateEmailParams {
   to: string;
@@ -18,8 +29,15 @@ export class EmailService {
   private defaultFromEmail = 'support@cimshare.com'; // Updated to use verified sender
 
   async sendTemplateEmail(params: SendTemplateEmailParams): Promise<boolean> {
+    const service = getMailService();
+
+    if (!service) {
+      console.warn(`Email not sent (SendGrid not configured): ${params.to}`);
+      return false;
+    }
+
     try {
-      await mailService.send({
+      await service.send({
         to: params.to,
         from: params.from || this.defaultFromEmail,
         templateId: params.templateId,

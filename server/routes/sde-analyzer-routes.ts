@@ -6,6 +6,8 @@ import { eq, and, desc, gte } from 'drizzle-orm';
 import { sdeAnalyzerService } from '../sde-analyzer';
 import { objectStorage } from '../object-storage';
 import { logger } from '../logger';
+import fs from 'fs/promises';
+import path from 'path';
 
 // Configure multer for memory storage (Excel files only)
 const upload = multer({
@@ -58,6 +60,42 @@ async function checkUserLimit(userId: number, subscriptionStatus: string): Promi
 }
 
 /**
+ * Helper: Store file with fallback to filesystem if object storage unavailable
+ */
+async function storeFile(storagePath: string, buffer: Buffer): Promise<{ success: boolean; useFilesystem: boolean; path: string }> {
+  // Try object storage first
+  try {
+    await objectStorage.uploadBuffer(storagePath, buffer);
+    return { success: true, useFilesystem: false, path: storagePath };
+  } catch (error) {
+    logger.warn('Object storage unavailable, falling back to filesystem:', error);
+
+    // Fall back to filesystem
+    try {
+      const filesystemPath = path.join(process.cwd(), 'storage', 'sde-files', storagePath);
+      await fs.mkdir(path.dirname(filesystemPath), { recursive: true });
+      await fs.writeFile(filesystemPath, buffer);
+      return { success: true, useFilesystem: true, path: storagePath };
+    } catch (fsError) {
+      logger.error('Failed to store file in filesystem:', fsError);
+      throw new Error('Failed to store file');
+    }
+  }
+}
+
+/**
+ * Helper: Retrieve file with fallback to filesystem
+ */
+async function retrieveFile(storagePath: string, useFilesystem: boolean): Promise<Buffer> {
+  if (useFilesystem) {
+    const filesystemPath = path.join(process.cwd(), 'storage', 'sde-files', storagePath);
+    return await fs.readFile(filesystemPath);
+  } else {
+    return await objectStorage.downloadBuffer(storagePath);
+  }
+}
+
+/**
  * Register SDE Analyzer routes
  */
 export function registerSDEAnalyzerRoutes(app: Express) {
@@ -101,12 +139,16 @@ export function registerSDEAnalyzerRoutes(app: Express) {
       const file = req.file;
       logger.info(`SDE upload from user ${user.id}: ${file.originalname} (${file.size} bytes)`);
 
-      // Store original file in object storage
+      // Store original file (try object storage, fall back to filesystem)
       const timestamp = Date.now();
       const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
       const storagePath = `sde-originals/user-${user.id}/${timestamp}-${safeName}`;
 
-      await objectStorage.uploadBuffer(storagePath, file.buffer);
+      const storageResult = await storeFile(storagePath, file.buffer);
+
+      if (!storageResult.success) {
+        return res.status(500).json({ error: 'Failed to store file' });
+      }
 
       // Create database record
       const [analysis] = await db.insert(sdeAnalyses)
@@ -116,7 +158,8 @@ export function registerSDEAnalyzerRoutes(app: Express) {
           originalFilePath: storagePath,
           originalFileSize: file.size,
           originalMimeType: file.mimetype,
-          status: 'pending'
+          status: 'pending',
+          useFilesystemStorage: storageResult.useFilesystem
         })
         .returning();
 
@@ -129,6 +172,11 @@ export function registerSDEAnalyzerRoutes(app: Express) {
 
       logger.info(`Created SDE analysis ${analysis.id} for user ${user.id}`);
 
+      // Trigger background processing (don't await - let it run async)
+      sdeAnalyzerService.processAnalysis(analysis.id).catch(err => {
+        logger.error(`Background processing failed for analysis ${analysis.id}:`, err);
+      });
+
       res.status(201).json({
         success: true,
         analysis: {
@@ -137,7 +185,7 @@ export function registerSDEAnalyzerRoutes(app: Express) {
           status: analysis.status,
           createdAt: analysis.createdAt
         },
-        message: 'File uploaded successfully. Analysis started - you\'ll receive an email when it\'s ready (usually 2-5 minutes).'
+        message: 'File uploaded successfully. Analysis started - check back in a few minutes for your SDE Sheet.'
       });
     } catch (error) {
       logger.error('Error in SDE upload:', error);
@@ -302,8 +350,8 @@ export function registerSDEAnalyzerRoutes(app: Express) {
         });
       }
 
-      // Read file from storage
-      const fileBuffer = await objectStorage.downloadBuffer(analysis.resultFilePath);
+      // Read file from storage (object storage or filesystem fallback)
+      const fileBuffer = await retrieveFile(analysis.resultFilePath, analysis.useFilesystemStorage || false);
 
       // Update download count
       await db.update(sdeAnalyses)
@@ -381,6 +429,59 @@ export function registerSDEAnalyzerRoutes(app: Express) {
     } catch (error) {
       logger.error('Error deleting analysis:', error);
       res.status(500).json({ error: 'Delete failed' });
+    }
+  });
+
+  /**
+   * GET /api/sde-analyzer/test-ai
+   * Test if OpenAI is configured and working
+   */
+  app.get('/api/sde-analyzer/test-ai', async (req: Request, res: Response) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const hasOpenAI = !!process.env.OPENAI_API_KEY;
+
+      if (!hasOpenAI) {
+        return res.json({
+          configured: false,
+          message: 'OPENAI_API_KEY not set. Add it to Repl Secrets for AI-enhanced analysis.'
+        });
+      }
+
+      // Try a simple OpenAI call
+      try {
+        const OpenAI = (await import('openai')).default;
+        const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+        const response = await client.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [{ role: 'user', content: 'Say "OK" if you receive this.' }],
+          max_tokens: 10
+        });
+
+        const reply = response.choices[0]?.message?.content || '';
+
+        return res.json({
+          configured: true,
+          working: true,
+          message: 'OpenAI is configured and working!',
+          test_response: reply
+        });
+      } catch (error) {
+        logger.error('OpenAI test call failed:', error);
+        return res.json({
+          configured: true,
+          working: false,
+          message: 'OpenAI key is set but API call failed',
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    } catch (error) {
+      logger.error('Error testing OpenAI:', error);
+      res.status(500).json({ error: 'Test failed' });
     }
   });
 
