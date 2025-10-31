@@ -119,6 +119,23 @@ class ObjectStorageService {
   }
 
   /**
+   * Delete file from object storage (generic method)
+   * @param key - Storage key (path)
+   */
+  async deleteFile(key: string): Promise<void> {
+    try {
+      const result = await this.client.delete(key);
+      if (!result.ok) {
+        throw new Error(`Delete failed: ${result.error.message}`);
+      }
+      log(`✅ File deleted successfully: ${key}`);
+    } catch (error) {
+      log(`❌ Failed to delete file ${key}: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
+  }
+
+  /**
    * Check if image exists in object storage
    * @param key - Storage key (path)
    * @returns Boolean indicating existence

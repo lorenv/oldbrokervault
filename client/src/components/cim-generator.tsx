@@ -52,6 +52,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { FormattingProfileSelector } from "./formatting-profile-selector";
 import type { FormattingProfile } from "@shared/formatting-config";
 import { ContentStyleSection } from "./content-style-section";
+import { SDEAnalyzerModal } from "./sde-analyzer-modal";
 
 // Default section lines for the new interface
 const DEFAULT_SECTION_LINES = [
@@ -134,6 +135,7 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [isExtractingImages, setIsExtractingImages] = useState(false);
   const [enableWebsiteAnalysis, setEnableWebsiteAnalysis] = useState(true);
+  const [isSDEModalOpen, setIsSDEModalOpen] = useState(false);
 
   // CIM Generation Progress State
   const [generationStage, setGenerationStage] = useState<CimGenerationStage | null>(null);
@@ -1310,16 +1312,28 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
                       <div className="border-2 border-dashed border-muted rounded-lg p-4">
                         <div className="text-center">
                           <Upload className="mx-auto h-6 w-6 text-muted-foreground mb-2" />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => fileInputRef.current?.click()}
-                            className="gap-2"
-                          >
-                            <File className="h-4 w-4" />
-                            Upload Files
-                          </Button>
+                          <div className="flex gap-2 justify-center mb-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => fileInputRef.current?.click()}
+                              className="gap-2"
+                            >
+                              <File className="h-4 w-4" />
+                              Upload Files
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setIsSDEModalOpen(true)}
+                              className="gap-2 border-blue-200 hover:bg-blue-50"
+                            >
+                              <Sparkles className="h-4 w-4 text-blue-600" />
+                              SDE Analyzer
+                            </Button>
+                          </div>
                           <p className="mt-2 text-xs text-muted-foreground">
                             Financial statements, tax returns, or other documents
                           </p>
@@ -1854,6 +1868,12 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
           />
         </div>
       )}
+
+      {/* SDE Analyzer Modal */}
+      <SDEAnalyzerModal
+        open={isSDEModalOpen}
+        onOpenChange={setIsSDEModalOpen}
+      />
     </div>
   );
 }

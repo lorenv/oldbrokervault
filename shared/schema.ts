@@ -83,6 +83,7 @@ export const users = pgTable("users", {
   // Keep old fields for backward compatibility during transition
   monthlyDocumentsCreated: integer("monthly_documents_created").default(0).notNull(),
   monthlyRegenerationsUsed: integer("monthly_regenerations_used").default(0).notNull(),
+  monthlySdeAnalyses: integer("monthly_sde_analyses").default(0).notNull(),
   stripeCustomerId: text("stripe_customer_id").unique(),
   subscriptionId: text("subscription_id").unique(),
   googleAccessToken: text("google_access_token"),
@@ -1076,3 +1077,57 @@ export type InsertUserEmailQueue = z.infer<typeof insertUserEmailQueueSchema>;
 // Message attachment types
 export type MessageAttachment = typeof messageAttachments.$inferSelect;
 export type InsertMessageAttachment = typeof messageAttachments.$inferInsert;
+
+// SDE Analyzer - Financial analysis tracking
+export const sdeAnalyses = pgTable("sde_analyses", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+
+  // Original uploaded file
+  originalFilename: text("original_filename").notNull(),
+  originalFilePath: text("original_file_path").notNull(),
+  originalFileSize: integer("original_file_size").notNull(),
+  originalMimeType: text("original_mime_type").notNull(),
+
+  // Result file (generated SDE Sheet)
+  resultFilename: text("result_filename"),
+  resultFilePath: text("result_file_path"),
+  resultFileSize: integer("result_file_size"),
+
+  // Processing status
+  status: text("status").notNull().default("pending").$type<"pending" | "processing" | "completed" | "failed">(),
+  errorMessage: text("error_message"),
+
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  processingStartedAt: timestamp("processing_started_at"),
+  completedAt: timestamp("completed_at"),
+  expiresAt: timestamp("expires_at"), // 30 days from completion
+
+  // Claude API metadata
+  claudeFileId: text("claude_file_id"),
+  claudeResultFileId: text("claude_result_file_id"),
+  claudeRequestId: text("claude_request_id"),
+  processingTimeSeconds: integer("processing_time_seconds"),
+
+  // Tracking
+  downloadCount: integer("download_count").default(0).notNull(),
+  lastDownloadedAt: timestamp("last_downloaded_at")
+});
+
+export const insertSdeAnalysisSchema = createInsertSchema(sdeAnalyses).pick({
+  userId: true,
+  originalFilename: true,
+  originalFilePath: true,
+  originalFileSize: true,
+  originalMimeType: true
+}).extend({
+  userId: z.number().min(1, "User ID is required"),
+  originalFilename: z.string().min(1, "Filename is required"),
+  originalFilePath: z.string().min(1, "File path is required"),
+  originalFileSize: z.number().min(1, "File size is required"),
+  originalMimeType: z.string().min(1, "MIME type is required")
+});
+
+export type SdeAnalysis = typeof sdeAnalyses.$inferSelect;
+export type InsertSdeAnalysis = z.infer<typeof insertSdeAnalysisSchema>;
