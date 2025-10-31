@@ -337,76 +337,87 @@ export default function SDEAnalyzerPage() {
   const usage = analysesData?.usage || usageData?.usage;
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold">SDE Analyzer</h1>
-        <p className="text-muted-foreground mt-1">
-          Upload Excel files to generate professional SDE Sheets with AI-powered analysis
-        </p>
+      <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 border-b border-slate-200 shadow-lg">
+        <div className="container mx-auto px-4 py-12">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold text-white mb-3">
+                SDE Analyzer
+              </h1>
+              <p className="text-slate-200 text-lg font-medium">
+                Upload Excel files to generate professional SDE Sheets with AI-powered analysis
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
+
+      <div className="container mx-auto px-4 py-8 space-y-6">
 
       {/* Usage Stats */}
       {usage && (
-        <Card>
+        <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 shadow-md border-2 border-blue-200 hover:shadow-lg transition-shadow duration-200 rounded-lg">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium">Monthly Usage</p>
-                <p className="text-2xl font-bold">
+                <p className="text-sm font-semibold text-blue-900">Monthly Usage</p>
+                <p className="text-3xl font-bold text-slate-800">
                   {usage.used} / {usage.limit === Infinity ? '∞' : usage.limit}
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm font-medium text-blue-700">
                   {usage.limit === Infinity ? 'Unlimited' : `${usage.remaining} remaining`}
                 </p>
               </div>
             </div>
             {usage.limit !== Infinity && (
-              <Progress value={(usage.used / usage.limit) * 100} className="mt-3" />
+              <Progress value={(usage.used / usage.limit) * 100} className="mt-3 bg-blue-100" />
             )}
           </CardContent>
         </Card>
       )}
 
       {/* Upload Area */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Upload className="h-5 w-5" />
+      <Card className="bg-white shadow-xl border-2 border-blue-100 ring-2 ring-blue-50 rounded-xl">
+        <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50 border-b border-blue-100 rounded-t-xl">
+          <CardTitle className="flex items-center gap-2 text-slate-800">
+            <Upload className="h-5 w-5 text-blue-600" />
             Upload Financial Document
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-slate-600">
             Upload an Excel file (.xls or .xlsx) to generate an SDE Sheet. Maximum file size: 8MB.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div
-            className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
-              dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
+            className={`border-2 border-dashed rounded-lg p-12 text-center transition-all duration-200 ${
+              dragActive ? 'border-blue-500 bg-blue-50 shadow-inner' : 'border-blue-200 hover:border-blue-400 bg-slate-50/50'
             }`}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
           >
-            <FileSpreadsheet className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+            <FileSpreadsheet className="h-12 w-12 mx-auto text-blue-400 mb-4" />
             {uploadProgress !== null ? (
               <div className="space-y-3">
-                <p className="font-medium">Uploading...</p>
-                <Progress value={uploadProgress} className="w-full max-w-xs mx-auto" />
+                <p className="font-semibold text-slate-800">Uploading...</p>
+                <Progress value={uploadProgress} className="w-full max-w-xs mx-auto bg-blue-100" />
               </div>
             ) : (
               <>
-                <p className="text-lg font-medium mb-2">
+                <p className="text-lg font-semibold text-slate-800 mb-2">
                   Drop your Excel file here or click to browse
                 </p>
-                <p className="text-sm text-muted-foreground mb-4">
+                <p className="text-sm text-slate-600 mb-4">
                   Supports .xls and .xlsx files up to 8MB
                 </p>
                 <Button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadMutation.isPending || (usage && usage.remaining <= 0)}
+                  className="bg-gradient-to-r from-slate-700 to-blue-600 hover:from-slate-800 hover:to-blue-700 text-white shadow-lg"
                 >
                   {uploadMutation.isPending ? (
                     <>
@@ -434,9 +445,9 @@ export default function SDEAnalyzerPage() {
             )}
           </div>
 
-          <Alert className="mt-4">
-            <Info className="h-4 w-4" />
-            <AlertDescription>
+          <Alert className="mt-4 bg-blue-50 border-blue-200">
+            <Info className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-blue-900">
               After upload, analysis typically takes 2-5 minutes. You'll receive an email when your SDE Sheet is ready.
               Files are retained for 30 days.
             </AlertDescription>
@@ -445,10 +456,10 @@ export default function SDEAnalyzerPage() {
       </Card>
 
       {/* Analysis History */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Analysis History</CardTitle>
-          <CardDescription>View and download your SDE Sheet analyses</CardDescription>
+      <Card className="bg-white shadow-xl border-2 border-blue-100 ring-2 ring-blue-50 rounded-xl">
+        <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50 border-b border-blue-100 rounded-t-xl">
+          <CardTitle className="text-slate-800">Analysis History</CardTitle>
+          <CardDescription className="text-slate-600">View and download your SDE Sheet analyses</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
