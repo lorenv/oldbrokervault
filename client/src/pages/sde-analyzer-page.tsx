@@ -53,15 +53,19 @@ export default function SDEAnalyzerPage() {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   // Check if user has access
-  const { data: usageData } = useQuery<{ hasAccess: boolean; usage: Usage; subscriptionStatus: string }>({
+  const { data: usageData, error: usageError } = useQuery<{ hasAccess: boolean; usage: Usage; subscriptionStatus: string }>({
     queryKey: ['/api/sde-analyzer/usage'],
     enabled: !!user,
+    retry: false,
+    staleTime: 1000 * 60 * 5,
   });
 
   // Get analyses list
-  const { data: analysesData, isLoading } = useQuery<{ analyses: Analysis[]; usage: Usage }>({
+  const { data: analysesData, isLoading, error: listError } = useQuery<{ analyses: Analysis[]; usage: Usage }>({
     queryKey: ['/api/sde-analyzer/list'],
-    enabled: !!user && usageData?.hasAccess,
+    enabled: !!user && !!usageData?.hasAccess,
+    retry: false,
+    staleTime: 1000 * 60 * 2,
     refetchInterval: (data) => {
       // Auto-refresh every 10 seconds if there are any pending/processing analyses
       const hasPending = data?.analyses.some(a => a.status === 'pending' || a.status === 'processing');
@@ -245,6 +249,20 @@ export default function SDEAnalyzerPage() {
           <Info className="h-4 w-4" />
           <AlertDescription>
             Please log in to access the SDE Analyzer.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  // Show error if usage query fails
+  if (usageError) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <Alert variant="destructive">
+          <XCircle className="h-4 w-4" />
+          <AlertDescription>
+            Failed to load SDE Analyzer access information. Please try refreshing the page.
           </AlertDescription>
         </Alert>
       </div>
