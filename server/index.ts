@@ -18,7 +18,7 @@ const app = express();
 
 // Use PORT environment variable for deployment flexibility
 let PORT = process.env.PORT ? parseInt(process.env.PORT) : 5000;
-const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
+const HOST = '0.0.0.0';
 
 // Enhanced environment variable validation for deployment
 function validateDeploymentEnvironment() {
