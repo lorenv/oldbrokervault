@@ -464,13 +464,13 @@ export default function SDEAnalyzerPage() {
         <CardContent>
           {isLoading ? (
             <div className="text-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto text-gray-400" />
-              <p className="text-sm text-muted-foreground mt-2">Loading analyses...</p>
+              <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-400" />
+              <p className="text-sm text-slate-600 mt-2">Loading analyses...</p>
             </div>
           ) : !analysesData?.analyses || analysesData.analyses.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <FileSpreadsheet className="h-12 w-12 mx-auto text-gray-300 mb-2" />
-              <p>No analyses yet. Upload a file to get started!</p>
+            <div className="text-center py-12 text-slate-600">
+              <FileSpreadsheet className="h-16 w-16 mx-auto text-blue-300 mb-3" />
+              <p className="font-medium">No analyses yet. Upload a file to get started!</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -481,12 +481,12 @@ export default function SDEAnalyzerPage() {
                 return (
                   <div
                     key={analysis.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+                    className="flex items-center justify-between p-4 border-2 border-blue-100 rounded-lg hover:bg-blue-50/50 hover:border-blue-200 transition-all duration-200 bg-white shadow-sm"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-2">
-                        <FileSpreadsheet className="h-5 w-5 text-gray-500 flex-shrink-0" />
-                        <span className="font-medium truncate">{analysis.originalFilename}</span>
+                        <FileSpreadsheet className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                        <span className="font-semibold text-slate-800 truncate">{analysis.originalFilename}</span>
                         {getStatusBadge(analysis.status)}
                         {isExpiringSoon && (
                           <Badge variant="outline" className="gap-1">
@@ -495,16 +495,16 @@ export default function SDEAnalyzerPage() {
                           </Badge>
                         )}
                       </div>
-                      <div className="text-sm text-muted-foreground space-y-1">
+                      <div className="text-sm text-slate-600 space-y-1 font-medium">
                         <p>Uploaded {formatDistanceToNow(new Date(analysis.createdAt), { addSuffix: true })}</p>
                         {analysis.status === 'completed' && analysis.completedAt && (
-                          <p>
+                          <p className="text-blue-700">
                             Completed in {analysis.processingTimeSeconds}s •
                             Downloaded {analysis.downloadCount} time{analysis.downloadCount !== 1 ? 's' : ''}
                           </p>
                         )}
                         {analysis.status === 'failed' && analysis.errorMessage && (
-                          <p className="text-red-600">Error: {analysis.errorMessage}</p>
+                          <p className="text-red-600 font-semibold">Error: {analysis.errorMessage}</p>
                         )}
                       </div>
                     </div>
@@ -514,6 +514,7 @@ export default function SDEAnalyzerPage() {
                         <Button
                           size="sm"
                           onClick={() => handleDownload(analysis.id, analysis.resultFilename!)}
+                          className="bg-gradient-to-r from-slate-700 to-blue-600 hover:from-slate-800 hover:to-blue-700 text-white shadow-md"
                         >
                           <Download className="h-4 w-4 mr-2" />
                           Download
@@ -524,11 +525,12 @@ export default function SDEAnalyzerPage() {
                         variant="outline"
                         onClick={() => deleteMutation.mutate(analysis.id)}
                         disabled={deleteMutation.isPending}
+                        className="border-slate-300 hover:bg-slate-50 hover:border-slate-400"
                       >
                         {deleteMutation.isPending ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <Loader2 className="h-4 w-4 animate-spin text-slate-600" />
                         ) : (
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4 text-slate-600" />
                         )}
                       </Button>
                     </div>
@@ -539,6 +541,7 @@ export default function SDEAnalyzerPage() {
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }
