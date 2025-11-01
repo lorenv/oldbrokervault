@@ -26,6 +26,15 @@ cp -r shared dist/ 2>/dev/null || true
 cp -r public dist/ 2>/dev/null || true
 cp package.json dist/ 2>/dev/null || true
 
+# Copy Python SDE analyzer package
+echo "🐍 Copying Python SDE analyzer..."
+mkdir -p dist/server/sde-analyzer-package
+cp -r server/sde-analyzer-package/* dist/server/sde-analyzer-package/ 2>/dev/null || true
+
+# Create storage directory for filesystem storage
+echo "💾 Creating storage directory..."
+mkdir -p dist/storage/sde-files
+
 # Create production start script for auto-scale
 echo "🔧 Creating auto-scale start script..."
 cat > dist/start.js << 'EOF'
