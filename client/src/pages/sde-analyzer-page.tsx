@@ -339,8 +339,8 @@ export default function SDEAnalyzerPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
       {/* Header */}
-      <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 border-b border-slate-200 shadow-lg">
-        <div className="container mx-auto px-4 py-12">
+      <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 border-b border-slate-200 shadow-lg mb-12">
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-16">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-4xl font-bold text-white mb-3">
@@ -354,7 +354,7 @@ export default function SDEAnalyzerPage() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8 space-y-6">
+      <div className="container mx-auto px-4 md:px-8 lg:px-12 max-w-7xl py-8 space-y-8">
 
       {/* Usage Stats */}
       {usage && (
