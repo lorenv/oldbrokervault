@@ -237,10 +237,15 @@ CRITICAL:
         args.push(companyName);
       }
 
-      // Spawn Python process
+      // Spawn Python process with shell to use PATH
+      // This ensures python3 is found via the environment PATH
       const pythonProcess = spawn('python3', args, {
         cwd: path.join(__dirname, 'sde-analyzer-package'),
-        env: process.env // Pass the full environment including PATH
+        env: {
+          ...process.env,
+          PYTHONUNBUFFERED: '1' // Ensure immediate output
+        },
+        shell: true // Use shell to resolve python3 from PATH
       });
 
       let stdout = '';
