@@ -46,9 +46,9 @@ function hasSDEAccess(subscriptionStatus: string, isAdmin?: boolean): boolean {
  * Get user's monthly SDE analysis count and limit
  */
 async function checkUserLimit(userId: number, subscriptionStatus: string, isAdmin?: boolean): Promise<{ canUpload: boolean; used: number; limit: number }> {
-  // Admins have unlimited access
+  // Admins have unlimited access (represented by -1)
   if (isAdmin) {
-    return { canUpload: true, used: 0, limit: Infinity };
+    return { canUpload: true, used: 0, limit: -1 };
   }
 
   const limit = sdeAnalyzerService.getSdeAnalysisLimit(subscriptionStatus);
