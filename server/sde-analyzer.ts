@@ -3,7 +3,7 @@ import { db } from './db';
 import { sdeAnalyses } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { logger } from './logger';
-import { spawn } from 'child_process';
+import { spawn, execSync } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
 import { promisify } from 'util';
@@ -22,6 +22,19 @@ const writeFileAsync = promisify(fs.writeFile);
 const readFileAsync = promisify(fs.readFile);
 
 const PYTHON_SCRIPT_PATH = path.join(__dirname, 'sde-analyzer-package', 'sde_analyzer.py');
+
+// Find python3 executable path at startup
+let PYTHON_PATH = 'python3';
+try {
+  // Try to get the full path to python3 using 'which'
+  const pythonPath = execSync('which python3', { encoding: 'utf8' }).trim();
+  if (pythonPath) {
+    PYTHON_PATH = pythonPath;
+    logger.info(`Found python3 at: ${PYTHON_PATH}`);
+  }
+} catch (error) {
+  logger.warn('Could not find python3 using which, will try using PATH at runtime');
+}
 
 /**
  * Helper: Store file with fallback to filesystem if App Storage unavailable
@@ -237,15 +250,15 @@ CRITICAL:
         args.push(companyName);
       }
 
-      // Spawn Python process with shell to use PATH
-      // This ensures python3 is found via the environment PATH
-      const pythonProcess = spawn('python3', args, {
+      // Spawn Python process
+      // Use PYTHON_PATH which resolves from environment or defaults to python3
+      const pythonProcess = spawn(PYTHON_PATH, args, {
         cwd: path.join(__dirname, 'sde-analyzer-package'),
         env: {
           ...process.env,
-          PYTHONUNBUFFERED: '1' // Ensure immediate output
-        },
-        shell: true // Use shell to resolve python3 from PATH
+          PYTHONUNBUFFERED: '1', // Ensure immediate output
+          PATH: process.env.PATH // Explicitly pass PATH environment
+        }
       });
 
       let stdout = '';

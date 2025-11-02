@@ -67,8 +67,8 @@ class SDEAnalyzer:
         """
         wb = load_workbook(self.input_file, data_only=True)
         sheet_name = wb.sheetnames[0]
-        
-        df = pd.read_excel(self.input_file, sheet_name=sheet_name, header=None)
+
+        df = pd.read_excel(self.input_file, sheet_name=sheet_name, header=None, engine='openpyxl')
         
         # Identify empty columns
         empty_cols = []
