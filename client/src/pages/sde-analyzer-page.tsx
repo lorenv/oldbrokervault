@@ -410,16 +410,16 @@ export default function SDEAnalyzerPage() {
               <div>
                 <p className="text-sm font-semibold text-blue-900">Monthly Usage</p>
                 <p className="text-3xl font-bold text-slate-800">
-                  {usage.used} / {usage.limit === Infinity ? '∞' : usage.limit}
+                  {usage.used} / {usage.limit === -1 ? '∞' : usage.limit}
                 </p>
               </div>
               <div className="text-right">
                 <p className="text-sm font-medium text-blue-700">
-                  {usage.limit === Infinity ? 'Unlimited' : `${usage.remaining} remaining`}
+                  {usage.limit === -1 ? 'Unlimited' : `${usage.remaining} remaining`}
                 </p>
               </div>
             </div>
-            {usage.limit !== Infinity && (
+            {usage.limit !== -1 && (
               <Progress value={(usage.used / usage.limit) * 100} className="mt-3 bg-blue-100" />
             )}
           </CardContent>
@@ -462,8 +462,9 @@ export default function SDEAnalyzerPage() {
                 </p>
                 <Button
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={uploadMutation.isPending || (usage && usage.remaining <= 0)}
+                  disabled={uploadMutation.isPending || (usage && usage.limit !== -1 && usage.remaining <= 0)}
                   className="bg-gradient-to-r from-slate-700 to-blue-600 hover:from-slate-800 hover:to-blue-700 text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  data-testid="button-upload-file"
                 >
                   {uploadMutation.isPending ? (
                     <>
@@ -473,11 +474,11 @@ export default function SDEAnalyzerPage() {
                   ) : (
                     <>
                       <Upload className="mr-2 h-4 w-4" />
-                      {usage && usage.remaining <= 0 ? 'Monthly Limit Reached' : 'Select File'}
+                      {usage && usage.limit !== -1 && usage.remaining <= 0 ? 'Monthly Limit Reached' : 'Select File'}
                     </>
                   )}
                 </Button>
-                {usage && usage.remaining <= 0 && (
+                {usage && usage.limit !== -1 && usage.remaining <= 0 && (
                   <p className="text-sm text-red-600 mt-3 font-medium">
                     You've used all {usage.limit} analyses this month.{' '}
                     <button
