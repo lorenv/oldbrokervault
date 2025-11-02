@@ -238,27 +238,31 @@ CRITICAL:
   ): Promise<{ success: boolean; error?: string }> {
     return new Promise((resolve, reject) => {
       logger.info(`Running Python SDE analyzer: ${inputPath} -> ${outputPath}`);
+      logger.info(`Python path: ${PYTHON_PATH}`);
+      logger.info(`Script path: ${PYTHON_SCRIPT_PATH}`);
 
-      // Build command arguments
+      // Build command arguments - use absolute paths
       const args = [
         PYTHON_SCRIPT_PATH,
-        inputPath,
-        outputPath
+        path.resolve(inputPath),
+        path.resolve(outputPath)
       ];
 
       if (companyName) {
         args.push(companyName);
       }
 
+      logger.info(`Spawn arguments: ${JSON.stringify(args)}`);
+
       // Spawn Python process
       // Use PYTHON_PATH which resolves from environment or defaults to python3
       const pythonProcess = spawn(PYTHON_PATH, args, {
-        cwd: path.join(__dirname, 'sde-analyzer-package'),
         env: {
           ...process.env,
           PYTHONUNBUFFERED: '1', // Ensure immediate output
           PATH: process.env.PATH // Explicitly pass PATH environment
-        }
+        },
+        stdio: ['ignore', 'pipe', 'pipe']
       });
 
       let stdout = '';
@@ -285,9 +289,18 @@ CRITICAL:
         }
       });
 
-      pythonProcess.on('error', (error) => {
+      pythonProcess.on('error', (error: any) => {
         logger.error('Failed to start Python process:', error);
-        reject(new Error(`Failed to run analysis: ${error.message}`));
+        logger.error(`Error code: ${error.code}`);
+        logger.error(`Python path used: ${PYTHON_PATH}`);
+        logger.error(`Script path: ${PYTHON_SCRIPT_PATH}`);
+        logger.error(`Working directory: ${process.cwd()}`);
+
+        if (error.code === 'ENOENT') {
+          reject(new Error(`Python executable not found at: ${PYTHON_PATH}. Error: ${error.message}`));
+        } else {
+          reject(new Error(`Failed to run analysis: ${error.message}`));
+        }
       });
     });
   }
