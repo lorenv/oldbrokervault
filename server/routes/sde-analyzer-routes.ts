@@ -32,9 +32,9 @@ const upload = multer({
 /**
  * Check if user has access to SDE Analyzer based on subscription tier
  */
-function hasSDEAccess(subscriptionStatus: string, userEmail?: string): boolean {
-  // Bypass access check for robert@dealve.cc
-  if (userEmail === 'robert@dealve.cc') {
+function hasSDEAccess(subscriptionStatus: string, isAdmin?: boolean): boolean {
+  // Admins have unlimited access
+  if (isAdmin) {
     return true;
   }
 
@@ -45,9 +45,9 @@ function hasSDEAccess(subscriptionStatus: string, userEmail?: string): boolean {
 /**
  * Get user's monthly SDE analysis count and limit
  */
-async function checkUserLimit(userId: number, subscriptionStatus: string, userEmail?: string): Promise<{ canUpload: boolean; used: number; limit: number }> {
-  // Bypass limit for robert@dealve.cc
-  if (userEmail === 'robert@dealve.cc') {
+async function checkUserLimit(userId: number, subscriptionStatus: string, isAdmin?: boolean): Promise<{ canUpload: boolean; used: number; limit: number }> {
+  // Admins have unlimited access
+  if (isAdmin) {
     return { canUpload: true, used: 0, limit: Infinity };
   }
 
@@ -122,7 +122,7 @@ export function registerSDEAnalyzerRoutes(app: Express) {
       const user = req.user;
 
       // Check if user has access to SDE Analyzer
-      if (!hasSDEAccess(user.subscriptionStatus, user.email)) {
+      if (!hasSDEAccess(user.subscriptionStatus, user.isAdmin)) {
         return res.status(403).json({
           error: 'subscription_required',
           title: 'Subscription Required',
@@ -134,7 +134,7 @@ export function registerSDEAnalyzerRoutes(app: Express) {
       }
 
       // Check rate limit
-      const { canUpload, used, limit } = await checkUserLimit(user.id, user.subscriptionStatus, user.email);
+      const { canUpload, used, limit } = await checkUserLimit(user.id, user.subscriptionStatus, user.isAdmin);
 
       if (!canUpload) {
         return res.status(429).json({
@@ -183,12 +183,14 @@ export function registerSDEAnalyzerRoutes(app: Express) {
         })
         .returning();
 
-      // Increment user's monthly count
-      await db.update(users)
-        .set({
-          monthlySdeAnalyses: (user.monthlySdeAnalyses || 0) + 1
-        })
-        .where(eq(users.id, user.id));
+      // Increment user's monthly count (skip for admins)
+      if (!user.isAdmin) {
+        await db.update(users)
+          .set({
+            monthlySdeAnalyses: (user.monthlySdeAnalyses || 0) + 1
+          })
+          .where(eq(users.id, user.id));
+      }
 
       logger.info(`Created SDE analysis ${analysis.id} for user ${user.id}`);
 
@@ -239,7 +241,7 @@ export function registerSDEAnalyzerRoutes(app: Express) {
         .offset(offset);
 
       // Get user's usage stats
-      const { used, limit: monthlyLimit } = await checkUserLimit(user.id, user.subscriptionStatus, user.email);
+      const { used, limit: monthlyLimit } = await checkUserLimit(user.id, user.subscriptionStatus, user.isAdmin);
 
       res.json({
         success: true,
@@ -516,8 +518,8 @@ export function registerSDEAnalyzerRoutes(app: Express) {
       }
 
       const user = req.user;
-      const hasAccess = hasSDEAccess(user.subscriptionStatus, user.email);
-      const { used, limit } = await checkUserLimit(user.id, user.subscriptionStatus, user.email);
+      const hasAccess = hasSDEAccess(user.subscriptionStatus, user.isAdmin);
+      const { used, limit } = await checkUserLimit(user.id, user.subscriptionStatus, user.isAdmin);
 
       res.json({
         success: true,
