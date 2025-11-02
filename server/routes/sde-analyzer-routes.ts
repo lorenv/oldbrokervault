@@ -32,7 +32,12 @@ const upload = multer({
 /**
  * Check if user has access to SDE Analyzer based on subscription tier
  */
-function hasSDEAccess(subscriptionStatus: string): boolean {
+function hasSDEAccess(subscriptionStatus: string, userEmail?: string): boolean {
+  // Bypass access check for robert@dealve.cc
+  if (userEmail === 'robert@dealve.cc') {
+    return true;
+  }
+
   // Free users don't have access
   return subscriptionStatus !== 'free';
 }
@@ -117,10 +122,14 @@ export function registerSDEAnalyzerRoutes(app: Express) {
       const user = req.user;
 
       // Check if user has access to SDE Analyzer
-      if (!hasSDEAccess(user.subscriptionStatus)) {
+      if (!hasSDEAccess(user.subscriptionStatus, user.email)) {
         return res.status(403).json({
-          error: 'Upgrade required',
-          message: 'SDE Analyzer is available on Starter plan and above. Upgrade your plan to access this feature.'
+          error: 'subscription_required',
+          title: 'Subscription Required',
+          message: 'The SDE Analyzer is available on paid plans only. Upgrade to Starter, Pro, or Enterprise to access this feature.',
+          action: 'upgrade',
+          currentPlan: user.subscriptionStatus,
+          requiredPlan: 'starter'
         });
       }
 
@@ -129,10 +138,16 @@ export function registerSDEAnalyzerRoutes(app: Express) {
 
       if (!canUpload) {
         return res.status(429).json({
-          error: 'Limit reached',
-          message: `You've used ${used}/${limit} SDE analyses this month. Upgrade your plan for more analyses.`,
+          error: 'monthly_limit_reached',
+          title: 'Monthly Limit Reached',
+          message: `You've used all ${limit} of your monthly SDE analyses. Upgrade your plan for a higher monthly limit.`,
+          action: 'upgrade',
           used,
-          limit
+          limit,
+          currentPlan: user.subscriptionStatus,
+          upgradeBenefit: user.subscriptionStatus === 'starter' || user.subscriptionStatus === 'starter_monthly'
+            ? 'Upgrade to Pro for 15 analyses per month'
+            : 'Upgrade to Enterprise for unlimited analyses'
         });
       }
 
@@ -501,7 +516,7 @@ export function registerSDEAnalyzerRoutes(app: Express) {
       }
 
       const user = req.user;
-      const hasAccess = hasSDEAccess(user.subscriptionStatus);
+      const hasAccess = hasSDEAccess(user.subscriptionStatus, user.email);
       const { used, limit } = await checkUserLimit(user.id, user.subscriptionStatus, user.email);
 
       res.json({

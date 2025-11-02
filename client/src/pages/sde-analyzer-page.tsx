@@ -90,8 +90,11 @@ export default function SDEAnalyzerPage() {
       setUploadProgress(100);
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Upload failed');
+        const errorData = await response.json();
+        // Pass the full error object for better handling
+        const error = new Error(errorData.message || 'Upload failed') as any;
+        error.details = errorData;
+        throw error;
       }
 
       return response.json();
@@ -105,12 +108,55 @@ export default function SDEAnalyzerPage() {
       queryClient.invalidateQueries({ queryKey: ['/api/sde-analyzer/usage'] });
       setUploadProgress(null);
     },
-    onError: (error: Error) => {
-      toast({
-        title: 'Upload Failed',
-        description: error.message,
-        variant: 'destructive',
-      });
+    onError: (error: any) => {
+      const details = error.details;
+
+      // Handle enhanced error messages from backend
+      if (details?.error === 'subscription_required') {
+        toast({
+          title: details.title || 'Subscription Required',
+          description: (
+            <div className="space-y-2">
+              <p>{details.message}</p>
+              <p className="text-sm font-semibold">Current Plan: {details.currentPlan}</p>
+              <button
+                onClick={() => navigate('/pricing')}
+                className="text-sm underline hover:no-underline"
+              >
+                View Pricing Plans →
+              </button>
+            </div>
+          ),
+          variant: 'destructive',
+        });
+      } else if (details?.error === 'monthly_limit_reached') {
+        toast({
+          title: details.title || 'Monthly Limit Reached',
+          description: (
+            <div className="space-y-2">
+              <p>{details.message}</p>
+              {details.upgradeBenefit && (
+                <p className="text-sm font-semibold">{details.upgradeBenefit}</p>
+              )}
+              <button
+                onClick={() => navigate('/pricing')}
+                className="text-sm underline hover:no-underline"
+              >
+                Upgrade Your Plan →
+              </button>
+            </div>
+          ),
+          variant: 'destructive',
+        });
+      } else {
+        // Generic error fallback
+        toast({
+          title: 'Upload Failed',
+          description: error.message,
+          variant: 'destructive',
+        });
+      }
+
       setUploadProgress(null);
     },
   });
@@ -417,7 +463,7 @@ export default function SDEAnalyzerPage() {
                 <Button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadMutation.isPending || (usage && usage.remaining <= 0)}
-                  className="bg-gradient-to-r from-slate-700 to-blue-600 hover:from-slate-800 hover:to-blue-700 text-white shadow-lg"
+                  className="bg-gradient-to-r from-slate-700 to-blue-600 hover:from-slate-800 hover:to-blue-700 text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {uploadMutation.isPending ? (
                     <>
@@ -427,10 +473,22 @@ export default function SDEAnalyzerPage() {
                   ) : (
                     <>
                       <Upload className="mr-2 h-4 w-4" />
-                      Select File
+                      {usage && usage.remaining <= 0 ? 'Monthly Limit Reached' : 'Select File'}
                     </>
                   )}
                 </Button>
+                {usage && usage.remaining <= 0 && (
+                  <p className="text-sm text-red-600 mt-3 font-medium">
+                    You've used all {usage.limit} analyses this month.{' '}
+                    <button
+                      onClick={() => navigate('/pricing')}
+                      className="underline hover:no-underline font-semibold"
+                    >
+                      Upgrade your plan
+                    </button>{' '}
+                    for more monthly analyses.
+                  </p>
+                )}
                 <input
                   ref={fileInputRef}
                   type="file"
