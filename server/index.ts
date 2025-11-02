@@ -242,20 +242,66 @@ async function startServer() {
   
   console.log(`🚀 Starting server on ${HOST}:${PORT}...`);
   
-  const server = app.listen(PORT, HOST, () => {
-    log(`✅ Server successfully started on ${HOST}:${PORT}`);
-    log('✅ Health checks responding immediately');
-    console.log('🎯 Server is listening on:', server.address());
-    console.log('🚀 Application ready for deployment health checks');
+  return new Promise((resolve, reject) => {
+    const server = app.listen(PORT, HOST, () => {
+      log(`✅ Server successfully started on ${HOST}:${PORT}`);
+      log('✅ Health checks responding immediately');
+      console.log('🎯 Server is listening on:', server.address());
+      console.log('🚀 Application ready for deployment health checks');
+      resolve(server);
+    });
+
+    // Handle errors during startup
+    server.on('error', (error: any) => {
+      if (error.code === 'EADDRINUSE') {
+        console.error(`❌ Port ${PORT} is already in use`);
+
+        // In development, try alternative ports
+        if (process.env.NODE_ENV !== 'production') {
+          const alternativePorts = [5001, 5002, 5003, 3000, 3001, 8080];
+          console.log(`🔄 Trying alternative ports...`);
+
+          for (const altPort of alternativePorts) {
+            try {
+              PORT = altPort;
+              console.log(`🔄 Attempting port ${PORT}...`);
+
+              const newServer = app.listen(PORT, HOST, () => {
+                log(`✅ Server successfully started on ${HOST}:${PORT}`);
+                console.log('🎯 Server is listening on:', newServer.address());
+                resolve(newServer);
+              });
+
+              newServer.on('error', (err: any) => {
+                if (err.code === 'EADDRINUSE') {
+                  console.log(`❌ Port ${altPort} in use, trying next...`);
+                } else {
+                  reject(err);
+                }
+              });
+
+              return;
+            } catch (err) {
+              console.log(`❌ Port ${altPort} failed, trying next...`);
+              continue;
+            }
+          }
+
+          reject(new Error('All alternative ports are in use'));
+        } else {
+          reject(error);
+        }
+      } else {
+        reject(error);
+      }
+    });
   });
-  
-  return server;
 }
 
 // Start the server and handle errors
 startServer().then(async (server) => {
   console.log('✅ Server startup completed successfully');
-  
+
   // Initialize onboarding email system
   try {
     const { onboardingEmailSystem } = await import('./onboarding-email-system');
@@ -275,60 +321,6 @@ startServer().then(async (server) => {
     console.error('❌ Failed to initialize daily signup summary system:', summaryError);
     // Don't fail server startup if summary system fails
   }
-  
-  // Enhanced error handling for server startup with port fallback
-  server.on('error', async (error: any) => {
-    console.error('❌ Server startup error:', error);
-
-    if (error.code === 'EADDRINUSE') {
-      console.error(`❌ Port ${PORT} is already in use`);
-
-      // In development, try alternative ports
-      if (process.env.NODE_ENV !== 'production') {
-        const alternativePorts = [5001, 5002, 5003, 3000, 3001, 8080];
-        console.log(`🔄 Attempting to use alternative port...`);
-
-        for (const altPort of alternativePorts) {
-          try {
-            // Close the failed server
-            server.close();
-
-            // Try the alternative port
-            PORT = altPort;
-            console.log(`🔄 Trying port ${PORT}...`);
-
-            const newServer = app.listen(PORT, HOST, () => {
-              log(`✅ Server successfully started on ${HOST}:${PORT}`);
-              console.log(`✅ Health checks responding immediately`);
-              console.log(`🎯 Server is listening on:`, newServer.address());
-              log('🚀 Application ready for deployment health checks');
-            });
-
-            return; // Success! Exit error handler
-          } catch (err) {
-            console.log(`❌ Port ${altPort} also in use, trying next...`);
-            continue;
-          }
-        }
-
-        console.error('❌ All alternative ports are in use');
-        console.error('❌ Please free up a port or restart your environment');
-        process.exit(1);
-      } else {
-        // In production, port must be available
-        console.error('❌ For deployment, the configured port must be available');
-        console.error('❌ Please ensure no other services are using this port');
-        process.exit(1);
-      }
-    } else if (error.code === 'EACCES') {
-      console.error(`❌ Permission denied to bind to port ${PORT}`);
-      console.error('❌ This may be a deployment configuration issue');
-      process.exit(1);
-    } else {
-      console.error('❌ Unexpected server error:', error);
-      process.exit(1);
-    }
-  });
   
   // Graceful shutdown with memory cleanup
   process.on('SIGTERM', () => {
