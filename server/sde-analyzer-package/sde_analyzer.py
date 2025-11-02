@@ -171,51 +171,41 @@ class SDEAnalyzer:
         """
         # Check for AI-generated analysis JSON file
         json_path = self.input_file.replace('.xlsx', '_ai_analysis.json').replace('.xls', '_ai_analysis.json')
+
         if os.path.exists(json_path):
             try:
                 with open(json_path, 'r') as f:
                     ai_result = json.load(f)
 
-                print(f"\n🤖 AI Analysis Results:")
-
                 # Update revenue row if AI found it
                 if ai_result.get('revenue_row'):
-                    old_revenue = structure.get('revenue_row')
                     structure['revenue_row'] = ai_result['revenue_row'] - 1  # Convert to 0-based
-                    print(f"   📈 Revenue row: {ai_result['revenue_row']} (AI detected)")
-                    if old_revenue != structure['revenue_row']:
-                        print(f"      (Overriding pattern match: {old_revenue + 1 if old_revenue else 'none'})")
 
                 # Update NOI row if AI found it
                 if ai_result.get('noi_row'):
-                    old_noi = structure.get('noi_row')
                     structure['noi_row'] = ai_result['noi_row'] - 1  # Convert to 0-based
-                    print(f"   📊 NOI row: {ai_result['noi_row']} (AI detected)")
-                    if old_noi != structure['noi_row']:
-                        print(f"      (Overriding pattern match: {old_noi + 1 if old_noi else 'none'})")
 
                 # Use AI-detected add-backs
                 if ai_result.get('addbacks'):
-                    print(f"   ✓ Add-backs: {len(ai_result['addbacks'])} identified by AI")
                     addbacks = []
                     for ab in ai_result['addbacks']:
                         # Convert AI row (1-based) to 0-based index
                         row_idx = ab['row'] - 1
                         if 0 <= row_idx < df.shape[0]:
-                            addbacks.append({
+                            addback_obj = {
                                 'row': row_idx,
                                 'label': ab['label'],
                                 'category': ab.get('category', 'ai_detected')
-                            })
-                            print(f"      - {ab['label']} (row {ab['row']})")
+                            }
+                            addbacks.append(addback_obj)
+
                     if addbacks:
                         return addbacks
-                    else:
-                        print(f"   ⚠ No valid add-backs after filtering")
             except Exception as e:
-                print(f"⚠ Failed to load AI analysis: {e}, falling back to pattern matching")
+                print(f"Failed to load AI analysis: {e}")
 
         # Fall back to original pattern-based detection
+        print("Using pattern-based add-back detection")
         addback_patterns = {
             'depreciation': ['depreciation', 'deprec', 'amortization'],
             'owner_comp': ['owner compensation', 'owner salary', 'owner wages'],
@@ -228,36 +218,43 @@ class SDEAnalyzer:
             'payroll_tax': ['payroll tax', '941', 'futa', 'suta'],
             'bonus': ['bonus']
         }
-        
+
         addbacks = []
-        
+
         if structure['revenue_row'] is None or structure['noi_row'] is None:
             return addbacks
-        
+
+        scan_start = structure['revenue_row'] + 1
+        scan_end = structure['noi_row']
+
         # Scan between revenue and NOI
-        for row_idx in range(structure['revenue_row'] + 1, structure['noi_row']):
+        for row_idx in range(scan_start, scan_end):
             label = ""
             label_text = ""
-            
+
             for col_idx in range(min(5, df.shape[1])):
                 cell_val = str(df.iloc[row_idx, col_idx]) if pd.notna(df.iloc[row_idx, col_idx]) else ""
                 if cell_val and cell_val != 'nan':
                     label = cell_val.lower().strip()
                     label_text = df.iloc[row_idx, col_idx]
                     break
-            
+
             if not label:
                 continue
-            
+
             for category, patterns in addback_patterns.items():
                 if any(pattern in label for pattern in patterns):
-                    addbacks.append({
+                    addback_obj = {
                         'row': row_idx,
                         'label': label_text,
                         'category': category
-                    })
+                    }
+                    addbacks.append(addback_obj)
                     break
-        
+
+        if addbacks:
+            print(f"Pattern-based detection found {len(addbacks)} add-backs")
+
         return addbacks
     
     def create_output(self):

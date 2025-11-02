@@ -40,7 +40,12 @@ function hasSDEAccess(subscriptionStatus: string): boolean {
 /**
  * Get user's monthly SDE analysis count and limit
  */
-async function checkUserLimit(userId: number, subscriptionStatus: string): Promise<{ canUpload: boolean; used: number; limit: number }> {
+async function checkUserLimit(userId: number, subscriptionStatus: string, userEmail?: string): Promise<{ canUpload: boolean; used: number; limit: number }> {
+  // Bypass limit for robert@dealve.cc
+  if (userEmail === 'robert@dealve.cc') {
+    return { canUpload: true, used: 0, limit: Infinity };
+  }
+
   const limit = sdeAnalyzerService.getSdeAnalysisLimit(subscriptionStatus);
 
   // Get user's current monthly count
@@ -120,7 +125,7 @@ export function registerSDEAnalyzerRoutes(app: Express) {
       }
 
       // Check rate limit
-      const { canUpload, used, limit } = await checkUserLimit(user.id, user.subscriptionStatus);
+      const { canUpload, used, limit } = await checkUserLimit(user.id, user.subscriptionStatus, user.email);
 
       if (!canUpload) {
         return res.status(429).json({
@@ -219,7 +224,7 @@ export function registerSDEAnalyzerRoutes(app: Express) {
         .offset(offset);
 
       // Get user's usage stats
-      const { used, limit: monthlyLimit } = await checkUserLimit(user.id, user.subscriptionStatus);
+      const { used, limit: monthlyLimit } = await checkUserLimit(user.id, user.subscriptionStatus, user.email);
 
       res.json({
         success: true,
@@ -497,7 +502,7 @@ export function registerSDEAnalyzerRoutes(app: Express) {
 
       const user = req.user;
       const hasAccess = hasSDEAccess(user.subscriptionStatus);
-      const { used, limit } = await checkUserLimit(user.id, user.subscriptionStatus);
+      const { used, limit } = await checkUserLimit(user.id, user.subscriptionStatus, user.email);
 
       res.json({
         success: true,
