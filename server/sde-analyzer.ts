@@ -10,7 +10,7 @@ import { promisify } from 'util';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import OpenAI from 'openai';
-import * as XLSX from 'xlsx';
+import XLSX from 'xlsx';
 import { promises as fsPromises } from 'fs';
 
 // Get __dirname equivalent in ES modules
@@ -113,12 +113,12 @@ export class SDEAnalyzerService {
     const client = getOpenAIClient();
 
     if (!client) {
-      logger.warn('⚠️ OPENAI_API_KEY not set - AI analysis will be skipped. Add OpenAI key to Repl Secrets for better add-back detection.');
+      logger.warn('OPENAI_API_KEY not set - AI analysis will be skipped');
       return { revenue_row: null, noi_row: null, addbacks: [] };
     }
 
     try {
-      logger.info('📊 Reading Excel file for AI analysis...');
+      logger.info('Starting AI analysis of P&L file');
 
       // Read Excel file
       const workbook = XLSX.readFile(filePath);
@@ -139,7 +139,7 @@ export class SDEAnalyzerService {
         })
         .join('\n');
 
-      logger.info('🤖 Sending to OpenAI GPT-4o-mini for comprehensive P&L analysis...');
+      logger.info('Sending P&L data to OpenAI for analysis');
 
       // Call OpenAI
       const response = await client.chat.completions.create({
@@ -165,12 +165,14 @@ SDE Add-backs are expenses that can be added back to calculate true earnings:
 - Meals & Entertainment (meals, entertainment, M&E, business meals, dining)
 - Travel Expenses (travel, business travel, travel costs)
 - Auto/Vehicle Expenses (auto expense, vehicle expense, car expense, transportation)
-- Insurance (health insurance, life insurance, owner's insurance)
 - Payroll Taxes (payroll tax, 941, FUTA, SUTA, employment taxes, employer taxes)
 - Legal & Professional Fees (legal fees, attorney, accounting fees, professional services)
 - Bonuses (bonus expense, discretionary bonuses)
 - Rent to Owner (rent expense, lease expense - if paid to owner)
 - One-time Expenses (consulting, restructuring, non-recurring)
+
+**DO NOT INCLUDE:**
+- Insurance (regular business insurance, general liability, property insurance - these are normal operating expenses, NOT addbacks)
 
 Return ONLY a JSON object with this EXACT structure:
 {
@@ -198,27 +200,26 @@ CRITICAL:
         max_tokens: 2000
       });
 
-      const content = response.choices[0]?.message?.content || '{"revenue_row":null,"noi_row":null,"addbacks":[]}';
+      let content = response.choices[0]?.message?.content || '{"revenue_row":null,"noi_row":null,"addbacks":[]}';
 
-      logger.info(`✅ OpenAI response received`);
-      logger.info(`Response: ${content}`);
+      // Strip markdown code fences if present
+      content = content.replace(/```json\s*/g, '').replace(/```\s*$/g, '').trim();
 
       // Parse JSON response
-      const result: AIAnalysisResult = JSON.parse(content);
-
-      logger.info(`📈 AI Analysis Results:`);
-      logger.info(`   Revenue row: ${result.revenue_row || 'Not found'}`);
-      logger.info(`   NOI row: ${result.noi_row || 'Not found'}`);
-      logger.info(`   Add-backs identified: ${result.addbacks.length}`);
-
-      if (result.addbacks.length > 0) {
-        logger.info(`   Add-backs: ${result.addbacks.map(ab => ab.label).join(', ')}`);
+      let result: AIAnalysisResult;
+      try {
+        result = JSON.parse(content);
+      } catch (parseError) {
+        logger.error('Failed to parse OpenAI response as JSON:', parseError);
+        throw new Error('OpenAI returned invalid JSON');
       }
+
+      logger.info(`AI analysis complete: Found ${result.addbacks.length} add-backs`);
 
       return result;
 
     } catch (error) {
-      logger.error('❌ Error in AI analysis:', error);
+      logger.error('Error in AI analysis:', error);
       return { revenue_row: null, noi_row: null, addbacks: [] }; // Fall back to Python's built-in detection
     }
   }
@@ -352,20 +353,16 @@ CRITICAL:
 
       try {
         // Step 3: Use AI to analyze P&L (revenue, NOI, add-backs)
-        logger.info(`🔍 Starting AI analysis for file: ${tempInputPath}`);
         const aiResult = await this.identifyAddBacksWithAI(tempInputPath);
-        logger.info(`🔍 AI analysis completed. Result: ${JSON.stringify(aiResult)}`);
 
         // Write AI results to JSON file for Python to use
         const analysisPath = tempInputPath.replace('.xlsx', '_ai_analysis.json');
         if (aiResult.revenue_row || aiResult.noi_row || aiResult.addbacks.length > 0) {
-          await writeFileAsync(analysisPath, JSON.stringify(aiResult, null, 2));
-          logger.info(`📝 Wrote AI analysis to ${analysisPath}`);
-          logger.info(`   Revenue: Row ${aiResult.revenue_row || 'not found'}`);
-          logger.info(`   NOI: Row ${aiResult.noi_row || 'not found'}`);
-          logger.info(`   Add-backs: ${aiResult.addbacks.length} found`);
+          const jsonContent = JSON.stringify(aiResult, null, 2);
+          await writeFileAsync(analysisPath, jsonContent);
+          logger.info(`Wrote AI analysis results to ${analysisPath}`);
         } else {
-          logger.info('⚠️ No AI results to write - Python will use built-in detection');
+          logger.warn('No AI results - Python will use pattern-based detection');
         }
 
         // Step 4: Run Python analyzer

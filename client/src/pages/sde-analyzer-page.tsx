@@ -452,6 +452,12 @@ export default function SDEAnalyzerPage() {
               Files are retained for 30 days.
             </AlertDescription>
           </Alert>
+
+          <div className="mt-3 text-xs text-slate-500 italic border-l-2 border-slate-300 pl-3 py-1">
+            <strong>Please note:</strong> The SDE Analyzer provides automated financial analysis for convenience only.
+            You are responsible for verifying all calculations, figures, and outputs before use.
+            Always consult with qualified financial professionals to review results before making business decisions.
+          </div>
         </CardContent>
       </Card>
 
