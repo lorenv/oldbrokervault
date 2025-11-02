@@ -385,7 +385,7 @@ export default function SDEAnalyzerPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
       {/* Header */}
-      <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 border-b border-slate-200 shadow-lg mb-20">
+      <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 border-b border-slate-200 shadow-lg mb-6">
         <div className="container mx-auto px-4 md:px-8 lg:px-12 py-16">
           <div className="flex items-center justify-between">
             <div>
@@ -409,7 +409,7 @@ export default function SDEAnalyzerPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-semibold text-blue-900">Monthly Usage</p>
-                <p className="text-3xl font-bold text-slate-800">
+                <p className="text-xl font-bold text-slate-800">
                   {usage.used} / {usage.limit === -1 ? '∞' : usage.limit}
                 </p>
               </div>
@@ -437,7 +437,7 @@ export default function SDEAnalyzerPage() {
             Upload an Excel file (.xls or .xlsx) to generate an SDE Sheet. Maximum file size: 8MB.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-8">
           <div
             className={`border-2 border-dashed rounded-lg p-12 text-center transition-all duration-200 ${
               dragActive ? 'border-blue-500 bg-blue-50 shadow-inner' : 'border-blue-200 hover:border-blue-400 bg-slate-50/50'
@@ -526,7 +526,7 @@ export default function SDEAnalyzerPage() {
           <CardTitle className="text-slate-800">Analysis History</CardTitle>
           <CardDescription className="text-slate-600">View and download your SDE Sheet analyses</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-8">
           {isLoading ? (
             <div className="text-center py-8">
               <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-400" />
