@@ -1098,6 +1098,7 @@ export const sdeAnalyses = pgTable("sde_analyses", {
   // Processing status
   status: text("status").notNull().default("pending").$type<"pending" | "processing" | "completed" | "failed">(),
   errorMessage: text("error_message"),
+  analysisWarnings: text("analysis_warnings").array(), // Warnings from AI analysis (e.g., partial columns detected)
 
   // Timestamps
   createdAt: timestamp("created_at").defaultNow().notNull(),
