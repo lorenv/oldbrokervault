@@ -42,6 +42,7 @@ import {
   Award,
   MessageSquare,
   Sprout,
+  WandSparkles,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -131,11 +132,12 @@ export default function HomePage() {
       size: "large",
     },
     {
-      icon: Palette,
-      title: "Make It Yours",
+      icon: WandSparkles,
+      title: "AI-Powered SDE Analyzer",
       description:
-        "Drag, drop, and edit to match your brand perfectly—no design skills needed.",
+        "Upload financial documents and let AI automatically summarize annual revenues and identify addbacks—saving hours of manual work.",
       color: "text-blue-500",
+      link: "/sde-analyzer",
       size: "medium",
     },
     {
