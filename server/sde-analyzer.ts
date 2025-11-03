@@ -21,7 +21,8 @@ const unlinkAsync = promisify(fs.unlink);
 const writeFileAsync = promisify(fs.writeFile);
 const readFileAsync = promisify(fs.readFile);
 
-const PYTHON_SCRIPT_PATH = path.join(__dirname, 'sde-analyzer-package', 'sde_analyzer.py');
+// Python script is in the source directory, not dist
+const PYTHON_SCRIPT_PATH = path.join(process.cwd(), 'server', 'sde-analyzer-package', 'sde_analyzer.py');
 
 // Find python3 executable path at startup
 let PYTHON_PATH = 'python3';
