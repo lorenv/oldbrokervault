@@ -1489,9 +1489,10 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
 
   async createCustomSection(section: {
     cimDocumentId: number;
-    type: 'text' | 'image';
+    type: 'text' | 'image' | 'html';
     title?: string;
     content?: string;
+    customCss?: string;
     imageUrl?: string;
     imageUrls?: string[];
     insertAfterSection: string;
@@ -1500,9 +1501,9 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
     const existingSections = await db.select()
       .from(customSections)
       .where(eq(customSections.cimDocumentId, section.cimDocumentId));
-    
-    const maxPosition = existingSections.length > 0 
-      ? Math.max(...existingSections.map(s => s.position)) 
+
+    const maxPosition = existingSections.length > 0
+      ? Math.max(...existingSections.map(s => s.position))
       : 0;
 
     const [newSection] = await db.insert(customSections)
@@ -1511,13 +1512,14 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
         type: section.type,
         title: section.title || 'Custom Section',
         content: section.content,
+        customCss: section.customCss,
         imageUrl: section.imageUrl,
         imageUrls: section.imageUrls,
         insertAfterSection: section.insertAfterSection,
         position: maxPosition + 1
       })
       .returning();
-    
+
     return newSection;
   }
 
@@ -1530,6 +1532,15 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
     });
   }
 
+  async getCustomSectionById(sectionId: number): Promise<any> {
+    return await withRetry(async () => {
+      const [section] = await db.select()
+        .from(customSections)
+        .where(eq(customSections.id, sectionId));
+      return section;
+    });
+  }
+
   async getCustomSectionsOptimized(cimDocumentId: number): Promise<any[]> {
     // PERFORMANCE OPTIMIZATION: Direct query without retry overhead for share links
     try {
@@ -1538,6 +1549,7 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
         type: customSections.type,
         title: customSections.title,
         content: customSections.content,
+        customCss: customSections.customCss,
         imageUrls: customSections.imageUrls,
         position: customSections.position,
         insertAfterSection: customSections.insertAfterSection
@@ -1556,16 +1568,16 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
     return await db.select().from(customSections);
   }
 
-  async updateCustomSection(id: number, updates: { title?: string; content?: string; imageUrls?: string[]; imageUrlsBackup?: string[] }): Promise<void> {
+  async updateCustomSection(id: number, updates: { title?: string; content?: string; customCss?: string; imageUrls?: string[]; imageUrlsBackup?: string[] }): Promise<void> {
     // Filter out undefined values to avoid "No values to set" error
     const validUpdates = Object.fromEntries(
       Object.entries(updates).filter(([_, value]) => value !== undefined)
     );
-    
+
     if (Object.keys(validUpdates).length === 0) {
       throw new Error("No valid updates provided");
     }
-    
+
     await db.update(customSections)
       .set(validUpdates)
       .where(eq(customSections.id, id));

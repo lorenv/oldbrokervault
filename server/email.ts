@@ -949,6 +949,170 @@ async function sendEditLockTakenOverEmail(
   });
 }
 
+// Send CSP violation notification to admin
+async function sendCspViolationEmail(params: {
+  userEmail: string;
+  userName: string;
+  documentId: number;
+  documentTitle: string;
+  htmlCode: string;
+  cssCode: string;
+  violations: string;
+}): Promise<boolean> {
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+          line-height: 1.6;
+          color: #333;
+          max-width: 800px;
+          margin: 0 auto;
+          padding: 20px;
+        }
+        .header {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          padding: 30px;
+          border-radius: 10px 10px 0 0;
+          text-align: center;
+        }
+        .content {
+          background: white;
+          padding: 30px;
+          border: 1px solid #e0e0e0;
+          border-top: none;
+          border-radius: 0 0 10px 10px;
+        }
+        .section {
+          margin: 20px 0;
+          padding: 15px;
+          background: #f8f9fa;
+          border-left: 4px solid #667eea;
+          border-radius: 4px;
+        }
+        .section h3 {
+          margin-top: 0;
+          color: #667eea;
+        }
+        .code-block {
+          background: #1e1e1e;
+          color: #d4d4d4;
+          padding: 15px;
+          border-radius: 5px;
+          overflow-x: auto;
+          font-family: 'Courier New', monospace;
+          font-size: 13px;
+          line-height: 1.5;
+        }
+        .info-grid {
+          display: grid;
+          grid-template-columns: 150px 1fr;
+          gap: 10px;
+          margin: 15px 0;
+        }
+        .info-label {
+          font-weight: 600;
+          color: #555;
+        }
+        .violations {
+          background: #fff3cd;
+          border: 1px solid #ffc107;
+          padding: 15px;
+          border-radius: 5px;
+          margin: 15px 0;
+        }
+        .action-button {
+          display: inline-block;
+          background: #667eea;
+          color: white;
+          padding: 12px 24px;
+          border-radius: 5px;
+          text-decoration: none;
+          margin: 10px 0;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>🔒 CSP Violation Detected</h1>
+        <p>A user attempted to save HTML code with non-whitelisted external domains</p>
+      </div>
+      <div class="content">
+        <div class="section">
+          <h3>User Information</h3>
+          <div class="info-grid">
+            <span class="info-label">User:</span>
+            <span>${params.userName}</span>
+            <span class="info-label">Email:</span>
+            <span>${params.userEmail}</span>
+            <span class="info-label">Document ID:</span>
+            <span>#${params.documentId}</span>
+            <span class="info-label">Document Title:</span>
+            <span>${params.documentTitle}</span>
+          </div>
+        </div>
+
+        <div class="violations">
+          <h3>⚠️ Detected Violations</h3>
+          <pre style="white-space: pre-wrap; margin: 0;">${params.violations}</pre>
+        </div>
+
+        <div class="section">
+          <h3>HTML Code Submitted</h3>
+          <div class="code-block">${params.htmlCode.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+        </div>
+
+        ${params.cssCode ? `
+        <div class="section">
+          <h3>CSS Code Submitted</h3>
+          <div class="code-block">${params.cssCode.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+        </div>
+        ` : ''}
+
+        <div class="section">
+          <h3>📋 Next Steps</h3>
+          <ol>
+            <li>Review the external domains listed above</li>
+            <li>Verify the legitimacy and security of these third-party services</li>
+            <li>If approved, add the domains to the CSP whitelist in <code>server/security.ts</code></li>
+            <li>Reply to this email to notify the user or contact them directly</li>
+          </ol>
+          <p><strong>User has been notified that the support team will review their request.</strong></p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return sendEmail({
+    to: 'support@cimshare.com',
+    from: 'support@cimshare.com',
+    replyTo: params.userEmail,
+    subject: `CSP Violation: ${params.userName} - Document #${params.documentId}`,
+    html: htmlContent,
+    text: `
+CSP VIOLATION DETECTED
+
+User: ${params.userName} (${params.userEmail})
+Document: #${params.documentId} - ${params.documentTitle}
+
+VIOLATIONS:
+${params.violations}
+
+HTML CODE:
+${params.htmlCode}
+
+CSS CODE:
+${params.cssCode || '(none)'}
+
+Please review and whitelist these domains in server/security.ts if legitimate.
+    `.trim()
+  });
+}
+
 export {
   sendEmail,
   sendNdaSignedEmail,
@@ -961,5 +1125,6 @@ export {
   sendRejectionEmail,
   sendCollaborationInvitationEmail,
   sendCollaboratorRemovedEmail,
-  sendEditLockTakenOverEmail
+  sendEditLockTakenOverEmail,
+  sendCspViolationEmail
 };

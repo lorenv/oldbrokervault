@@ -4982,11 +4982,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/cim/:id/custom-section/image", upload.array('images', 10), async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     try {
       const cimId = parseInt(req.params.id);
       const cim = await storage.getCimDocument(cimId);
-      
+
       if (!cim || cim.userId !== req.user.id) {
         return res.sendStatus(404);
       }
@@ -4996,10 +4996,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { afterSection } = req.body;
-      
+
       // Process and save all images using object storage for consistency
       const imageUrls: string[] = [];
-      
+
       for (const file of req.files) {
         try {
           // Use object storage image manager for consistency with other images
@@ -5011,7 +5011,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             'business-images', // Store custom section images with business images for persistence
             { optimize: true, maxWidth: 800, maxHeight: 600 }
           );
-          
+
           imageUrls.push(metadata.publicPath);
           console.log('Custom section image saved to object storage:', metadata.publicPath);
         } catch (imageError) {
@@ -5019,12 +5019,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Continue with other images instead of failing completely
         }
       }
-      
+
       // Only create custom section if at least one image was successfully processed
       if (imageUrls.length === 0) {
         return res.status(400).json({ message: "No images could be processed successfully" });
       }
-      
+
       const section = await storage.createCustomSection({
         cimDocumentId: cimId,
         type: 'image',
@@ -5040,14 +5040,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/cim/:id/custom-section/html", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const cimId = parseInt(req.params.id);
+      const cim = await storage.getCimDocument(cimId);
+
+      if (!cim || cim.userId !== req.user.id) {
+        return res.sendStatus(404);
+      }
+
+      const { content, customCss, afterSection } = req.body;
+
+      const section = await storage.createCustomSection({
+        cimDocumentId: cimId,
+        type: 'html',
+        title: 'Custom HTML Section',
+        content: content || '<!-- Add your HTML here -->',
+        customCss: customCss || '',
+        insertAfterSection: afterSection || 'end'
+      });
+
+      res.json(section);
+    } catch (error) {
+      console.error("Error creating HTML section:", error);
+      res.status(500).json({ message: "Failed to create HTML section" });
+    }
+  });
+
   app.put("/api/custom-section/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     try {
       const sectionId = parseInt(req.params.id);
-      const { title, content } = req.body;
-      
-      await storage.updateCustomSection(sectionId, { title, content });
+      const { title, content, customCss } = req.body;
+
+      // Get the section to check its type and associated document
+      const section = await storage.getCustomSectionById(sectionId);
+      if (!section) {
+        return res.status(404).json({ message: "Custom section not found" });
+      }
+
+      // Get the CIM document to verify ownership
+      const cim = await storage.getCimDocument(section.cimDocumentId);
+      if (!cim || cim.userId !== req.user.id) {
+        return res.sendStatus(403);
+      }
+
+      // Validate HTML sections against CSP
+      if (section.type === 'html' && content) {
+        const { validateAgainstCSP, formatViolationsForEmail } = await import('./csp-validator.js');
+        const validationResult = validateAgainstCSP(content, customCss || '');
+
+        if (!validationResult.isValid) {
+          // Send notification to admin
+          const { sendCspViolationEmail } = await import('./email.js');
+          const violationsText = formatViolationsForEmail(validationResult.violations);
+
+          await sendCspViolationEmail({
+            userEmail: req.user.email,
+            userName: req.user.fullName || req.user.email,
+            documentId: cim.id,
+            documentTitle: cim.title || 'Untitled Document',
+            htmlCode: content,
+            cssCode: customCss || '',
+            violations: violationsText
+          });
+
+          // Return error to user with helpful message
+          return res.status(400).json({
+            error: 'csp_violation',
+            message: 'Your HTML code contains external resources that are not currently whitelisted in our security policy.',
+            violations: validationResult.violations,
+            supportNotified: true
+          });
+        }
+      }
+
+      await storage.updateCustomSection(sectionId, { title, content, customCss });
       res.json({ success: true });
     } catch (error) {
       console.error("Error updating custom section:", error);

@@ -136,20 +136,60 @@ export const auditLogger = (action: string, resource?: string) => {
 };
 
 // Content Security Policy
-const cspDirectives = {
+export const cspDirectives = {
   defaultSrc: ["'self'"],
   scriptSrc: [
     "'self'",
     "'unsafe-inline'", // Required for Vite in development
     "'unsafe-eval'", // Required for Vite in development
     "blob:", // Required for canvas-confetti web workers
+
+    // Payment & Analytics
     "https://js.stripe.com",
     "https://api.stripe.com",
     "https://www.googletagmanager.com",
     "https://www.google-analytics.com",
     "https://analytics.google.com",
     "https://snap.licdn.com",
-    "https://www.linkedin.com"
+    "https://www.linkedin.com",
+
+    // Form Builders
+    "https://form.jotform.com",
+    "https://*.jotform.com",
+    "https://embed.typeform.com",
+    "https://*.typeform.com",
+    "https://docs.google.com", // Google Forms
+    "https://*.hubspot.com",
+    "https://forms.hubspot.com",
+    "https://*.mailchimp.com",
+    "https://*.surveymonkey.com",
+
+    // Scheduling
+    "https://calendly.com",
+    "https://*.calendly.com",
+    "https://assets.calendly.com",
+
+    // Video Platforms
+    "https://www.loom.com",
+    "https://*.loom.com",
+    "https://cdn.loom.com",
+    "https://www.youtube.com",
+    "https://youtube.com",
+    "https://www.youtube-nocookie.com",
+    "https://*.vimeo.com",
+    "https://player.vimeo.com",
+
+    // Productivity & Collaboration
+    "https://airtable.com",
+    "https://*.airtable.com",
+    "https://notion.so",
+    "https://*.notion.so",
+    "https://www.figma.com",
+    "https://*.figma.com",
+    "https://miro.com",
+    "https://*.miro.com",
+    "https://www.canva.com",
+    "https://*.canva.com"
   ],
   workerSrc: [
     "'self'",
@@ -158,23 +198,52 @@ const cspDirectives = {
   styleSrc: [
     "'self'",
     "'unsafe-inline'", // Required for dynamic styles
-    "https://fonts.googleapis.com"
+    "https://fonts.googleapis.com",
+
+    // Form Builders
+    "https://cdn.jotfor.ms",
+    "https://*.typeform.com",
+    "https://docs.google.com",
+    "https://*.hubspot.com",
+    "https://*.mailchimp.com",
+
+    // Scheduling
+    "https://assets.calendly.com",
+    "https://*.calendly.com",
+
+    // Video & Media
+    "https://*.loom.com",
+    "https://*.vimeo.com",
+
+    // Productivity
+    "https://*.airtable.com",
+    "https://*.notion.so",
+    "https://*.figma.com",
+    "https://*.miro.com",
+    "https://*.canva.com"
   ],
   fontSrc: [
     "'self'",
-    "https://fonts.gstatic.com"
+    "https://fonts.gstatic.com",
+    "https://cdn.jotfor.ms",
+    "https://*.typeform.com",
+    "https://assets.calendly.com",
+    "https://*.hubspot.com",
+    "https://*.canva.com"
   ],
   imgSrc: [
     "'self'",
     "data:",
     "blob:",
-    "https:",
-    "https://*.replit.dev", // Allow images from Replit external domains
-    "https://*.replit.app",  // Allow images from Replit deployment domains
+    "https:", // Allow all HTTPS images (already permissive for user-generated content)
+    "https://*.replit.dev",
+    "https://*.replit.app",
     "https://px.ads.linkedin.com"
   ],
   connectSrc: [
     "'self'",
+
+    // Payment & Analytics
     "https://api.stripe.com",
     "https://www.google-analytics.com",
     "https://www.googletagmanager.com",
@@ -184,13 +253,78 @@ const cspDirectives = {
     "https://px.ads.linkedin.com",
     "https://snap.licdn.com",
     "https://www.linkedin.com",
-    "ws://localhost:*", // WebSocket for development
+
+    // Form Builders
+    "https://submit.jotform.com",
+    "https://*.jotform.com",
+    "https://*.typeform.com",
+    "https://docs.google.com",
+    "https://*.hubspot.com",
+    "https://api.hubspot.com",
+    "https://*.mailchimp.com",
+    "https://*.surveymonkey.com",
+
+    // Scheduling
+    "https://calendly.com",
+    "https://*.calendly.com",
+
+    // Video Platforms
+    "https://*.loom.com",
+    "https://www.youtube.com",
+    "https://*.vimeo.com",
+
+    // Productivity
+    "https://*.airtable.com",
+    "https://*.notion.so",
+    "https://*.figma.com",
+    "https://*.miro.com",
+    "https://*.canva.com",
+
+    // Development
+    "ws://localhost:*",
     "wss://localhost:*"
   ],
   frameSrc: [
     "'self'", // Allow iframes from same origin (for PDF viewer)
+
+    // Payment
     "https://js.stripe.com",
-    "https://hooks.stripe.com"
+    "https://hooks.stripe.com",
+
+    // Form Builders
+    "https://form.jotform.com",
+    "https://*.jotform.com",
+    "https://embed.typeform.com",
+    "https://*.typeform.com",
+    "https://docs.google.com", // Google Forms
+    "https://*.hubspot.com",
+    "https://forms.hubspot.com",
+    "https://*.mailchimp.com",
+    "https://*.surveymonkey.com",
+
+    // Scheduling
+    "https://calendly.com",
+    "https://*.calendly.com",
+
+    // Video Platforms
+    "https://www.loom.com",
+    "https://*.loom.com",
+    "https://www.youtube.com",
+    "https://www.youtube-nocookie.com",
+    "https://*.vimeo.com",
+    "https://player.vimeo.com",
+
+    // Productivity & Collaboration
+    "https://airtable.com",
+    "https://*.airtable.com",
+    "https://notion.so",
+    "https://*.notion.so",
+    "https://www.figma.com",
+    "https://*.figma.com",
+    "https://miro.com",
+    "https://*.miro.com",
+    "https://www.canva.com",
+    "https://*.canva.com"
   ],
   objectSrc: ["'none'"],
   upgradeInsecureRequests: [],
