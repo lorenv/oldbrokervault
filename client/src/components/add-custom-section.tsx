@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, X, Type, Image, Upload, Search } from "lucide-react";
+import { Plus, X, Type, Image, Upload, Search, Code } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -28,9 +28,10 @@ const sectionOptions = [
 
 export function AddCustomSection({ docId, onSectionAdded }: AddCustomSectionProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [sectionType, setSectionType] = useState<'text' | 'image' | null>(null);
+  const [sectionType, setSectionType] = useState<'text' | 'image' | 'html' | null>(null);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [customCss, setCustomCss] = useState("");
   const [insertAfter, setInsertAfter] = useState("");
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [showUnsplashDialog, setShowUnsplashDialog] = useState(false);
@@ -68,6 +69,15 @@ export function AddCustomSection({ docId, onSectionAdded }: AddCustomSectionProp
       return;
     }
 
+    if (sectionType === 'html' && !content.trim()) {
+      toast({
+        title: "Missing HTML",
+        description: "Please add HTML code for the section",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const payload = {
@@ -76,6 +86,7 @@ export function AddCustomSection({ docId, onSectionAdded }: AddCustomSectionProp
         insertAfterSection: insertAfter,
         ...(sectionType === 'text' && { content: content.trim() }),
         ...(sectionType === 'image' && { imageUrls: selectedImages }),
+        ...(sectionType === 'html' && { content: content.trim(), customCss: customCss.trim() }),
       };
 
       await apiRequest("POST", `/api/cim/${docId}/custom-sections`, { body: payload });
@@ -88,6 +99,7 @@ export function AddCustomSection({ docId, onSectionAdded }: AddCustomSectionProp
       // Reset form
       setTitle("");
       setContent("");
+      setCustomCss("");
       setInsertAfter("");
       setSectionType(null);
       setSelectedImages([]);
@@ -253,7 +265,7 @@ export function AddCustomSection({ docId, onSectionAdded }: AddCustomSectionProp
           {!sectionType && (
             <div>
               <Label>Section Type</Label>
-              <div className="grid grid-cols-2 gap-4 mt-2">
+              <div className="grid grid-cols-3 gap-4 mt-2">
                 <Button
                   variant="outline"
                   className="h-20 flex flex-col gap-2 hover:bg-blue-50"
@@ -270,6 +282,14 @@ export function AddCustomSection({ docId, onSectionAdded }: AddCustomSectionProp
                   <Image className="h-6 w-6" />
                   <span className="text-sm">Image Section</span>
                 </Button>
+                <Button
+                  variant="outline"
+                  className="h-20 flex flex-col gap-2 hover:bg-blue-50"
+                  onClick={() => setSectionType('html')}
+                >
+                  <Code className="h-6 w-6" />
+                  <span className="text-sm">HTML Section</span>
+                </Button>
               </div>
             </div>
           )}
@@ -278,9 +298,13 @@ export function AddCustomSection({ docId, onSectionAdded }: AddCustomSectionProp
           {sectionType && (
             <>
               <div className="flex items-center gap-2 p-2 bg-blue-100 rounded-lg">
-                {sectionType === 'text' ? <Type className="h-4 w-4" /> : <Image className="h-4 w-4" />}
+                {sectionType === 'text' ? <Type className="h-4 w-4" /> :
+                 sectionType === 'image' ? <Image className="h-4 w-4" /> :
+                 <Code className="h-4 w-4" />}
                 <span className="text-sm font-medium">
-                  {sectionType === 'text' ? 'Text Section' : 'Image Section'}
+                  {sectionType === 'text' ? 'Text Section' :
+                   sectionType === 'image' ? 'Image Section' :
+                   'HTML Section'}
                 </span>
                 <Button
                   variant="ghost"
@@ -391,6 +415,32 @@ export function AddCustomSection({ docId, onSectionAdded }: AddCustomSectionProp
                       </div>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* HTML Section Fields */}
+              {sectionType === 'html' && (
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="html-content">HTML Code</Label>
+                    <Textarea
+                      id="html-content"
+                      value={content}
+                      onChange={(e) => setContent(e.target.value)}
+                      placeholder="<!-- Add your HTML code here -->"
+                      className="mt-1 min-h-[200px] resize-y font-mono text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="custom-css">Custom CSS (optional)</Label>
+                    <Textarea
+                      id="custom-css"
+                      value={customCss}
+                      onChange={(e) => setCustomCss(e.target.value)}
+                      placeholder="/* Add your custom CSS here */"
+                      className="mt-1 min-h-[120px] resize-y font-mono text-sm"
+                    />
+                  </div>
                 </div>
               )}
 

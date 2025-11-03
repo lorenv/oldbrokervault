@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { 
-  DollarSign, 
-  Banknote, 
-  TrendingUp as TrendingUpIcon, 
-  BarChart3, 
-  Trash2, 
+import {
+  DollarSign,
+  Banknote,
+  TrendingUp as TrendingUpIcon,
+  BarChart3,
+  Trash2,
   Edit2,
   GripVertical,
   X,
@@ -22,7 +22,11 @@ import {
   ChevronRight,
   Loader2,
   Eye,
-  ExternalLink
+  ExternalLink,
+  Code,
+  ChevronDown,
+  ChevronUp,
+  Save
 } from "lucide-react";
 import { OwnerFinancialsSection } from "./owner-financials-section";
 import { CoverImageManager } from "./cover-image-manager";
@@ -219,6 +223,8 @@ export function CimDisplay({
   const [confirmDeleteSectionId, setConfirmDeleteSectionId] = useState<string | null>(null);
   const [addSectionDialogOpen, setAddSectionDialogOpen] = useState(false);
   const [isAddingSectionLoading, setIsAddingSectionLoading] = useState(false);
+  const [expandedCssSections, setExpandedCssSections] = useState<Record<number, boolean>>({});
+  const [savingHtmlSections, setSavingHtmlSections] = useState<Record<number, boolean>>({});
 
   // Local state for immediate UI updates - properly initialize from cimDocument
   const [localLogoUrl, setLocalLogoUrl] = useState<string | undefined>(
@@ -988,7 +994,7 @@ export function CimDisplay({
                                     });
 
                                     if (response.ok) {
-                                      setCustomSections(prev => prev.map(s => 
+                                      setCustomSections(prev => prev.map(s =>
                                         s.id === customSection.id ? { ...s, content: newContent } : s
                                       ));
                                       toast({ title: "Content Updated", description: "Custom section content saved successfully." });
@@ -1006,7 +1012,7 @@ export function CimDisplay({
                                 {customSection.content.includes('<') && customSection.content.includes('>') ? (
                                   <div dangerouslySetInnerHTML={{ __html: customSection.content }} />
                                 ) : (
-                                  <ReactMarkdown 
+                                  <ReactMarkdown
                                     components={{
                                       ul: ({ children }) => <ul className="list-disc pl-4">{children}</ul>,
                                       li: ({ children }) => <li className="mb-1">{children}</li>,
@@ -1020,28 +1026,194 @@ export function CimDisplay({
                               </div>
                             )}
                           </div>
-                        ) : (
+                        ) : customSection.type === 'image' ? (
                           <div className="space-y-4">
                             {customSection.imageUrls && customSection.imageUrls.length > 0 ? (
                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {customSection.imageUrls.map((imageUrl: string, index: number) => (
-                                  <img 
+                                  <img
                                     key={index}
-                                    src={imageUrl} 
+                                    src={imageUrl}
                                     alt={`Custom section image ${index + 1}`}
                                     className="w-full h-48 object-cover rounded-lg"
                                   />
                                 ))}
                               </div>
                             ) : customSection.imageUrl ? (
-                              <img 
-                                src={customSection.imageUrl} 
+                              <img
+                                src={customSection.imageUrl}
                                 alt="Custom section image"
                                 className="w-full h-48 object-cover rounded-lg"
                               />
                             ) : null}
                           </div>
-                        )}
+                        ) : customSection.type === 'html' ? (
+                          <div className="w-full">
+                            {!isSharedView ? (
+                              <div className="space-y-4">
+                                <div className="space-y-2">
+                                  <label className="text-sm font-medium">HTML Code</label>
+                                  <textarea
+                                    className="w-full h-48 p-3 font-mono text-sm border rounded-md resize-y"
+                                    value={customSection.content || ''}
+                                    onChange={(e) => {
+                                      const newContent = e.target.value;
+                                      setCustomSections(prev => prev.map(s =>
+                                        s.id === customSection.id ? { ...s, content: newContent } : s
+                                      ));
+                                    }}
+                                    placeholder="<!-- Add your HTML code here -->"
+                                  />
+                                </div>
+
+                                {/* Collapsible CSS Section */}
+                                <div className="space-y-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setExpandedCssSections(prev => ({
+                                        ...prev,
+                                        [customSection.id]: !prev[customSection.id]
+                                      }));
+                                    }}
+                                    className="flex items-center gap-2 text-sm font-medium hover:text-blue-600 transition-colors"
+                                  >
+                                    {expandedCssSections[customSection.id] ? (
+                                      <ChevronUp className="h-4 w-4" />
+                                    ) : (
+                                      <ChevronDown className="h-4 w-4" />
+                                    )}
+                                    Custom CSS (optional)
+                                  </button>
+                                  {expandedCssSections[customSection.id] && (
+                                    <textarea
+                                      className="w-full h-32 p-3 font-mono text-sm border rounded-md resize-y"
+                                      value={customSection.customCss || ''}
+                                      onChange={(e) => {
+                                        const newCss = e.target.value;
+                                        setCustomSections(prev => prev.map(s =>
+                                          s.id === customSection.id ? { ...s, customCss: newCss } : s
+                                        ));
+                                      }}
+                                      placeholder="/* Add your custom CSS here */"
+                                    />
+                                  )}
+                                </div>
+
+                                {/* Save Button */}
+                                <Button
+                                  onClick={async () => {
+                                    setSavingHtmlSections(prev => ({ ...prev, [customSection.id]: true }));
+                                    try {
+                                      const response = await apiRequest("PUT", `/api/custom-section/${customSection.id}`, {
+                                        body: {
+                                          content: customSection.content || '',
+                                          customCss: customSection.customCss || ''
+                                        }
+                                      });
+
+                                      if (response.ok) {
+                                        toast({
+                                          title: "Saved",
+                                          description: "Custom HTML section saved successfully."
+                                        });
+                                      } else if (response.status === 400) {
+                                        // Check if it's a CSP violation
+                                        const errorData = await response.json();
+                                        if (errorData.error === 'csp_violation') {
+                                          // Show detailed CSP violation message
+                                          const domains = errorData.violations
+                                            .map((v: any) => v.domain)
+                                            .filter((d: string, i: number, arr: string[]) => arr.indexOf(d) === i)
+                                            .join(', ');
+
+                                          toast({
+                                            title: "Security Policy Violation",
+                                            description: `Your code contains external resources (${domains}) that are not currently whitelisted. Our support team has been notified and will review your request.`,
+                                            variant: "destructive",
+                                            duration: 10000
+                                          });
+                                        } else {
+                                          throw new Error(errorData.message || 'Save failed');
+                                        }
+                                      } else {
+                                        throw new Error('Save failed');
+                                      }
+                                    } catch (error) {
+                                      console.error('Error saving HTML section:', error);
+                                      // Only show generic error if we haven't already shown CSP error
+                                      if (error instanceof Error && error.message !== 'Save failed') {
+                                        toast({
+                                          title: "Save Failed",
+                                          description: "Failed to save changes. Please try again.",
+                                          variant: "destructive"
+                                        });
+                                      }
+                                    } finally {
+                                      setSavingHtmlSections(prev => ({ ...prev, [customSection.id]: false }));
+                                    }
+                                  }}
+                                  disabled={savingHtmlSections[customSection.id]}
+                                  className="flex items-center gap-2"
+                                >
+                                  {savingHtmlSections[customSection.id] ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                      Saving...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Save className="h-4 w-4" />
+                                      Save Changes
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            ) : (
+                              <iframe
+                                key={`html-section-${customSection.id}`}
+                                sandbox="allow-scripts allow-forms allow-popups allow-same-origin"
+                                srcDoc={`<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+      body {
+        margin: 0;
+        padding: 20px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      }
+      ${(customSection.customCss || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}
+    </style>
+  </head>
+  <body>
+    <div id="form-container"></div>
+    ${customSection.content || ''}
+  </body>
+</html>`}
+                                className="w-full border-0 rounded"
+                                style={{ minHeight: '500px' }}
+                                onLoad={(e) => {
+                                  const iframe = e.target as HTMLIFrameElement;
+                                  // Set initial height
+                                  setTimeout(() => {
+                                    if (iframe.contentWindow) {
+                                      try {
+                                        const height = iframe.contentWindow.document.body.scrollHeight;
+                                        if (height > 300) {
+                                          iframe.style.height = height + 'px';
+                                        }
+                                      } catch (err) {
+                                        // Cross-origin iframe - ignore
+                                      }
+                                    }
+                                  }, 2000); // Give JotForm time to load
+                                }}
+                              />
+                            )}
+                          </div>
+                        ) : null}
                       </CardContent>
                     </Card>
                   </DraggableSection>
@@ -1169,6 +1341,52 @@ export function CimDisplay({
                       </div>
                       <span className="text-xs text-muted-foreground">
                         Upload and add images to your document
+                      </span>
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      className="h-auto p-4 flex flex-col items-start gap-2"
+                      disabled={isAddingSectionLoading}
+                      onClick={async () => {
+                        try {
+                          setIsAddingSectionLoading(true);
+                          const response = await apiRequest('POST', `/api/cim/${docId}/custom-section/html`, {
+                            body: {
+                              content: '<!-- Add your HTML here -->',
+                              customCss: '',
+                              afterSection: 'end'
+                            }
+                          });
+
+                          if (response.ok) {
+                            // Invalidate custom sections query to refresh via centralized hook
+                            queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}/custom-sections`] });
+                            queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });
+                            queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
+                            toast({
+                              title: "HTML Section Added",
+                              description: "Your new HTML section has been added to the document.",
+                            });
+                            setAddSectionDialogOpen(false);
+                          }
+                        } catch (error) {
+                          toast({
+                            title: "Failed to Add Section",
+                            description: "Please try again.",
+                            variant: "destructive",
+                          });
+                        } finally {
+                          setIsAddingSectionLoading(false);
+                        }
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Code className="h-4 w-4" />
+                        <span className="font-medium">HTML Section</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        Add custom HTML and CSS code (forms, embeds, etc.)
                       </span>
                     </Button>
                   </div>

@@ -197,9 +197,10 @@ export const uploadedFiles = pgTable("uploaded_files", {
 export const customSections = pgTable("custom_sections", {
   id: serial("id").primaryKey(),
   cimDocumentId: integer("cim_document_id").notNull(),
-  type: text("type").notNull(), // 'text' or 'image'
+  type: text("type").notNull(), // 'text', 'image', or 'html'
   title: text("title"), // Section title
-  content: text("content"), // Rich text content for text sections
+  content: text("content"), // Rich text content for text sections, or HTML code for html sections
+  customCss: text("custom_css"), // Optional CSS for html sections
   imageUrls: text("image_urls").array(), // Array of image file paths for image sections
   imageUrl: text("image_url"), // Legacy single image URL - kept for backward compatibility
   imageUrlsBackup: text("image_urls_backup").array(), // Base64 backup during migration

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Image, Type, Trash2, GripVertical } from "lucide-react";
+import { Plus, Image, Type, Trash2, GripVertical, Code } from "lucide-react";
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,7 @@ interface InsertableSectionProps {
 
 interface CustomSectionProps {
   id: number;
-  type: 'text' | 'image';
+  type: 'text' | 'image' | 'html';
   title?: string;
   content?: string;
   imageUrl?: string;
@@ -120,6 +120,33 @@ export function InsertableSection({ afterSection, docId, onSectionAdded }: Inser
     input.click();
   };
 
+  const handleAddHtml = async () => {
+    setShowDialog(false);
+    try {
+      const response = await apiRequest('POST', `/api/cim/${docId}/custom-section/html`, {
+        body: {
+          content: '<!-- Add your HTML here -->',
+          customCss: '',
+          afterSection: afterSection
+        }
+      });
+
+      if (response.ok) {
+        toast({
+          title: "HTML section added",
+          description: "Your new HTML section has been added to the CIM",
+        });
+        onSectionAdded();
+      }
+    } catch (error) {
+      toast({
+        title: "Failed to add HTML section",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div 
       className="relative group"
@@ -149,14 +176,14 @@ export function InsertableSection({ afterSection, docId, onSectionAdded }: Inser
       </div>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="max-w-xs">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Add Section</DialogTitle>
             <DialogDescription>
               Choose the type of content to add
             </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <Button
               variant="outline"
               className="h-20 flex flex-col gap-2"
@@ -173,6 +200,14 @@ export function InsertableSection({ afterSection, docId, onSectionAdded }: Inser
             >
               <Image className="h-6 w-6" />
               <span className="text-sm">{isUploading ? "Uploading..." : "Image"}</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-20 flex flex-col gap-2"
+              onClick={handleAddHtml}
+            >
+              <Code className="h-6 w-6" />
+              <span className="text-sm">HTML</span>
             </Button>
           </div>
         </DialogContent>
