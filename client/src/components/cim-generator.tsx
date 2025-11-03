@@ -842,26 +842,28 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {!analysis && (
-        <div className="flex items-center justify-between gap-4">
-          <Button
-            variant="ghost"
-            onClick={() => setCimMode('choice')}
-            className="gap-2"
-          >
-            ← Back to Options
-          </Button>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-            New CIM
-          </h1>
-          <div className="w-[120px]"></div> {/* Spacer for centering */}
-        </div>
-      )}
-
       {!analysis ? (
-        <form onSubmit={form.handleSubmit(handleGenerate)} className="lg:grid lg:grid-cols-12 lg:gap-8 space-y-5 lg:space-y-0 relative">
+        <form onSubmit={form.handleSubmit(handleGenerate)} className="lg:grid lg:grid-cols-12 lg:gap-6 space-y-5 lg:space-y-0 relative">
           {/* Main Form Content */}
-          <div className="lg:col-span-9 space-y-5">
+          <div className="lg:col-span-9 space-y-5 bg-gradient-to-br from-slate-50/50 to-blue-50/30 lg:p-6 lg:rounded-xl">
+            {/* Back Button and Title - Only in first column */}
+            {!analysis && (
+              <div className="flex items-center gap-4 mb-4">
+                <Button
+                  variant="ghost"
+                  onClick={() => setCimMode('choice')}
+                  className="gap-2 flex-shrink-0"
+                >
+                  ← Back
+                </Button>
+                <div className="flex-1 text-center">
+                  <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-600 to-blue-600 bg-clip-text text-transparent drop-shadow-sm">
+                    New CIM
+                  </h1>
+                  <p className="text-sm text-slate-500 mt-1">Complete the fields below to generate your document</p>
+                </div>
+              </div>
+            )}
 
           {/* Cover Image Section - Now at the top */}
           <div id="cover-image-section" className="space-y-0 scroll-mt-8">
@@ -1553,9 +1555,9 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
 
           {/* Sticky Summary Sidebar - Desktop Only */}
           <div className="hidden lg:block lg:col-span-3">
-            <div className="sticky top-4 space-y-3">
+            <div className="sticky top-4 space-y-3 bg-white lg:p-4 lg:rounded-xl lg:shadow-sm">
               {/* Progress Checklist Card */}
-              <Card className="border border-slate-100 shadow-none bg-white/50 backdrop-blur-sm">
+              <Card className="border-0 shadow-none bg-transparent">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-semibold text-slate-500 flex items-center gap-2">
                     <svg className="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1671,10 +1673,10 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
               </Card>
 
               {/* Separator */}
-              <div className="border-t border-slate-100"></div>
+              <div className="border-t border-slate-200 my-4"></div>
 
               {/* NDA Protection Card */}
-              <Card className="border border-slate-100 shadow-none bg-white/50 backdrop-blur-sm">
+              <Card className="border-0 shadow-none bg-transparent">
                 <CardHeader className="pb-2">
                   <div className="flex items-center gap-2">
                     <Shield className="h-4 w-4 text-slate-400" />
