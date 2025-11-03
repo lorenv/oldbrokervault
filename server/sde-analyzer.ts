@@ -102,6 +102,8 @@ interface AIAnalysisResult {
   revenue_row: number | null;
   noi_row: number | null;
   addbacks: AddBack[];
+  partial_columns_ignored?: number[]; // Column indices that were ignored due to incomplete data
+  warnings?: string[]; // User-facing warnings about data quality
 }
 
 export class SDEAnalyzerService {
@@ -154,6 +156,7 @@ Your tasks:
 1. Find the TOTAL REVENUE row (may be labeled as: "Total Income", "Total for Income", "Total Revenue", "Gross Revenue", "Total Sales", "Income Total", etc.)
 2. Find the NET OPERATING INCOME row (may be labeled as: "Net Income", "Net Operating Income", "NOI", "Operating Income", "Net Profit", "Bottom Line", etc.)
 3. Identify ALL add-back expenses BETWEEN revenue and NOI
+4. Detect if any columns contain mostly empty cells (likely month-to-date partial data that should be ignored)
 
 SDE Add-backs are expenses that can be added back to calculate true earnings:
 
@@ -169,11 +172,19 @@ SDE Add-backs are expenses that can be added back to calculate true earnings:
 - Payroll Taxes (payroll tax, 941, FUTA, SUTA, employment taxes, employer taxes)
 - Legal & Professional Fees (legal fees, attorney, accounting fees, professional services)
 - Bonuses (bonus expense, discretionary bonuses)
-- Rent to Owner (rent expense, lease expense - if paid to owner)
 - One-time Expenses (consulting, restructuring, non-recurring)
 
-**DO NOT INCLUDE:**
-- Insurance (regular business insurance, general liability, property insurance - these are normal operating expenses, NOT addbacks)
+**DO NOT INCLUDE - These are NORMAL operating expenses:**
+- Rent (rent expense, lease expense - this is a necessary business expense, NOT an addback unless specifically noted as "rent to owner")
+- Insurance (regular business insurance, general liability, property insurance)
+- Utilities (electric, gas, water, internet)
+- Regular business supplies and materials
+- Cost of goods sold (COGS)
+
+**PARTIAL DATA DETECTION:**
+- If the last 1-2 columns have significantly more empty cells than other columns (>50% empty), these are likely month-to-date columns
+- Add these column numbers to "partial_columns_ignored" array
+- Add a user-friendly warning like "Month-to-date column detected and excluded from analysis"
 
 Return ONLY a JSON object with this EXACT structure:
 {
@@ -182,7 +193,9 @@ Return ONLY a JSON object with this EXACT structure:
   "addbacks": [
     {"row": <row_number>, "label": "<exact_expense_name_from_file>", "category": "<category>"},
     ...
-  ]
+  ],
+  "partial_columns_ignored": [<column_numbers>],
+  "warnings": ["<user_facing_warning_messages>"]
 }
 
 CRITICAL:
@@ -190,7 +203,9 @@ CRITICAL:
 - Include the EXACT label text from the file
 - Only include expenses BETWEEN revenue and NOI rows
 - If you can't find revenue/NOI, set to null
-- If no add-backs found, use empty array []`
+- If no add-backs found, use empty array []
+- If no partial columns detected, use empty array []
+- If no warnings, use empty array []`
           },
           {
             role: 'user',
@@ -201,7 +216,7 @@ CRITICAL:
         max_tokens: 2000
       });
 
-      let content = response.choices[0]?.message?.content || '{"revenue_row":null,"noi_row":null,"addbacks":[]}';
+      let content = response.choices[0]?.message?.content || '{"revenue_row":null,"noi_row":null,"addbacks":[],"partial_columns_ignored":[],"warnings":[]}';
 
       // Strip markdown code fences if present
       content = content.replace(/```json\s*/g, '').replace(/```\s*$/g, '').trim();
@@ -217,11 +232,19 @@ CRITICAL:
 
       logger.info(`AI analysis complete: Found ${result.addbacks.length} add-backs`);
 
+      if (result.warnings && result.warnings.length > 0) {
+        logger.info(`AI warnings: ${result.warnings.join(', ')}`);
+      }
+
+      if (result.partial_columns_ignored && result.partial_columns_ignored.length > 0) {
+        logger.info(`Partial columns ignored: ${result.partial_columns_ignored.join(', ')}`);
+      }
+
       return result;
 
     } catch (error) {
       logger.error('Error in AI analysis:', error);
-      return { revenue_row: null, noi_row: null, addbacks: [] }; // Fall back to Python's built-in detection
+      return { revenue_row: null, noi_row: null, addbacks: [], partial_columns_ignored: [], warnings: [] }; // Fall back to Python's built-in detection
     }
   }
 
@@ -402,7 +425,8 @@ CRITICAL:
             resultFilePath: resultStoragePath,
             resultFileSize: resultBuffer.length,
             processingTimeSeconds: processingTime,
-            useFilesystemStorage: storageResult.useFilesystem
+            useFilesystemStorage: storageResult.useFilesystem,
+            analysisWarnings: aiResult.warnings || []
           })
           .where(eq(sdeAnalyses.id, analysisId));
 

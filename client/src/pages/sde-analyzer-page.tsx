@@ -31,6 +31,7 @@ interface Analysis {
   resultFilename: string | null;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   errorMessage: string | null;
+  analysisWarnings: string[];
   createdAt: string;
   completedAt: string | null;
   expiresAt: string | null;
@@ -433,9 +434,6 @@ export default function SDEAnalyzerPage() {
             <Upload className="h-5 w-5 text-blue-600" />
             Upload Financial Document
           </CardTitle>
-          <CardDescription className="text-slate-600">
-            Upload an Excel file (.xls or .xlsx) to generate an SDE Sheet. Maximum file size: 8MB.
-          </CardDescription>
         </CardHeader>
         <CardContent className="pt-8">
           <div
@@ -459,6 +457,9 @@ export default function SDEAnalyzerPage() {
                 </p>
                 <p className="text-sm text-slate-600 mb-4">
                   Supports .xls and .xlsx files up to 8MB
+                </p>
+                <p className="text-xs text-slate-500 mb-4 max-w-md mx-auto">
+                  File should contain one tab with your Profit & Loss report and clear date headers. For any issues, contact <a href="mailto:support@cimshare.com" className="text-blue-600 hover:underline">support@cimshare.com</a>
                 </p>
                 <Button
                   onClick={() => fileInputRef.current?.click()}
@@ -504,18 +505,11 @@ export default function SDEAnalyzerPage() {
             )}
           </div>
 
-          <Alert className="mt-4 bg-blue-50 border-blue-200">
-            <Info className="h-4 w-4 text-blue-600" />
-            <AlertDescription className="text-blue-900">
-              After upload, analysis typically takes 2-5 minutes. You'll receive an email when your SDE Sheet is ready.
-              Files are retained for 30 days.
-            </AlertDescription>
-          </Alert>
-
-          <div className="mt-3 text-xs text-slate-500 italic border-l-2 border-slate-300 pl-3 py-1">
+          <div className="mt-4 text-xs text-slate-500 italic border-l-2 border-slate-300 pl-3 py-1">
             <strong>Please note:</strong> The SDE Analyzer provides automated financial analysis for convenience only.
             You are responsible for verifying all calculations, figures, and outputs before use.
             Always consult with qualified financial professionals to review results before making business decisions.
+            Files are retained for 30 days.
           </div>
         </CardContent>
       </Card>
@@ -570,6 +564,16 @@ export default function SDEAnalyzerPage() {
                         )}
                         {analysis.status === 'failed' && analysis.errorMessage && (
                           <p className="text-red-600 font-semibold">Error: {analysis.errorMessage}</p>
+                        )}
+                        {analysis.analysisWarnings && analysis.analysisWarnings.length > 0 && (
+                          <div className="space-y-1 mt-2">
+                            {analysis.analysisWarnings.map((warning, idx) => (
+                              <p key={idx} className="text-amber-700 text-xs flex items-start gap-1">
+                                <Info className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                                <span>{warning}</span>
+                              </p>
+                            ))}
+                          </div>
                         )}
                       </div>
                     </div>
