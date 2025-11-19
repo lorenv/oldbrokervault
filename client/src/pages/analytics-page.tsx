@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye, FileSignature, UserCheck, FileText, TrendingUp, TrendingDown, Download, RefreshCw, Check, X, CheckCheck, MapPin } from "lucide-react";
+import { Eye, FileSignature, UserCheck, FileText, TrendingUp, TrendingDown, Download, RefreshCw, Check, X, CheckCheck, MapPin, Copy } from "lucide-react";
 import { Line, LineChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { format, subDays, eachDayOfInterval } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +22,7 @@ export default function AnalyticsPage() {
   const [docTimeFilter, setDocTimeFilter] = useState<string>('all');
   const [viewingContact, setViewingContact] = useState<any | null>(null);
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [selectedSignatures, setSelectedSignatures] = useState<number[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -225,6 +226,155 @@ export default function AnalyticsPage() {
       });
     },
   });
+
+  // Batch approve selected signatures mutation
+  const batchApproveSelectedMutation = useMutation({
+    mutationFn: async (signatureIds: number[]) => {
+      const approvals = filteredPendingApprovals
+        .filter((approval: any) => signatureIds.includes(approval.id))
+        .map((approval: any) => ({
+          docId: approval.documentId,
+          signatureId: approval.id
+        }));
+
+      await Promise.all(
+        approvals.map(({ docId, signatureId }) =>
+          apiRequest("POST", `/api/cim/${docId}/nda-signatures/${signatureId}/approve`, {})
+        )
+      );
+    },
+    onMutate: async (signatureIds) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/analytics/pending-approvals"] });
+      const previousApprovals = queryClient.getQueryData(["/api/analytics/pending-approvals"]);
+
+      queryClient.setQueryData(["/api/analytics/pending-approvals"], (old: any) => {
+        if (!old) return old;
+        return old.filter((approval: any) => !signatureIds.includes(approval.id));
+      });
+
+      return { previousApprovals, count: signatureIds.length };
+    },
+    onSuccess: (data, variables, context) => {
+      toast({
+        title: "Signers Approved",
+        description: `${context?.count || 0} NDA signatures have been approved`,
+      });
+      setSelectedSignatures([]);
+      queryClient.invalidateQueries({ queryKey: ["/api/analytics/pending-approvals"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/analytics/overview"] });
+    },
+    onError: (error, variables, context) => {
+      if (context?.previousApprovals) {
+        queryClient.setQueryData(["/api/analytics/pending-approvals"], context.previousApprovals);
+      }
+      toast({
+        title: "Batch Approval Failed",
+        description: error instanceof Error ? error.message : "Failed to approve signers",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Batch reject selected signatures mutation
+  const batchRejectSelectedMutation = useMutation({
+    mutationFn: async (signatureIds: number[]) => {
+      const rejections = filteredPendingApprovals
+        .filter((approval: any) => signatureIds.includes(approval.id))
+        .map((approval: any) => ({
+          docId: approval.documentId,
+          signatureId: approval.id
+        }));
+
+      await Promise.all(
+        rejections.map(({ docId, signatureId }) =>
+          apiRequest("POST", `/api/cim/${docId}/nda-signatures/${signatureId}/reject`, {})
+        )
+      );
+    },
+    onMutate: async (signatureIds) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/analytics/pending-approvals"] });
+      const previousApprovals = queryClient.getQueryData(["/api/analytics/pending-approvals"]);
+
+      queryClient.setQueryData(["/api/analytics/pending-approvals"], (old: any) => {
+        if (!old) return old;
+        return old.filter((approval: any) => !signatureIds.includes(approval.id));
+      });
+
+      return { previousApprovals, count: signatureIds.length };
+    },
+    onSuccess: (data, variables, context) => {
+      toast({
+        title: "Signers Rejected",
+        description: `${context?.count || 0} NDA signatures have been rejected`,
+      });
+      setSelectedSignatures([]);
+      queryClient.invalidateQueries({ queryKey: ["/api/analytics/pending-approvals"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/analytics/overview"] });
+    },
+    onError: (error, variables, context) => {
+      if (context?.previousApprovals) {
+        queryClient.setQueryData(["/api/analytics/pending-approvals"], context.previousApprovals);
+      }
+      toast({
+        title: "Batch Rejection Failed",
+        description: error instanceof Error ? error.message : "Failed to reject signers",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Selection helper functions
+  const toggleSignatureSelection = (signatureId: number) => {
+    setSelectedSignatures(prev =>
+      prev.includes(signatureId)
+        ? prev.filter(id => id !== signatureId)
+        : [...prev, signatureId]
+    );
+  };
+
+  const selectAllSignatures = () => {
+    setSelectedSignatures(filteredPendingApprovals.map((sig: any) => sig.id));
+  };
+
+  const clearSelections = () => {
+    setSelectedSignatures([]);
+  };
+
+  // Export selected signatures to CSV
+  const exportSignaturesToCSV = () => {
+    const selectedSigs = selectedSignatures.length > 0
+      ? filteredPendingApprovals.filter((sig: any) => selectedSignatures.includes(sig.id))
+      : filteredPendingApprovals;
+
+    const csvData = selectedSigs.map((sig: any) => ({
+      'Signer Name': sig.signerName,
+      'Document': sig.documentTitle,
+      'Email': sig.signerEmail,
+      'Location': sig.signerLocation || 'Unknown',
+      'Signed Date': format(new Date(sig.signedAt), 'yyyy-MM-dd HH:mm:ss')
+    }));
+
+    const headers = Object.keys(csvData[0] || {});
+    const csvContent = [
+      headers.join(','),
+      ...csvData.map(row => headers.map(header => `"${row[header as keyof typeof row]}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `pending-nda-approvals-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+
+    toast({
+      title: "Export Complete",
+      description: `Exported ${csvData.length} signatures to CSV`
+    });
+  };
 
   // Scroll to pending approvals section
   const scrollToPendingApprovals = () => {
@@ -529,7 +679,7 @@ export default function AnalyticsPage() {
                   <Button
                     onClick={() => bulkApproveMutation.mutate()}
                     disabled={bulkApproveMutation.isPending}
-                    className="bg-green-600 hover:bg-green-700"
+                    className="bg-blue-600 hover:bg-blue-700"
                   >
                     <CheckCheck className="h-4 w-4 mr-2" />
                     Approve All ({filteredPendingApprovals.length})
@@ -539,23 +689,107 @@ export default function AnalyticsPage() {
             </div>
           </CardHeader>
           <CardContent>
+            {/* Bulk Actions Bar */}
+            {selectedSignatures.length > 0 && (
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 p-4 mb-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <span className="text-sm text-gray-700 font-medium">
+                  {selectedSignatures.length} selected
+                </span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => batchApproveSelectedMutation.mutate(selectedSignatures)}
+                    disabled={batchApproveSelectedMutation.isPending}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Check className="h-4 w-4 mr-2" />
+                    {batchApproveSelectedMutation.isPending ? "Approving..." : `Approve ${selectedSignatures.length}`}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => batchRejectSelectedMutation.mutate(selectedSignatures)}
+                    disabled={batchRejectSelectedMutation.isPending}
+                    className="text-red-600 border-red-300 hover:bg-red-50"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    {batchRejectSelectedMutation.isPending ? "Rejecting..." : `Reject ${selectedSignatures.length}`}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const selectedSigs = filteredPendingApprovals.filter((sig: any) => selectedSignatures.includes(sig.id));
+                      const emails = selectedSigs.map((sig: any) => sig.signerEmail).join(', ');
+                      navigator.clipboard.writeText(emails);
+                      toast({
+                        title: "Email addresses copied",
+                        description: `${selectedSigs.length} email address${selectedSigs.length > 1 ? 'es' : ''} copied to clipboard`
+                      });
+                    }}
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy Emails
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={exportSignaturesToCSV}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Export CSV
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearSelections}
+                  >
+                    Clear
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <div className="overflow-x-auto">
               {filteredPendingApprovals.length > 0 ? (
                 <table className="w-full">
                   <thead>
                     <tr className="border-b">
-                      <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700">Signer Name</th>
-                      <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700">Document</th>
-                      <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700">Email</th>
-                      <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700">Location</th>
-                      <th className="text-center py-3 px-4 font-semibold text-sm text-gray-700">Signed Date</th>
-                      <th className="text-center py-3 px-4 font-semibold text-sm text-gray-700">Actions</th>
+                      <th className="w-12 py-2 px-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedSignatures.length === filteredPendingApprovals.length && filteredPendingApprovals.length > 0}
+                          onChange={() => {
+                            if (selectedSignatures.length === filteredPendingApprovals.length) {
+                              clearSelections();
+                            } else {
+                              selectAllSignatures();
+                            }
+                          }}
+                          className="rounded"
+                        />
+                      </th>
+                      <th className="text-left py-2 px-4 font-semibold text-sm text-gray-700">Signer Name</th>
+                      <th className="text-left py-2 px-4 font-semibold text-sm text-gray-700">Document</th>
+                      <th className="text-left py-2 px-4 font-semibold text-sm text-gray-700">Email</th>
+                      <th className="text-left py-2 px-4 font-semibold text-sm text-gray-700">Location</th>
+                      <th className="text-center py-2 px-4 font-semibold text-sm text-gray-700">Signed Date</th>
+                      <th className="text-center py-2 px-4 font-semibold text-sm text-gray-700">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(showAllPendingApprovals ? filteredPendingApprovals : filteredPendingApprovals.slice(0, 10)).map((approval: any) => (
-                      <tr key={approval.id} className="border-b hover:bg-gray-50 transition-colors">
-                        <td className="py-3 px-4">
+                      <tr key={approval.id} className={`border-b hover:bg-gray-50 transition-colors ${selectedSignatures.includes(approval.id) ? 'bg-blue-50' : ''}`}>
+                        <td className="py-2 px-4">
+                          <input
+                            type="checkbox"
+                            checked={selectedSignatures.includes(approval.id)}
+                            onChange={() => toggleSignatureSelection(approval.id)}
+                            className="rounded"
+                          />
+                        </td>
+                        <td className="py-2 px-4">
                           <button
                             onClick={() => {
                               setViewingContact({
@@ -572,27 +806,27 @@ export default function AnalyticsPage() {
                               });
                               setIsContactModalOpen(true);
                             }}
-                            className="text-blue-600 hover:underline font-medium text-left"
+                            className="text-blue-600 hover:font-bold text-sm text-left"
                           >
                             {approval.signerName}
                           </button>
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-2 px-4">
                           <a
                             href={`/documents/${approval.documentId}?tab=nda`}
-                            className="text-blue-600 hover:underline font-medium"
+                            className="text-blue-600 hover:font-bold text-sm"
                           >
                             {approval.documentTitle}
                           </a>
                         </td>
-                        <td className="py-3 px-4 text-sm text-gray-600">{approval.signerEmail}</td>
-                        <td className="py-3 px-4 text-sm text-gray-600">
+                        <td className="py-2 px-4 text-sm text-gray-600">{approval.signerEmail}</td>
+                        <td className="py-2 px-4 text-sm text-gray-600">
                           {approval.signerLocation || 'Unknown'}
                         </td>
-                        <td className="text-center py-3 px-4 text-sm text-gray-600">
+                        <td className="text-center py-2 px-4 text-sm text-gray-600">
                           {format(new Date(approval.signedAt), 'MMM dd, yyyy')}
                         </td>
-                        <td className="text-center py-3 px-4">
+                        <td className="text-center py-2 px-4">
                           <div className="flex items-center justify-center gap-2">
                             <Button
                               size="sm"
@@ -602,7 +836,7 @@ export default function AnalyticsPage() {
                                 signatureId: approval.id
                               })}
                               disabled={approveMutation.isPending}
-                              className="text-green-600 border-green-300 hover:bg-green-50"
+                              className="text-blue-600 border-blue-300 hover:bg-blue-50"
                             >
                               <Check className="h-4 w-4" />
                             </Button>
@@ -737,7 +971,7 @@ export default function AnalyticsPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700">Document Name</th>
+                    <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700 min-w-[300px]">Document Name</th>
                     <th className="text-center py-3 px-4 font-semibold text-sm text-gray-700">Views</th>
                     <th className="text-center py-3 px-4 font-semibold text-sm text-gray-700">Signatures</th>
                     <th className="text-center py-3 px-4 font-semibold text-sm text-gray-700">Status</th>
@@ -747,8 +981,8 @@ export default function AnalyticsPage() {
                   {filteredDocuments && filteredDocuments.length > 0 ? (
                     (showAllDocuments ? filteredDocuments : filteredDocuments.slice(0, 5)).map((doc: any) => (
                       <tr key={doc.id} className="border-b hover:bg-gray-50 cursor-pointer transition-colors">
-                        <td className="py-3 px-4">
-                          <a href={`/documents/${doc.id}`} className="text-blue-600 hover:underline font-medium">
+                        <td className="py-3 px-4 min-w-[300px]">
+                          <a href={`/documents/${doc.id}`} className="text-blue-600 hover:font-bold font-medium">
                             {doc.title}
                           </a>
                         </td>
@@ -780,12 +1014,12 @@ export default function AnalyticsPage() {
       {/* Contact Detail Modal */}
       <ContactDetailModal
         contact={viewingContact}
-        isOpen={isContactModalOpen}
-        onClose={() => {
-          setIsContactModalOpen(false);
-          setViewingContact(null);
-        }}
-        onUpdate={() => {
+        open={isContactModalOpen}
+        onOpenChange={(open) => {
+          setIsContactModalOpen(open);
+          if (!open) {
+            setViewingContact(null);
+          }
           // Optionally refresh the data if contact is updated
           queryClient.invalidateQueries({ queryKey: ["/api/analytics/pending-approvals"] });
         }}
