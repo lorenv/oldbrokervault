@@ -679,7 +679,7 @@ export default function AnalyticsPage() {
                   <Button
                     onClick={() => bulkApproveMutation.mutate()}
                     disabled={bulkApproveMutation.isPending}
-                    className="bg-green-600 hover:bg-green-700"
+                    className="bg-blue-600 hover:bg-blue-700"
                   >
                     <CheckCheck className="h-4 w-4 mr-2" />
                     Approve All ({filteredPendingApprovals.length})
@@ -701,7 +701,7 @@ export default function AnalyticsPage() {
                     size="sm"
                     onClick={() => batchApproveSelectedMutation.mutate(selectedSignatures)}
                     disabled={batchApproveSelectedMutation.isPending}
-                    className="bg-green-600 hover:bg-green-700"
+                    className="bg-blue-600 hover:bg-blue-700"
                   >
                     <Check className="h-4 w-4 mr-2" />
                     {batchApproveSelectedMutation.isPending ? "Approving..." : `Approve ${selectedSignatures.length}`}
@@ -806,7 +806,7 @@ export default function AnalyticsPage() {
                               });
                               setIsContactModalOpen(true);
                             }}
-                            className="text-blue-600 hover:underline text-sm text-left"
+                            className="text-blue-600 hover:font-bold text-sm text-left"
                           >
                             {approval.signerName}
                           </button>
@@ -814,7 +814,7 @@ export default function AnalyticsPage() {
                         <td className="py-2 px-4">
                           <a
                             href={`/documents/${approval.documentId}?tab=nda`}
-                            className="text-blue-600 hover:underline text-sm"
+                            className="text-blue-600 hover:font-bold text-sm"
                           >
                             {approval.documentTitle}
                           </a>
@@ -836,7 +836,7 @@ export default function AnalyticsPage() {
                                 signatureId: approval.id
                               })}
                               disabled={approveMutation.isPending}
-                              className="text-green-600 border-green-300 hover:bg-green-50"
+                              className="text-blue-600 border-blue-300 hover:bg-blue-50"
                             >
                               <Check className="h-4 w-4" />
                             </Button>
@@ -971,7 +971,7 @@ export default function AnalyticsPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700">Document Name</th>
+                    <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700 min-w-[300px]">Document Name</th>
                     <th className="text-center py-3 px-4 font-semibold text-sm text-gray-700">Views</th>
                     <th className="text-center py-3 px-4 font-semibold text-sm text-gray-700">Signatures</th>
                     <th className="text-center py-3 px-4 font-semibold text-sm text-gray-700">Status</th>
@@ -981,8 +981,8 @@ export default function AnalyticsPage() {
                   {filteredDocuments && filteredDocuments.length > 0 ? (
                     (showAllDocuments ? filteredDocuments : filteredDocuments.slice(0, 5)).map((doc: any) => (
                       <tr key={doc.id} className="border-b hover:bg-gray-50 cursor-pointer transition-colors">
-                        <td className="py-3 px-4">
-                          <a href={`/documents/${doc.id}`} className="text-blue-600 hover:underline font-medium">
+                        <td className="py-3 px-4 min-w-[300px]">
+                          <a href={`/documents/${doc.id}`} className="text-blue-600 hover:font-bold font-medium">
                             {doc.title}
                           </a>
                         </td>
@@ -1014,12 +1014,12 @@ export default function AnalyticsPage() {
       {/* Contact Detail Modal */}
       <ContactDetailModal
         contact={viewingContact}
-        isOpen={isContactModalOpen}
-        onClose={() => {
-          setIsContactModalOpen(false);
-          setViewingContact(null);
-        }}
-        onUpdate={() => {
+        open={isContactModalOpen}
+        onOpenChange={(open) => {
+          setIsContactModalOpen(open);
+          if (!open) {
+            setViewingContact(null);
+          }
           // Optionally refresh the data if contact is updated
           queryClient.invalidateQueries({ queryKey: ["/api/analytics/pending-approvals"] });
         }}

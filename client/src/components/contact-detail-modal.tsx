@@ -191,297 +191,293 @@ export function ContactDetailModal({ contact, open, onOpenChange }: ContactDetai
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
+        <DialogHeader className="border-b pb-4">
+          <DialogTitle className="flex items-center gap-2 text-xl font-bold">
+            <Users className="h-5 w-5 text-blue-600" />
             Contact Details
           </DialogTitle>
           <DialogDescription>
-            View detailed information and document history for this contact
+            View and manage contact information and document history
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 mt-6">
-          {/* Main Contact Information Card */}
-          <Card>
-            <CardContent className="pt-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Name</Label>
-                    <p className="text-lg font-semibold mt-1">{viewingContact.name}</p>
-                  </div>
+        <div className="space-y-8 py-6">
+          {/* Contact Information */}
+          <div>
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4 pb-2 border-b">
+              Contact Information
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+              <div>
+                <Label className="text-sm font-medium text-gray-600">Name</Label>
+                <p className="text-base font-semibold mt-1">{viewingContact.name}</p>
+              </div>
 
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Email</Label>
-                    <div className="flex items-center gap-2 mt-1">
-                      <p className="font-mono text-sm flex-1">{viewingContact.email}</p>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          navigator.clipboard.writeText(viewingContact.email);
-                          toast({
-                            title: "Email copied",
-                            description: "Email address copied to clipboard"
-                          });
-                        }}
-                        className="h-6 w-6 p-0"
-                      >
-                        <Copy className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
+              <div>
+                <Label className="text-sm font-medium text-gray-600">Email</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="text-base font-mono">{viewingContact.email}</p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(viewingContact.email);
+                      toast({
+                        title: "Email copied",
+                        description: "Email address copied to clipboard"
+                      });
+                    }}
+                    className="h-6 w-6 p-0"
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
 
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Company</Label>
-                    <p className="text-sm mt-1">
-                      {(() => {
-                        const domain = viewingContact.email.split('@')[1];
-                        const personalDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com', 'aol.com', 'protonmail.com', 'hey.com'];
-                        return personalDomains.includes(domain.toLowerCase()) ? 'Personal Email' : domain;
-                      })()}
-                    </p>
-                  </div>
+              <div>
+                <Label className="text-sm font-medium text-gray-600">Company</Label>
+                <p className="text-base mt-1">
+                  {(() => {
+                    const domain = viewingContact.email.split('@')[1];
+                    const personalDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com', 'aol.com', 'protonmail.com', 'hey.com'];
+                    return personalDomains.includes(domain.toLowerCase()) ? 'Personal Email' : domain;
+                  })()}
+                </p>
+              </div>
 
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Activity Timeline</Label>
-                    <div className="space-y-1 mt-1">
-                      <p className="text-xs text-muted-foreground">
-                        First seen: {viewingContact.firstSeenAt ? new Date(viewingContact.firstSeenAt).toLocaleDateString() : 'Unknown'}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Last activity: {viewingContact.lastSeenAt ? new Date(viewingContact.lastSeenAt).toLocaleDateString() : 'Never'}
-                      </p>
-                    </div>
-                  </div>
+              <div>
+                <Label className="text-sm font-medium text-gray-600">Location</Label>
+                <p className="text-base mt-1">
+                  {viewingContact.location || 'Unknown'}
+                  {viewingContact.isPotentialVpn && (
+                    <span className="text-amber-600 text-sm ml-2">• VPN detected</span>
+                  )}
+                </p>
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium text-gray-600">First Seen</Label>
+                <p className="text-base mt-1">{viewingContact.firstSeenAt ? new Date(viewingContact.firstSeenAt).toLocaleDateString() : 'Unknown'}</p>
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium text-gray-600">Last Activity</Label>
+                <p className="text-base mt-1">{viewingContact.lastSeenAt ? new Date(viewingContact.lastSeenAt).toLocaleDateString() : 'Never'}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t pt-8">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4 pb-2 border-b">
+              Status & Follow-Up
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+              <div>
+                <Label className="text-sm font-medium text-gray-600">Status</Label>
+                <Select
+                  value={viewingContact.status}
+                  onValueChange={(value) => {
+                    setViewingContact({...viewingContact, status: value});
+                  }}
+                >
+                  <SelectTrigger className="w-full mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statusOptions.map((status) => (
+                      <SelectItem key={status.value} value={status.value}>
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${status.color}`}></div>
+                          {status.label}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium text-gray-600">Next Follow-up Date</Label>
+                <Input
+                  type="date"
+                  value={viewingContact.nextFollowUpDate ? new Date(viewingContact.nextFollowUpDate).toISOString().split('T')[0] : ''}
+                  onChange={(e) => {
+                    const selectedDate = e.target.value ? new Date(e.target.value + 'T00:00:00') : null;
+                    setViewingContact({
+                      ...viewingContact,
+                      nextFollowUpDate: selectedDate
+                    });
+                  }}
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-sm font-medium text-gray-600">Tags</Label>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAddTag(!showAddTag)}
+                    className="h-7 px-2 text-xs"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Add Tag
+                  </Button>
                 </div>
 
-                <div className="space-y-4">
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Location</Label>
-                    <p className="text-sm mt-1">
-                      {viewingContact.location || 'Unknown'}
-                      {viewingContact.isPotentialVpn && (
-                        <span className="text-amber-600 ml-2">• Privacy tool detected</span>
-                      )}
-                    </p>
-                  </div>
-
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Status</Label>
-                    <Select
-                      value={viewingContact.status}
-                      onValueChange={(value) => {
-                        setViewingContact({...viewingContact, status: value});
-                      }}
-                    >
-                      <SelectTrigger className="w-full mt-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {statusOptions.map((status) => (
-                          <SelectItem key={status.value} value={status.value}>
-                            <div className="flex items-center gap-2">
-                              <div className={`w-2 h-2 rounded-full ${status.color}`}></div>
-                              {status.label}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Next Follow-up Date</Label>
-                    <Input
-                      type="date"
-                      value={viewingContact.nextFollowUpDate ? new Date(viewingContact.nextFollowUpDate).toISOString().split('T')[0] : ''}
-                      onChange={(e) => {
-                        const selectedDate = e.target.value ? new Date(e.target.value + 'T00:00:00') : null;
-                        setViewingContact({
-                          ...viewingContact,
-                          nextFollowUpDate: selectedDate
-                        });
-                      }}
-                      className="mt-1"
-                    />
-                    {viewingContact.nextFollowUpDate && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Scheduled for {new Date(viewingContact.nextFollowUpDate).toLocaleDateString()}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <Label className="text-sm font-medium text-muted-foreground">Tags</Label>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowAddTag(!showAddTag)}
-                        className="h-6 px-2 text-xs"
-                      >
-                        <Plus className="h-3 w-3 mr-1" />
-                        Add Tag
-                      </Button>
-                    </div>
-
-                    {showAddTag && (
-                      <div className="space-y-2 mt-2">
-                        {customTags.length > 0 && (
-                          <div>
-                            <Label className="text-xs text-muted-foreground">Choose from existing tags:</Label>
-                            <div className="flex gap-1 flex-wrap mt-1">
-                              {customTags.filter(tag => !viewingContact.tags.includes(tag.name)).map((tag) => (
-                                <Button
-                                  key={tag.id}
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => addTagToContact(viewingContact.id, tag.name)}
-                                  className="h-6 px-2 text-xs"
-                                >
-                                  <div className={`w-2 h-2 rounded-full ${tag.color} mr-1`}></div>
-                                  {tag.name}
-                                </Button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        <div>
-                          <Label className="text-xs text-muted-foreground">Or create a new tag:</Label>
-                          <div className="flex gap-2 mt-1">
-                            <Input
-                              placeholder="Enter new tag name..."
-                              value={newTagInput}
-                              onChange={(e) => setNewTagInput(e.target.value)}
-                              onKeyPress={(e) => {
-                                if (e.key === 'Enter') {
-                                  if (customTags.find(tag => tag.name === newTagInput)) {
-                                    addTagToContact(viewingContact.id, newTagInput);
-                                  } else {
-                                    addCustomTag(newTagInput);
-                                    addTagToContact(viewingContact.id, newTagInput);
-                                  }
-                                  setNewTagInput('');
-                                  setShowAddTag(false);
-                                }
-                              }}
-                              className="text-xs"
-                            />
+                {showAddTag && (
+                  <div className="space-y-2 mt-2 p-3 bg-gray-50 rounded border">
+                    {customTags.length > 0 && (
+                      <div>
+                        <Label className="text-xs text-gray-600">Choose from existing tags:</Label>
+                        <div className="flex gap-1 flex-wrap mt-1">
+                          {customTags.filter(tag => !viewingContact.tags.includes(tag.name)).map((tag) => (
                             <Button
+                              key={tag.id}
+                              variant="outline"
                               size="sm"
-                              onClick={() => {
-                                if (customTags.find(tag => tag.name === newTagInput)) {
-                                  addTagToContact(viewingContact.id, newTagInput);
-                                } else {
-                                  addCustomTag(newTagInput);
-                                  addTagToContact(viewingContact.id, newTagInput);
-                                }
-                                setNewTagInput('');
-                                setShowAddTag(false);
-                              }}
-                              disabled={!newTagInput}
-                              className="h-8"
+                              onClick={() => addTagToContact(viewingContact.id, tag.name)}
+                              className="h-6 px-2 text-xs"
                             >
-                              Add
+                              <div className={`w-2 h-2 rounded-full ${tag.color} mr-1`}></div>
+                              {tag.name}
                             </Button>
-                          </div>
+                          ))}
                         </div>
-
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setShowAddTag(false)}
-                          className="h-6 px-2 text-xs text-muted-foreground"
-                        >
-                          Cancel
-                        </Button>
                       </div>
                     )}
 
-                    <div className="flex gap-1 flex-wrap mt-1">
-                      {viewingContact.tags.map((tag, index) => (
-                        <div key={index} className="flex items-center">
-                          <Badge className={`${getTagColor(tag)} text-white pr-1`}>
-                            {tag}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeTagFromContact(viewingContact.id, tag)}
-                              className="h-4 w-4 p-0 ml-1 hover:bg-white/20"
-                            >
-                              <X className="h-2 w-2" />
-                            </Button>
-                          </Badge>
-                        </div>
-                      ))}
-                      {viewingContact.tags.length === 0 && (
-                        <p className="text-xs text-muted-foreground">No tags assigned</p>
-                      )}
+                    <div>
+                      <Label className="text-xs text-gray-600">Or create a new tag:</Label>
+                      <div className="flex gap-2 mt-1">
+                        <Input
+                          placeholder="Enter tag name..."
+                          value={newTagInput}
+                          onChange={(e) => setNewTagInput(e.target.value)}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              if (customTags.find(tag => tag.name === newTagInput)) {
+                                addTagToContact(viewingContact.id, newTagInput);
+                              } else {
+                                addCustomTag(newTagInput);
+                                addTagToContact(viewingContact.id, newTagInput);
+                              }
+                              setNewTagInput('');
+                              setShowAddTag(false);
+                            }
+                          }}
+                          className="text-sm"
+                        />
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            if (customTags.find(tag => tag.name === newTagInput)) {
+                              addTagToContact(viewingContact.id, newTagInput);
+                            } else {
+                              addCustomTag(newTagInput);
+                              addTagToContact(viewingContact.id, newTagInput);
+                            }
+                            setNewTagInput('');
+                            setShowAddTag(false);
+                          }}
+                          disabled={!newTagInput}
+                        >
+                          Add
+                        </Button>
+                      </div>
                     </div>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowAddTag(false)}
+                      className="text-xs"
+                    >
+                      Cancel
+                    </Button>
                   </div>
+                )}
+
+                <div className="flex gap-1 flex-wrap">
+                  {viewingContact.tags.map((tag, index) => (
+                    <Badge key={index} className={`${getTagColor(tag)} text-white pr-1`}>
+                      {tag}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeTagFromContact(viewingContact.id, tag)}
+                        className="h-4 w-4 p-0 ml-1 hover:bg-white/20"
+                      >
+                        <X className="h-2 w-2" />
+                      </Button>
+                    </Badge>
+                  ))}
+                  {viewingContact.tags.length === 0 && (
+                    <p className="text-sm text-gray-500">No tags assigned</p>
+                  )}
                 </div>
               </div>
-            </CardContent>
-          </Card>
 
-          {/* Notes Card */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Notes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                placeholder="Add notes about this contact..."
-                value={viewingContact.notes || ''}
-                onChange={(e) => setViewingContact({...viewingContact, notes: e.target.value})}
-                className="min-h-[100px]"
-                rows={4}
-              />
-            </CardContent>
-          </Card>
-
-          {/* Document History Card */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Document History
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="p-3 bg-muted/50 rounded-md">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    <span className="font-medium">{viewingContact.totalNdaSignatures} NDA signatures</span>
-                  </div>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-sm font-medium text-gray-600">Notes</Label>
+                  {(viewingContact.notes === null || viewingContact.notes === undefined) && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setViewingContact({...viewingContact, notes: ''})}
+                      className="h-7 px-2 text-xs"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Add Note
+                    </Button>
+                  )}
                 </div>
+                {viewingContact.notes !== null && viewingContact.notes !== undefined ? (
+                  <Textarea
+                    placeholder="Add notes about this contact..."
+                    value={viewingContact.notes}
+                    onChange={(e) => setViewingContact({...viewingContact, notes: e.target.value})}
+                    className="min-h-[100px]"
+                    rows={4}
+                  />
+                ) : (
+                  <p className="text-sm text-gray-500">No notes added</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t pt-8">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4 pb-2 border-b">
+              Document History
+            </h3>
+            <div className="mb-4">
+              <p className="text-sm text-gray-600">
+                <span className="font-semibold">{viewingContact.totalNdaSignatures}</span> NDA signature{viewingContact.totalNdaSignatures !== 1 ? 's' : ''}
+              </p>
+            </div>
 
             {viewingContact.documents && viewingContact.documents.length > 0 && (
-              <div>
-                <Label className="text-sm font-medium text-muted-foreground">Associated Documents</Label>
-                <div className="mt-2 space-y-2 max-h-64 overflow-y-auto">
-                  {viewingContact.documents.map((doc, index) => (
-                    <div key={index} className="border rounded-lg p-3 bg-background">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">{doc.documentTitle}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Signed by {doc.signerName}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(doc.signedAt).toLocaleDateString()} at {new Date(doc.signedAt).toLocaleTimeString()}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={async () => {
-                              try {
+              <div className="space-y-3 max-h-80 overflow-y-auto">
+                {viewingContact.documents.map((doc, index) => (
+                  <div key={index} className="border rounded-lg p-4 hover:bg-gray-50">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="font-semibold">{doc.documentTitle}</p>
+                        <p className="text-sm text-gray-600 mt-1">
+                          Signed by {doc.signerName}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          {new Date(doc.signedAt).toLocaleDateString()} at {new Date(doc.signedAt).toLocaleTimeString()}
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          try {
                                 const docId = doc.cimDocumentId || doc.documentId;
                                 const sigId = doc.signatureId;
 
@@ -517,34 +513,29 @@ export function ContactDetailModal({ contact, open, onOpenChange }: ContactDetai
                                   title: "Download Failed",
                                   description: error instanceof Error ? error.message : "Failed to download the signed NDA. Please try again.",
                                   variant: "destructive"
-                                });
-                              }
-                            }}
-                            title="Download signed NDA"
-                          >
-                            <Download className="h-3 w-3" />
-                          </Button>
-                          <FileText className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                      </div>
+                            });
+                          }
+                        }}
+                        title="Download signed NDA"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
             )}
 
             {(!viewingContact.documents || viewingContact.documents.length === 0) && (
-              <div className="text-center py-8">
-                <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">No documents associated yet</p>
+              <div className="text-center py-12 border-2 border-dashed rounded-lg">
+                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                <p className="text-sm text-gray-500">No documents associated yet</p>
               </div>
             )}
-              </div>
-            </CardContent>
-          </Card>
+          </div>
         </div>
 
-        <DialogFooter className="flex gap-2">
+        <DialogFooter className="border-t pt-4">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>
@@ -561,6 +552,7 @@ export function ContactDetailModal({ contact, open, onOpenChange }: ContactDetai
               });
             }}
             disabled={updateMutation.isPending}
+            className="bg-blue-600 hover:bg-blue-700"
           >
             {updateMutation.isPending ? "Saving..." : "Save Changes"}
           </Button>

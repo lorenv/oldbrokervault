@@ -4506,7 +4506,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(ndaSignatures)
         .where(and(
           inArray(ndaSignatures.cimDocumentId, docIds),
-          eq(ndaSignatures.approved, false)
+          eq(ndaSignatures.approved, false),
+          eq(ndaSignatures.rejected, false)
         ));
       const pendingApprovals = Number(pendingResult?.count || 0);
 

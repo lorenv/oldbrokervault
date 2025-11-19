@@ -1014,9 +1014,13 @@ export default function InvestorDatabasePage() {
                         </Select>
                       )}
                       
-                      <Select 
-                        value={filter.field} 
-                        onValueChange={(value) => updateFilterRule(filter.id, { field: value, operator: 'contains' })}
+                      <Select
+                        value={filter.field}
+                        onValueChange={(value) => {
+                          const newField = filterFields.find(f => f.value === value);
+                          const defaultOperator = operatorsByType[newField?.type as keyof typeof operatorsByType]?.[0]?.value || 'contains';
+                          updateFilterRule(filter.id, { field: value, operator: defaultOperator });
+                        }}
                       >
                         <SelectTrigger className="w-40">
                           <SelectValue />
