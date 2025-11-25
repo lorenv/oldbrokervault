@@ -39,7 +39,8 @@ class TextExtractionService {
     'text/rtf': ['.rtf'],
     'text/plain': ['.txt'],
     'text/markdown': ['.md'],
-    'application/octet-stream': ['.txt', '.md', '.rtf'] // fallback for some text files
+    'text/vtt': ['.vtt'],
+    'application/octet-stream': ['.txt', '.md', '.rtf', '.vtt'] // fallback for some text files
   };
 
   /**
@@ -136,6 +137,7 @@ class TextExtractionService {
         
         case '.txt':
         case '.md':
+        case '.vtt':
           extractedText = await this.extractFromPlainText(file.buffer);
           break;
         

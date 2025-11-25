@@ -858,7 +858,7 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
                 </Button>
                 <div className="flex-1 text-center">
                   <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-600 to-blue-600 bg-clip-text text-transparent drop-shadow-sm">
-                    New CIM
+                    {form.watch('title') || 'New CIM'}
                   </h1>
                   <p className="text-sm text-slate-500 mt-1">Complete the fields below to generate your document</p>
                 </div>
@@ -1149,7 +1149,7 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
                 <input
                   type="file"
                   ref={textFileInputRef}
-                  accept=".pdf,.docx,.doc,.txt,.rtf,.md"
+                  accept=".pdf,.docx,.doc,.txt,.rtf,.md,.vtt"
                   onChange={(e) => {
                     console.log('File input onChange triggered');
                     console.log('Files selected:', e.target.files?.length);
