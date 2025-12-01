@@ -131,13 +131,14 @@ export class MessageService {
   }
 
   // Get all threads for a user with unread count (optimized with caching)
-  async getThreadsForUser(userId: number, archived: boolean = false, cimDocumentId?: number): Promise<(MessageThread & { 
+  async getThreadsForUser(userId: number, archived: boolean = false, cimDocumentId?: number): Promise<(MessageThread & {
     unreadCount: number;
     lastMessage?: Message;
     cimTitle?: string | null;
+    shareSlug?: string | null;
   })[]> {
     const cacheKey = MemoryCache.keys.messageThreads(userId, archived, cimDocumentId);
-    const cached = shareCache.get<(MessageThread & { unreadCount: number; lastMessage?: Message; cimTitle?: string | null; })[]>(cacheKey);
+    const cached = shareCache.get<(MessageThread & { unreadCount: number; lastMessage?: Message; cimTitle?: string | null; shareSlug?: string | null; })[]>(cacheKey);
     
     if (cached) {
       return cached;
@@ -158,8 +159,9 @@ export class MessageService {
         createdAt: messageThreads.createdAt,
         updatedAt: messageThreads.updatedAt,
         lastMessageAt: messageThreads.lastMessageAt,
-        // CIM title
+        // CIM title and share slug (use customSlug if set, otherwise shareSlug)
         cimTitle: cimDocuments.title,
+        shareSlug: sql<string>`COALESCE(${cimDocuments.customSlug}, ${cimDocuments.shareSlug})`,
         // Unread count (calculated)
         unreadCount: sql<number>`
           (SELECT COUNT(*) FROM ${messages} 
@@ -216,6 +218,7 @@ export class MessageService {
       updatedAt: thread.updatedAt,
       lastMessageAt: thread.lastMessageAt,
       cimTitle: thread.cimTitle,
+      shareSlug: thread.shareSlug,
       unreadCount: thread.unreadCount,
       lastMessage: thread.lastMessageId ? {
         id: thread.lastMessageId,

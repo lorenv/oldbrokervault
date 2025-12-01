@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { Send, Mail, MessageSquare, Clock, CheckCircle, AlertCircle, Archive, ArchiveRestore, MessageCircle, Filter, X, Paperclip, FileText, Download, User, Copy, ChevronDown, ClipboardList } from 'lucide-react';
+import { Send, Mail, MessageSquare, Clock, CheckCircle, AlertCircle, Archive, ArchiveRestore, MessageCircle, Filter, X, Paperclip, FileText, Download, User, Copy, ChevronDown, ClipboardList, Plus, Pencil, Trash2, ExternalLink, Search } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { RichTextEditor } from '@/components/RichTextEditor';
 import { Input } from '@/components/ui/input';
@@ -17,10 +17,26 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 
-// Preset message templates
-const MESSAGE_TEMPLATES = [
+// Template interface
+interface MessageTemplate {
+  id: string;
+  label: string;
+  content: string;
+}
+
+// Default templates
+const DEFAULT_TEMPLATES: MessageTemplate[] = [
   {
     id: 'schedule-call',
     label: 'Schedule a call',
@@ -32,6 +48,31 @@ const MESSAGE_TEMPLATES = [
     content: 'I will circle back with answers!'
   }
 ];
+
+// LocalStorage key for templates
+const TEMPLATES_STORAGE_KEY = 'message-center-templates';
+
+// Load templates from localStorage or use defaults
+function loadTemplates(): MessageTemplate[] {
+  try {
+    const stored = localStorage.getItem(TEMPLATES_STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (e) {
+    console.error('Failed to load templates:', e);
+  }
+  return DEFAULT_TEMPLATES;
+}
+
+// Save templates to localStorage
+function saveTemplates(templates: MessageTemplate[]): void {
+  try {
+    localStorage.setItem(TEMPLATES_STORAGE_KEY, JSON.stringify(templates));
+  } catch (e) {
+    console.error('Failed to save templates:', e);
+  }
+}
 
 interface Message {
   id: number;
@@ -70,6 +111,7 @@ interface MessageThread {
   unreadCount: number;
   lastMessage?: Message;
   cimTitle: string | null;
+  shareSlug: string | null;
   createdAt: string;
   lastMessageAt: string;
 }
@@ -85,7 +127,7 @@ interface EmailSyncStatus {
 }
 
 // Helper function to clean HTML tags from plain text content
-function cleanHtmlTags(content: string, preserveNewlines: boolean = true): string {
+function cleanHtmlTags(content: string, preserveNewlines: boolean = true, filterQuotedLines: boolean = true): string {
   if (!content) return '';
 
   let cleaned = content
@@ -101,9 +143,14 @@ function cleanHtmlTags(content: string, preserveNewlines: boolean = true): strin
 
   if (preserveNewlines) {
     // Clean up extra spaces on each line but preserve newlines
-    cleaned = cleaned
-      .split('\n')
-      .map(line => line.replace(/[ \t]+/g, ' ').trim())
+    let lines = cleaned.split('\n').map(line => line.replace(/[ \t]+/g, ' ').trim());
+
+    // Filter out quoted lines (starting with >) if requested
+    if (filterQuotedLines) {
+      lines = lines.filter(line => !line.startsWith('>'));
+    }
+
+    cleaned = lines
       .join('\n')
       // Collapse multiple blank lines into one
       .replace(/\n{3,}/g, '\n\n');
@@ -124,12 +171,20 @@ export function EnhancedMessageCenter() {
   const [ccEmails, setCcEmails] = useState(''); // CC recipients (comma-separated)
   const [showCcField, setShowCcField] = useState(false);
   const [editorKey, setEditorKey] = useState(0); // Key to force RichTextEditor reset
+
+  // Template management state
+  const [templates, setTemplates] = useState<MessageTemplate[]>(() => loadTemplates());
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<MessageTemplate | null>(null);
+  const [templateLabel, setTemplateLabel] = useState('');
+  const [templateContent, setTemplateContent] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [showArchived, setShowArchived] = useState(false);
   const [selectedCimFilter, setSelectedCimFilter] = useState<string>('all');
   const [selectedThreads, setSelectedThreads] = useState<Set<number>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -158,6 +213,27 @@ export function EnhancedMessageCenter() {
     },
     refetchInterval: 30000, // Poll less frequently - cache handles freshness
   });
+
+  // Filter threads by search query
+  const filteredThreads = useMemo(() => {
+    if (!threads) return [];
+    if (!searchQuery.trim()) return threads;
+
+    const query = searchQuery.toLowerCase().trim();
+    return threads.filter(thread => {
+      // Search in name
+      if (thread.inquirerName?.toLowerCase().includes(query)) return true;
+      // Search in email
+      if (thread.inquirerEmail?.toLowerCase().includes(query)) return true;
+      // Search in subject
+      if (thread.subject?.toLowerCase().includes(query)) return true;
+      // Search in CIM title
+      if (thread.cimTitle?.toLowerCase().includes(query)) return true;
+      // Search in last message content
+      if (thread.lastMessage?.content?.toLowerCase().includes(query)) return true;
+      return false;
+    });
+  }, [threads, searchQuery]);
 
   // Fetch messages for selected thread
   const { data: messages, isLoading: messagesLoading } = useQuery({
@@ -532,6 +608,28 @@ export function EnhancedMessageCenter() {
             )}
           </div>
 
+          {/* Search */}
+          <div className="mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Search by name, email, or message..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-8"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* CIM Document Filter */}
           <div className="mb-4">
             <div className="flex items-center gap-2 mb-2">
@@ -564,7 +662,7 @@ export function EnhancedMessageCenter() {
               )}
             </div>
           </div>
-          
+
           {/* Enhanced email sync indicator */}
           <div className="flex items-center gap-2 text-xs md:text-sm text-gray-600 bg-blue-50 p-2 rounded">
             <Mail className="h-3 w-3 md:h-4 md:w-4" />
@@ -573,13 +671,13 @@ export function EnhancedMessageCenter() {
         </div>
 
         <ScrollArea className="flex-1">
-          {threads?.length === 0 ? (
+          {filteredThreads.length === 0 ? (
             <div className="p-4 text-center text-gray-500">
-              {showArchived ? 'No archived messages' : 'No messages yet'}
+              {searchQuery ? 'No messages match your search' : showArchived ? 'No archived messages' : 'No messages yet'}
             </div>
           ) : (
             <div className="p-2">
-              {threads?.map((thread) => (
+              {filteredThreads.map((thread) => (
                 <Card
                   key={thread.id}
                   className={`mb-2 cursor-pointer transition-colors ${
@@ -716,9 +814,22 @@ export function EnhancedMessageCenter() {
 
               {/* Contact Info Panel */}
               <div className="mt-3 p-3 bg-white rounded-lg border border-gray-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <User className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm font-medium text-gray-700">Contact Information</span>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm font-medium text-gray-700">Contact Information</span>
+                  </div>
+                  {selectedThread.shareSlug && (
+                    <a
+                      href={`/share/${selectedThread.shareSlug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      View CIM
+                    </a>
+                  )}
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                   <div>
@@ -904,18 +1015,62 @@ export function EnhancedMessageCenter() {
                           <ChevronDown className="h-3 w-3" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start">
-                        {MESSAGE_TEMPLATES.map((template) => (
-                          <DropdownMenuItem
-                            key={template.id}
-                            onClick={() => {
-                              setRichContent(template.content);
-                              setEditorKey(prev => prev + 1);
-                            }}
-                          >
-                            {template.label}
-                          </DropdownMenuItem>
-                        ))}
+                      <DropdownMenuContent align="start" className="w-64">
+                        {templates.length === 0 ? (
+                          <div className="px-2 py-1.5 text-sm text-gray-500">No templates yet</div>
+                        ) : (
+                          templates.map((template) => (
+                            <div key={template.id} className="flex items-center group">
+                              <DropdownMenuItem
+                                className="flex-1"
+                                onClick={() => {
+                                  setRichContent(template.content);
+                                  setEditorKey(prev => prev + 1);
+                                }}
+                              >
+                                {template.label}
+                              </DropdownMenuItem>
+                              <div className="flex items-center gap-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingTemplate(template);
+                                    setTemplateLabel(template.label);
+                                    setTemplateContent(template.content);
+                                    setTemplateDialogOpen(true);
+                                  }}
+                                  className="p-1 hover:bg-gray-100 rounded"
+                                >
+                                  <Pencil className="h-3 w-3 text-gray-500" />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const newTemplates = templates.filter(t => t.id !== template.id);
+                                    setTemplates(newTemplates);
+                                    saveTemplates(newTemplates);
+                                    toast({ title: 'Template deleted' });
+                                  }}
+                                  className="p-1 hover:bg-gray-100 rounded"
+                                >
+                                  <Trash2 className="h-3 w-3 text-red-500" />
+                                </button>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setEditingTemplate(null);
+                            setTemplateLabel('');
+                            setTemplateContent('');
+                            setTemplateDialogOpen(true);
+                          }}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add New Template
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
 
@@ -1049,6 +1204,83 @@ export function EnhancedMessageCenter() {
           </div>
         )}
       </div>
+
+      {/* Template Create/Edit Dialog */}
+      <Dialog open={templateDialogOpen} onOpenChange={setTemplateDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {editingTemplate ? 'Edit Template' : 'Create Template'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="template-label">Template Name</Label>
+              <Input
+                id="template-label"
+                placeholder="e.g., Schedule a call"
+                value={templateLabel}
+                onChange={(e) => setTemplateLabel(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="template-content">Message Content</Label>
+              <Textarea
+                id="template-content"
+                placeholder="Enter the template message..."
+                value={templateContent}
+                onChange={(e) => setTemplateContent(e.target.value)}
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setTemplateDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (!templateLabel.trim() || !templateContent.trim()) {
+                  toast({ title: 'Please fill in both fields', variant: 'destructive' });
+                  return;
+                }
+
+                let newTemplates: MessageTemplate[];
+                if (editingTemplate) {
+                  // Update existing template
+                  newTemplates = templates.map(t =>
+                    t.id === editingTemplate.id
+                      ? { ...t, label: templateLabel.trim(), content: templateContent.trim() }
+                      : t
+                  );
+                  toast({ title: 'Template updated' });
+                } else {
+                  // Create new template
+                  const newTemplate: MessageTemplate = {
+                    id: `template-${Date.now()}`,
+                    label: templateLabel.trim(),
+                    content: templateContent.trim()
+                  };
+                  newTemplates = [...templates, newTemplate];
+                  toast({ title: 'Template created' });
+                }
+
+                setTemplates(newTemplates);
+                saveTemplates(newTemplates);
+                setTemplateDialogOpen(false);
+                setEditingTemplate(null);
+                setTemplateLabel('');
+                setTemplateContent('');
+              }}
+            >
+              {editingTemplate ? 'Save Changes' : 'Create Template'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
