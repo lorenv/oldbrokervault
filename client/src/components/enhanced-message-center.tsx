@@ -8,9 +8,30 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { Send, Mail, MessageSquare, Clock, CheckCircle, AlertCircle, Archive, ArchiveRestore, MessageCircle, Filter, X, Paperclip, FileText, Download } from 'lucide-react';
+import { Send, Mail, MessageSquare, Clock, CheckCircle, AlertCircle, Archive, ArchiveRestore, MessageCircle, Filter, X, Paperclip, FileText, Download, User, Copy, ChevronDown, ClipboardList } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { RichTextEditor } from '@/components/RichTextEditor';
+import { Input } from '@/components/ui/input';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+
+// Preset message templates
+const MESSAGE_TEMPLATES = [
+  {
+    id: 'schedule-call',
+    label: 'Schedule a call',
+    content: 'Let me schedule a call to discuss. What times work for you?'
+  },
+  {
+    id: 'circle-back',
+    label: 'Circle back',
+    content: 'I will circle back with answers!'
+  }
+];
 
 interface Message {
   id: number;
@@ -64,10 +85,10 @@ interface EmailSyncStatus {
 }
 
 // Helper function to clean HTML tags from plain text content
-function cleanHtmlTags(content: string): string {
+function cleanHtmlTags(content: string, preserveNewlines: boolean = true): string {
   if (!content) return '';
-  
-  return content
+
+  let cleaned = content
     // Remove HTML tags
     .replace(/<[^>]*>/g, '')
     // Decode HTML entities
@@ -76,10 +97,22 @@ function cleanHtmlTags(content: string): string {
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    // Clean up extra whitespace
-    .replace(/\s+/g, ' ')
-    .trim();
+    .replace(/&#39;/g, "'");
+
+  if (preserveNewlines) {
+    // Clean up extra spaces on each line but preserve newlines
+    cleaned = cleaned
+      .split('\n')
+      .map(line => line.replace(/[ \t]+/g, ' ').trim())
+      .join('\n')
+      // Collapse multiple blank lines into one
+      .replace(/\n{3,}/g, '\n\n');
+  } else {
+    // Collapse all whitespace into single spaces (for previews)
+    cleaned = cleaned.replace(/\s+/g, ' ');
+  }
+
+  return cleaned.trim();
 }
 
 export function EnhancedMessageCenter() {
@@ -88,6 +121,8 @@ export function EnhancedMessageCenter() {
   const [richContent, setRichContent] = useState('');
   const [attachments, setAttachments] = useState<File[]>([]);
   const [attachmentUrls, setAttachmentUrls] = useState<string[]>([]);
+  const [ccEmails, setCcEmails] = useState(''); // CC recipients (comma-separated)
+  const [showCcField, setShowCcField] = useState(false);
   const [editorKey, setEditorKey] = useState(0); // Key to force RichTextEditor reset
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -152,11 +187,12 @@ export function EnhancedMessageCenter() {
 
   // Send message mutation
   const sendMessageMutation = useMutation({
-    mutationFn: async ({ threadId, content, richContent, attachmentPaths }: { 
-      threadId: number; 
-      content: string; 
+    mutationFn: async ({ threadId, content, richContent, attachmentPaths, ccEmails }: {
+      threadId: number;
+      content: string;
       richContent?: string;
       attachmentPaths?: string[];
+      ccEmails?: string;
     }) => {
       const response = await fetch(`/api/messages/threads/${threadId}/reply`, {
         method: 'POST',
@@ -167,14 +203,15 @@ export function EnhancedMessageCenter() {
         body: JSON.stringify({
           content,
           richContent,
-          attachmentPaths
+          attachmentPaths,
+          ccEmails
         }),
       });
-      
+
       if (!response.ok) {
         throw new Error(`Failed to send message: ${response.statusText}`);
       }
-      
+
       return response.json();
     },
     onSuccess: () => {
@@ -182,6 +219,8 @@ export function EnhancedMessageCenter() {
       setRichContent('');
       setAttachments([]);
       setAttachmentUrls([]);
+      setCcEmails('');
+      setShowCcField(false);
       setEditorKey(prev => prev + 1); // Force RichTextEditor to reset
       queryClient.invalidateQueries({ queryKey: ['/api/messages/threads'] });
       queryClient.invalidateQueries({ queryKey: ['/api/messages/threads', selectedThread?.id, 'messages'] });
@@ -328,11 +367,12 @@ export function EnhancedMessageCenter() {
       }
     }
     
-    sendMessageMutation.mutate({ 
-      threadId: selectedThread.id, 
+    sendMessageMutation.mutate({
+      threadId: selectedThread.id,
       content: newMessage || richContent,
       richContent: richContent || undefined,
-      attachmentPaths: uploadedFiles.length > 0 ? uploadedFiles : undefined
+      attachmentPaths: uploadedFiles.length > 0 ? uploadedFiles : undefined,
+      ccEmails: ccEmails.trim() || undefined
     });
     
     // Form will be cleared in the mutation's onSuccess callback
@@ -585,16 +625,11 @@ export function EnhancedMessageCenter() {
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex-1 min-w-0 pr-2">
                         <h3 className="font-semibold text-sm truncate">
-                          {thread.subject}
+                          {thread.cimTitle ? `${thread.cimTitle} | ${thread.inquirerName}` : thread.subject}
                         </h3>
                         <p className="text-sm text-gray-600 truncate">
-                          {thread.inquirerName} ({thread.inquirerEmail})
+                          {thread.inquirerEmail}
                         </p>
-                        {thread.cimTitle && (
-                          <p className="text-xs text-gray-500 truncate">
-                            Re: {thread.cimTitle}
-                          </p>
-                        )}
                       </div>
                       <div className="flex flex-col items-end gap-1 flex-shrink-0">
                         {thread.unreadCount > 0 && (
@@ -607,14 +642,14 @@ export function EnhancedMessageCenter() {
                         </span>
                       </div>
                     </div>
-                    
+
                     {thread.lastMessage && (
                       <div className="flex items-start gap-2 mt-2">
                         <div className="flex-shrink-0">
                           {getMessageIcon(thread.lastMessage)}
                         </div>
                         <p className="text-sm text-gray-600 line-clamp-2 flex-1 min-w-0 break-words">
-                          {thread.lastMessage.content}
+                          {cleanHtmlTags(thread.lastMessage.content, false)}
                         </p>
                       </div>
                     )}
@@ -632,39 +667,38 @@ export function EnhancedMessageCenter() {
       <div className={`${selectedThread ? 'flex' : 'hidden lg:flex'} flex-1 flex-col`}>
         {selectedThread ? (
           <>
-            {/* Header */}
+            {/* Header with Contact Info */}
             <div className="p-3 md:p-4 border-b border-gray-200 bg-gray-50">
-              <div className="flex justify-between items-start">
+              {/* Mobile back button */}
+              <div className="lg:hidden mb-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedThread(null)}
+                  className="p-1 h-auto text-sm"
+                >
+                  ← Back to Messages
+                </Button>
+              </div>
+
+              <div className="flex justify-between items-start gap-3">
                 <div className="flex-1 min-w-0">
-                  {/* Mobile back button */}
-                  <div className="lg:hidden mb-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectedThread(null)}
-                      className="p-1 h-auto text-sm"
-                    >
-                      ← Back to Messages
-                    </Button>
-                  </div>
-                  
                   <h3 className="text-base md:text-lg font-semibold truncate">{selectedThread.subject}</h3>
-                  <p className="text-xs md:text-sm text-gray-600 truncate">
-                    Conversation with {selectedThread.inquirerName}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Email: {selectedThread.threadEmailAddress}
-                  </p>
+                  {selectedThread.cimTitle && (
+                    <p className="text-xs text-gray-500 truncate mb-2">
+                      Re: {selectedThread.cimTitle}
+                    </p>
+                  )}
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => archiveMutation.mutate({ 
-                    threadId: selectedThread.id, 
-                    archive: !showArchived 
+                  onClick={() => archiveMutation.mutate({
+                    threadId: selectedThread.id,
+                    archive: !showArchived
                   })}
                   disabled={archiveMutation.isPending}
-                  className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3"
+                  className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 flex-shrink-0"
                 >
                   {showArchived ? (
                     <>
@@ -678,6 +712,39 @@ export function EnhancedMessageCenter() {
                     </>
                   )}
                 </Button>
+              </div>
+
+              {/* Contact Info Panel */}
+              <div className="mt-3 p-3 bg-white rounded-lg border border-gray-200">
+                <div className="flex items-center gap-2 mb-2">
+                  <User className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm font-medium text-gray-700">Contact Information</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-gray-500">Name:</span>
+                    <span className="ml-2 font-medium">{selectedThread.inquirerName}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-500">Email:</span>
+                    <span className="ml-2 font-medium truncate">{selectedThread.inquirerEmail}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 flex-shrink-0"
+                      onClick={() => {
+                        navigator.clipboard.writeText(selectedThread.inquirerEmail);
+                        toast({ title: 'Email copied to clipboard' });
+                      }}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="mt-2 pt-2 border-t border-gray-100">
+                  <span className="text-xs text-gray-500">Thread email: </span>
+                  <span className="text-xs text-gray-600">{selectedThread.threadEmailAddress}</span>
+                </div>
               </div>
             </div>
 
@@ -826,6 +893,69 @@ export function EnhancedMessageCenter() {
             {!showArchived && (
               <div className="p-3 md:p-4 border-t border-gray-200 bg-gray-50">
                 <div className="space-y-3">
+                  {/* Templates and CC Row */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Templates Dropdown */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" className="flex items-center gap-1">
+                          <ClipboardList className="h-4 w-4" />
+                          <span className="hidden sm:inline">Templates</span>
+                          <ChevronDown className="h-3 w-3" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start">
+                        {MESSAGE_TEMPLATES.map((template) => (
+                          <DropdownMenuItem
+                            key={template.id}
+                            onClick={() => {
+                              setRichContent(template.content);
+                              setEditorKey(prev => prev + 1);
+                            }}
+                          >
+                            {template.label}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    {/* CC Toggle Button */}
+                    <Button
+                      variant={showCcField ? "secondary" : "outline"}
+                      size="sm"
+                      onClick={() => setShowCcField(!showCcField)}
+                      className="flex items-center gap-1"
+                    >
+                      <Mail className="h-4 w-4" />
+                      <span>CC</span>
+                    </Button>
+                  </div>
+
+                  {/* CC Field */}
+                  {showCcField && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-500 flex-shrink-0">CC:</span>
+                      <Input
+                        type="text"
+                        placeholder="email1@example.com, email2@example.com"
+                        value={ccEmails}
+                        onChange={(e) => setCcEmails(e.target.value)}
+                        className="flex-1 text-sm"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setCcEmails('');
+                          setShowCcField(false);
+                        }}
+                        className="h-8 w-8 p-0"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+
                   <RichTextEditor
                     key={`${selectedThread?.id}-${editorKey}`} // Force re-render when thread changes or message is sent
                     content={richContent}

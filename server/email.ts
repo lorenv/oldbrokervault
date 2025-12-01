@@ -31,6 +31,7 @@ interface EmailParams {
   text?: string;
   html?: string;
   replyTo?: string;
+  cc?: string[];
   attachments?: Array<{
     content: string;
     filename: string;
@@ -68,7 +69,7 @@ async function sendEmail(params: EmailParams): Promise<boolean> {
       return false;
     }
     
-    const emailData = {
+    const emailData: any = {
       to: params.to,
       from: params.from,
       subject: params.subject,
@@ -77,6 +78,12 @@ async function sendEmail(params: EmailParams): Promise<boolean> {
       html: params.html,
       attachments: params.attachments,
     };
+
+    // Add CC recipients if provided
+    if (params.cc && params.cc.length > 0) {
+      emailData.cc = params.cc;
+      console.log('- CC recipients:', params.cc.join(', '));
+    }
     
     console.log('Sending email with data:', {
       to: emailData.to,

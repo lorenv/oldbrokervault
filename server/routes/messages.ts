@@ -53,24 +53,26 @@ router.get("/threads/:threadId/messages", async (req, res) => {
 // Reply to a thread
 router.post("/threads/:threadId/reply", async (req, res) => {
   if (!req.isAuthenticated()) return res.sendStatus(401);
-  
+
   try {
     const userId = req.user!.id;
     const threadId = parseInt(req.params.threadId);
-    
+
     // Handle both regular form data and FormData
     let content: string;
     let richContent: string | undefined;
     let attachmentPaths: string[] | undefined;
+    let ccEmails: string | undefined;
 
     if (req.is('multipart/form-data')) {
       // Handle FormData
       content = req.body.content || '';
       richContent = req.body.richContent;
       attachmentPaths = req.body.attachmentPaths ? JSON.parse(req.body.attachmentPaths) : undefined;
+      ccEmails = req.body.ccEmails;
     } else {
       // Handle regular JSON
-      ({ content, richContent, attachmentPaths } = req.body);
+      ({ content, richContent, attachmentPaths, ccEmails } = req.body);
     }
 
     if (isNaN(threadId) || !content?.trim()) {
@@ -78,11 +80,12 @@ router.post("/threads/:threadId/reply", async (req, res) => {
     }
 
     const message = await messageService.replyToThread(
-      threadId, 
-      userId, 
+      threadId,
+      userId,
       content.trim(),
       richContent,
-      attachmentPaths
+      attachmentPaths,
+      ccEmails
     );
 
     res.json(message);
