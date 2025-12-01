@@ -386,11 +386,12 @@ export class MessageService {
 
   // Reply to a thread (from app)
   async replyToThread(
-    threadId: number, 
-    userId: number, 
+    threadId: number,
+    userId: number,
     content: string,
     richContent?: string,
-    attachmentPaths?: string[]
+    attachmentPaths?: string[],
+    ccEmails?: string
   ): Promise<Message> {
     // Get thread details
     const [thread] = await db
@@ -455,8 +456,8 @@ export class MessageService {
       }
     }
 
-    // Send email to inquirer with attachments
-    await this.sendReplyEmail(thread, content, user.email, attachmentRecords);
+    // Send email to inquirer with attachments and CC
+    await this.sendReplyEmail(thread, content, user.email, attachmentRecords, ccEmails);
 
     return message;
   }
@@ -542,7 +543,7 @@ export class MessageService {
   }
 
   // Send reply email to inquirer
-  private async sendReplyEmail(thread: any, content: string, ownerEmail: string, attachments?: MessageAttachment[]): Promise<void> {
+  private async sendReplyEmail(thread: any, content: string, ownerEmail: string, attachments?: MessageAttachment[], ccEmails?: string): Promise<void> {
     try {
       const emailContent = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -580,13 +581,13 @@ export class MessageService {
           try {
             // Extract storage key from filePath (remove /api/object-storage/ prefix)
             const storageKey = att.filePath.replace(/^\/api\/object-storage\//, '');
-            
+
             // Download file content from object storage
             const fileBuffer = await objectStorage.downloadBuffer(storageKey);
-            
+
             // Convert to base64 for SendGrid
             const base64Content = fileBuffer.toString('base64');
-            
+
             sendgridAttachments.push({
               content: base64Content,
               filename: att.fileName,
@@ -602,13 +603,23 @@ export class MessageService {
         }
       }
 
+      // Parse CC emails (comma-separated)
+      const ccList = ccEmails
+        ? ccEmails.split(',').map(e => e.trim()).filter(e => e && e.includes('@'))
+        : undefined;
+
+      if (ccList && ccList.length > 0) {
+        console.log(`📧 Sending email with CC to: ${ccList.join(', ')}`);
+      }
+
       await sendEmail({
         to: thread.inquirerEmail,
         from: "system@cimshare.com", // Use verified sender address
         replyTo: thread.threadEmailAddress || "system@cimshare.com",
         subject: `Re: ${thread.subject}`,
         html: emailContent,
-        attachments: sendgridAttachments
+        attachments: sendgridAttachments,
+        cc: ccList
       });
 
       await this.logEmailSync(thread.id, null, "outbound", "sent");
