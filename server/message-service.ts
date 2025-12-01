@@ -883,47 +883,62 @@ export class MessageService {
   
   // Clean email content by removing quoted text and signatures
   private cleanEmailContent(content: string): string {
-    // First, try to remove everything after common signature delimiters
-    // This catches signatures that start with em dash, double dash, etc.
-    const signaturePatterns = [
-      /^—\s*.*/m,                    // Em dash signature (like "— Robert Kalé | Partner")
-      /^--\s*$/m,                    // Double dash on its own line
-      /^_{3,}\s*$/m,                 // Three or more underscores
-      /^Sent from my /im,            // "Sent from my iPhone/Android"
-      /^Get Outlook for /im,         // "Get Outlook for iOS/Android"
-      /^_*Sent from /im,             // Variations of "Sent from"
-    ];
-
     let cleaned = content;
 
-    // Find the earliest signature delimiter and truncate there
+    // STEP 1: Remove quoted thread content first (everything after "On ... wrote:")
+    // This pattern matches "On <date/time>, <email>, wrote:" and everything after
+    const onWroteMatch = cleaned.match(/On\s+.{10,80}\s+wrote:\s*/i);
+    if (onWroteMatch && onWroteMatch.index !== undefined) {
+      cleaned = cleaned.substring(0, onWroteMatch.index);
+    }
+
+    // STEP 2: Remove lines starting with > (quoted text)
+    cleaned = cleaned
+      .split('\n')
+      .filter(line => !line.trim().startsWith('>'))
+      .join('\n');
+
+    // STEP 3: Find and remove email signatures
+    // Signatures can be on their own line OR inline after content
+    const signaturePatterns = [
+      // Inline em dash signature (like "Take 6 — Robert Kalé | Partner")
+      // Capture everything before the em dash
+      { pattern: /\s+—\s+[A-Z][a-zA-Z]+\s+[A-Z]/m, keepBefore: true },
+      // Em dash at start of line
+      { pattern: /^—\s*.*/m, keepBefore: true },
+      // Double dash on its own line
+      { pattern: /^--\s*$/m, keepBefore: true },
+      // Three or more underscores
+      { pattern: /^_{3,}\s*$/m, keepBefore: true },
+      // Mobile signatures
+      { pattern: /Sent from my (iPhone|iPad|Android|Galaxy|Phone)/im, keepBefore: true },
+      { pattern: /Get Outlook for (iOS|Android)/im, keepBefore: true },
+      // Common signature indicators with phone/email
+      { pattern: /📱\s*\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/m, keepBefore: true },
+      { pattern: /🔗\s*(www\.|http)/im, keepBefore: true },
+    ];
+
+    // Find the earliest signature and truncate there
     let earliestSignatureIndex = cleaned.length;
-    for (const pattern of signaturePatterns) {
+    for (const { pattern } of signaturePatterns) {
       const match = cleaned.match(pattern);
       if (match && match.index !== undefined && match.index < earliestSignatureIndex) {
         earliestSignatureIndex = match.index;
       }
     }
 
-    // If we found a signature delimiter, truncate the content there
+    // If we found a signature, truncate the content there
     if (earliestSignatureIndex < cleaned.length) {
       cleaned = cleaned.substring(0, earliestSignatureIndex);
     }
 
-    // Now apply additional cleaning
+    // STEP 4: Clean up whitespace
     cleaned = cleaned
-      // Remove quoted text (lines starting with >)
-      .split('\n')
-      .filter(line => !line.trim().startsWith('>'))
-      .join('\n')
-      // Remove "On ... wrote:" patterns
-      .replace(/On .+ wrote:/g, '')
-      // Remove excessive whitespace
       .replace(/\n\s*\n\s*\n/g, '\n\n')
       .trim();
 
     // If content is very short after cleaning, return original
-    if (cleaned.length < 10 && content.length > cleaned.length) {
+    if (cleaned.length < 5 && content.length > cleaned.length) {
       return content;
     }
 
