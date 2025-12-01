@@ -883,25 +883,50 @@ export class MessageService {
   
   // Clean email content by removing quoted text and signatures
   private cleanEmailContent(content: string): string {
-    // Remove common email signatures and quoted text
-    let cleaned = content
+    // First, try to remove everything after common signature delimiters
+    // This catches signatures that start with em dash, double dash, etc.
+    const signaturePatterns = [
+      /^—\s*.*/m,                    // Em dash signature (like "— Robert Kalé | Partner")
+      /^--\s*$/m,                    // Double dash on its own line
+      /^_{3,}\s*$/m,                 // Three or more underscores
+      /^Sent from my /im,            // "Sent from my iPhone/Android"
+      /^Get Outlook for /im,         // "Get Outlook for iOS/Android"
+      /^_*Sent from /im,             // Variations of "Sent from"
+    ];
+
+    let cleaned = content;
+
+    // Find the earliest signature delimiter and truncate there
+    let earliestSignatureIndex = cleaned.length;
+    for (const pattern of signaturePatterns) {
+      const match = cleaned.match(pattern);
+      if (match && match.index !== undefined && match.index < earliestSignatureIndex) {
+        earliestSignatureIndex = match.index;
+      }
+    }
+
+    // If we found a signature delimiter, truncate the content there
+    if (earliestSignatureIndex < cleaned.length) {
+      cleaned = cleaned.substring(0, earliestSignatureIndex);
+    }
+
+    // Now apply additional cleaning
+    cleaned = cleaned
       // Remove quoted text (lines starting with >)
       .split('\n')
       .filter(line => !line.trim().startsWith('>'))
       .join('\n')
       // Remove "On ... wrote:" patterns
       .replace(/On .+ wrote:/g, '')
-      // Remove common signature separators
-      .replace(/^\s*--\s*$/gm, '')
       // Remove excessive whitespace
       .replace(/\n\s*\n\s*\n/g, '\n\n')
       .trim();
-      
+
     // If content is very short after cleaning, return original
     if (cleaned.length < 10 && content.length > cleaned.length) {
       return content;
     }
-    
+
     return cleaned;
   }
   

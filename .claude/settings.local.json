@@ -10,7 +10,8 @@
       "Bash(lsof:*)",
       "Bash(xargs kill -9)",
       "Bash(npm install:*)",
-      "Bash(/tmp/test-sendgrid-multipart.sh:*)"
+      "Bash(/tmp/test-sendgrid-multipart.sh:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": [],
