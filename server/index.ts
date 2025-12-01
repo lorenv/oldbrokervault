@@ -121,8 +121,10 @@ app.get('/api/health', (req, res) => {
 // Reduce limits from 100mb to 50mb and implement streaming for large payloads
 // IMPORTANT: Skip webhook endpoints that need raw body for signature verification
 app.use((req, res, next) => {
-  // Skip JSON parsing for Stripe webhook - it needs raw body for signature verification
-  if (req.path === '/api/webhook/stripe') {
+  // Skip JSON parsing for webhooks that need raw body
+  // - Stripe webhook: needs raw body for signature verification
+  // - SendGrid inbound: needs raw body to avoid multipart parsing corruption
+  if (req.path === '/api/webhook/stripe' || req.path === '/api/webhook/sendgrid/inbound') {
     return next();
   }
   express.json({
@@ -137,11 +139,17 @@ app.use((req, res, next) => {
   })(req, res, next);
 });
 
-app.use(express.urlencoded({ 
-  extended: true, 
-  limit: '50mb',
-  parameterLimit: 1000
-}));
+app.use((req, res, next) => {
+  // Skip urlencoded parsing for SendGrid inbound - needs raw body for multipart parsing
+  if (req.path === '/api/webhook/sendgrid/inbound') {
+    return next();
+  }
+  express.urlencoded({
+    extended: true,
+    limit: '50mb',
+    parameterLimit: 1000
+  })(req, res, next);
+});
 
 // Security middleware will be setup after server starts to reduce memory usage
 

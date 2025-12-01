@@ -52,6 +52,7 @@ import { setupSEORoutes } from "./seo-routes";
 import { textExtractionRouter } from "./routes/text-extraction";
 import { registerSDEAnalyzerRoutes } from "./routes/sde-analyzer-routes";
 import { sdeProcessor } from "./sde-processor";
+import { simpleParser } from 'mailparser';
 
 
 // Directory paths
@@ -208,9 +209,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // IMPORTANT: Register webhook endpoints BEFORE authentication middleware
   // These endpoints need to be accessible by external services without authentication
-  
-  // SendGrid Inbound Email Webhook (Enhanced for proper parsing)
-  app.post('/api/webhook/sendgrid/inbound', express.raw({ type: '*/*' }), async (req, res) => {
+
+  // Configure multer for SendGrid inbound email webhook (multipart/form-data)
+  const sendgridInboundUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 25 * 1024 * 1024 } // 25MB limit for email attachments
+  });
+
+  // SendGrid Inbound Email Webhook - Raw body capture approach
+  // Captures raw body BEFORE any middleware to avoid multipart parsing corruption
+  app.post('/api/webhook/sendgrid/inbound', async (req, res) => {
 
     console.log('\n' + '='.repeat(80));
     console.log('📨 SENDGRID INBOUND WEBHOOK HIT!');
@@ -222,73 +230,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('  Method:', req.method);
     console.log('  URL:', req.url);
     console.log('  IP:', req.ip);
-    console.log('  User-Agent:', req.headers['user-agent']);
-    console.log('  X-Forwarded-For:', req.headers['x-forwarded-for']);
-    console.log('  X-Real-IP:', req.headers['x-real-ip']);
-
-    // Log all headers for debugging
-    console.log('\n📬 HEADERS:');
-    Object.entries(req.headers).forEach(([key, value]) => {
-      console.log(`  ${key}: ${value}`);
-    });
-
-    console.log('\n📦 BODY INFO:');
-    console.log('  Body type:', typeof req.body);
-    console.log('  Is Buffer?:', Buffer.isBuffer(req.body));
-    console.log('  Body size:', req.body ? req.body.length : 0, 'bytes');
+    console.log('  Content-Type:', req.headers['content-type']);
 
     try {
-      // Parse form-encoded data from SendGrid
-      let webhookData;
+      // Capture raw body manually to avoid multer corruption
+      const chunks: Buffer[] = [];
+      for await (const chunk of req) {
+        chunks.push(chunk);
+      }
+      const rawBody = Buffer.concat(chunks);
+      console.log('\n📦 Raw body size:', rawBody.length, 'bytes');
 
-      if (Buffer.isBuffer(req.body)) {
-        const bodyString = req.body.toString('utf8');
-        console.log('\n📝 RAW BODY (first 1000 chars):');
-        console.log(bodyString.substring(0, 1000));
-        if (bodyString.length > 1000) {
-          console.log('... [truncated, total length: ' + bodyString.length + ' chars]');
-        }
+      // Parse multipart form data manually
+      const contentType = req.headers['content-type'] || '';
+      const boundaryMatch = contentType.match(/boundary=(?:"([^"]+)"|([^\s;]+))/);
+      const boundary = boundaryMatch ? (boundaryMatch[1] || boundaryMatch[2]) : null;
 
-        // Try to parse as URL-encoded form data
-        if (bodyString.includes('=') && bodyString.includes('&')) {
-          console.log('\n✅ Detected URL-encoded form data');
-          const formData = new URLSearchParams(bodyString);
-          webhookData = Object.fromEntries(formData.entries());
-        } else {
-          // Might be JSON or other format
-          try {
-            console.log('\n🔄 Attempting to parse as JSON...');
-            webhookData = JSON.parse(bodyString);
-            console.log('✅ Successfully parsed as JSON');
-          } catch (e) {
-            console.error('❌ Failed to parse as JSON:', e.message);
-            console.log('⚠️ Using raw string as fallback');
-            webhookData = { raw: bodyString };
+      console.log('  Boundary:', boundary);
+
+      let webhookData: any = {};
+
+      if (boundary) {
+        // Parse multipart manually
+        const bodyStr = rawBody.toString('utf-8');
+        console.log('  🔍 Parsing multipart with boundary:', boundary);
+
+        // Split by boundary
+        const parts = bodyStr.split('--' + boundary);
+        console.log('  🔍 Found', parts.length, 'parts');
+
+        for (let i = 0; i < parts.length; i++) {
+          const part = parts[i];
+          if (part.trim() === '' || part.trim() === '--') continue;
+
+          // Find the header/body separator (handle both CRLF and LF)
+          let separatorIndex = part.indexOf('\r\n\r\n');
+          let separatorLen = 4;
+
+          // Try LF-only if CRLF not found
+          if (separatorIndex === -1) {
+            separatorIndex = part.indexOf('\n\n');
+            separatorLen = 2;
+          }
+
+          if (separatorIndex === -1) {
+            console.log(`  ⚠️ Part ${i}: No header separator found`);
+            continue;
+          }
+
+          const headers = part.substring(0, separatorIndex);
+          let body = part.substring(separatorIndex + separatorLen);
+
+          // Remove trailing boundary markers and whitespace
+          body = body.replace(/\r?\n--$/, '').replace(/\r?\n$/, '').trim();
+
+          // Extract field name from Content-Disposition
+          const nameMatch = headers.match(/Content-Disposition:[^;]*;\s*name="([^"]+)"/i);
+          if (nameMatch) {
+            const fieldName = nameMatch[1];
+            webhookData[fieldName] = body;
+            console.log(`  📝 Parsed field: ${fieldName} (${body.length} chars)`);
+          } else {
+            console.log(`  ⚠️ Part ${i}: No field name found in headers`);
           }
         }
       } else {
-        // Fallback for non-buffer data
-        console.log('\n⚠️ Body is not a buffer, using as-is');
-        webhookData = req.body;
+        console.log('  ⚠️ No boundary found in Content-Type header');
       }
 
-      console.log('\n🔍 PARSED WEBHOOK DATA:');
+      console.log('\n🔍 PARSED FIELDS:', Object.keys(webhookData).join(', '));
+
+      // Check if we have the raw email field (when "Send Raw" is enabled in SendGrid)
+      if (webhookData.email) {
+        console.log('\n🔄 Parsing raw MIME email from "email" field...');
+        try {
+          const parsed = await simpleParser(webhookData.email);
+
+          // Extract the parsed fields
+          webhookData = {
+            to: parsed.to?.text || (parsed.to?.value ? parsed.to.value.map((a: any) => a.address).join(', ') : ''),
+            from: parsed.from?.text || (parsed.from?.value ? parsed.from.value[0]?.address : ''),
+            subject: parsed.subject || '',
+            text: parsed.text || '',
+            html: parsed.html || '',
+            envelope: webhookData.envelope, // Keep original envelope if present
+            messageId: parsed.messageId,
+            date: parsed.date?.toISOString(),
+            // Include original webhook data as fallback
+            ...(!webhookData.envelope && parsed.to && parsed.from ? {
+              envelope: JSON.stringify({
+                to: parsed.to.value?.map((a: any) => a.address) || [],
+                from: parsed.from.value?.[0]?.address || ''
+              })
+            } : {})
+          };
+
+          console.log('✅ Successfully parsed raw MIME email');
+          console.log('  Parsed To:', webhookData.to);
+          console.log('  Parsed From:', webhookData.from);
+          console.log('  Parsed Subject:', webhookData.subject);
+          console.log('  Text length:', webhookData.text?.length || 0);
+          console.log('  HTML length:', webhookData.html?.length || 0);
+        } catch (parseError) {
+          console.error('❌ Failed to parse raw MIME email:', parseError);
+        }
+      }
+
+      console.log('\n🔍 FINAL WEBHOOK DATA:');
       console.log('  To:', webhookData.to);
       console.log('  From:', webhookData.from);
       console.log('  Subject:', webhookData.subject);
       console.log('  Text present:', !!webhookData.text, webhookData.text ? `(${webhookData.text.length} chars)` : '');
       console.log('  HTML present:', !!webhookData.html, webhookData.html ? `(${webhookData.html.length} chars)` : '');
-      console.log('  All fields:', Object.keys(webhookData).join(', '));
-
-      // Log any attachments
-      if (webhookData.attachments) {
-        try {
-          const attachments = JSON.parse(webhookData.attachments);
-          console.log('  Attachments:', attachments.length, 'file(s)');
-        } catch (e) {
-          console.log('  Attachments field present but not JSON');
-        }
-      }
+      console.log('  Envelope:', webhookData.envelope);
 
       // Extract thread ID from email address
       if (webhookData.to) {

@@ -8,7 +8,9 @@
       "WebFetch(domain:cb1f9736-4a0a-4a40-80bd-c08d8761dbaa-00-1y6o4mf3nu2bh.riker.replit.dev)",
       "Bash(curl:*)",
       "Bash(lsof:*)",
-      "Bash(xargs kill -9)"
+      "Bash(xargs kill -9)",
+      "Bash(npm install:*)",
+      "Bash(/tmp/test-sendgrid-multipart.sh:*)"
     ],
     "deny": [],
     "ask": [],
