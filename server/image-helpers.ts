@@ -1,4 +1,5 @@
 import { imageManager } from './image-manager';
+import { objectStorage } from './object-storage';
 import fs from 'fs';
 import path from 'path';
 import fetch from 'node-fetch';
@@ -16,13 +17,39 @@ export interface ImageData {
 }
 
 /**
+ * Extract the storage key from an object storage URL
+ * Handles both relative paths (/api/object-storage/...) and full URLs (https://...com/api/object-storage/...)
+ */
+function extractObjectStorageKey(url: string): string | null {
+  const objectStoragePattern = /\/api\/object-storage\/(.+)$/;
+  const match = url.match(objectStoragePattern);
+  return match ? match[1] : null;
+}
+
+/**
+ * Determine MIME type from file extension
+ */
+function getMimeTypeFromPath(filePath: string): string {
+  const extension = path.extname(filePath).toLowerCase();
+  const mimeTypes: { [key: string]: string } = {
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp',
+    '.svg': 'image/svg+xml'
+  };
+  return mimeTypes[extension] || 'image/png';
+}
+
+/**
  * Resolve an image path/URL to actual image data
  * Handles base64, file paths, and full URLs (including object storage URLs)
  */
 export async function resolveImageData(imagePath: string): Promise<ImageData | null> {
   try {
     console.log(`[resolveImageData] Processing: ${imagePath.substring(0, 100)}...`);
-    
+
     // Check if it's base64 data
     if (imagePath.startsWith('data:')) {
       console.log(`[resolveImageData] Processing base64 data`);
@@ -30,11 +57,11 @@ export async function resolveImageData(imagePath: string): Promise<ImageData | n
       if (!matches) {
         throw new Error('Invalid base64 data format');
       }
-      
+
       const mimeType = matches[1];
       const base64Content = matches[2];
       const buffer = Buffer.from(base64Content, 'base64');
-      
+
       return {
         buffer,
         mimeType,
@@ -42,7 +69,29 @@ export async function resolveImageData(imagePath: string): Promise<ImageData | n
         originalPath: imagePath
       };
     }
-    
+
+    // Check if it's an object storage URL (either full URL or relative path)
+    // This handles: /api/object-storage/... or https://cimshare.com/api/object-storage/...
+    const storageKey = extractObjectStorageKey(imagePath);
+    if (storageKey) {
+      console.log(`[resolveImageData] Processing object storage URL, key: ${storageKey}`);
+      try {
+        const buffer = await objectStorage.downloadImage(storageKey);
+        const mimeType = getMimeTypeFromPath(storageKey);
+
+        console.log(`[resolveImageData] Successfully downloaded from object storage, buffer size: ${buffer.length}, mimeType: ${mimeType}`);
+        return {
+          buffer,
+          mimeType,
+          isBase64: false,
+          originalPath: imagePath
+        };
+      } catch (storageError) {
+        console.error(`[resolveImageData] Failed to download from object storage: ${storageKey}`, storageError);
+        // Fall through to try HTTP fetch as fallback
+      }
+    }
+
     // Check if it's a full URL (http or https)
     if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
       console.log(`[resolveImageData] Processing full URL: ${imagePath}`);
@@ -52,14 +101,14 @@ export async function resolveImageData(imagePath: string): Promise<ImageData | n
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
           }
         });
-        
+
         if (!response.ok) {
           console.error(`[resolveImageData] Failed to fetch URL: ${response.status} ${response.statusText}`);
           return null;
         }
-        
+
         const buffer = Buffer.from(await response.arrayBuffer());
-        
+
         // Determine MIME type from response headers or URL extension
         let mimeType = response.headers.get('content-type') || 'image/jpeg';
         if (!mimeType.startsWith('image/')) {
@@ -75,7 +124,7 @@ export async function resolveImageData(imagePath: string): Promise<ImageData | n
           };
           mimeType = mimeTypes[extension] || 'image/jpeg';
         }
-        
+
         console.log(`[resolveImageData] Successfully downloaded URL, buffer size: ${buffer.length}, mimeType: ${mimeType}`);
         return {
           buffer,
@@ -88,7 +137,7 @@ export async function resolveImageData(imagePath: string): Promise<ImageData | n
         return null;
       }
     }
-    
+
     // Check if it's a file path
     let fullPath: string;
     

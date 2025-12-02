@@ -616,7 +616,6 @@ async function addImageWithAspectRatio(doc: any, imageBuffer: Buffer, x: number,
   try {
     console.log("🎯 addImageWithAspectRatio: Starting image processing for buffer size:", imageBuffer.length);
     // Get actual image dimensions
-    const sharp = require('sharp');
     sharpInstance = sharp(imageBuffer);
     const metadata = await sharpInstance.metadata();
     console.log("🎯 addImageWithAspectRatio: Sharp metadata:", metadata);
@@ -682,9 +681,8 @@ async function addImageWithAbsolutePosition(doc: any, imageBuffer: Buffer, x: nu
   try {
     console.log("🎯 addImageWithAbsolutePosition: Starting image processing for buffer size:", imageBuffer.length);
     console.log("🎯 addImageWithAbsolutePosition: Saved original position:", originalX, originalY);
-    
+
     // Get actual image dimensions
-    const sharp = require('sharp');
     sharpInstance = sharp(imageBuffer);
     const metadata = await sharpInstance.metadata();
     console.log("🎯 addImageWithAbsolutePosition: Sharp metadata:", metadata);
@@ -2590,10 +2588,9 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             console.log("🎯 COVER IMAGE: Successfully resolved cover image data using unified approach");
             
             // Get image dimensions first to determine optimal banner size
-            const sharp = require('sharp');
             let sharpInstance: any = null;
             let imageMetadata: any = null;
-            
+
             try {
               sharpInstance = sharp(coverImageData.buffer);
               imageMetadata = await sharpInstance.metadata();
@@ -2673,12 +2670,11 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             // Handle base64 data URI
             const base64Data = firstImage.split(',')[1];
             const imageBuffer = Buffer.from(base64Data, 'base64');
-            
+
             // Calculate banner dimensions based on image aspect ratio
-            const sharp = require('sharp');
             let sharpInstance: any = null;
             let imageMetadata: any = null;
-            
+
             try {
               sharpInstance = sharp(imageBuffer);
               imageMetadata = await sharpInstance.metadata();
@@ -2718,10 +2714,9 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             if (cachedImagePath && fs.existsSync(cachedImagePath)) {
               // Calculate banner dimensions based on image aspect ratio
               const imageBuffer = fs.readFileSync(cachedImagePath);
-              const sharp = require('sharp');
               let sharpInstance: any = null;
               let imageMetadata: any = null;
-              
+
               try {
                 sharpInstance = sharp(imageBuffer);
                 imageMetadata = await sharpInstance.metadata();
@@ -2762,10 +2757,9 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             if (fs.existsSync(imagePath)) {
               // Calculate banner dimensions based on image aspect ratio
               const imageBuffer = fs.readFileSync(imagePath);
-              const sharp = require('sharp');
               let sharpInstance: any = null;
               let imageMetadata: any = null;
-              
+
               try {
                 sharpInstance = sharp(imageBuffer);
                 imageMetadata = await sharpInstance.metadata();
@@ -2839,11 +2833,10 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             
             // Optimize image for PDF and handle transparency
             try {
-              const sharp = require('sharp');
               let metadataSharp: any = null;
               let processSharp: any = null;
               let metadata: any = null;
-              
+
               try {
                 metadataSharp = sharp(logoData.buffer);
                 metadata = await metadataSharp.metadata();
@@ -2899,9 +2892,8 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             
             // Try to get actual image dimensions
             try {
-              const sharp = require('sharp');
               let sharpInstance: any = null;
-              
+
               try {
                 sharpInstance = sharp(imageBuffer);
                 const metadata = await sharpInstance.metadata();
@@ -3334,14 +3326,43 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
           doc.moveDown(1);
           
           if (customSection.type === 'text' && customSection.content) {
-            // Handle markdown-style content by converting to plain text
+            // Handle markdown-style and HTML content by converting to plain text
             const content = customSection.content
+              // Strip HTML tags first
+              .replace(/<p>/gi, '') // Remove opening paragraph tags
+              .replace(/<\/p>/gi, '\n\n') // Replace closing paragraph tags with double newline
+              .replace(/<br\s*\/?>/gi, '\n') // Replace line breaks with newline
+              .replace(/<strong>(.*?)<\/strong>/gi, '$1') // Remove bold HTML tags
+              .replace(/<b>(.*?)<\/b>/gi, '$1') // Remove bold tags
+              .replace(/<em>(.*?)<\/em>/gi, '$1') // Remove italic HTML tags
+              .replace(/<i>(.*?)<\/i>/gi, '$1') // Remove italic tags
+              .replace(/<u>(.*?)<\/u>/gi, '$1') // Remove underline tags
+              .replace(/<ul>/gi, '') // Remove unordered list opening
+              .replace(/<\/ul>/gi, '') // Remove unordered list closing
+              .replace(/<ol>/gi, '') // Remove ordered list opening
+              .replace(/<\/ol>/gi, '') // Remove ordered list closing
+              .replace(/<li>/gi, '• ') // Replace list items with bullets
+              .replace(/<\/li>/gi, '\n') // Replace list item closing with newline
+              .replace(/<h[1-6][^>]*>(.*?)<\/h[1-6]>/gi, '$1\n') // Remove header tags but keep content
+              .replace(/<a[^>]*>(.*?)<\/a>/gi, '$1') // Remove links but keep text
+              .replace(/<span[^>]*>(.*?)<\/span>/gi, '$1') // Remove span tags but keep content
+              .replace(/<div[^>]*>(.*?)<\/div>/gi, '$1\n') // Remove div tags but keep content
+              .replace(/<[^>]+>/g, '') // Remove any remaining HTML tags
+              .replace(/&nbsp;/gi, ' ') // Replace non-breaking spaces
+              .replace(/&amp;/gi, '&') // Replace ampersand entities
+              .replace(/&lt;/gi, '<') // Replace less than entities
+              .replace(/&gt;/gi, '>') // Replace greater than entities
+              .replace(/&quot;/gi, '"') // Replace quote entities
+              .replace(/&#39;/gi, "'") // Replace apostrophe entities
+              // Then handle markdown-style content
               .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markdown
               .replace(/\*(.*?)\*/g, '$1') // Remove italic markdown
               .replace(/^#+\s+/gm, '') // Remove headers
               .replace(/^[-*]\s+/gm, '• ') // Convert bullet points
+              // Clean up extra whitespace
+              .replace(/\n{3,}/g, '\n\n') // Replace 3+ newlines with 2
               .trim();
-            
+
             doc.font('Helvetica').text(content, {
               align: 'left',
               lineGap: 4
@@ -3490,10 +3511,9 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                 // Use direct buffer method with width/height specification
                 try {
                   // Optimize image processing for faster PDF generation
-                  const sharp = require('sharp');
                   let processSharp: any = null;
                   let metadataSharp: any = null;
-                  
+
                   try {
                     // Pre-process image for optimal PDF performance
                     processSharp = sharp(imageBuffer);
