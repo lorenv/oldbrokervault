@@ -16,7 +16,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Settings, FileText, LogOut, User, HelpCircle, Zap, Database, Menu, MessageCircle, BarChart3, WandSparkles, FileSignature } from "lucide-react";
+import { Settings, FileText, LogOut, User, HelpCircle, Zap, Database, Menu, MessageCircle, BarChart3, WandSparkles, Signature, MoreHorizontal, FileCheck, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { SupportDialog } from "./support-dialog";
 import { useQuery } from "@tanstack/react-query";
@@ -61,6 +61,7 @@ export function Navbar() {
         {user && (
           <>
             <nav className="hidden md:flex items-center space-x-1 mr-4">
+              {/* Primary Nav Items */}
               <Link href="/dashboard">
                 <Button
                   variant="ghost"
@@ -95,40 +96,6 @@ export function Navbar() {
                   )}
                 </Button>
               </Link>
-              <Link href="/analytics">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={`relative ${
-                    location === '/analytics'
-                      ? 'text-blue-700 font-semibold'
-                      : isHomePage ? 'text-white' : 'text-gray-700'
-                  } hover:bg-white/10 transition-colors ${isHomePage ? 'hover:text-white' : 'hover:text-gray-900'}`}
-                >
-                  <BarChart3 className="mr-1 h-4 w-4" />
-                  Analytics
-                  {location === '/analytics' && (
-                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></span>
-                  )}
-                </Button>
-              </Link>
-              <Link href="/messages">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={`relative ${
-                    location === '/messages'
-                      ? 'text-blue-700 font-semibold'
-                      : isHomePage ? 'text-white' : 'text-gray-700'
-                  } hover:bg-white/10 transition-colors ${isHomePage ? 'hover:text-white' : 'hover:text-gray-900'}`}
-                >
-                  <MessageCircle className="mr-1 h-4 w-4" />
-                  Messages
-                  {location === '/messages' && (
-                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></span>
-                  )}
-                </Button>
-              </Link>
               <Link href="/investor-database">
                 <Button
                   variant="ghost"
@@ -146,23 +113,6 @@ export function Navbar() {
                   )}
                 </Button>
               </Link>
-              <Link href="/sde-analyzer">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={`relative ${
-                    location === '/sde-analyzer'
-                      ? 'text-blue-700 font-semibold'
-                      : isHomePage ? 'text-white' : 'text-gray-700'
-                  } hover:bg-white/10 transition-colors ${isHomePage ? 'hover:text-white' : 'hover:text-gray-900'}`}
-                >
-                  <WandSparkles className="mr-1 h-4 w-4" />
-                  SDE Analyzer
-                  {location === '/sde-analyzer' && (
-                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></span>
-                  )}
-                </Button>
-              </Link>
               <Link href="/esign">
                 <Button
                   variant="ghost"
@@ -173,13 +123,62 @@ export function Navbar() {
                       : isHomePage ? 'text-white' : 'text-gray-700'
                   } hover:bg-white/10 transition-colors ${isHomePage ? 'hover:text-white' : 'hover:text-gray-900'}`}
                 >
-                  <FileSignature className="mr-1 h-4 w-4" />
-                  E-Signatures
+                  <Signature className="mr-1 h-4 w-4" />
+                  Sign
                   {location.startsWith('/esign') && (
                     <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></span>
                   )}
                 </Button>
               </Link>
+
+              {/* More Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`relative ${
+                      ['/analytics', '/messages', '/sde-analyzer', '/nda-templates'].includes(location)
+                        ? 'text-blue-700 font-semibold'
+                        : isHomePage ? 'text-white' : 'text-gray-700'
+                    } hover:bg-white/10 transition-colors ${isHomePage ? 'hover:text-white' : 'hover:text-gray-900'}`}
+                  >
+                    <MoreHorizontal className="mr-1 h-4 w-4" />
+                    More
+                    <ChevronDown className="ml-1 h-3 w-3" />
+                    {['/analytics', '/messages', '/sde-analyzer', '/nda-templates'].includes(location) && (
+                      <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></span>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem asChild>
+                    <Link href="/analytics" className="flex items-center cursor-pointer w-full">
+                      <BarChart3 className="h-4 w-4 mr-2" />
+                      Analytics
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/messages" className="flex items-center cursor-pointer w-full">
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Messages
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/sde-analyzer" className="flex items-center cursor-pointer w-full">
+                      <WandSparkles className="h-4 w-4 mr-2" />
+                      SDE Analyzer
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/nda-templates" className="flex items-center cursor-pointer w-full">
+                      <FileCheck className="h-4 w-4 mr-2" />
+                      NDA Templates
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </nav>
           </>
         )}
@@ -350,7 +349,7 @@ export function Navbar() {
 
                   <div className="flex flex-col gap-2 py-6">
                     <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-2 mb-2">
-                      Navigation
+                      Main
                     </div>
                     <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
                       <Button
@@ -370,24 +369,6 @@ export function Navbar() {
                         My CIMs
                       </Button>
                     </Link>
-                    <Link href="/analytics" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button
-                        variant={location === '/analytics' ? 'secondary' : 'ghost'}
-                        className="w-full justify-start text-left h-12 text-base"
-                      >
-                        <BarChart3 className="mr-3 h-5 w-5" />
-                        Analytics
-                      </Button>
-                    </Link>
-                    <Link href="/messages" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button
-                        variant={location === '/messages' ? 'secondary' : 'ghost'}
-                        className="w-full justify-start text-left h-12 text-base"
-                      >
-                        <MessageCircle className="mr-3 h-5 w-5" />
-                        Messages
-                      </Button>
-                    </Link>
                     <Link href="/investor-database" onClick={() => setIsMobileMenuOpen(false)}>
                       <Button
                         variant={location === '/investor-database' ? 'secondary' : 'ghost'}
@@ -397,26 +378,57 @@ export function Navbar() {
                         CRM
                       </Button>
                     </Link>
-                    <Link href="/sde-analyzer" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button
-                        variant={location === '/sde-analyzer' ? 'secondary' : 'ghost'}
-                        className="w-full justify-start text-left h-12 text-base"
-                      >
-                        <WandSparkles className="mr-3 h-5 w-5" />
-                        SDE Analyzer
-                      </Button>
-                    </Link>
                     <Link href="/esign" onClick={() => setIsMobileMenuOpen(false)}>
                       <Button
                         variant={location.startsWith('/esign') ? 'secondary' : 'ghost'}
                         className="w-full justify-start text-left h-12 text-base"
                       >
-                        <FileSignature className="mr-3 h-5 w-5" />
-                        E-Signatures
+                        <Signature className="mr-3 h-5 w-5" />
+                        Sign
                       </Button>
                     </Link>
 
-                    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-2 mb-2 mt-6">
+                    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-2 mb-2 mt-4">
+                      Tools
+                    </div>
+                    <Link href="/analytics" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button
+                        variant={location === '/analytics' ? 'secondary' : 'ghost'}
+                        className="w-full justify-start text-left h-11 text-base"
+                      >
+                        <BarChart3 className="mr-3 h-5 w-5" />
+                        Analytics
+                      </Button>
+                    </Link>
+                    <Link href="/messages" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button
+                        variant={location === '/messages' ? 'secondary' : 'ghost'}
+                        className="w-full justify-start text-left h-11 text-base"
+                      >
+                        <MessageCircle className="mr-3 h-5 w-5" />
+                        Messages
+                      </Button>
+                    </Link>
+                    <Link href="/sde-analyzer" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button
+                        variant={location === '/sde-analyzer' ? 'secondary' : 'ghost'}
+                        className="w-full justify-start text-left h-11 text-base"
+                      >
+                        <WandSparkles className="mr-3 h-5 w-5" />
+                        SDE Analyzer
+                      </Button>
+                    </Link>
+                    <Link href="/nda-templates" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button
+                        variant={location === '/nda-templates' ? 'secondary' : 'ghost'}
+                        className="w-full justify-start text-left h-11 text-base"
+                      >
+                        <FileCheck className="mr-3 h-5 w-5" />
+                        NDA Templates
+                      </Button>
+                    </Link>
+
+                    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-2 mb-2 mt-4">
                       Account
                     </div>
                     <Link href="/account" onClick={() => setIsMobileMenuOpen(false)}>

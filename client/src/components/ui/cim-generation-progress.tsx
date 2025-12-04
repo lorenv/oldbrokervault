@@ -86,6 +86,16 @@ const stageConfig = {
   }
 };
 
+// Fisher-Yates shuffle algorithm
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 export function CimGenerationProgress({
   stage,
   hasFinancials = false,
@@ -97,16 +107,19 @@ export function CimGenerationProgress({
   const [showCelebration, setShowCelebration] = useState(false);
   const targetProgress = stageConfig[stage].progress;
 
+  // Shuffle tips once on mount so users see different tips each time
+  const shuffledTips = useMemo(() => shuffleArray(HELPFUL_TIPS), []);
+
   // Rotate tips every 20 seconds
   useEffect(() => {
     if (!showAsModal) return;
 
     const tipInterval = setInterval(() => {
-      setCurrentTipIndex((prev) => (prev + 1) % HELPFUL_TIPS.length);
+      setCurrentTipIndex((prev) => (prev + 1) % shuffledTips.length);
     }, 20000);
 
     return () => clearInterval(tipInterval);
-  }, [showAsModal]);
+  }, [showAsModal, shuffledTips.length]);
 
   // When we reach complete stage, wait for progress bar to hit 100%, then show celebration
   useEffect(() => {
@@ -363,7 +376,7 @@ export function CimGenerationProgress({
                   key={currentTipIndex}
                   className="text-sm text-gray-600 dark:text-gray-400 mt-1 animate-in fade-in duration-700"
                 >
-                  {HELPFUL_TIPS[currentTipIndex]}
+                  {shuffledTips[currentTipIndex]}
                 </p>
               </div>
             </div>

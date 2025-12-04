@@ -1672,8 +1672,8 @@ router.post('/sign/:token/complete', async (req: Request, res: Response) => {
           })),
           auditLog.map(a => ({
             action: a.action,
-            actorName: a.actorName,
-            actorEmail: a.actorEmail,
+            actorName: null,
+            actorEmail: null,
             createdAt: a.timestamp,
             ipAddress: a.ipAddress,
             location: a.location,
@@ -1686,15 +1686,15 @@ router.post('/sign/:token/complete', async (req: Request, res: Response) => {
         // Upload to object storage
         const storage = new ObjectStorageService();
         const signedFileName = `esign/signed/${envelope.id}_signed_${Date.now()}.pdf`;
-        const signedUrl = await storage.uploadBuffer(finalPdf, signedFileName, 'application/pdf');
+        const uploadResult = await storage.uploadBuffer(signedFileName, finalPdf, 'application/pdf');
 
         // Update envelope with signed document URL
         await db
           .update(esignEnvelopes)
-          .set({ signedDocumentUrl: signedUrl })
+          .set({ signedDocumentUrl: uploadResult.url })
           .where(eq(esignEnvelopes.id, envelope.id));
 
-        console.log(`[ESIGN] Generated signed PDF for envelope ${envelope.id}: ${signedUrl}`);
+        console.log(`[ESIGN] Generated signed PDF for envelope ${envelope.id}: ${uploadResult.url}`);
       } catch (pdfError) {
         console.error('[ESIGN] Error generating signed PDF:', pdfError);
         // Continue with completion - PDF generation failure shouldn't block the process

@@ -475,12 +475,12 @@ export default function EsignSign() {
               <CardContent className="p-6 overflow-auto">
                 <div
                   className="relative mx-auto border shadow-lg bg-white"
-                  style={{ width: `${100 * zoom}%`, maxWidth: '100%' }}
+                  style={{ width: 612 * zoom, maxWidth: '100%' }}
                 >
                   <img
                     src={pageImages[currentPage - 1]}
                     alt={`Page ${currentPage}`}
-                    className="w-full"
+                    className="w-full h-auto block"
                     draggable={false}
                   />
 

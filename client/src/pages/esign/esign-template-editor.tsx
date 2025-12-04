@@ -31,8 +31,6 @@ import {
   ArrowLeft,
   ZoomIn,
   ZoomOut,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -167,7 +165,7 @@ function DraggableField({
   );
 }
 
-// Document Canvas with Droppable Area
+// Document Canvas with Droppable Area - Single Page
 function DocumentCanvas({
   pageImage,
   pageNumber,
@@ -196,25 +194,28 @@ function DocumentCanvas({
 
   const pageFields = fields.filter(f => f.page === pageNumber);
 
+  // Calculate display width based on zoom
+  const baseWidth = 612; // Standard letter width in points
+  const displayWidth = baseWidth * zoom;
+
   return (
     <div
       ref={(node) => {
         setNodeRef(node);
         (canvasRef as any).current = node;
       }}
-      className={`relative border-2 rounded-lg overflow-hidden transition-colors ${
+      className={`relative border-2 rounded-lg overflow-hidden transition-colors flex-shrink-0 ${
         isOver ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
       }`}
       style={{
-        width: `${100 * zoom}%`,
-        maxWidth: '100%',
+        width: displayWidth,
       }}
       onClick={() => onSelectField(null)}
     >
       <img
         src={pageImage}
         alt={`Page ${pageNumber}`}
-        className="w-full h-auto"
+        className="w-full h-auto block"
         draggable={false}
       />
 
@@ -234,6 +235,11 @@ function DocumentCanvas({
             />
           );
         })}
+      </div>
+
+      {/* Page number indicator */}
+      <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+        Page {pageNumber}
       </div>
     </div>
   );
@@ -256,7 +262,6 @@ export default function EsignTemplateEditor() {
   const [recipients, setRecipients] = useState<PlaceholderRecipient[]>([]);
   const [fields, setFields] = useState<TemplateField[]>([]);
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
   const [zoom, setZoom] = useState(1);
   const [isUploading, setIsUploading] = useState(false);
   const [activeRecipientId, setActiveRecipientId] = useState<string | null>(null);
@@ -318,7 +323,6 @@ export default function EsignTemplateEditor() {
       const data = await res.json();
       setDocumentUrl(data.documentUrl);
       setPageImages(data.pageImages);
-      setCurrentPage(1);
 
       toast({
         title: "Document uploaded",
@@ -598,105 +602,94 @@ export default function EsignTemplateEditor() {
 
             {/* Main Canvas */}
             <div className="col-span-9">
-              <Card>
-                <CardHeader className="border-b">
+              <Card className="h-[calc(100vh-180px)] flex flex-col">
+                <CardHeader className="border-b flex-shrink-0">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-sm font-medium">
-                      Document Preview
+                      Document Preview {pageImages.length > 0 && `(${pageImages.length} page${pageImages.length > 1 ? 's' : ''})`}
                     </CardTitle>
                     {pageImages.length > 0 && (
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => setZoom(Math.max(0.5, zoom - 0.1))}
-                          >
-                            <ZoomOut className="h-4 w-4" />
-                          </Button>
-                          <span className="text-sm w-12 text-center">{Math.round(zoom * 100)}%</span>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => setZoom(Math.min(2, zoom + 0.1))}
-                          >
-                            <ZoomIn className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            disabled={currentPage <= 1}
-                            onClick={() => setCurrentPage(currentPage - 1)}
-                          >
-                            <ChevronLeft className="h-4 w-4" />
-                          </Button>
-                          <span className="text-sm">
-                            Page {currentPage} of {pageImages.length}
-                          </span>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            disabled={currentPage >= pageImages.length}
-                            onClick={() => setCurrentPage(currentPage + 1)}
-                          >
-                            <ChevronRight className="h-4 w-4" />
-                          </Button>
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => setZoom(Math.max(0.5, zoom - 0.1))}
+                        >
+                          <ZoomOut className="h-4 w-4" />
+                        </Button>
+                        <span className="text-sm w-12 text-center">{Math.round(zoom * 100)}%</span>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => setZoom(Math.min(1.5, zoom + 0.1))}
+                        >
+                          <ZoomIn className="h-4 w-4" />
+                        </Button>
                       </div>
                     )}
                   </div>
                 </CardHeader>
-                <CardContent className="p-6">
+                <CardContent className="p-0 flex-1 overflow-hidden">
                   {pageImages.length === 0 ? (
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
-                      <FileText className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">
-                        Upload a Document
-                      </h3>
-                      <p className="text-gray-500 mb-4">
-                        Upload a PDF or Word document to get started
-                      </p>
-                      <label className="cursor-pointer">
-                        <input
-                          type="file"
-                          accept=".pdf,.doc,.docx"
-                          className="hidden"
-                          onChange={handleFileUpload}
-                          disabled={isUploading}
-                        />
-                        <Button disabled={isUploading}>
-                          {isUploading ? (
-                            <>
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                              Processing...
-                            </>
-                          ) : (
-                            <>
-                              <Upload className="h-4 w-4 mr-2" />
-                              Choose File
-                            </>
-                          )}
-                        </Button>
-                      </label>
+                    <div className="h-full flex items-center justify-center">
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
+                        <FileText className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                          Upload a Document
+                        </h3>
+                        <p className="text-gray-500 mb-4">
+                          Upload a PDF or Word document to get started
+                        </p>
+                        <div>
+                          <input
+                            type="file"
+                            id="template-file-upload"
+                            accept=".pdf,.doc,.docx"
+                            className="hidden"
+                            onChange={handleFileUpload}
+                            disabled={isUploading}
+                          />
+                          <Button
+                            disabled={isUploading}
+                            onClick={() => document.getElementById('template-file-upload')?.click()}
+                            type="button"
+                          >
+                            {isUploading ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                                Processing...
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="h-4 w-4 mr-2" />
+                                Choose File
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   ) : (
-                    <div className="flex justify-center">
-                      <DocumentCanvas
-                        pageImage={pageImages[currentPage - 1]}
-                        pageNumber={currentPage}
-                        fields={fields}
-                        recipients={recipients}
-                        selectedFieldId={selectedFieldId}
-                        onSelectField={setSelectedFieldId}
-                        onDeleteField={(id) => {
-                          setFields(fields.filter(f => f.id !== id));
-                          if (selectedFieldId === id) setSelectedFieldId(null);
-                        }}
-                        zoom={zoom}
-                        onDrop={() => {}}
-                      />
+                    <div className="h-full overflow-auto bg-gray-100 p-6">
+                      <div className="flex flex-col items-center gap-4">
+                        {pageImages.map((pageImage, index) => (
+                          <DocumentCanvas
+                            key={index}
+                            pageImage={pageImage}
+                            pageNumber={index + 1}
+                            fields={fields}
+                            recipients={recipients}
+                            selectedFieldId={selectedFieldId}
+                            onSelectField={setSelectedFieldId}
+                            onDeleteField={(id) => {
+                              setFields(fields.filter(f => f.id !== id));
+                              if (selectedFieldId === id) setSelectedFieldId(null);
+                            }}
+                            zoom={zoom}
+                            onDrop={() => {}}
+                          />
+                        ))}
+                      </div>
                     </div>
                   )}
                 </CardContent>

@@ -83,7 +83,7 @@ export default function EsignDashboard() {
   // Delete envelope mutation
   const deleteMutation = useMutation({
     mutationFn: async (envelopeId: number) => {
-      return apiRequest(`/api/esign/envelopes/${envelopeId}`, { method: "DELETE" });
+      return apiRequest("DELETE", `/api/esign/envelopes/${envelopeId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/esign/envelopes"] });

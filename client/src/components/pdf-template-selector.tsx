@@ -112,21 +112,21 @@ export function PdfTemplateSelector() {
   const templates: PdfTemplate[] = templatesData?.templates || [];
 
   return (
-    <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
-      <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-800 pb-6 pt-8 px-8 shadow-lg">
+    <Card className="border-0 shadow-md bg-white rounded-xl overflow-hidden">
+      <CardHeader className="bg-gradient-to-r from-slate-600 to-slate-700 pb-4 pt-5 px-5">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
-            <FileImage className="h-6 w-6 text-white" />
+          <div className="p-2 bg-white/20 rounded-lg">
+            <FileImage className="h-4 w-4 text-white" />
           </div>
           <div>
-            <CardTitle className="text-xl font-bold text-white">PDF Background Templates</CardTitle>
-            <CardDescription className="text-slate-100 mt-1">
-              Choose a background template for your CIM PDF exports. This applies to all PDF downloads from your documents.
+            <CardTitle className="text-base font-semibold text-white">PDF Background Templates</CardTitle>
+            <CardDescription className="text-slate-200 mt-0.5 text-sm">
+              Choose a background style for your CIM PDF exports
             </CardDescription>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-6 pt-8">
+      <CardContent className="space-y-5 pt-5 px-5 pb-5">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {templates.map((template) => (
             <div
