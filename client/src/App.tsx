@@ -47,6 +47,16 @@ import MarketingHomePage from "@/pages/marketing-home-page";
 import VirtualDataRoomPage from "@/pages/virtual-data-room-page";
 import SDEAnalyzerPage from "@/pages/sde-analyzer-page";
 
+// E-Signature Pages
+import EsignDashboard from "@/pages/esign/esign-dashboard";
+import EsignTemplates from "@/pages/esign/esign-templates";
+import EsignTemplateEditor from "@/pages/esign/esign-template-editor";
+import EsignSend from "@/pages/esign/esign-send";
+import EsignEnvelopeDetail from "@/pages/esign/esign-envelope-detail";
+import EsignSign from "@/pages/esign/esign-sign";
+import EsignVerify from "@/pages/esign/esign-verify";
+import EsignSettings from "@/pages/esign/esign-settings";
+
 // Lazy load SEO pages for better performance
 const NdaProtectionPage = lazy(() => import("@/pages/features/nda-protection"));
 const AiPoweredCimPage = lazy(() => import("@/pages/features/ai-powered-cim"));
@@ -78,6 +88,14 @@ function Router() {
             <ProtectedRoute path="/investor-database" component={InvestorDatabasePage} />
             <ProtectedRoute path="/sde-analyzer" component={SDEAnalyzerPage} />
             <ProtectedRoute path="/messages" component={Messages} />
+            {/* E-Signature Routes */}
+            <ProtectedRoute path="/esign" component={EsignDashboard} />
+            <ProtectedRoute path="/esign/templates" component={EsignTemplates} />
+            <ProtectedRoute path="/esign/templates/new" component={EsignTemplateEditor} />
+            <ProtectedRoute path="/esign/templates/:id/edit" component={EsignTemplateEditor} />
+            <ProtectedRoute path="/esign/send" component={EsignSend} />
+            <ProtectedRoute path="/esign/envelope/:id" component={EsignEnvelopeDetail} />
+            <ProtectedRoute path="/esign/settings" component={EsignSettings} />
             <ProtectedRoute path="/account" component={AccountPage} />
             <ProtectedRoute path="/profile" component={AccountPage} />
             <Route path="/pricing" component={PricingPage} />
@@ -110,6 +128,9 @@ function Router() {
             <ProtectedRoute path="/nda-templates/edit/:id" component={EnhancedTemplateEditorPage} />
             <Route path="/share/:shareSlug/sign-nda" component={EnhancedNdaSigningPage} />
             <Route path="/sign/:accessToken" component={SignDocumentPage} />
+            {/* E-Signature Guest Signing and Verification */}
+            <Route path="/esign/sign/:token" component={EsignSign} />
+            <Route path="/esign/verify/:envelopeId" component={EsignVerify} />
             {/* SEO Feature Pages */}
             <Route path="/features/nda-protection">
               <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>

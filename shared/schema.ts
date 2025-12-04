@@ -1136,3 +1136,245 @@ export const insertSdeAnalysisSchema = createInsertSchema(sdeAnalyses).pick({
 
 export type SdeAnalysis = typeof sdeAnalyses.$inferSelect;
 export type InsertSdeAnalysis = z.infer<typeof insertSdeAnalysisSchema>;
+
+// ============================================================================
+// E-SIGNATURE SYSTEM - General purpose DocuSign-like e-signature feature
+// ============================================================================
+
+// User branding settings for e-signature emails and signing pages
+export const userBranding = pgTable("user_branding", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().unique(),
+  logoUrl: text("logo_url"),
+  primaryColor: text("primary_color").default("#0072CE").notNull(),
+  companyName: text("company_name"),
+  emailFromName: text("email_from_name"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+// E-signature templates with placeholder recipients
+export const esignTemplates = pgTable("esign_templates", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  documentUrl: text("document_url").notNull(), // Original PDF in object storage
+  pageImages: jsonb("page_images").default([]).notNull(), // Array of page image URLs
+  totalPages: integer("total_pages").default(1).notNull(),
+  placeholderRecipients: jsonb("placeholder_recipients").default([]).notNull(), // Array of { id, label, role, color, order }
+  fields: jsonb("fields").default([]).notNull(), // Array of field definitions with assignedTo = placeholder ID
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+// E-signature envelopes - containers for signing transactions
+export const esignEnvelopes = pgTable("esign_envelopes", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  title: text("title").notNull(),
+  message: text("message"), // Custom message to recipients
+  status: text("status").notNull().default("draft"), // draft, sent, completed, voided, declined
+  signingOrder: text("signing_order").notNull().default("parallel"), // parallel, sequential
+  documentUrl: text("document_url").notNull(), // Original PDF
+  pageImages: jsonb("page_images").default([]).notNull(), // Page image URLs
+  totalPages: integer("total_pages").default(1).notNull(),
+  templateId: integer("template_id"), // If created from template
+  signedDocumentUrl: text("signed_document_url"), // Final signed PDF
+  certificateUrl: text("certificate_url"), // Certificate of completion
+  completedAt: timestamp("completed_at"),
+  voidedAt: timestamp("voided_at"),
+  voidReason: text("void_reason"),
+  declinedAt: timestamp("declined_at"),
+  declinedBy: text("declined_by"), // Email of person who declined
+  declineReason: text("decline_reason"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+// E-signature envelope recipients
+export const esignRecipients = pgTable("esign_recipients", {
+  id: serial("id").primaryKey(),
+  envelopeId: integer("envelope_id").notNull(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  role: text("role").notNull().default("signer"), // signer, cc
+  placeholderLabel: text("placeholder_label"), // Original template role label (e.g., "Client")
+  color: text("color").notNull(), // Hex color for visual distinction
+  signingOrder: integer("signing_order").notNull().default(1), // Order for sequential signing
+  status: text("status").notNull().default("pending"), // pending, sent, viewed, signed, declined
+  accessToken: text("access_token").notNull().unique(), // Unique signing URL token
+  declineReason: text("decline_reason"),
+  sentAt: timestamp("sent_at"),
+  viewedAt: timestamp("viewed_at"),
+  signedAt: timestamp("signed_at"),
+  declinedAt: timestamp("declined_at"),
+  ipAddress: text("ip_address"),
+  location: text("location"),
+  userAgent: text("user_agent"),
+  reminderCount: integer("reminder_count").default(0).notNull(),
+  lastReminderAt: timestamp("last_reminder_at")
+});
+
+// E-signature envelope fields
+export const esignFields = pgTable("esign_fields", {
+  id: serial("id").primaryKey(),
+  envelopeId: integer("envelope_id").notNull(),
+  recipientId: integer("recipient_id").notNull(),
+  type: text("type").notNull(), // signature, name, email, date, text, initials
+  x: text("x").notNull(), // Percentage as decimal string
+  y: text("y").notNull(), // Percentage as decimal string
+  width: text("width").notNull(), // Percentage as decimal string
+  height: text("height").notNull(), // Percentage as decimal string
+  page: integer("page").notNull().default(1),
+  required: boolean("required").notNull().default(true),
+  value: text("value"), // Filled value (base64 for signatures)
+  completedAt: timestamp("completed_at")
+});
+
+// E-signature audit log
+export const esignAuditLog = pgTable("esign_audit_log", {
+  id: serial("id").primaryKey(),
+  envelopeId: integer("envelope_id").notNull(),
+  recipientId: integer("recipient_id"),
+  action: text("action").notNull(), // envelope_created, envelope_sent, recipient_sent, recipient_viewed, field_completed, recipient_signed, recipient_declined, envelope_completed, envelope_voided, envelope_declined, reminder_sent, document_downloaded
+  details: jsonb("details").default({}).notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  location: text("location"),
+  timestamp: timestamp("timestamp").defaultNow().notNull()
+});
+
+// Recipient color palette for consistent visual distinction
+export const ESIGN_RECIPIENT_COLORS = [
+  '#0072CE',  // Blue (Signer 1)
+  '#FF6B00',  // Orange (Signer 2)
+  '#00A651',  // Green (Signer 3)
+  '#9B59B6',  // Purple (Signer 4)
+  '#E91E63',  // Pink (Signer 5)
+  '#00BCD4',  // Cyan (Signer 6)
+  '#795548',  // Brown (Signer 7)
+  '#607D8B',  // Gray (Signer 8)
+] as const;
+
+export const ESIGN_CC_COLOR = '#9CA3AF'; // Muted gray for CC recipients
+
+// Zod schemas for e-signature system
+export const esignPlaceholderRecipientSchema = z.object({
+  id: z.string(),
+  label: z.string().min(1, "Role label is required"),
+  role: z.enum(['signer', 'cc']),
+  color: z.string(),
+  order: z.number()
+});
+
+export const esignTemplateFieldSchema = z.object({
+  id: z.string(),
+  type: z.enum(['signature', 'name', 'email', 'date', 'text', 'initials']),
+  x: z.number(), // Percentage 0-100
+  y: z.number(), // Percentage 0-100
+  width: z.number(), // Percentage
+  height: z.number(), // Percentage
+  page: z.number(),
+  assignedTo: z.string(), // Placeholder recipient ID
+  required: z.boolean().default(true)
+});
+
+export const insertUserBrandingSchema = createInsertSchema(userBranding).pick({
+  logoUrl: true,
+  primaryColor: true,
+  companyName: true,
+  emailFromName: true
+}).extend({
+  logoUrl: z.string().nullable().optional(),
+  primaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid hex color").optional(),
+  companyName: z.string().optional(),
+  emailFromName: z.string().optional()
+});
+
+export const insertEsignTemplateSchema = createInsertSchema(esignTemplates).pick({
+  name: true,
+  description: true,
+  documentUrl: true
+}).extend({
+  name: z.string().min(1, "Template name is required"),
+  description: z.string().optional(),
+  documentUrl: z.string().min(1, "Document URL is required"),
+  pageImages: z.array(z.string()).optional(),
+  totalPages: z.number().optional(),
+  placeholderRecipients: z.array(esignPlaceholderRecipientSchema).optional(),
+  fields: z.array(esignTemplateFieldSchema).optional()
+});
+
+export const insertEsignEnvelopeSchema = createInsertSchema(esignEnvelopes).pick({
+  title: true,
+  message: true,
+  documentUrl: true
+}).extend({
+  title: z.string().min(1, "Document title is required"),
+  message: z.string().optional(),
+  documentUrl: z.string().min(1, "Document URL is required"),
+  signingOrder: z.enum(['parallel', 'sequential']).default('parallel'),
+  pageImages: z.array(z.string()).optional(),
+  totalPages: z.number().optional(),
+  templateId: z.number().optional()
+});
+
+export const insertEsignRecipientSchema = createInsertSchema(esignRecipients).pick({
+  envelopeId: true,
+  name: true,
+  email: true
+}).extend({
+  envelopeId: z.number(),
+  name: z.string().min(1, "Recipient name is required"),
+  email: z.string().email("Please enter a valid email address"),
+  role: z.enum(['signer', 'cc']).default('signer'),
+  placeholderLabel: z.string().optional(),
+  color: z.string(),
+  signingOrder: z.number().default(1)
+});
+
+export const insertEsignFieldSchema = createInsertSchema(esignFields).pick({
+  envelopeId: true,
+  recipientId: true,
+  type: true
+}).extend({
+  envelopeId: z.number(),
+  recipientId: z.number(),
+  type: z.enum(['signature', 'name', 'email', 'date', 'text', 'initials']),
+  x: z.string(),
+  y: z.string(),
+  width: z.string(),
+  height: z.string(),
+  page: z.number().default(1),
+  required: z.boolean().default(true)
+});
+
+export const insertEsignAuditLogSchema = createInsertSchema(esignAuditLog).pick({
+  envelopeId: true,
+  action: true
+}).extend({
+  envelopeId: z.number(),
+  recipientId: z.number().optional(),
+  action: z.string(),
+  details: z.record(z.any()).optional(),
+  ipAddress: z.string().optional(),
+  userAgent: z.string().optional(),
+  location: z.string().optional()
+});
+
+// Type exports for e-signature system
+export type UserBranding = typeof userBranding.$inferSelect;
+export type InsertUserBranding = z.infer<typeof insertUserBrandingSchema>;
+export type EsignTemplate = typeof esignTemplates.$inferSelect;
+export type InsertEsignTemplate = z.infer<typeof insertEsignTemplateSchema>;
+export type EsignEnvelope = typeof esignEnvelopes.$inferSelect;
+export type InsertEsignEnvelope = z.infer<typeof insertEsignEnvelopeSchema>;
+export type EsignRecipient = typeof esignRecipients.$inferSelect;
+export type InsertEsignRecipient = z.infer<typeof insertEsignRecipientSchema>;
+export type EsignField = typeof esignFields.$inferSelect;
+export type InsertEsignField = z.infer<typeof insertEsignFieldSchema>;
+export type EsignAuditLog = typeof esignAuditLog.$inferSelect;
+export type InsertEsignAuditLog = z.infer<typeof insertEsignAuditLogSchema>;
+export type EsignPlaceholderRecipient = z.infer<typeof esignPlaceholderRecipientSchema>;
+export type EsignTemplateField = z.infer<typeof esignTemplateFieldSchema>;

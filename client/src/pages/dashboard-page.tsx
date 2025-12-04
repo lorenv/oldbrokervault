@@ -71,7 +71,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-6">
           {/* Main Content Area */}
           <div className={cimMode === 'choice' ? 'lg:col-span-9' : 'lg:col-span-12'}>
-            <div className="bg-white rounded-xl shadow-xl border-2 border-blue-100 ring-2 ring-blue-50">
+            <div className="bg-white rounded-xl shadow-lg border border-gray-200">
               <div className="p-3 lg:p-4">
                 <CimGenerator onModeChange={setCimMode} />
               </div>
@@ -209,19 +209,17 @@ export default function DashboardPage() {
             <AnalyticsOverviewCard />
 
             {/* Subscription Card */}
-            <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
-              <SubscriptionCard
-                status={user?.subscriptionStatus}
-                endsAt={user?.subscriptionEndsAt ? new Date(user.subscriptionEndsAt).toISOString() : null}
-                monthlyUsage={user?.monthlyUsage}
-                monthlyDocumentsCreated={user?.monthlyDocumentsCreated}
-                monthlyRegenerationsUsed={user?.monthlyRegenerationsUsed}
-                subtle={true}
-                hideProButtons={true}
-                hideActiveUntil={true}
-                hideRegenerations={true}
-              />
-            </div>
+            <SubscriptionCard
+              status={user?.subscriptionStatus}
+              endsAt={user?.subscriptionEndsAt ? new Date(user.subscriptionEndsAt).toISOString() : null}
+              monthlyUsage={user?.monthlyUsage}
+              monthlyDocumentsCreated={user?.monthlyDocumentsCreated}
+              monthlyRegenerationsUsed={user?.monthlyRegenerationsUsed}
+              subtle={true}
+              hideProButtons={true}
+              hideActiveUntil={true}
+              hideRegenerations={true}
+            />
           </div>
           </div>
         </div>
