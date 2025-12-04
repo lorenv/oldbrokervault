@@ -678,7 +678,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                       value={ndaSettings.ndaTemplateId?.toString() || ""}
                       onValueChange={(value) => {
                         if (value === "manage-templates") {
-                          setLocation('/account?tab=templates');
+                          setLocation('/nda-templates');
                         } else {
                           handleSettingChange('ndaTemplateId', parseInt(value));
                         }

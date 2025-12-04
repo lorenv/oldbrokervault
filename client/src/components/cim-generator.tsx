@@ -1454,7 +1454,7 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
                               )}
                               <div className="border-t mt-2 pt-2">
                                 <a
-                                  href="/account?tab=templates"
+                                  href="/nda-templates"
                                   className="flex items-center gap-2 px-2 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-sm transition-colors"
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -1725,6 +1725,19 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
                                 {ndaTemplatesLoading ? "Loading..." : "No templates"}
                               </SelectItem>
                             )}
+                            <div className="border-t mt-2 pt-2">
+                              <a
+                                href="/nda-templates"
+                                className="flex items-center gap-2 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent rounded-sm transition-colors"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                }}
+                              >
+                                <Settings2 className="h-3 w-3" />
+                                <span>Manage Templates</span>
+                                <ExternalLink className="h-3 w-3 ml-auto" />
+                              </a>
+                            </div>
                           </SelectContent>
                         </Select>
                       </div>

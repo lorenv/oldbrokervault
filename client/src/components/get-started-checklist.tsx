@@ -38,10 +38,10 @@ export function GetStartedChecklist() {
     },
     {
       id: 'templates',
-      title: 'Choose NDA and PDF settings',
-      description: 'Configure your document templates',
+      title: 'Set up NDA templates',
+      description: 'Create NDA templates for document protection',
       completed: false,
-      href: '/account?tab=templates',
+      href: '/nda-templates',
       icon: FileText,
     },
     {

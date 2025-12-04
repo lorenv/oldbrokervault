@@ -89,8 +89,8 @@ export default function EnhancedTemplateEditorPage() {
 
       // Small delay to ensure the cache is updated
       setTimeout(() => {
-        // Navigate back to account settings templates tab
-        setLocation('/account?tab=templates');
+        // Navigate back to NDA templates page
+        setLocation('/nda-templates');
       }, 100);
     } catch (error) {
       console.error('=== SAVE ERROR DETAILS ===');
@@ -114,12 +114,12 @@ export default function EnhancedTemplateEditorPage() {
         variant: "destructive"
       });
       // Still navigate back so user can see their templates
-      setLocation('/account?tab=templates');
+      setLocation('/nda-templates');
     }
   };
 
   const handleBack = () => {
-    setLocation('/account');
+    setLocation('/nda-templates');
   };
 
   // Full-screen layout without navbar constraints
@@ -136,7 +136,7 @@ export default function EnhancedTemplateEditorPage() {
               className="flex items-center gap-2"
             >
               <ArrowLeft className="w-4 h-4" />
-              Back to Account
+              Back to Templates
             </Button>
             <div className="border-l border-gray-300 h-6"></div>
             <div>

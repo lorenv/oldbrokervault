@@ -31,16 +31,6 @@ import { User, Phone, Building, Upload, Camera, Shield, Lock, CreditCard, Settin
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PdfTemplateSelector } from "@/components/pdf-template-selector";
-import { NdaTemplate } from "@shared/schema";
-import { Plus, FileSignature, Grid3X3, List, Eye, Edit, Trash2, Calendar, MoreVertical, Users } from "lucide-react";
-import EnhancedNdaTemplateEditor from "@/components/esignature/enhanced-nda-template-editor";
-import { format } from "date-fns";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 // Define authorized admin emails
 const AUTHORIZED_ADMIN_EMAILS = [
@@ -78,400 +68,6 @@ const profileSchema = z.object({
   path: ["confirmPassword"],
 });
 
-// Templates Content Component
-function TemplatesContent() {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [, navigate] = useLocation();
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [showNewTemplateEditor, setShowNewTemplateEditor] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<NdaTemplate | null>(null);
-
-  // Fetch NDA templates
-  const { data: templates = [], isLoading } = useQuery({
-    queryKey: ['/api/nda-templates'],
-    queryFn: async () => {
-      const response = await apiRequest('GET', '/api/nda-templates');
-      const data = await response.json();
-      return data.sort((a: NdaTemplate, b: NdaTemplate) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-    },
-    staleTime: 5 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
-  });
-
-  // Create template mutation
-  const createTemplateMutation = useMutation({
-    mutationFn: async (templateData: {
-      name: string;
-      fileContent: string;
-      signatureFields: any[];
-      recipients: any[];
-    }) => {
-
-      const response = await apiRequest('POST', '/api/nda-templates', { body: templateData });
-      return response.json();
-    },
-    onSuccess: async () => {
-      // First hide the editor
-      setShowNewTemplateEditor(false);
-
-      // Then invalidate queries to refetch the list
-      await queryClient.invalidateQueries({ queryKey: ['/api/nda-templates'] });
-
-      toast({
-        title: "Template created",
-        description: "NDA template has been created successfully"
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Creation failed",
-        description: "Failed to create template",
-        variant: "destructive"
-      });
-    }
-  });
-
-  // Update template mutation
-  const updateTemplateMutation = useMutation({
-    mutationFn: async (templateData: {
-      id: number;
-      name: string;
-      fileContent: string;
-      signatureFields: any[];
-      recipients: any[];
-    }) => {
-      const { id, ...data } = templateData;
-
-      const response = await apiRequest('PUT', `/api/nda-templates/${id}`, { body: data });
-      return response.json();
-    },
-    onSuccess: async () => {
-      // First hide the editor
-      setEditingTemplate(null);
-
-      // Then invalidate queries to refetch the list
-      await queryClient.invalidateQueries({ queryKey: ['/api/nda-templates'] });
-
-      toast({
-        title: "Template updated",
-        description: "NDA template has been updated successfully"
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Update failed",
-        description: "Failed to update template",
-        variant: "destructive"
-      });
-    }
-  });
-
-  // Delete template mutation
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => apiRequest('DELETE', `/api/nda-templates/${id}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/nda-templates'] });
-      toast({
-        title: "Template deleted",
-        description: "NDA template has been deleted successfully"
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Delete failed",
-        description: "Failed to delete template",
-        variant: "destructive"
-      });
-    }
-  });
-
-  const handleDelete = (id: number, name: string) => {
-    if (window.confirm(`Are you sure you want to delete "${name}"?`)) {
-      deleteMutation.mutate(id);
-    }
-  };
-
-  const handleCreateTemplate = (data: {
-    name: string;
-    fileContent: string;
-    signatureFields: any[];
-    recipients?: any[];
-    totalPages?: number;
-    pageImages?: any[];
-  }) => {
-    createTemplateMutation.mutate({
-      name: data.name,
-      fileContent: data.fileContent,
-      signatureFields: data.signatureFields,
-      recipients: data.recipients || [],
-      totalPages: data.totalPages,
-      pageImages: data.pageImages
-    });
-  };
-
-  const handleUpdateTemplate = (data: {
-    name: string;
-    fileContent: string;
-    signatureFields: any[];
-    recipients?: any[];
-    totalPages?: number;
-    pageImages?: any[];
-  }) => {
-    if (editingTemplate) {
-      updateTemplateMutation.mutate({
-        id: editingTemplate.id,
-        name: data.name,
-        fileContent: data.fileContent,
-        signatureFields: data.signatureFields,
-        recipients: data.recipients || [],
-        totalPages: data.totalPages,
-        pageImages: data.pageImages
-      });
-    }
-  };
-
-  if (showNewTemplateEditor) {
-    return (
-      <div className="space-y-6">
-        <EnhancedNdaTemplateEditor
-          onSave={handleCreateTemplate}
-          isLoading={createTemplateMutation.isPending}
-          showBackButton={true}
-          onBack={() => setShowNewTemplateEditor(false)}
-        />
-      </div>
-    );
-  }
-
-  if (editingTemplate) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Edit NDA Template</h2>
-            <p className="text-gray-600 mt-1">Modify template settings and signature fields</p>
-          </div>
-          <Button
-            variant="outline"
-            onClick={() => setEditingTemplate(null)}
-          >
-            Back to Templates
-          </Button>
-        </div>
-
-        <EnhancedNdaTemplateEditor
-          initialTemplate={editingTemplate}
-          onSave={handleUpdateTemplate}
-          isLoading={updateTemplateMutation.isPending}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* NDA Templates Section */}
-      <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
-        <CardHeader className="bg-gradient-to-r from-indigo-600 to-slate-700 pb-4 pt-6 px-6 shadow-lg">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-white/20 backdrop-blur-sm rounded-lg shadow-sm">
-                <FileSignature className="h-4 w-4 text-white" />
-              </div>
-              <div>
-                <CardTitle className="text-lg font-semibold text-white">NDA Templates</CardTitle>
-                <CardDescription className="text-slate-100 mt-0.5 text-sm">
-                  Create and manage your NDA templates with signature fields
-                </CardDescription>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              {templates.length > 0 && (
-                <div className="flex items-center border border-white/30 rounded-lg p-1 bg-white/10">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setViewMode('grid')}
-                    className={`h-8 w-8 p-0 ${viewMode === 'grid' ? 'bg-white/30 shadow-sm text-white' : 'text-indigo-100 hover:text-white hover:bg-white/20'}`}
-                  >
-                    <Grid3X3 className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setViewMode('list')}
-                    className={`h-8 w-8 p-0 ${viewMode === 'list' ? 'bg-white/30 shadow-sm text-white' : 'text-indigo-100 hover:text-white hover:bg-white/20'}`}
-                  >
-                    <List className="w-4 h-4" />
-                  </Button>
-                </div>
-              )}
-              <Button
-                onClick={() => navigate('/template-editor')}
-                className="bg-white/20 hover:bg-white/30 text-white border-white/30 flex items-center gap-2"
-                variant="outline"
-              >
-                <Plus className="w-4 h-4" />
-                Add New Template
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="px-8 pb-8 pt-8">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            </div>
-          ) : templates.length === 0 ? (
-            <div className="text-center py-12">
-              <FileSignature className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No NDA Templates</h3>
-              <p className="text-gray-600 mb-4">
-                Create your first NDA template to get started with document protection
-              </p>
-              <Button
-                onClick={() => navigate('/template-editor')}
-                className="flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                Add New Template
-              </Button>
-            </div>
-          ) : viewMode === 'grid' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {templates.map((template: NdaTemplate) => (
-                <Card
-                  key={template.id}
-                  className="group hover:shadow-lg transition-all duration-200 cursor-pointer border-gray-200 hover:border-blue-200"
-                  onClick={() => navigate(`/template-editor/${template.id}`)}
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="flex items-center gap-2 text-base truncate group-hover:text-blue-600 transition-colors">
-                          <div className="p-1.5 rounded-lg bg-blue-50 group-hover:bg-blue-100 transition-colors">
-                            <FileSignature className="w-4 h-4 text-blue-600" />
-                          </div>
-                          <span className="truncate">{template.name}</span>
-                        </CardTitle>
-                      </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <MoreVertical className="w-4 h-4 text-gray-500" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/template-editor/${template.id}`);
-                            }}
-                          >
-                            <Edit className="w-4 h-4 mr-2" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDelete(template.id, template.name);
-                            }}
-                            className="text-red-600"
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="space-y-2 text-sm text-gray-500">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4" />
-                        <span>Created {format(new Date(template.createdAt), 'MMM d, yyyy')}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4" />
-                        <span>{(template.signatureFields as any[])?.length || 0} signature fields</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {templates.map((template: NdaTemplate) => (
-                <div
-                  key={template.id}
-                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer group"
-                  onClick={() => navigate(`/template-editor/${template.id}`)}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-blue-50 group-hover:bg-blue-100 transition-colors">
-                      <FileSignature className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium group-hover:text-blue-600 transition-colors">{template.name}</h3>
-                      <p className="text-sm text-gray-500">
-                        Created {format(new Date(template.createdAt), 'MMM d, yyyy')} • {(template.signatureFields as any[])?.length || 0} signature fields
-                      </p>
-                    </div>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <MoreVertical className="w-4 h-4 text-gray-500" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/template-editor/${template.id}`);
-                        }}
-                      >
-                        <Edit className="w-4 h-4 mr-2" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(template.id, template.name);
-                        }}
-                        className="text-red-600"
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* PDF Background Templates Section */}
-      <PdfTemplateSelector />
-    </div>
-  );
-}
 
 export default function AccountPage() {
   const { user } = useAuth();
@@ -827,32 +423,40 @@ export default function AccountPage() {
         setActiveTab(tab);
         // Update URL to reflect the tab change
         window.history.pushState({}, '', `/account?tab=${tab}`);
-      }} className="space-y-4 sm:space-y-6">
-        {/* Mobile-optimized TabsList with scrollable tabs */}
-        <div className="w-full overflow-x-auto">
-          <TabsList className={`flex w-max min-w-full md:grid md:w-full ${isAuthorizedAdmin(user) ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-1 p-1`}>
-          <TabsTrigger value="account" className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
-            <Lock className="h-3 w-3 sm:h-4 sm:w-4" />
+      }} className="space-y-6 sm:space-y-8">
+        {/* Modern pill-style tabs */}
+        <div className="w-full overflow-x-auto pb-1">
+          <TabsList className={`inline-flex w-max min-w-full md:w-full h-auto p-1.5 bg-gray-100/80 rounded-xl gap-1 ${isAuthorizedAdmin(user) ? 'md:grid md:grid-cols-4' : 'md:grid md:grid-cols-3'}`}>
+          <TabsTrigger
+            value="account"
+            className="flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 text-xs sm:text-sm font-medium whitespace-nowrap rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-900 data-[state=inactive]:hover:bg-white/50"
+          >
+            <Lock className="h-4 w-4" />
             <span className="hidden sm:inline">Account & Security</span>
             <span className="sm:hidden">Account</span>
           </TabsTrigger>
-          <TabsTrigger value="profile" className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
-            <User className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="hidden sm:inline">Profile & Business</span>
+          <TabsTrigger
+            value="profile"
+            className="flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 text-xs sm:text-sm font-medium whitespace-nowrap rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-900 data-[state=inactive]:hover:bg-white/50"
+          >
+            <User className="h-4 w-4" />
+            <span className="hidden sm:inline">Profile & Branding</span>
             <span className="sm:hidden">Profile</span>
           </TabsTrigger>
-          <TabsTrigger value="templates" className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
-            <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
-            Templates
-          </TabsTrigger>
-          <TabsTrigger value="billing" className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
-            <CreditCard className="h-3 w-3 sm:h-4 sm:w-4" />
+          <TabsTrigger
+            value="billing"
+            className="flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 text-xs sm:text-sm font-medium whitespace-nowrap rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-900 data-[state=inactive]:hover:bg-white/50"
+          >
+            <CreditCard className="h-4 w-4" />
             <span className="hidden sm:inline">Subscription</span>
             <span className="sm:hidden">Billing</span>
           </TabsTrigger>
           {isAuthorizedAdmin(user) && (
-            <TabsTrigger value="admin" className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
-              <Shield className="h-3 w-3 sm:h-4 sm:w-4" />
+            <TabsTrigger
+              value="admin"
+              className="flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 text-xs sm:text-sm font-medium whitespace-nowrap rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-900 data-[state=inactive]:hover:bg-white/50"
+            >
+              <Shield className="h-4 w-4" />
               Admin
             </TabsTrigger>
           )}
@@ -949,25 +553,25 @@ export default function AccountPage() {
           </Card>
         </TabsContent>
 
-        {/* Profile & Business Tab */}
-        <TabsContent value="profile" className="space-y-4 sm:space-y-6">
-          <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+        {/* Profile & Branding Tab */}
+        <TabsContent value="profile" className="space-y-6">
+          <div className="grid gap-6 lg:grid-cols-2">
             {/* Personal Information */}
-            <Card className="lg:col-span-1 border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-xl sm:rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
-              <CardHeader className="bg-gradient-to-r from-emerald-600 to-slate-700 pb-3 sm:pb-4 pt-4 sm:pt-6 px-4 sm:px-6 shadow-lg">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 bg-white/20 backdrop-blur-sm rounded-lg shadow-sm">
+            <Card className="lg:col-span-1 border-0 shadow-md bg-white rounded-xl overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-slate-600 to-slate-700 pb-4 pt-5 px-5">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white/20 rounded-lg">
                     <User className="h-4 w-4 text-white" />
                   </div>
                   <div>
-                    <CardTitle className="text-lg font-semibold text-white">Personal Information</CardTitle>
-                    <CardDescription className="text-slate-100 mt-0.5 text-sm">
-                      Contact details that appear in your CIM documents
+                    <CardTitle className="text-base font-semibold text-white">Personal Information</CardTitle>
+                    <CardDescription className="text-slate-200 mt-0.5 text-sm">
+                      Contact details for your CIM documents
                     </CardDescription>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-3 sm:space-y-4 pt-6 sm:pt-8 px-4 sm:px-6">
+              <CardContent className="space-y-4 pt-5 px-5 pb-5">
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">Full Name</Label>
@@ -989,7 +593,7 @@ export default function AccountPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phoneNumber" className="flex items-center gap-2">
-                      <Phone className="h-4 w-4" />
+                      <Phone className="h-4 w-4 text-gray-400" />
                       Phone Number
                     </Label>
                     <Input
@@ -1004,28 +608,28 @@ export default function AccountPage() {
             </Card>
 
             {/* Profile Photo */}
-            <Card className="lg:col-span-1 border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-xl sm:rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
-              <CardHeader className="bg-gradient-to-r from-sky-600 to-slate-700 pb-3 sm:pb-4 pt-4 sm:pt-6 px-4 sm:px-6 shadow-lg">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 bg-white/20 backdrop-blur-sm rounded-lg shadow-sm">
+            <Card className="lg:col-span-1 border-0 shadow-md bg-white rounded-xl overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-slate-600 to-slate-700 pb-4 pt-5 px-5">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white/20 rounded-lg">
                     <Camera className="h-4 w-4 text-white" />
                   </div>
                   <div>
-                    <CardTitle className="text-lg font-semibold text-white">Profile Photo</CardTitle>
-                    <CardDescription className="text-slate-100 mt-0.5 text-sm">
-                      Your photo appears on share links and PDF exports
+                    <CardTitle className="text-base font-semibold text-white">Profile Photo</CardTitle>
+                    <CardDescription className="text-slate-200 mt-0.5 text-sm">
+                      Appears on share links and PDF exports
                     </CardDescription>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="pt-6 sm:pt-8 px-4 sm:px-6">
-                <div className="border-2 border-dashed border-muted rounded-lg p-4 sm:p-6 text-center">
+              <CardContent className="pt-5 px-5 pb-5">
+                <div className="border-2 border-dashed border-gray-200 rounded-lg p-5 text-center">
                   {profileForm.profilePhoto ? (
-                    <div className="space-y-3 sm:space-y-4">
+                    <div className="space-y-4">
                       <img
                         src={profileForm.profilePhoto}
                         alt="Profile Photo"
-                        className="w-24 h-24 mx-auto rounded-full object-cover border-2 border-border"
+                        className="w-24 h-24 mx-auto rounded-full object-cover border-2 border-gray-200"
                       />
                       <div className="flex gap-2 justify-center">
                         <Button
@@ -1047,9 +651,9 @@ export default function AccountPage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="py-8">
-                      <Camera className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                      <p className="text-sm text-muted-foreground mb-4">
+                    <div className="py-6">
+                      <Camera className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+                      <p className="text-sm text-gray-500 mb-4">
                         Upload your profile photo
                       </p>
                       <Button
@@ -1069,7 +673,7 @@ export default function AccountPage() {
                     className="hidden"
                     onChange={(e) => handleFileUpload(e, "profilePhoto")}
                   />
-                  <p className="text-xs text-muted-foreground mt-3">
+                  <p className="text-xs text-gray-400 mt-3">
                     PNG, JPG, or GIF up to 5MB
                   </p>
                 </div>
@@ -1078,21 +682,21 @@ export default function AccountPage() {
           </div>
 
           {/* Business Information */}
-          <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
-            <CardHeader className="bg-gradient-to-r from-gray-600 to-slate-700 pb-4 pt-6 px-6 shadow-lg">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-white/20 backdrop-blur-sm rounded-lg shadow-sm">
+          <Card className="border-0 shadow-md bg-white rounded-xl overflow-hidden">
+            <CardHeader className="bg-gradient-to-r from-slate-600 to-slate-700 pb-4 pt-5 px-5">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/20 rounded-lg">
                   <Building className="h-4 w-4 text-white" />
                 </div>
                 <div>
-                  <CardTitle className="text-lg font-semibold text-white">Business Information</CardTitle>
-                  <CardDescription className="text-slate-100 mt-0.5 text-sm">
+                  <CardTitle className="text-base font-semibold text-white">Business Information</CardTitle>
+                  <CardDescription className="text-slate-200 mt-0.5 text-sm">
                     Company details for professional CIM branding
                   </CardDescription>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="space-y-6 pt-8">
+            <CardContent className="space-y-6 pt-5 px-5 pb-5">
               <div className="grid gap-6 lg:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="businessName">Business Name</Label>
@@ -1166,11 +770,11 @@ export default function AccountPage() {
                 </div>
               </div>
 
-              <div className="border-t pt-6">
+              <div className="border-t border-gray-100 pt-5">
                 <Button
                   onClick={handleProfileSave}
                   disabled={updateProfileMutation.isPending}
-                  className="w-full bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white border-0 shadow-lg"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                 >
                   {updateProfileMutation.isPending ? "Saving..." : "Save Profile Information"}
                 </Button>
@@ -1178,11 +782,9 @@ export default function AccountPage() {
             </CardContent>
           </Card>
 
-        </TabsContent>
+          {/* PDF Background Templates */}
+          <PdfTemplateSelector />
 
-        {/* Templates Tab */}
-        <TabsContent value="templates" className="space-y-6">
-          <TemplatesContent />
         </TabsContent>
 
         {/* Subscription & Billing Tab */}
