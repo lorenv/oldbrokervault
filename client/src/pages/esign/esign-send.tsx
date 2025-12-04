@@ -266,6 +266,71 @@ function DocumentPageCanvas({
     }
   }, [fields, onFieldsChange, selectedFieldId, onSelectField]);
 
+  // Handle field resize
+  const handleFieldResize = useCallback((e: React.MouseEvent, field: SignatureField, corner: 'se' | 'sw' | 'ne' | 'nw') => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!canvasRef.current) return;
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startWidth = field.width;
+    const startHeight = field.height;
+    const startFieldX = field.x;
+    const startFieldY = field.y;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!canvasRef.current) return;
+
+      const deltaX = ((e.clientX - startX) / displayWidth) * 100;
+      const deltaY = ((e.clientY - startY) / displayHeight) * 100;
+
+      let newWidth = startWidth;
+      let newHeight = startHeight;
+      let newX = startFieldX;
+      let newY = startFieldY;
+
+      // Calculate new dimensions based on which corner is being dragged
+      if (corner === 'se') {
+        newWidth = Math.max(5, startWidth + deltaX);
+        newHeight = Math.max(2, startHeight + deltaY);
+      } else if (corner === 'sw') {
+        newWidth = Math.max(5, startWidth - deltaX);
+        newHeight = Math.max(2, startHeight + deltaY);
+        newX = startFieldX + (startWidth - newWidth);
+      } else if (corner === 'ne') {
+        newWidth = Math.max(5, startWidth + deltaX);
+        newHeight = Math.max(2, startHeight - deltaY);
+        newY = startFieldY + (startHeight - newHeight);
+      } else if (corner === 'nw') {
+        newWidth = Math.max(5, startWidth - deltaX);
+        newHeight = Math.max(2, startHeight - deltaY);
+        newX = startFieldX + (startWidth - newWidth);
+        newY = startFieldY + (startHeight - newHeight);
+      }
+
+      // Clamp to bounds
+      newX = Math.max(0, Math.min(100 - newWidth, newX));
+      newY = Math.max(0, Math.min(100 - newHeight, newY));
+      newWidth = Math.min(100 - newX, newWidth);
+      newHeight = Math.min(100 - newY, newHeight);
+
+      const updatedFields = fields.map(f =>
+        f.id === field.id ? { ...f, x: newX, y: newY, width: newWidth, height: newHeight } : f
+      );
+      onFieldsChange(updatedFields);
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [fields, onFieldsChange, displayWidth, displayHeight]);
+
   // Combine refs
   const combinedRef = useCallback((node: HTMLDivElement | null) => {
     (canvasRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
@@ -313,6 +378,11 @@ function DocumentPageCanvas({
           const color = getRecipientColor(field.recipientIndex);
           const isSelected = selectedFieldId === field.id;
 
+          // Calculate dynamic font size based on field height (in pixels)
+          const fieldHeightPx = (field.height / 100) * displayHeight;
+          const dynamicFontSize = Math.max(8, Math.min(24, fieldHeightPx * 0.5));
+          const iconSize = Math.max(10, Math.min(20, fieldHeightPx * 0.4));
+
           return (
             <div
               key={field.id}
@@ -332,13 +402,14 @@ function DocumentPageCanvas({
               }}
             >
               <div
-                className="w-full h-full rounded border-2 flex items-center justify-center gap-1 text-white text-xs font-medium"
+                className="w-full h-full rounded border-2 flex items-center justify-center gap-1 text-white font-medium overflow-hidden"
                 style={{
                   backgroundColor: `${color}dd`,
                   borderColor: color,
+                  fontSize: `${dynamicFontSize}px`,
                 }}
               >
-                <Icon className="h-3 w-3 flex-shrink-0" />
+                <Icon className="flex-shrink-0" style={{ width: iconSize, height: iconSize }} />
                 <span className="truncate">{fieldConfig?.label}</span>
               </div>
 
@@ -349,10 +420,36 @@ function DocumentPageCanvas({
                     e.stopPropagation();
                     handleDeleteField(field.id);
                   }}
-                  className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow-md"
+                  className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow-md z-30"
                 >
                   <Trash2 className="h-3 w-3" />
                 </button>
+              )}
+
+              {/* Resize handles when selected */}
+              {isSelected && (
+                <>
+                  {/* SE corner */}
+                  <div
+                    onMouseDown={(e) => handleFieldResize(e, field, 'se')}
+                    className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-blue-500 border border-white rounded-sm cursor-se-resize z-30"
+                  />
+                  {/* SW corner */}
+                  <div
+                    onMouseDown={(e) => handleFieldResize(e, field, 'sw')}
+                    className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-blue-500 border border-white rounded-sm cursor-sw-resize z-30"
+                  />
+                  {/* NE corner */}
+                  <div
+                    onMouseDown={(e) => handleFieldResize(e, field, 'ne')}
+                    className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-blue-500 border border-white rounded-sm cursor-ne-resize z-30"
+                  />
+                  {/* NW corner */}
+                  <div
+                    onMouseDown={(e) => handleFieldResize(e, field, 'nw')}
+                    className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-blue-500 border border-white rounded-sm cursor-nw-resize z-30"
+                  />
+                </>
               )}
             </div>
           );
@@ -428,17 +525,18 @@ export default function EsignSend() {
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(
     templateIdFromUrl ? parseInt(templateIdFromUrl) : null
   );
-  const [signingOrder, setSigningOrder] = useState<'sequential' | 'parallel'>('sequential');
+  const [signingOrder, setSigningOrder] = useState<'sequential' | 'parallel'>('parallel');
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [documentUrl, setDocumentUrl] = useState<string | null>(null);
   const [pageImages, setPageImages] = useState<string[]>([]);
+  const [pageDimensions, setPageDimensions] = useState<Array<{ width: number; height: number }>>([]);
   const [isUploading, setIsUploading] = useState(false);
 
   // Field placement state (for direct uploads only, templates have pre-defined fields)
   const [signatureFields, setSignatureFields] = useState<SignatureField[]>([]);
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const [activeRecipientIndex, setActiveRecipientIndex] = useState<number>(0);
-  const [zoom, setZoom] = useState(1);
+  const [zoom, setZoom] = useState(2);
 
   // Fetch templates
   const { data: templates = [], isLoading: isLoadingTemplates } = useQuery<EsignTemplate[]>({
@@ -503,6 +601,16 @@ export default function EsignSend() {
       const data = await res.json();
       setDocumentUrl(data.documentUrl);
       setPageImages(data.pageImages);
+      // Store page dimensions from the API response
+      if (data.pages && Array.isArray(data.pages)) {
+        setPageDimensions(data.pages.map((p: { width: number; height: number }) => ({
+          width: p.width,
+          height: p.height
+        })));
+      } else {
+        // Fallback to default letter size if pages not provided
+        setPageDimensions(data.pageImages.map(() => ({ width: 612, height: 792 })));
+      }
       setTitle(file.name.replace(/\.[^/.]+$/, "")); // Remove extension
       setSelectedTemplateId(null);
 
@@ -551,9 +659,9 @@ export default function EsignSend() {
   };
 
   // Update recipient
-  const updateRecipient = (id: string, updates: Partial<Recipient>) => {
-    setRecipients(recipients.map(r => r.id === id ? { ...r, ...updates } : r));
-  };
+  const updateRecipient = useCallback((id: string, updates: Partial<Recipient>) => {
+    setRecipients(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
+  }, []);
 
   // Move recipient order
   const moveRecipient = (id: string, direction: 'up' | 'down') => {
@@ -931,18 +1039,6 @@ export default function EsignSend() {
                     className="flex gap-4"
                   >
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="sequential" id="sequential" />
-                      <Label htmlFor="sequential" className="cursor-pointer">
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-gray-500" />
-                          Sequential
-                        </div>
-                        <p className="text-xs text-gray-500 font-normal">
-                          Recipients sign one at a time in order
-                        </p>
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
                       <RadioGroupItem value="parallel" id="parallel" />
                       <Label htmlFor="parallel" className="cursor-pointer">
                         <div className="flex items-center gap-2">
@@ -951,6 +1047,18 @@ export default function EsignSend() {
                         </div>
                         <p className="text-xs text-gray-500 font-normal">
                           All recipients can sign at the same time
+                        </p>
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="sequential" id="sequential" />
+                      <Label htmlFor="sequential" className="cursor-pointer">
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-gray-500" />
+                          Sequential
+                        </div>
+                        <p className="text-xs text-gray-500 font-normal">
+                          Recipients sign one at a time in order
                         </p>
                       </Label>
                     </div>
@@ -1196,16 +1304,22 @@ export default function EsignSend() {
               <div className="col-span-9 flex flex-col max-h-full overflow-hidden">
                 {/* Toolbar */}
                 <div className="flex items-center justify-between bg-white border rounded-t-lg px-4 py-2 flex-shrink-0">
-                  <div>
-                    <h3 className="text-sm font-medium">Place Signature Fields</h3>
-                    <p className="text-xs text-gray-500">Drag fields onto the document where recipients should sign</p>
-                  </div>
+                  {/* Back Button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentStep(getPrevStep())}
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back
+                  </Button>
+
                   {/* Zoom Controls */}
                   <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setZoom(Math.max(0.5, zoom - 0.1))}
+                      onClick={() => setZoom(Math.max(0.5, zoom - 0.25))}
                       disabled={zoom <= 0.5}
                       className="h-8 w-8 p-0"
                     >
@@ -1217,8 +1331,8 @@ export default function EsignSend() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setZoom(Math.min(1.5, zoom + 0.1))}
-                      disabled={zoom >= 1.5}
+                      onClick={() => setZoom(Math.min(2.5, zoom + 0.25))}
+                      disabled={zoom >= 2.5}
                       className="h-8 w-8 p-0"
                     >
                       <ZoomIn className="h-4 w-4" />
@@ -1227,13 +1341,22 @@ export default function EsignSend() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setZoom(1)}
+                      onClick={() => setZoom(2)}
                       className="h-8 w-8 p-0"
-                      title="Reset zoom"
+                      title="Reset zoom to 200%"
                     >
                       <RotateCcw className="h-4 w-4" />
                     </Button>
                   </div>
+
+                  {/* Continue Button */}
+                  <Button
+                    size="sm"
+                    onClick={() => setCurrentStep(getNextStep())}
+                    disabled={!isStep3Valid}
+                  >
+                    Continue
+                  </Button>
                 </div>
 
                 {/* Scrollable Document Area */}
@@ -1250,8 +1373,8 @@ export default function EsignSend() {
                         <DocumentPageCanvas
                           pageImage={pageImage}
                           pageNumber={index + 1}
-                          pageWidth={612}
-                          pageHeight={792}
+                          pageWidth={pageDimensions[index]?.width || 612}
+                          pageHeight={pageDimensions[index]?.height || 792}
                           fields={signatureFields}
                           selectedFieldId={selectedFieldId}
                           onFieldsChange={setSignatureFields}
@@ -1395,48 +1518,49 @@ export default function EsignSend() {
           </div>
         )}
 
-        {/* Navigation Buttons */}
-        <div className="flex justify-between mt-8 max-w-2xl mx-auto">
-          <Button
-            variant="outline"
-            onClick={() => setCurrentStep(getPrevStep())}
-            disabled={currentStep === 1}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
+        {/* Navigation Buttons - hide on step 3 since they're in the toolbar */}
+        {currentStep !== 3 && (
+          <div className="flex justify-between mt-8 max-w-2xl mx-auto">
+            <Button
+              variant="outline"
+              onClick={() => setCurrentStep(getPrevStep())}
+              disabled={currentStep === 1}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
 
-          {currentStep < 4 ? (
-            <Button
-              onClick={() => setCurrentStep(getNextStep())}
-              disabled={
-                (currentStep === 1 && !isStep1Valid) ||
-                (currentStep === 2 && !isStep2Valid) ||
-                (currentStep === 3 && !isStep3Valid)
-              }
-            >
-              Continue
-            </Button>
-          ) : (
-            <Button
-              onClick={() => sendMutation.mutate()}
-              disabled={!canSend || sendMutation.isPending}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              {sendMutation.isPending ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                  Sending...
-                </>
-              ) : (
-                <>
-                  <Send className="h-4 w-4 mr-2" />
-                  Send for Signature
-                </>
-              )}
-            </Button>
-          )}
-        </div>
+            {currentStep < 4 ? (
+              <Button
+                onClick={() => setCurrentStep(getNextStep())}
+                disabled={
+                  (currentStep === 1 && !isStep1Valid) ||
+                  (currentStep === 2 && !isStep2Valid)
+                }
+              >
+                Continue
+              </Button>
+            ) : (
+              <Button
+                onClick={() => sendMutation.mutate()}
+                disabled={!canSend || sendMutation.isPending}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                {sendMutation.isPending ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4 mr-2" />
+                    Send for Signature
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+        )}
       </main>
     </div>
   );

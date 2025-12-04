@@ -1265,7 +1265,9 @@ export const esignPlaceholderRecipientSchema = z.object({
   label: z.string().min(1, "Role label is required"),
   role: z.enum(['signer', 'cc']),
   color: z.string(),
-  order: z.number()
+  order: z.number(),
+  name: z.string().optional(), // Optional - fill in when using template if not set
+  email: z.union([z.string().email(), z.literal('')]).optional(), // Optional - fill in when using template if not set
 });
 
 export const esignTemplateFieldSchema = z.object({
@@ -1298,7 +1300,7 @@ export const insertEsignTemplateSchema = createInsertSchema(esignTemplates).pick
   documentUrl: true
 }).extend({
   name: z.string().min(1, "Template name is required"),
-  description: z.string().optional(),
+  description: z.string().nullable().optional(),
   documentUrl: z.string().min(1, "Document URL is required"),
   pageImages: z.array(z.string()).optional(),
   totalPages: z.number().optional(),

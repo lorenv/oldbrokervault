@@ -368,6 +368,7 @@ router.post('/templates/upload', upload.single('document'), async (req: Request,
       tempTemplateId,
       pageCount: processedDocument.pageCount,
       pageImages: processedDocument.imageUrls,
+      pages: processedDocument.pages, // Include page dimensions
       documentUrl: pdfUploadResult.url,
       originalFileName: req.file.originalname,
     });
@@ -387,6 +388,7 @@ router.post('/templates', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
+    console.log('[ESIGN] Template creation request body:', JSON.stringify(req.body, null, 2));
     const validated = insertEsignTemplateSchema.parse(req.body);
 
     const [template] = await db
@@ -685,7 +687,7 @@ router.post('/envelopes/from-template/:templateId', async (req: Request, res: Re
     // Validate request body - map placeholders to actual recipients
     const createEnvelopeSchema = z.object({
       title: z.string().min(1),
-      message: z.string().optional(),
+      message: z.string().nullable().optional(),
       signingOrder: z.enum(['parallel', 'sequential']).default('parallel'),
       recipientMappings: z.array(z.object({
         placeholderId: z.string(),
@@ -784,16 +786,18 @@ router.post('/envelopes', async (req: Request, res: Response) => {
 
     const createEnvelopeSchema = z.object({
       title: z.string().min(1),
-      message: z.string().optional(),
+      message: z.string().nullable().optional(),
       signingOrder: z.enum(['parallel', 'sequential']).default('parallel'),
       documentUrl: z.string().min(1),
       pageImages: z.array(z.string()),
       totalPages: z.number(),
+      templateId: z.number().nullable().optional(), // Optional template ID reference
       recipients: z.array(z.object({
         name: z.string().min(1),
         email: z.string().email(),
         role: z.enum(['signer', 'cc']),
         signingOrder: z.number().default(1),
+        color: z.string().optional(), // Optional color for recipient
       })),
       fields: z.array(z.object({
         recipientIndex: z.number(), // Index in recipients array
@@ -877,7 +881,8 @@ router.post('/envelopes', async (req: Request, res: Response) => {
       recipientCount: validated.recipients.length,
     }, req);
 
-    res.json({ envelope, success: true });
+    // Return envelope directly (not nested) so frontend can access envelope.id
+    res.json({ ...envelope, success: true });
   } catch (error) {
     console.error('[ESIGN] Error creating envelope:', error);
     if (error instanceof z.ZodError) {
@@ -1627,6 +1632,7 @@ router.post('/sign/:token/complete', async (req: Request, res: Response) => {
         .orderBy(esignAuditLog.timestamp);
 
       // Generate signed PDF and certificate
+      let finalPdfBuffer: Buffer | null = null;
       try {
         const signedPdf = await generateSignedPdf(
           envelope.documentUrl,
@@ -1681,12 +1687,12 @@ router.post('/sign/:token/complete', async (req: Request, res: Response) => {
         );
 
         // Combine signed PDF with certificate
-        const finalPdf = await combineSignedPdfWithCertificate(signedPdf, certificate);
+        finalPdfBuffer = await combineSignedPdfWithCertificate(signedPdf, certificate);
 
         // Upload to object storage
         const storage = new ObjectStorageService();
         const signedFileName = `esign/signed/${envelope.id}_signed_${Date.now()}.pdf`;
-        const uploadResult = await storage.uploadBuffer(signedFileName, finalPdf, 'application/pdf');
+        const uploadResult = await storage.uploadBuffer(signedFileName, finalPdfBuffer, 'application/pdf');
 
         // Update envelope with signed document URL
         await db
@@ -1700,9 +1706,15 @@ router.post('/sign/:token/complete', async (req: Request, res: Response) => {
         // Continue with completion - PDF generation failure shouldn't block the process
       }
 
-      // Send completion emails to all parties
-      const verificationUrl = `${process.env.APP_URL || 'https://cimshare.com'}/esign/verify/${envelope.id}`;
+      // Send completion emails to all parties with the signed PDF attached
+      const envelopeUrl = `${process.env.APP_URL || 'https://cimshare.com'}/esign/envelope/${envelope.id}`;
       const signerNames = allSigners.map(s => s.name).join(', ');
+
+      // Prepare PDF attachment if available
+      const pdfAttachment = finalPdfBuffer ? {
+        content: finalPdfBuffer.toString('base64'),
+        filename: `${envelope.title.replace(/[^a-zA-Z0-9\s]/g, '').trim()}_Signed.pdf`,
+      } : undefined;
 
       for (const r of allRecipients) {
         try {
@@ -1712,14 +1724,15 @@ router.post('/sign/:token/complete', async (req: Request, res: Response) => {
             documentTitle: envelope.title,
             signerNames,
             completedAt: new Date(),
-            verificationUrl,
+            envelopeUrl,
+            pdfAttachment,
             branding: branding ? {
               companyName: branding.companyName || undefined,
               logoUrl: branding.logoUrl || undefined,
               primaryColor: branding.primaryColor || undefined,
             } : undefined,
           });
-          console.log(`[ESIGN] Sent completion email to ${r.email}`);
+          console.log(`[ESIGN] Sent completion email with attachment to ${r.email}`);
         } catch (emailError) {
           console.error(`[ESIGN] Failed to send completion email to ${r.email}:`, emailError);
         }
@@ -1734,14 +1747,15 @@ router.post('/sign/:token/complete', async (req: Request, res: Response) => {
             documentTitle: envelope.title,
             signerNames,
             completedAt: new Date(),
-            verificationUrl,
+            envelopeUrl,
+            pdfAttachment,
             branding: branding ? {
               companyName: branding.companyName || undefined,
               logoUrl: branding.logoUrl || undefined,
               primaryColor: branding.primaryColor || undefined,
             } : undefined,
           });
-          console.log(`[ESIGN] Sent completion email to owner ${owner.email}`);
+          console.log(`[ESIGN] Sent completion email with attachment to owner ${owner.email}`);
         } catch (emailError) {
           console.error(`[ESIGN] Failed to send completion email to owner:`, emailError);
         }

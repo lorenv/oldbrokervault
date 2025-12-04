@@ -45,14 +45,24 @@ export async function generateSignedPdf(
   let pdfBytes: Buffer;
 
   if (originalPdfUrl.startsWith('http')) {
+    // Full HTTP URL - fetch directly
     const response = await fetch(originalPdfUrl);
     if (!response.ok) {
       throw new Error(`Failed to fetch original PDF: ${response.statusText}`);
     }
     pdfBytes = Buffer.from(await response.arrayBuffer());
-  } else {
-    // Local file path
+  } else if (originalPdfUrl.startsWith('/api/object-storage/')) {
+    // Object storage URL - extract the key and download from storage
+    // URL format: /api/object-storage/private/esign/templates/123/file.pdf
+    // or: /api/object-storage/path/to/file.pdf
+    const key = originalPdfUrl.replace('/api/object-storage/', '');
+    console.log(`[ESIGN-PDF] Downloading PDF from object storage: ${key}`);
+    pdfBytes = await storage.downloadBuffer(key);
+  } else if (fs.existsSync(originalPdfUrl)) {
+    // Local file path that exists
     pdfBytes = fs.readFileSync(originalPdfUrl);
+  } else {
+    throw new Error(`Cannot access PDF at: ${originalPdfUrl}`);
   }
 
   const pdfDoc = await PDFDocument.load(pdfBytes);

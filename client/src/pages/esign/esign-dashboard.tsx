@@ -168,9 +168,12 @@ export default function EsignDashboard() {
       </div>
 
       <main className="container mx-auto px-4 py-8">
-        {/* Stats Cards */}
+        {/* Stats Cards - Click to filter */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card className="bg-white shadow-sm">
+          <Card
+            className={`bg-white shadow-sm cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] ${activeTab === 'all' ? 'ring-2 ring-blue-500' : ''}`}
+            onClick={() => setActiveTab('all')}
+          >
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -181,7 +184,10 @@ export default function EsignDashboard() {
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-white shadow-sm">
+          <Card
+            className={`bg-white shadow-sm cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] ${activeTab === 'sent' ? 'ring-2 ring-yellow-500' : ''}`}
+            onClick={() => setActiveTab('sent')}
+          >
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -192,7 +198,10 @@ export default function EsignDashboard() {
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-white shadow-sm">
+          <Card
+            className={`bg-white shadow-sm cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] ${activeTab === 'completed' ? 'ring-2 ring-green-500' : ''}`}
+            onClick={() => setActiveTab('completed')}
+          >
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -203,7 +212,10 @@ export default function EsignDashboard() {
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-white shadow-sm">
+          <Card
+            className={`bg-white shadow-sm cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] ${activeTab === 'draft' ? 'ring-2 ring-gray-500' : ''}`}
+            onClick={() => setActiveTab('draft')}
+          >
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>

@@ -13,7 +13,12 @@
       "Bash(/tmp/test-sendgrid-multipart.sh:*)",
       "Bash(npx tsc:*)",
       "Bash(kill -9 3065 3077 4246 4273 4924 4935)",
-      "Bash(npx drizzle-kit:*)"
+      "Bash(npx drizzle-kit:*)",
+      "Bash(find:*)",
+      "Bash(kill:*)",
+      "Bash(fuser:*)",
+      "Bash(ss:*)",
+      "Bash(netstat:*)"
     ],
     "deny": [],
     "ask": [],

@@ -7428,20 +7428,34 @@ ${finalQuestion}
           if (actualImagePath) {
             console.log(`Processing image file: ${actualImagePath}`);
             const imageBuffer = fsSync.readFileSync(actualImagePath);
-            
+
+            // Get actual image dimensions using sharp
+            let actualWidth = 800;
+            let actualHeight = Math.round(800 * 1.414);
+            try {
+              const metadata = await sharp(imageBuffer).metadata();
+              if (metadata.width && metadata.height) {
+                actualWidth = metadata.width;
+                actualHeight = metadata.height;
+                console.log(`Page ${pageNum} actual dimensions: ${actualWidth}x${actualHeight}`);
+              }
+            } catch (metadataError) {
+              console.warn(`Could not read image metadata for page ${pageNum}, using defaults`);
+            }
+
             // Create a unique filename for serving
             const uniqueId = `${Date.now()}_${pageNum}`;
             const serveFileName = `nda_page_${uniqueId}.png`;
             const servePath = path.join('/tmp', serveFileName);
-            
+
             // Copy image to serve directory with unique name and optimization
             fsSync.writeFileSync(servePath, imageBuffer, { flag: 'w' });
-            
+
             pageImages.push({
               pageNumber: pageNum,
               imageUrl: `/api/temp-image/${serveFileName}`,
-              width: 800, // Reduced resolution for better performance
-              height: Math.round(800 * 1.414) // Approximate A4 ratio
+              width: actualWidth,
+              height: actualHeight
             });
 
             // Clean up the original conversion output immediately
@@ -9167,10 +9181,10 @@ ${finalQuestion}
         return res.status(400).json({ error: "No storage key provided" });
       }
       
-      console.log(`Serving object storage image: ${storageKey}`);
-      
-      // Download image from object storage
-      const imageBuffer = await objectStorage.downloadImage(storageKey);
+      console.log(`Serving object storage file: ${storageKey}`);
+
+      // Download file from object storage
+      const fileBuffer = await objectStorage.downloadBuffer(storageKey);
       
       // Determine content type from file extension
       const extension = path.extname(storageKey).toLowerCase();
@@ -9180,26 +9194,36 @@ ${finalQuestion}
         '.png': 'image/png',
         '.gif': 'image/gif',
         '.webp': 'image/webp',
-        '.svg': 'image/svg+xml'
+        '.svg': 'image/svg+xml',
+        '.pdf': 'application/pdf',
+        '.doc': 'application/msword',
+        '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
       };
-      
-      const contentType = contentTypeMap[extension] || 'image/jpeg';
-      
-      // Set headers for image serving
+
+      const contentType = contentTypeMap[extension] || 'application/octet-stream';
+
+      // Set headers for file serving
       res.setHeader('Content-Type', contentType);
       res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
       res.setHeader('ETag', `"${storageKey}"`);
-      
-      // Add explicit CORS headers for cross-origin image loading
+
+      // Add explicit CORS headers for cross-origin loading
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Access-Control-Allow-Methods', 'GET');
       res.setHeader('Access-Control-Allow-Headers', '*');
-      
-      // Send the image buffer
-      res.send(imageBuffer);
+
+      // For PDFs and documents, set Content-Disposition for better download experience
+      if (extension === '.pdf' || extension === '.doc' || extension === '.docx') {
+        const filename = path.basename(storageKey);
+        // Use inline disposition so it opens in browser, but with filename hint
+        res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+      }
+
+      // Send the file buffer
+      res.send(fileBuffer);
     } catch (error) {
-      console.error(`Error serving object storage image:`, error);
-      res.status(404).json({ error: "Image not found" });
+      console.error(`Error serving object storage file:`, error);
+      res.status(404).json({ error: "File not found" });
     }
   });
 

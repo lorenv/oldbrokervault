@@ -72,6 +72,8 @@ interface Envelope {
   status: EnvelopeStatus;
   signingOrder: 'sequential' | 'parallel';
   message: string | null;
+  documentUrl: string | null;
+  signedDocumentUrl: string | null;
   createdAt: string;
   updatedAt: string;
   sentAt: string | null;
@@ -119,7 +121,12 @@ export default function EsignEnvelopeDetail() {
   const queryClient = useQueryClient();
 
   // Fetch envelope details
-  const { data: envelope, isLoading, error } = useQuery<Envelope>({
+  const { data: envelopeData, isLoading, error } = useQuery<{
+    envelope: Omit<Envelope, 'recipients' | 'auditLog'>;
+    recipients: Recipient[];
+    auditLog: AuditEntry[];
+    fields: any[];
+  }>({
     queryKey: ["/api/esign/envelopes", envelopeId],
     queryFn: async () => {
       if (!envelopeId) throw new Error('No envelope ID');
@@ -131,6 +138,13 @@ export default function EsignEnvelopeDetail() {
     },
     enabled: !!envelopeId,
   });
+
+  // Combine envelope data with recipients and audit log for easier access
+  const envelope: Envelope | undefined = envelopeData ? {
+    ...envelopeData.envelope,
+    recipients: envelopeData.recipients || [],
+    auditLog: envelopeData.auditLog || [],
+  } : undefined;
 
   // Void envelope mutation
   const voidMutation = useMutation({
@@ -237,7 +251,7 @@ export default function EsignEnvelopeDetail() {
     );
   }
 
-  const status = statusConfig[envelope.status];
+  const status = statusConfig[envelope.status] || { label: envelope.status || 'Unknown', icon: Clock, color: 'bg-gray-100 text-gray-700' };
   const StatusIcon = status.icon;
   const signers = envelope.recipients.filter(r => r.role === 'signer');
   const ccRecipients = envelope.recipients.filter(r => r.role === 'cc');
@@ -435,7 +449,7 @@ export default function EsignEnvelopeDetail() {
                             )}
                             <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
                               <span>
-                                {format(new Date(entry.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                                {entry.createdAt ? format(new Date(entry.createdAt), "MMM d, yyyy 'at' h:mm a") : 'Unknown date'}
                               </span>
                               {entry.ipAddress && (
                                 <span className="flex items-center gap-1">
@@ -465,7 +479,7 @@ export default function EsignEnvelopeDetail() {
                 <div>
                   <p className="text-gray-500">Created</p>
                   <p className="font-medium">
-                    {format(new Date(envelope.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                    {envelope.createdAt ? format(new Date(envelope.createdAt), "MMM d, yyyy 'at' h:mm a") : 'Unknown'}
                   </p>
                 </div>
                 {envelope.sentAt && (
@@ -520,11 +534,41 @@ export default function EsignEnvelopeDetail() {
               <CardHeader>
                 <CardTitle className="text-sm">Document</CardTitle>
               </CardHeader>
-              <CardContent>
-                <Button variant="outline" className="w-full">
-                  <Eye className="h-4 w-4 mr-2" />
-                  View Document
-                </Button>
+              <CardContent className="space-y-2">
+                {/* Show signed document if completed, otherwise show original */}
+                {envelope.status === 'completed' && envelope.signedDocumentUrl ? (
+                  <>
+                    <Button
+                      variant="default"
+                      className="w-full"
+                      onClick={() => window.open(envelope.signedDocumentUrl!, '_blank')}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download Signed PDF
+                    </Button>
+                    {envelope.documentUrl && (
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => window.open(envelope.documentUrl!, '_blank')}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        View Original
+                      </Button>
+                    )}
+                  </>
+                ) : envelope.documentUrl ? (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => window.open(envelope.documentUrl!, '_blank')}
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    View Document
+                  </Button>
+                ) : (
+                  <p className="text-sm text-gray-500 text-center">No document available</p>
+                )}
               </CardContent>
             </Card>
           </div>

@@ -1287,8 +1287,11 @@ async function sendEsignCompletedEmail(params: {
   documentTitle: string;
   signerNames?: string;
   completedAt: Date;
-  downloadUrl?: string;
-  verificationUrl: string;
+  envelopeUrl: string;
+  pdfAttachment?: {
+    content: string; // base64 encoded PDF
+    filename: string;
+  };
   branding?: {
     logoUrl?: string | null;
     primaryColor?: string;
@@ -1297,6 +1300,7 @@ async function sendEsignCompletedEmail(params: {
 }): Promise<boolean> {
   const primaryColor = params.branding?.primaryColor || '#0072CE';
   const companyName = params.branding?.companyName || 'CIM Share';
+  const hasAttachment = !!params.pdfAttachment;
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -1309,6 +1313,8 @@ async function sendEsignCompletedEmail(params: {
         .header h1 { color: white; margin: 0; font-size: 24px; }
         .content { padding: 30px; }
         .success-box { background: #d1fae5; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center; }
+        .attachment-notice { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 15px; margin: 20px 0; }
+        .attachment-notice p { margin: 0; color: #0369a1; font-size: 14px; }
         .cta-button { display: inline-block; background-color: ${primaryColor}; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 10px; }
         .footer { padding: 20px 30px; background: #f8f9fa; font-size: 12px; color: #666; }
       </style>
@@ -1329,9 +1335,15 @@ async function sendEsignCompletedEmail(params: {
             </p>
           </div>
 
+          ${hasAttachment ? `
+          <div class="attachment-notice">
+            <p><strong>📎 Completed document attached</strong></p>
+            <p style="margin-top: 8px;">The signed PDF with Certificate of Completion is attached to this email.</p>
+          </div>
+          ` : ''}
+
           <div style="text-align: center;">
-            ${params.downloadUrl ? `<a href="${params.downloadUrl}" class="cta-button">Download Signed PDF</a>` : ''}
-            <a href="${params.verificationUrl}" class="cta-button" style="background: #6b7280;">Verify Signatures</a>
+            <a href="${params.envelopeUrl}" class="cta-button">Go to Envelope</a>
           </div>
 
           <p style="font-size: 14px; color: #666; margin-top: 30px;">
@@ -1347,7 +1359,7 @@ async function sendEsignCompletedEmail(params: {
     </html>
   `;
 
-  return sendEmail({
+  const emailOptions: any = {
     to: params.recipientEmail,
     from: 'signatures@cimshare.com',
     subject: `Completed: "${params.documentTitle}" - All Signatures Collected`,
@@ -1358,12 +1370,24 @@ Document Completed: ${params.documentTitle}
 All parties have signed this document.
 Completed on: ${params.completedAt.toLocaleDateString('en-US', { dateStyle: 'long' })}
 
-${params.downloadUrl ? `Download: ${params.downloadUrl}` : ''}
-Verify: ${params.verificationUrl}
+${hasAttachment ? 'The completed signed PDF with Certificate of Completion is attached to this email.\n' : ''}
+View envelope: ${params.envelopeUrl}
 
 Please keep this email for your records.
     `.trim()
-  });
+  };
+
+  // Add PDF attachment if provided
+  if (params.pdfAttachment) {
+    emailOptions.attachments = [{
+      content: params.pdfAttachment.content,
+      filename: params.pdfAttachment.filename,
+      type: 'application/pdf',
+      disposition: 'attachment'
+    }];
+  }
+
+  return sendEmail(emailOptions);
 }
 
 async function sendEsignDeclinedEmail(params: {

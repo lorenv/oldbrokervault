@@ -16,7 +16,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Settings, FileText, LogOut, User, HelpCircle, Zap, Database, Menu, MessageCircle, BarChart3, WandSparkles, Signature, MoreHorizontal, FileCheck, ChevronDown } from "lucide-react";
+import { Settings, LogOut, User, HelpCircle, Zap, Menu, MessageCircle, BarChart3, WandSparkles, Signature, MoreHorizontal, FileCheck, ChevronDown, Users, FileText } from "lucide-react";
 import { useState } from "react";
 import { SupportDialog } from "./support-dialog";
 import { useQuery } from "@tanstack/react-query";
@@ -106,7 +106,7 @@ export function Navbar() {
                       : isHomePage ? 'text-white' : 'text-gray-700'
                   } hover:bg-white/10 transition-colors ${isHomePage ? 'hover:text-white' : 'hover:text-gray-900'}`}
                 >
-                  <Database className="mr-1 h-4 w-4" />
+                  <Users className="mr-1 h-4 w-4" />
                   CRM
                   {location === '/investor-database' && (
                     <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></span>
@@ -374,7 +374,7 @@ export function Navbar() {
                         variant={location === '/investor-database' ? 'secondary' : 'ghost'}
                         className="w-full justify-start text-left h-12 text-base"
                       >
-                        <Database className="mr-3 h-5 w-5" />
+                        <Users className="mr-3 h-5 w-5" />
                         CRM
                       </Button>
                     </Link>
