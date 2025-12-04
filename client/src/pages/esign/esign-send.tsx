@@ -137,14 +137,19 @@ function DocumentPageCanvas({
     setImageLoaded(true);
   }, []);
 
-  // Calculate display dimensions maintaining aspect ratio
-  const baseWidth = 612; // Standard letter width in points
-  const displayWidth = baseWidth * zoom;
-  // Use actual image dimensions if loaded, otherwise use standard letter size
-  const actualWidth = imageDimensions?.width || 612;
-  const actualHeight = imageDimensions?.height || 792;
+  // Calculate display dimensions maintaining aspect ratio based on actual image dimensions
+  const baseDisplayWidth = 612; // Base display width in pixels for portrait
+  
+  // Use actual image dimensions once loaded
+  const actualWidth = imageDimensions?.width || 1;
+  const actualHeight = imageDimensions?.height || 1;
   const aspectRatio = actualHeight / actualWidth;
-  const displayHeight = displayWidth * aspectRatio;
+  
+  // For landscape images, use a wider base display width
+  const isLandscape = imageDimensions ? actualWidth > actualHeight : false;
+  const effectiveBaseWidth = isLandscape ? baseDisplayWidth * 1.3 : baseDisplayWidth;
+  const displayWidth = effectiveBaseWidth * zoom;
+  const displayHeight = imageDimensions ? displayWidth * aspectRatio : 0;
 
   // Convert pixel coordinates to percentage (based on display dimensions)
   const pixelToPercent = useCallback((pixelX: number, pixelY: number) => {
@@ -276,17 +281,28 @@ function DocumentPageCanvas({
         isOver ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200'
       }`}
       style={{
-        width: displayWidth,
+        width: imageLoaded ? displayWidth : baseDisplayWidth * zoom,
+        minHeight: imageLoaded ? undefined : 400,
       }}
       onClick={() => onSelectField(null)}
     >
-      {/* Document Image - natural height based on width */}
+      {/* Loading placeholder while image dimensions are being determined */}
+      {!imageLoaded && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 animate-pulse">
+          <div className="text-gray-400">Loading page...</div>
+        </div>
+      )}
+      
+      {/* Document Image - natural height based on width, maintains aspect ratio */}
       <img
         src={pageImage}
         alt={`Page ${pageNumber}`}
-        className="w-full h-auto block"
+        className={`w-full h-auto block ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
         onLoad={handleImageLoad}
         draggable={false}
+        style={{
+          transition: 'opacity 0.2s ease-in-out'
+        }}
       />
 
       {/* Fields overlay - positioned absolutely over image */}
