@@ -11,9 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ContactDetailModal } from "@/components/contact-detail-modal";
-import { DndContext, DragEndEvent, DragOverlay, useSensor, useSensors, PointerSensor, closestCorners, useDroppable } from "@dnd-kit/core";
-import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { DndContext, DragEndEvent, DragOverlay, useSensor, useSensors, PointerSensor, closestCorners, useDroppable, useDraggable } from "@dnd-kit/core";
 
 import {
   Shield,
@@ -55,21 +53,20 @@ interface DocumentNdaTabProps {
   ndaSignatures: any[];
 }
 
-// Draggable Kanban Card Component
+// Draggable Kanban Card Component - uses useDraggable for cross-container dragging
 function DraggableKanbanCard({ signature, onClick }: { signature: any, onClick?: () => void }) {
   const {
     attributes,
     listeners,
     setNodeRef,
     transform,
-    transition,
     isDragging,
-  } = useSortable({ id: signature.id });
+  } = useDraggable({ id: signature.id });
 
   const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
+    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
     opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 1000 : 1,
   };
 
   return (
@@ -1102,20 +1099,15 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                               {filteredSignatures.filter(sig => signatureStages[sig.id] === 'pending').length}
                             </Badge>
                           </div>
-                          <div className="space-y-2 max-h-96 overflow-y-auto">
-                            <SortableContext
-                              items={filteredSignatures.filter(sig => signatureStages[sig.id] === 'pending').map(s => s.id)}
-                              strategy={verticalListSortingStrategy}
-                            >
-                              {filteredSignatures
-                                .filter(sig => signatureStages[sig.id] === 'pending')
-                                .map(signature => (
-                                  <DraggableKanbanCard
-                                    key={signature.id}
-                                    signature={signature}
-                                  />
-                                ))}
-                            </SortableContext>
+                          <div className="space-y-2 max-h-96 overflow-y-auto min-h-[100px]">
+                            {filteredSignatures
+                              .filter(sig => signatureStages[sig.id] === 'pending')
+                              .map(signature => (
+                                <DraggableKanbanCard
+                                  key={signature.id}
+                                  signature={signature}
+                                />
+                              ))}
                             {filteredSignatures.filter(sig => signatureStages[sig.id] === 'pending').length === 0 && (
                               <div className="text-center text-xs text-gray-400 py-8">
                                 No contacts in this stage
@@ -1136,20 +1128,15 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                             {filteredSignatures.filter(sig => signatureStages[sig.id] === 'approved').length}
                           </Badge>
                         </div>
-                        <div className="space-y-2 max-h-96 overflow-y-auto">
-                          <SortableContext
-                            items={filteredSignatures.filter(sig => signatureStages[sig.id] === 'approved').map(s => s.id)}
-                            strategy={verticalListSortingStrategy}
-                          >
-                            {filteredSignatures
-                              .filter(sig => signatureStages[sig.id] === 'approved')
-                              .map(signature => (
-                                <DraggableKanbanCard
-                                  key={signature.id}
-                                  signature={signature}
-                                />
-                              ))}
-                          </SortableContext>
+                        <div className="space-y-2 max-h-96 overflow-y-auto min-h-[100px]">
+                          {filteredSignatures
+                            .filter(sig => signatureStages[sig.id] === 'approved')
+                            .map(signature => (
+                              <DraggableKanbanCard
+                                key={signature.id}
+                                signature={signature}
+                              />
+                            ))}
                           {filteredSignatures.filter(sig => signatureStages[sig.id] === 'approved').length === 0 && (
                             <div className="text-center text-xs text-gray-400 py-8">
                               No contacts in this stage
@@ -1169,20 +1156,15 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                             {filteredSignatures.filter(sig => signatureStages[sig.id] === 'viewed').length}
                           </Badge>
                         </div>
-                        <div className="space-y-2 max-h-96 overflow-y-auto">
-                          <SortableContext
-                            items={filteredSignatures.filter(sig => signatureStages[sig.id] === 'viewed').map(s => s.id)}
-                            strategy={verticalListSortingStrategy}
-                          >
-                            {filteredSignatures
-                              .filter(sig => signatureStages[sig.id] === 'viewed')
-                              .map(signature => (
-                                <DraggableKanbanCard
-                                  key={signature.id}
-                                  signature={signature}
-                                />
-                              ))}
-                          </SortableContext>
+                        <div className="space-y-2 max-h-96 overflow-y-auto min-h-[100px]">
+                          {filteredSignatures
+                            .filter(sig => signatureStages[sig.id] === 'viewed')
+                            .map(signature => (
+                              <DraggableKanbanCard
+                                key={signature.id}
+                                signature={signature}
+                              />
+                            ))}
                           {filteredSignatures.filter(sig => signatureStages[sig.id] === 'viewed').length === 0 && (
                             <div className="text-center text-xs text-gray-400 py-8">
                               No contacts in this stage
@@ -1203,20 +1185,15 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                               {filteredSignatures.filter(sig => signatureStages[sig.id] === stageName).length}
                             </Badge>
                           </div>
-                          <div className="space-y-2 max-h-96 overflow-y-auto">
-                            <SortableContext
-                              items={filteredSignatures.filter(sig => signatureStages[sig.id] === stageName).map(s => s.id)}
-                              strategy={verticalListSortingStrategy}
-                            >
-                              {filteredSignatures
-                                .filter(sig => signatureStages[sig.id] === stageName)
-                                .map(signature => (
-                                  <DraggableKanbanCard
-                                    key={signature.id}
-                                    signature={signature}
-                                  />
-                                ))}
-                            </SortableContext>
+                          <div className="space-y-2 max-h-96 overflow-y-auto min-h-[100px]">
+                            {filteredSignatures
+                              .filter(sig => signatureStages[sig.id] === stageName)
+                              .map(signature => (
+                                <DraggableKanbanCard
+                                  key={signature.id}
+                                  signature={signature}
+                                />
+                              ))}
                             {filteredSignatures.filter(sig => signatureStages[sig.id] === stageName).length === 0 && (
                               <div className="text-center text-xs text-gray-400 py-8">
                                 No contacts in this stage yet

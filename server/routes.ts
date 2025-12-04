@@ -41,6 +41,7 @@ import { promisify } from 'util';
 const execAsync = promisify(exec);
 import { registerNdaTemplateRoutes } from "./routes/nda-template-routes";
 import { eSignatureRoutes } from "./routes/esignature-routes";
+import { esignRoutes } from "./routes/esign-routes";
 import unsubscribeRoutes from "./routes/unsubscribe-routes";
 import { PdfSignatureProcessor } from "./pdf-signature-processor";
 import migrateImagesToFiles from "./migrate-images";
@@ -522,6 +523,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register e-signature routes
   console.log('=== REGISTERING E-SIGNATURE ROUTES ===');
   app.use('/api/esignature', eSignatureRoutes);
+  app.use('/api/esign', esignRoutes);
 
 
   // Register unsubscribe routes
@@ -10186,6 +10188,7 @@ ${finalQuestion}
   
   // Register e-signature routes
   app.use('/api/esignature', eSignatureRoutes);
+  app.use('/api/esign', esignRoutes);
 
   // Background job: Clean up stale document locks (15+ minutes old)
   async function cleanupStaleLocks() {

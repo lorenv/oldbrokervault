@@ -1120,6 +1120,406 @@ Please review and whitelist these domains in server/security.ts if legitimate.
   });
 }
 
+// E-Signature Email Functions
+interface EsignEmailParams {
+  recipientName: string;
+  recipientEmail: string;
+  senderName: string;
+  senderEmail: string;
+  documentTitle: string;
+  message?: string;
+  signingUrl: string;
+  branding?: {
+    logoUrl?: string | null;
+    primaryColor?: string;
+    companyName?: string | null;
+  };
+}
+
+async function sendEsignInvitationEmail(params: EsignEmailParams): Promise<boolean> {
+  const primaryColor = params.branding?.primaryColor || '#0072CE';
+  const companyName = params.branding?.companyName || 'CIM Share';
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; }
+        .header { background-color: ${primaryColor}; padding: 30px; text-align: center; }
+        .header img { max-height: 50px; }
+        .header h1 { color: white; margin: 10px 0 0 0; font-size: 24px; }
+        .content { padding: 30px; }
+        .document-info { background: #f8f9fa; border-radius: 8px; padding: 20px; margin: 20px 0; }
+        .message-box { background: #e8f4fd; border-left: 4px solid ${primaryColor}; padding: 15px; margin: 20px 0; }
+        .cta-button { display: inline-block; background-color: ${primaryColor}; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+        .footer { padding: 20px 30px; background: #f8f9fa; font-size: 12px; color: #666; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          ${params.branding?.logoUrl
+            ? `<img src="${params.branding.logoUrl}" alt="${companyName}" />`
+            : `<h1>${companyName}</h1>`
+          }
+        </div>
+        <div class="content">
+          <h2>You have a document to sign</h2>
+          <p>Hi ${params.recipientName},</p>
+          <p><strong>${params.senderName}</strong> has sent you a document to sign.</p>
+
+          <div class="document-info">
+            <p style="margin: 0;"><strong>Document:</strong> ${params.documentTitle}</p>
+            <p style="margin: 10px 0 0 0;"><strong>From:</strong> ${params.senderName} (${params.senderEmail})</p>
+          </div>
+
+          ${params.message ? `
+          <div class="message-box">
+            <p style="margin: 0; color: #666; font-size: 14px;">Message from sender:</p>
+            <p style="margin: 10px 0 0 0;">${params.message}</p>
+          </div>
+          ` : ''}
+
+          <div style="text-align: center;">
+            <a href="${params.signingUrl}" class="cta-button">Review & Sign Document</a>
+          </div>
+
+          <p style="font-size: 14px; color: #666;">
+            This link will take you to a secure page where you can review the document and add your signature.
+          </p>
+        </div>
+        <div class="footer">
+          <p>This email was sent by ${companyName} on behalf of ${params.senderName}.</p>
+          <p>If you have questions about this document, please reply to this email to contact the sender.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return sendEmail({
+    to: params.recipientEmail,
+    from: 'signatures@cimshare.com',
+    replyTo: params.senderEmail,
+    subject: `${params.senderName} sent you "${params.documentTitle}" for signature`,
+    html: htmlContent,
+    text: `
+${params.senderName} has sent you a document to sign.
+
+Document: ${params.documentTitle}
+From: ${params.senderName} (${params.senderEmail})
+${params.message ? `\nMessage: ${params.message}` : ''}
+
+Click here to review and sign: ${params.signingUrl}
+
+If you have questions, please reply to this email.
+    `.trim()
+  });
+}
+
+async function sendEsignReminderEmail(params: EsignEmailParams): Promise<boolean> {
+  const primaryColor = params.branding?.primaryColor || '#0072CE';
+  const companyName = params.branding?.companyName || 'CIM Share';
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; }
+        .header { background-color: #f59e0b; padding: 30px; text-align: center; }
+        .header h1 { color: white; margin: 0; font-size: 24px; }
+        .content { padding: 30px; }
+        .document-info { background: #fef3c7; border-radius: 8px; padding: 20px; margin: 20px 0; }
+        .cta-button { display: inline-block; background-color: ${primaryColor}; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+        .footer { padding: 20px 30px; background: #f8f9fa; font-size: 12px; color: #666; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>⏰ Reminder: Document Awaiting Your Signature</h1>
+        </div>
+        <div class="content">
+          <p>Hi ${params.recipientName},</p>
+          <p>This is a reminder that you have a document waiting for your signature.</p>
+
+          <div class="document-info">
+            <p style="margin: 0;"><strong>Document:</strong> ${params.documentTitle}</p>
+            <p style="margin: 10px 0 0 0;"><strong>From:</strong> ${params.senderName}</p>
+          </div>
+
+          <div style="text-align: center;">
+            <a href="${params.signingUrl}" class="cta-button">Review & Sign Now</a>
+          </div>
+        </div>
+        <div class="footer">
+          <p>If you have questions, please contact ${params.senderName} at ${params.senderEmail}.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return sendEmail({
+    to: params.recipientEmail,
+    from: 'signatures@cimshare.com',
+    replyTo: params.senderEmail,
+    subject: `Reminder: "${params.documentTitle}" is awaiting your signature`,
+    html: htmlContent,
+    text: `
+Reminder: You have a document waiting for your signature.
+
+Document: ${params.documentTitle}
+From: ${params.senderName}
+
+Click here to sign: ${params.signingUrl}
+    `.trim()
+  });
+}
+
+async function sendEsignCompletedEmail(params: {
+  recipientEmail: string;
+  recipientName: string;
+  documentTitle: string;
+  signerNames?: string;
+  completedAt: Date;
+  downloadUrl?: string;
+  verificationUrl: string;
+  branding?: {
+    logoUrl?: string | null;
+    primaryColor?: string;
+    companyName?: string | null;
+  };
+}): Promise<boolean> {
+  const primaryColor = params.branding?.primaryColor || '#0072CE';
+  const companyName = params.branding?.companyName || 'CIM Share';
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; }
+        .header { background-color: #10b981; padding: 30px; text-align: center; }
+        .header h1 { color: white; margin: 0; font-size: 24px; }
+        .content { padding: 30px; }
+        .success-box { background: #d1fae5; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center; }
+        .cta-button { display: inline-block; background-color: ${primaryColor}; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 10px; }
+        .footer { padding: 20px 30px; background: #f8f9fa; font-size: 12px; color: #666; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>✅ Document Completed</h1>
+        </div>
+        <div class="content">
+          <p>Hi ${params.recipientName},</p>
+
+          <div class="success-box">
+            <p style="font-size: 18px; margin: 0;"><strong>${params.documentTitle}</strong></p>
+            <p style="margin: 10px 0 0 0; color: #059669;">All parties have signed this document</p>
+            <p style="margin: 5px 0 0 0; font-size: 14px; color: #666;">
+              Completed on ${params.completedAt.toLocaleDateString('en-US', { dateStyle: 'long' })}
+            </p>
+          </div>
+
+          <div style="text-align: center;">
+            ${params.downloadUrl ? `<a href="${params.downloadUrl}" class="cta-button">Download Signed PDF</a>` : ''}
+            <a href="${params.verificationUrl}" class="cta-button" style="background: #6b7280;">Verify Signatures</a>
+          </div>
+
+          <p style="font-size: 14px; color: #666; margin-top: 30px;">
+            The signed document includes a certificate of completion with an audit trail of all signature events.
+          </p>
+        </div>
+        <div class="footer">
+          <p>This is an automated message from ${companyName}'s E-Signature system.</p>
+          <p>Please keep this email for your records.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return sendEmail({
+    to: params.recipientEmail,
+    from: 'signatures@cimshare.com',
+    subject: `Completed: "${params.documentTitle}" - All Signatures Collected`,
+    html: htmlContent,
+    text: `
+Document Completed: ${params.documentTitle}
+
+All parties have signed this document.
+Completed on: ${params.completedAt.toLocaleDateString('en-US', { dateStyle: 'long' })}
+
+${params.downloadUrl ? `Download: ${params.downloadUrl}` : ''}
+Verify: ${params.verificationUrl}
+
+Please keep this email for your records.
+    `.trim()
+  });
+}
+
+async function sendEsignDeclinedEmail(params: {
+  ownerEmail: string;
+  ownerName: string;
+  declinedByName: string;
+  declinedByEmail: string;
+  documentTitle: string;
+  reason?: string;
+  branding?: {
+    companyName?: string | null;
+    logoUrl?: string | null;
+    primaryColor?: string;
+  };
+}): Promise<boolean> {
+  const companyName = params.branding?.companyName || 'CIM Share';
+  const primaryColor = params.branding?.primaryColor || '#0072CE';
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; }
+        .header { background-color: #dc2626; padding: 30px; text-align: center; }
+        .header h1 { color: white; margin: 0; font-size: 24px; }
+        .content { padding: 30px; }
+        .declined-box { background: #fee2e2; border-radius: 8px; padding: 20px; margin: 20px 0; }
+        .reason-box { background: #f3f4f6; border-left: 4px solid #dc2626; padding: 15px; margin: 20px 0; }
+        .footer { padding: 20px 30px; background: #f8f9fa; font-size: 12px; color: #666; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>❌ Document Declined</h1>
+        </div>
+        <div class="content">
+          <p>Hi ${params.ownerName},</p>
+
+          <div class="declined-box">
+            <p style="margin: 0;"><strong>${params.documentTitle}</strong></p>
+            <p style="margin: 10px 0 0 0;">was declined by <strong>${params.declinedByName}</strong></p>
+          </div>
+
+          ${params.reason ? `
+          <div class="reason-box">
+            <p style="margin: 0; color: #666; font-size: 14px;">Reason provided:</p>
+            <p style="margin: 10px 0 0 0;">${params.reason}</p>
+          </div>
+          ` : ''}
+
+          <p>The signing process has been cancelled and all parties have been notified.</p>
+          <p>If you wish, you can create a new envelope and send it again.</p>
+        </div>
+        <div class="footer">
+          <p>This is an automated message from ${companyName}'s E-Signature system.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return sendEmail({
+    to: params.ownerEmail,
+    from: 'signatures@cimshare.com',
+    subject: `Declined: "${params.documentTitle}" was declined by ${params.declinedByName}`,
+    html: htmlContent,
+    text: `
+Document Declined
+
+"${params.documentTitle}" was declined by ${params.declinedByName} (${params.declinedByEmail}).
+${params.reason ? `\nReason: ${params.reason}` : ''}
+
+The signing process has been cancelled.
+    `.trim()
+  });
+}
+
+async function sendEsignVoidedEmail(params: {
+  recipientEmail: string;
+  recipientName: string;
+  documentTitle: string;
+  voidedByName: string;
+  reason?: string;
+  branding?: {
+    companyName?: string | null;
+    logoUrl?: string | null;
+    primaryColor?: string;
+  };
+}): Promise<boolean> {
+  const companyName = params.branding?.companyName || 'CIM Share';
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; }
+        .header { background-color: #6b7280; padding: 30px; text-align: center; }
+        .header h1 { color: white; margin: 0; font-size: 24px; }
+        .content { padding: 30px; }
+        .voided-box { background: #f3f4f6; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid #6b7280; }
+        .reason-box { background: #f9fafb; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .footer { padding: 20px 30px; background: #f8f9fa; font-size: 12px; color: #666; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Document Voided</h1>
+        </div>
+        <div class="content">
+          <p>Hi ${params.recipientName},</p>
+
+          <div class="voided-box">
+            <p style="margin: 0;"><strong>${params.documentTitle}</strong></p>
+            <p style="margin: 10px 0 0 0;">has been voided by <strong>${params.voidedByName}</strong></p>
+          </div>
+
+          ${params.reason ? `
+          <div class="reason-box">
+            <p style="margin: 0; color: #666; font-size: 14px;">Reason:</p>
+            <p style="margin: 10px 0 0 0;">${params.reason}</p>
+          </div>
+          ` : ''}
+
+          <p>This document is no longer valid and no further action is required from you.</p>
+          <p>If you have any questions, please contact the sender directly.</p>
+        </div>
+        <div class="footer">
+          <p>This is an automated message from ${companyName}'s E-Signature system.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return sendEmail({
+    to: params.recipientEmail,
+    from: 'signatures@cimshare.com',
+    subject: `Voided: "${params.documentTitle}" has been cancelled`,
+    html: htmlContent,
+    text: `
+Document Voided
+
+"${params.documentTitle}" has been voided by ${params.voidedByName}.
+${params.reason ? `\nReason: ${params.reason}` : ''}
+
+This document is no longer valid and no further action is required from you.
+    `.trim()
+  });
+}
+
 export {
   sendEmail,
   sendNdaSignedEmail,
@@ -1133,5 +1533,11 @@ export {
   sendCollaborationInvitationEmail,
   sendCollaboratorRemovedEmail,
   sendEditLockTakenOverEmail,
-  sendCspViolationEmail
+  sendCspViolationEmail,
+  // E-Signature emails
+  sendEsignInvitationEmail,
+  sendEsignReminderEmail,
+  sendEsignCompletedEmail,
+  sendEsignDeclinedEmail,
+  sendEsignVoidedEmail
 };
