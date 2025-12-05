@@ -72,6 +72,8 @@ interface Envelope {
   status: EnvelopeStatus;
   signingOrder: 'sequential' | 'parallel';
   message: string | null;
+  documentUrl: string | null;
+  signedDocumentUrl: string | null;
   createdAt: string;
   updatedAt: string;
   sentAt: string | null;
@@ -113,13 +115,18 @@ const actionLabels: Record<string, string> = {
 export default function EsignEnvelopeDetail() {
   const [, setLocation] = useLocation();
   const [, params] = useRoute("/esign/envelope/:id");
-  const envelopeId = params?.id ? parseInt(params.id) : null;
+  const envelopeId = params?.id || null; // Use string ID (supports both UUID and numeric)
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Fetch envelope details
-  const { data: envelope, isLoading, error } = useQuery<Envelope>({
+  const { data: envelopeData, isLoading, error } = useQuery<{
+    envelope: Omit<Envelope, 'recipients' | 'auditLog'>;
+    recipients: Recipient[];
+    auditLog: AuditEntry[];
+    fields: any[];
+  }>({
     queryKey: ["/api/esign/envelopes", envelopeId],
     queryFn: async () => {
       if (!envelopeId) throw new Error('No envelope ID');
@@ -131,6 +138,13 @@ export default function EsignEnvelopeDetail() {
     },
     enabled: !!envelopeId,
   });
+
+  // Combine envelope data with recipients and audit log for easier access
+  const envelope: Envelope | undefined = envelopeData ? {
+    ...envelopeData.envelope,
+    recipients: envelopeData.recipients || [],
+    auditLog: envelopeData.auditLog || [],
+  } : undefined;
 
   // Void envelope mutation
   const voidMutation = useMutation({
@@ -237,7 +251,7 @@ export default function EsignEnvelopeDetail() {
     );
   }
 
-  const status = statusConfig[envelope.status];
+  const status = statusConfig[envelope.status] || { label: envelope.status || 'Unknown', icon: Clock, color: 'bg-gray-100 text-gray-700' };
   const StatusIcon = status.icon;
   const signers = envelope.recipients.filter(r => r.role === 'signer');
   const ccRecipients = envelope.recipients.filter(r => r.role === 'cc');
@@ -278,46 +292,6 @@ export default function EsignEnvelopeDetail() {
               </div>
             </div>
 
-            <div className="flex gap-3">
-              {envelope.status === 'completed' && (
-                <Button
-                  variant="outline"
-                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-                  onClick={handleDownload}
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download
-                </Button>
-              )}
-              {envelope.status === 'sent' && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-red-600">
-                      <Ban className="h-4 w-4 mr-2" />
-                      Void
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Void this envelope?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This will cancel the signing process. All recipients will be notified
-                        and any collected signatures will be invalidated.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        className="bg-red-600 hover:bg-red-700"
-                        onClick={() => voidMutation.mutate("Voided by sender")}
-                      >
-                        Void Envelope
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              )}
-            </div>
           </div>
         </div>
       </div>
@@ -435,7 +409,7 @@ export default function EsignEnvelopeDetail() {
                             )}
                             <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
                               <span>
-                                {format(new Date(entry.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                                {entry.createdAt ? format(new Date(entry.createdAt), "MMM d, yyyy 'at' h:mm a") : 'Unknown date'}
                               </span>
                               {entry.ipAddress && (
                                 <span className="flex items-center gap-1">
@@ -465,7 +439,7 @@ export default function EsignEnvelopeDetail() {
                 <div>
                   <p className="text-gray-500">Created</p>
                   <p className="font-medium">
-                    {format(new Date(envelope.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                    {envelope.createdAt ? format(new Date(envelope.createdAt), "MMM d, yyyy 'at' h:mm a") : 'Unknown'}
                   </p>
                 </div>
                 {envelope.sentAt && (
@@ -515,16 +489,95 @@ export default function EsignEnvelopeDetail() {
               </Card>
             )}
 
-            {/* Document Preview */}
+            {/* Document & Actions */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-sm">Document</CardTitle>
               </CardHeader>
-              <CardContent>
-                <Button variant="outline" className="w-full">
-                  <Eye className="h-4 w-4 mr-2" />
-                  View Document
-                </Button>
+              <CardContent className="space-y-3">
+                {/* Show signed document if completed, otherwise show original */}
+                {envelope.status === 'completed' && envelope.signedDocumentUrl ? (
+                  <>
+                    <Button
+                      variant="default"
+                      className="w-full"
+                      onClick={() => window.open(envelope.signedDocumentUrl!, '_blank')}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download Signed PDF
+                    </Button>
+                    {envelope.documentUrl && (
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => window.open(envelope.documentUrl!, '_blank')}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        View Original
+                      </Button>
+                    )}
+                  </>
+                ) : envelope.documentUrl ? (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => window.open(envelope.documentUrl!, '_blank')}
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    View Document
+                  </Button>
+                ) : (
+                  <p className="text-sm text-gray-500 text-center">No document available</p>
+                )}
+
+                {/* Actions for sent envelopes */}
+                {envelope.status === 'sent' && (
+                  <>
+                    <Separator />
+                    {/* Remind all pending signers */}
+                    {signers.some(r => r.status !== 'signed' && r.status !== 'declined') && (
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => {
+                          const pendingSigners = signers.filter(r => r.status !== 'signed' && r.status !== 'declined');
+                          pendingSigners.forEach(r => reminderMutation.mutate(r.id));
+                        }}
+                        disabled={reminderMutation.isPending}
+                      >
+                        <Mail className="h-4 w-4 mr-2" />
+                        Remind All
+                      </Button>
+                    )}
+                    {/* Void envelope */}
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" className="w-full text-red-600 hover:text-red-700 hover:bg-red-50">
+                          <Ban className="h-4 w-4 mr-2" />
+                          Void Envelope
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Void this envelope?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will cancel the signing process. All recipients will be notified
+                            and any collected signatures will be invalidated.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            className="bg-red-600 hover:bg-red-700"
+                            onClick={() => voidMutation.mutate("Voided by sender")}
+                          >
+                            Void Envelope
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>

@@ -1121,6 +1121,30 @@ Please review and whitelist these domains in server/security.ts if legitimate.
 }
 
 // E-Signature Email Functions
+
+/**
+ * Calculates whether text should be light or dark based on background color
+ * Uses relative luminance formula for accessibility
+ * @param hexColor - Hex color string (e.g., "#0072CE" or "0072CE")
+ * @returns "white" or "black" for optimal contrast
+ */
+function getContrastTextColor(hexColor: string): string {
+  // Remove # if present
+  const hex = hexColor.replace('#', '');
+
+  // Parse RGB values
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+
+  // Calculate relative luminance using sRGB formula
+  // Higher values = lighter color
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+  // Use white text for dark backgrounds, black for light backgrounds
+  return luminance > 0.5 ? '#000000' : '#ffffff';
+}
+
 interface EsignEmailParams {
   recipientName: string;
   recipientEmail: string;
@@ -1139,6 +1163,11 @@ interface EsignEmailParams {
 async function sendEsignInvitationEmail(params: EsignEmailParams): Promise<boolean> {
   const primaryColor = params.branding?.primaryColor || '#0072CE';
   const companyName = params.branding?.companyName || 'CIM Share';
+  const headerTextColor = getContrastTextColor(primaryColor);
+  const buttonTextColor = getContrastTextColor(primaryColor);
+  // Use the app's base URL for the signature icon
+  const baseUrl = process.env.APP_URL || 'https://cimshare.com';
+  const signatureIconUrl = `${baseUrl}/circle.png`;
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -1148,22 +1177,20 @@ async function sendEsignInvitationEmail(params: EsignEmailParams): Promise<boole
         body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5; }
         .container { max-width: 600px; margin: 0 auto; background: white; }
         .header { background-color: ${primaryColor}; padding: 30px; text-align: center; }
-        .header img { max-height: 50px; }
-        .header h1 { color: white; margin: 10px 0 0 0; font-size: 24px; }
+        .header h1 { color: ${headerTextColor}; margin: 0; font-size: 24px; font-weight: bold; }
         .content { padding: 30px; }
         .document-info { background: #f8f9fa; border-radius: 8px; padding: 20px; margin: 20px 0; }
         .message-box { background: #e8f4fd; border-left: 4px solid ${primaryColor}; padding: 15px; margin: 20px 0; }
-        .cta-button { display: inline-block; background-color: ${primaryColor}; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+        .cta-section { text-align: center; margin: 30px 0; }
+        .cta-button { display: inline-block; background-color: ${primaryColor}; color: ${buttonTextColor}; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; }
+        .signature-icon { width: 48px; height: 48px; margin-bottom: 15px; }
         .footer { padding: 20px 30px; background: #f8f9fa; font-size: 12px; color: #666; }
       </style>
     </head>
     <body>
       <div class="container">
         <div class="header">
-          ${params.branding?.logoUrl
-            ? `<img src="${params.branding.logoUrl}" alt="${companyName}" />`
-            : `<h1>${companyName}</h1>`
-          }
+          <h1>${companyName}</h1>
         </div>
         <div class="content">
           <h2>You have a document to sign</h2>
@@ -1182,7 +1209,9 @@ async function sendEsignInvitationEmail(params: EsignEmailParams): Promise<boole
           </div>
           ` : ''}
 
-          <div style="text-align: center;">
+          <div class="cta-section">
+            <img src="${signatureIconUrl}" alt="Sign" class="signature-icon" />
+            <br />
             <a href="${params.signingUrl}" class="cta-button">Review & Sign Document</a>
           </div>
 
@@ -1222,6 +1251,13 @@ If you have questions, please reply to this email.
 async function sendEsignReminderEmail(params: EsignEmailParams): Promise<boolean> {
   const primaryColor = params.branding?.primaryColor || '#0072CE';
   const companyName = params.branding?.companyName || 'CIM Share';
+  const buttonTextColor = getContrastTextColor(primaryColor);
+  // Reminder header uses amber/orange - calculate contrast for that
+  const reminderHeaderColor = '#f59e0b';
+  const reminderHeaderTextColor = getContrastTextColor(reminderHeaderColor);
+  // Use the app's base URL for the signature icon
+  const baseUrl = process.env.APP_URL || 'https://cimshare.com';
+  const signatureIconUrl = `${baseUrl}/circle.png`;
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -1230,18 +1266,22 @@ async function sendEsignReminderEmail(params: EsignEmailParams): Promise<boolean
       <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5; }
         .container { max-width: 600px; margin: 0 auto; background: white; }
-        .header { background-color: #f59e0b; padding: 30px; text-align: center; }
-        .header h1 { color: white; margin: 0; font-size: 24px; }
+        .header { background-color: ${reminderHeaderColor}; padding: 30px; text-align: center; }
+        .header h1 { color: ${reminderHeaderTextColor}; margin: 0; font-size: 20px; font-weight: bold; }
+        .header p { color: ${reminderHeaderTextColor}; margin: 8px 0 0 0; font-size: 14px; opacity: 0.9; }
         .content { padding: 30px; }
         .document-info { background: #fef3c7; border-radius: 8px; padding: 20px; margin: 20px 0; }
-        .cta-button { display: inline-block; background-color: ${primaryColor}; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+        .cta-section { text-align: center; margin: 30px 0; }
+        .cta-button { display: inline-block; background-color: ${primaryColor}; color: ${buttonTextColor}; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; }
+        .signature-icon { width: 48px; height: 48px; margin-bottom: 15px; }
         .footer { padding: 20px 30px; background: #f8f9fa; font-size: 12px; color: #666; }
       </style>
     </head>
     <body>
       <div class="container">
         <div class="header">
-          <h1>⏰ Reminder: Document Awaiting Your Signature</h1>
+          <h1>Reminder: Document Awaiting Your Signature</h1>
+          <p>${companyName}</p>
         </div>
         <div class="content">
           <p>Hi ${params.recipientName},</p>
@@ -1252,7 +1292,9 @@ async function sendEsignReminderEmail(params: EsignEmailParams): Promise<boolean
             <p style="margin: 10px 0 0 0;"><strong>From:</strong> ${params.senderName}</p>
           </div>
 
-          <div style="text-align: center;">
+          <div class="cta-section">
+            <img src="${signatureIconUrl}" alt="Sign" class="signature-icon" />
+            <br />
             <a href="${params.signingUrl}" class="cta-button">Review & Sign Now</a>
           </div>
         </div>
@@ -1287,8 +1329,11 @@ async function sendEsignCompletedEmail(params: {
   documentTitle: string;
   signerNames?: string;
   completedAt: Date;
-  downloadUrl?: string;
-  verificationUrl: string;
+  envelopeUrl: string;
+  pdfAttachment?: {
+    content: string; // base64 encoded PDF
+    filename: string;
+  };
   branding?: {
     logoUrl?: string | null;
     primaryColor?: string;
@@ -1297,6 +1342,11 @@ async function sendEsignCompletedEmail(params: {
 }): Promise<boolean> {
   const primaryColor = params.branding?.primaryColor || '#0072CE';
   const companyName = params.branding?.companyName || 'CIM Share';
+  const buttonTextColor = getContrastTextColor(primaryColor);
+  const hasAttachment = !!params.pdfAttachment;
+  // Completed header uses green
+  const completedHeaderColor = '#10b981';
+  const completedHeaderTextColor = getContrastTextColor(completedHeaderColor);
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -1305,18 +1355,22 @@ async function sendEsignCompletedEmail(params: {
       <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5; }
         .container { max-width: 600px; margin: 0 auto; background: white; }
-        .header { background-color: #10b981; padding: 30px; text-align: center; }
-        .header h1 { color: white; margin: 0; font-size: 24px; }
+        .header { background-color: ${completedHeaderColor}; padding: 30px; text-align: center; }
+        .header h1 { color: ${completedHeaderTextColor}; margin: 0; font-size: 24px; font-weight: bold; }
+        .header p { color: ${completedHeaderTextColor}; margin: 8px 0 0 0; font-size: 14px; opacity: 0.9; }
         .content { padding: 30px; }
         .success-box { background: #d1fae5; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center; }
-        .cta-button { display: inline-block; background-color: ${primaryColor}; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 10px; }
+        .attachment-notice { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 15px; margin: 20px 0; }
+        .attachment-notice p { margin: 0; color: #0369a1; font-size: 14px; }
+        .cta-button { display: inline-block; background-color: ${primaryColor}; color: ${buttonTextColor}; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 10px; }
         .footer { padding: 20px 30px; background: #f8f9fa; font-size: 12px; color: #666; }
       </style>
     </head>
     <body>
       <div class="container">
         <div class="header">
-          <h1>✅ Document Completed</h1>
+          <h1>Document Completed</h1>
+          <p>${companyName}</p>
         </div>
         <div class="content">
           <p>Hi ${params.recipientName},</p>
@@ -1329,9 +1383,15 @@ async function sendEsignCompletedEmail(params: {
             </p>
           </div>
 
+          ${hasAttachment ? `
+          <div class="attachment-notice">
+            <p><strong>📎 Completed document attached</strong></p>
+            <p style="margin-top: 8px;">The signed PDF with Certificate of Completion is attached to this email.</p>
+          </div>
+          ` : ''}
+
           <div style="text-align: center;">
-            ${params.downloadUrl ? `<a href="${params.downloadUrl}" class="cta-button">Download Signed PDF</a>` : ''}
-            <a href="${params.verificationUrl}" class="cta-button" style="background: #6b7280;">Verify Signatures</a>
+            <a href="${params.envelopeUrl}" class="cta-button">Go to Envelope</a>
           </div>
 
           <p style="font-size: 14px; color: #666; margin-top: 30px;">
@@ -1347,7 +1407,7 @@ async function sendEsignCompletedEmail(params: {
     </html>
   `;
 
-  return sendEmail({
+  const emailOptions: any = {
     to: params.recipientEmail,
     from: 'signatures@cimshare.com',
     subject: `Completed: "${params.documentTitle}" - All Signatures Collected`,
@@ -1358,12 +1418,24 @@ Document Completed: ${params.documentTitle}
 All parties have signed this document.
 Completed on: ${params.completedAt.toLocaleDateString('en-US', { dateStyle: 'long' })}
 
-${params.downloadUrl ? `Download: ${params.downloadUrl}` : ''}
-Verify: ${params.verificationUrl}
+${hasAttachment ? 'The completed signed PDF with Certificate of Completion is attached to this email.\n' : ''}
+View envelope: ${params.envelopeUrl}
 
 Please keep this email for your records.
     `.trim()
-  });
+  };
+
+  // Add PDF attachment if provided
+  if (params.pdfAttachment) {
+    emailOptions.attachments = [{
+      content: params.pdfAttachment.content,
+      filename: params.pdfAttachment.filename,
+      type: 'application/pdf',
+      disposition: 'attachment'
+    }];
+  }
+
+  return sendEmail(emailOptions);
 }
 
 async function sendEsignDeclinedEmail(params: {
@@ -1380,7 +1452,9 @@ async function sendEsignDeclinedEmail(params: {
   };
 }): Promise<boolean> {
   const companyName = params.branding?.companyName || 'CIM Share';
-  const primaryColor = params.branding?.primaryColor || '#0072CE';
+  // Declined header uses red
+  const declinedHeaderColor = '#dc2626';
+  const declinedHeaderTextColor = getContrastTextColor(declinedHeaderColor);
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -1389,8 +1463,9 @@ async function sendEsignDeclinedEmail(params: {
       <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5; }
         .container { max-width: 600px; margin: 0 auto; background: white; }
-        .header { background-color: #dc2626; padding: 30px; text-align: center; }
-        .header h1 { color: white; margin: 0; font-size: 24px; }
+        .header { background-color: ${declinedHeaderColor}; padding: 30px; text-align: center; }
+        .header h1 { color: ${declinedHeaderTextColor}; margin: 0; font-size: 24px; font-weight: bold; }
+        .header p { color: ${declinedHeaderTextColor}; margin: 8px 0 0 0; font-size: 14px; opacity: 0.9; }
         .content { padding: 30px; }
         .declined-box { background: #fee2e2; border-radius: 8px; padding: 20px; margin: 20px 0; }
         .reason-box { background: #f3f4f6; border-left: 4px solid #dc2626; padding: 15px; margin: 20px 0; }
@@ -1400,7 +1475,8 @@ async function sendEsignDeclinedEmail(params: {
     <body>
       <div class="container">
         <div class="header">
-          <h1>❌ Document Declined</h1>
+          <h1>Document Declined</h1>
+          <p>${companyName}</p>
         </div>
         <div class="content">
           <p>Hi ${params.ownerName},</p>
@@ -1457,6 +1533,9 @@ async function sendEsignVoidedEmail(params: {
   };
 }): Promise<boolean> {
   const companyName = params.branding?.companyName || 'CIM Share';
+  // Voided header uses gray
+  const voidedHeaderColor = '#6b7280';
+  const voidedHeaderTextColor = getContrastTextColor(voidedHeaderColor);
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -1465,8 +1544,9 @@ async function sendEsignVoidedEmail(params: {
       <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5; }
         .container { max-width: 600px; margin: 0 auto; background: white; }
-        .header { background-color: #6b7280; padding: 30px; text-align: center; }
-        .header h1 { color: white; margin: 0; font-size: 24px; }
+        .header { background-color: ${voidedHeaderColor}; padding: 30px; text-align: center; }
+        .header h1 { color: ${voidedHeaderTextColor}; margin: 0; font-size: 24px; font-weight: bold; }
+        .header p { color: ${voidedHeaderTextColor}; margin: 8px 0 0 0; font-size: 14px; opacity: 0.9; }
         .content { padding: 30px; }
         .voided-box { background: #f3f4f6; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid #6b7280; }
         .reason-box { background: #f9fafb; padding: 15px; margin: 20px 0; border-radius: 4px; }
@@ -1477,6 +1557,7 @@ async function sendEsignVoidedEmail(params: {
       <div class="container">
         <div class="header">
           <h1>Document Voided</h1>
+          <p>${companyName}</p>
         </div>
         <div class="content">
           <p>Hi ${params.recipientName},</p>

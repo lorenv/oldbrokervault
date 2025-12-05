@@ -272,6 +272,33 @@ export default function EsignTemplates() {
                         <Clock className="h-3 w-3" />
                         Updated {new Date(template.updatedAt).toLocaleDateString()}
                       </div>
+
+                      {/* Quick action buttons */}
+                      <div className="flex items-center gap-2 mt-4 pt-3 border-t">
+                        <Button
+                          size="sm"
+                          className="flex-1 bg-blue-600 hover:bg-blue-700"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setLocation(`/esign/send?template=${template.id}`);
+                          }}
+                        >
+                          <Send className="h-3 w-3 mr-1" />
+                          Use
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setLocation(`/esign/templates/${template.id}/edit`);
+                          }}
+                        >
+                          <Edit className="h-3 w-3 mr-1" />
+                          Edit
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 ))}

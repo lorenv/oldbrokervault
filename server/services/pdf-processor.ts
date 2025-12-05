@@ -5,9 +5,16 @@ import { fromBuffer } from 'pdf2pic';
 import sharp from 'sharp';
 import { ObjectStorageService } from '../object-storage';
 
+interface PageInfo {
+  url: string;
+  width: number;
+  height: number;
+}
+
 interface ProcessedDocument {
   pageCount: number;
   imageUrls: string[];
+  pages: PageInfo[];
 }
 
 interface FileUpload {
@@ -26,12 +33,12 @@ export async function processPDFToImages(file: FileUpload, id: number, isTemplat
     
     // Convert PDF to images using pdf2pic with optimized settings - preserve original proportions
     const convert = fromBuffer(file.buffer, {
-      density: 150,           // Reduced DPI for faster processing
+      density: 150,           // DPI for conversion quality
       saveFilename: "page",
       savePath: tempDir,
       format: "png",
-      // Remove fixed width/height to preserve original page proportions
-      // pdf2pic will maintain aspect ratio automatically
+      width: 1200,            // Set width, let height auto-scale to preserve aspect ratio
+      preserveAspectRatio: true,
       quality: 85             // Good quality with reasonable file size
     });
     
@@ -41,44 +48,52 @@ export async function processPDFToImages(file: FileUpload, id: number, isTemplat
     const results = await convert.bulk(-1); // -1 means all pages
     const pageCount = results.length;
     const imageUrls: string[] = [];
-    
+    const pages: PageInfo[] = [];
+
     console.log(`[PDF_PROC] Processing ${pageCount} pages`);
-    
+
     // Process images in parallel batches for better performance
     const batchSize = 3; // Process 3 pages at a time
     for (let i = 0; i < results.length; i += batchSize) {
       const batch = results.slice(i, i + batchSize);
-      
+
       await Promise.all(batch.map(async (pageResult, batchIndex) => {
         const pageIndex = i + batchIndex;
         if (pageResult.path) {
           try {
             // Read and optimize image for storage
             const imageBuffer = await fs.readFile(pageResult.path);
-            
+
             // Optimize image with Sharp
             const optimizedBuffer = await sharp(imageBuffer)
-              .png({ 
-                compressionLevel: 6, 
+              .png({
+                compressionLevel: 6,
                 quality: 85,
-                progressive: true 
+                progressive: true
               })
               .toBuffer();
-            
-            // Get image metadata for orientation detection
+
+            // Get image metadata for orientation detection and dimensions
             const metadata = await sharp(optimizedBuffer).metadata();
-            const isLandscape = (metadata.width || 0) > (metadata.height || 0);
-            
+            const imageWidth = metadata.width || 612;
+            const imageHeight = metadata.height || 792;
+            const isLandscape = imageWidth > imageHeight;
+
             // Store image in object storage
             const objectStorageService = new ObjectStorageService();
             const storageKey = `private/${isTemplate ? 'templates' : 'documents'}/${id}/pages/page-${pageIndex + 1}.png`;
             const uploadResult = await objectStorageService.uploadBuffer(storageKey, optimizedBuffer, 'image/png');
-            
-            console.log(`[PDF_PROC] Processed page ${pageIndex + 1}: ${uploadResult.url} (${metadata.width}x${metadata.height}, ${isLandscape ? 'landscape' : 'portrait'})`);
-            
-            // Store URL in the correct order
+
+            console.log(`[PDF_PROC] Processed page ${pageIndex + 1}: ${uploadResult.url} (${imageWidth}x${imageHeight}, ${isLandscape ? 'landscape' : 'portrait'})`);
+
+            // Store URL and dimensions in the correct order
             imageUrls[pageIndex] = uploadResult.url;
-            
+            pages[pageIndex] = {
+              url: uploadResult.url,
+              width: imageWidth,
+              height: imageHeight
+            };
+
           } catch (error) {
             console.error(`[PDF_PROC] Failed to process page ${pageIndex + 1}:`, error);
             throw error;
@@ -93,10 +108,11 @@ export async function processPDFToImages(file: FileUpload, id: number, isTemplat
     });
     
     console.log(`[PDF_PROC] ✅ Successfully processed ${pageCount} pages`);
-    
+
     return {
       pageCount,
       imageUrls: imageUrls.filter(url => url), // Remove any undefined entries
+      pages: pages.filter(p => p), // Remove any undefined entries
     };
 
   } catch (error) {

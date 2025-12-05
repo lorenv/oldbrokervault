@@ -26,19 +26,24 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   FileSignature,
   Pen,
   Type,
   CheckCircle2,
   AlertCircle,
-  ChevronLeft,
-  ChevronRight,
   ZoomIn,
   ZoomOut,
-  Download,
   X,
   XCircle,
+  Shield,
+  FileCheck,
+  Sparkles,
+  Clock,
+  ListChecks,
+  Tag,
+  AlertTriangle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -84,17 +89,26 @@ export default function EsignSign() {
   const { toast } = useToast();
 
   // State
-  const [currentPage, setCurrentPage] = useState(1);
   const [zoom, setZoom] = useState(1);
   const [fields, setFields] = useState<SigningField[]>([]);
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const [showSignatureModal, setShowSignatureModal] = useState(false);
   const [showDeclineModal, setShowDeclineModal] = useState(false);
+  const [showConsentDialog, setShowConsentDialog] = useState(false);
   const [declineReason, setDeclineReason] = useState("");
   const [signatureTab, setSignatureTab] = useState<'draw' | 'type'>('draw');
   const [typedSignature, setTypedSignature] = useState("");
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [hasConsented, setHasConsented] = useState(false);
+  const [consentedAt, setConsentedAt] = useState<string | null>(null);
   const [showSuccessState, setShowSuccessState] = useState(false);
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
+  const [summaryData, setSummaryData] = useState<{
+    summary: string;
+    keyPoints: string[];
+    importantTerms: string[];
+    estimatedReadTime: string;
+    disclaimer: string;
+  } | null>(null);
 
   // Canvas for drawing signature
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -296,10 +310,71 @@ export default function EsignSign() {
     },
   });
 
+  // E-SIGN Act consent mutation
+  const consentMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/esign/sign/${accessToken}/consent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to record consent');
+      }
+
+      return res.json();
+    },
+    onSuccess: (result) => {
+      setHasConsented(true);
+      setConsentedAt(result.consentedAt);
+      setShowConsentDialog(false);
+      toast({
+        title: "Consent recorded",
+        description: "You may now proceed with signing the document.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // AI Document Summarize mutation
+  const summarizeMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/esign/sign/${accessToken}/summarize`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to summarize document');
+      }
+
+      return res.json();
+    },
+    onSuccess: (result) => {
+      setSummaryData(result);
+      setShowSummaryModal(true);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Unable to summarize",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Validation
   const requiredFields = fields.filter(f => f.required);
   const completedRequiredFields = requiredFields.filter(f => f.value);
-  const canSubmit = completedRequiredFields.length === requiredFields.length && agreedToTerms;
+  const canSubmit = completedRequiredFields.length === requiredFields.length && hasConsented;
   const progress = requiredFields.length > 0
     ? Math.round((completedRequiredFields.length / requiredFields.length) * 100)
     : 100;
@@ -449,135 +524,196 @@ export default function EsignSign() {
                     >
                       <ZoomIn className="h-4 w-4" />
                     </Button>
-                    <div className="w-px h-6 bg-gray-200 mx-2" />
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      disabled={currentPage <= 1}
-                      onClick={() => setCurrentPage(currentPage - 1)}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <span className="text-sm">
-                      {currentPage} / {pageImages.length}
+                    <span className="text-sm text-gray-500 ml-4">
+                      {pageImages.length} page{pageImages.length !== 1 ? 's' : ''}
                     </span>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      disabled={currentPage >= pageImages.length}
-                      onClick={() => setCurrentPage(currentPage + 1)}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="p-6 overflow-auto">
-                <div
-                  className="relative mx-auto border shadow-lg bg-white"
-                  style={{ width: 612 * zoom, maxWidth: '100%' }}
-                >
-                  <img
-                    src={pageImages[currentPage - 1]}
-                    alt={`Page ${currentPage}`}
-                    className="w-full h-auto block"
-                    draggable={false}
-                  />
+              <CardContent className="p-6 overflow-auto max-h-[calc(100vh-250px)]">
+                {/* Scrollable container for all pages */}
+                <div className="space-y-6">
+                  {pageImages.map((pageImage, pageIndex) => {
+                    const pageNumber = pageIndex + 1;
+                    const pageFields = fields.filter(f => f.page === pageNumber);
 
-                  {/* Fields overlay */}
-                  <div className="absolute inset-0">
-                    {fields
-                      .filter(f => f.page === currentPage)
-                      .map((field) => {
-                        const isSignatureOrInitials = field.type === 'signature' || field.type === 'initials';
-                        const hasValue = !!field.value;
+                    return (
+                      <div key={pageNumber} data-page={pageNumber} className="flex flex-col items-center">
+                        {/* Page number badge */}
+                        <div className="mb-2 px-3 py-1 bg-gray-100 rounded-full text-sm text-gray-600">
+                          Page {pageNumber} of {pageImages.length}
+                        </div>
 
-                        return (
-                          <div
-                            key={field.id}
-                            className={`absolute border-2 rounded cursor-pointer transition-all ${
-                              hasValue
-                                ? 'border-green-500 bg-green-50/50'
-                                : 'border-dashed animate-pulse'
-                            }`}
-                            style={{
-                              left: `${field.x}%`,
-                              top: `${field.y}%`,
-                              width: `${field.width}%`,
-                              height: `${field.height}%`,
-                              borderColor: hasValue ? undefined : data.recipient.color,
-                              backgroundColor: hasValue ? undefined : `${data.recipient.color}10`,
-                            }}
-                            onClick={() => {
-                              if (isSignatureOrInitials) {
-                                setSelectedFieldId(field.id);
-                                setShowSignatureModal(true);
-                              }
-                            }}
-                          >
-                            {hasValue ? (
-                              <div className="w-full h-full flex items-center justify-center p-1 overflow-hidden">
-                                {isSignatureOrInitials && field.value?.startsWith('data:') ? (
-                                  <img
-                                    src={field.value}
-                                    alt="Signature"
-                                    className="max-w-full max-h-full object-contain"
-                                  />
-                                ) : isSignatureOrInitials ? (
-                                  <span className="font-signature text-lg" style={{ fontFamily: 'cursive' }}>
-                                    {field.value}
-                                  </span>
-                                ) : (
-                                  <span className="text-xs truncate">{field.value}</span>
-                                )}
-                              </div>
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-xs font-medium" style={{ color: data.recipient.color }}>
-                                {isSignatureOrInitials ? (
-                                  <>
-                                    <Pen className="h-3 w-3 mr-1" />
-                                    {field.type === 'signature' ? 'Sign Here' : 'Initial Here'}
-                                  </>
-                                ) : field.type === 'name' ? (
-                                  <Input
-                                    value={field.value || ''}
-                                    onChange={(e) => updateFieldValue(field.id, e.target.value)}
-                                    placeholder="Your name"
-                                    className="h-full text-xs border-0 bg-transparent"
-                                    onClick={(e) => e.stopPropagation()}
-                                  />
-                                ) : field.type === 'email' ? (
-                                  <Input
-                                    type="email"
-                                    value={field.value || data.recipient.email}
-                                    onChange={(e) => updateFieldValue(field.id, e.target.value)}
-                                    placeholder="Your email"
-                                    className="h-full text-xs border-0 bg-transparent"
-                                    onClick={(e) => e.stopPropagation()}
-                                  />
-                                ) : field.type === 'date' ? (
-                                  <Input
-                                    type="date"
-                                    value={field.value || new Date().toISOString().split('T')[0]}
-                                    onChange={(e) => updateFieldValue(field.id, e.target.value)}
-                                    className="h-full text-xs border-0 bg-transparent"
-                                    onClick={(e) => e.stopPropagation()}
-                                  />
-                                ) : (
-                                  <Input
-                                    value={field.value || ''}
-                                    onChange={(e) => updateFieldValue(field.id, e.target.value)}
-                                    placeholder="Enter text"
-                                    className="h-full text-xs border-0 bg-transparent"
-                                    onClick={(e) => e.stopPropagation()}
-                                  />
-                                )}
-                              </div>
-                            )}
+                        {/* Page container */}
+                        <div
+                          className="relative mx-auto border shadow-lg bg-white"
+                          style={{ width: 612 * zoom, maxWidth: '100%' }}
+                        >
+                          <img
+                            src={pageImage}
+                            alt={`Page ${pageNumber}`}
+                            className="w-full h-auto block"
+                            draggable={false}
+                          />
+
+                          {/* Fields overlay for this page */}
+                          <div className="absolute inset-0">
+                            {pageFields.map((field) => {
+                              const isSignatureOrInitials = field.type === 'signature' || field.type === 'initials';
+                              const hasValue = !!field.value;
+
+                              return (
+                                <div
+                                  key={field.id}
+                                  className={`absolute cursor-pointer transition-all ${
+                                    hasValue
+                                      ? isSignatureOrInitials
+                                        ? '' // No border for signed signature fields - L-frame is outside
+                                        : 'border-2 rounded border-green-500 bg-green-50/50'
+                                      : 'border-2 border-dashed rounded animate-pulse'
+                                  }`}
+                                  style={{
+                                    left: `${field.x}%`,
+                                    top: `${field.y}%`,
+                                    width: `${field.width}%`,
+                                    height: `${field.height}%`,
+                                    borderColor: hasValue ? undefined : data.recipient.color,
+                                    backgroundColor: hasValue ? undefined : `${data.recipient.color}10`,
+                                    // Add overflow visible for signature fields to show L-frame outside
+                                    overflow: isSignatureOrInitials && hasValue ? 'visible' : undefined,
+                                  }}
+                                  onClick={() => {
+                                    if (isSignatureOrInitials) {
+                                      setSelectedFieldId(field.id);
+                                      setShowSignatureModal(true);
+                                    }
+                                  }}
+                                >
+                                  {isSignatureOrInitials ? (
+                                    // Signature/Initials - show value with DocuSign-style L-frame if filled, otherwise show prompt
+                                    hasValue ? (
+                                      <div className="w-full h-full relative">
+                                        {/* Signature content area - no border on the signature itself */}
+                                        <div className="w-full h-full flex items-center justify-center p-1 overflow-hidden">
+                                          {field.value?.startsWith('data:') ? (
+                                            <img
+                                              src={field.value}
+                                              alt="Signature"
+                                              className="max-w-full max-h-full object-contain"
+                                            />
+                                          ) : (
+                                            <span className="text-lg" style={{ fontFamily: 'cursive', color: '#0d0d4d' }}>
+                                              {field.value}
+                                            </span>
+                                          )}
+                                        </div>
+                                        {/* L-shaped frame OUTSIDE the signature area with rounded corner */}
+                                        {/* Left border - stops at corner */}
+                                        <div
+                                          className="absolute"
+                                          style={{
+                                            left: '-4px',
+                                            top: '-2px',
+                                            bottom: 'calc(-4px + 5px)', // Stop at corner radius
+                                            width: '1px',
+                                            backgroundColor: '#6B7280',
+                                          }}
+                                        />
+                                        {/* Bottom border - starts after corner */}
+                                        <div
+                                          className="absolute"
+                                          style={{
+                                            left: 'calc(-4px + 5px)', // Start after corner radius
+                                            bottom: '-4px',
+                                            right: '0',
+                                            height: '1px',
+                                            backgroundColor: '#6B7280',
+                                          }}
+                                        />
+                                        {/* Rounded corner connecting left and bottom */}
+                                        <div
+                                          className="absolute"
+                                          style={{
+                                            left: '-4px',
+                                            bottom: '-4px',
+                                            width: '10px',
+                                            height: '10px',
+                                            border: '1px solid #6B7280',
+                                            borderTop: 'none',
+                                            borderRight: 'none',
+                                            borderBottomLeftRadius: '5px',
+                                          }}
+                                        />
+                                        {/* Unique ID below the bottom border */}
+                                        <div
+                                          className="absolute font-mono"
+                                          style={{
+                                            left: '-4px',
+                                            bottom: '-14px',
+                                            fontSize: '7px',
+                                            color: '#6B7280',
+                                            letterSpacing: '0.5px',
+                                          }}
+                                        >
+                                          {/* Generate a hash-like ID from field.id for display */}
+                                          {String(field.id).split('').reduce((acc, char, i) =>
+                                            acc + ((char.charCodeAt(0) * (i + 1) * 7) % 36).toString(36), ''
+                                          ).slice(0, 8).toUpperCase()}
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center text-xs font-medium" style={{ color: data.recipient.color }}>
+                                        <Pen className="h-3 w-3 mr-1" />
+                                        {field.type === 'signature' ? 'Sign Here' : 'Initial Here'}
+                                      </div>
+                                    )
+                                  ) : (
+                                    // Text fields (name, email, date, text) - always show input for editing
+                                    <div className="w-full h-full flex items-center justify-center text-xs font-medium">
+                                      {field.type === 'name' ? (
+                                        <Input
+                                          value={field.value || ''}
+                                          onChange={(e) => updateFieldValue(field.id, e.target.value)}
+                                          placeholder="Your name"
+                                          className="h-full text-xs border-0 bg-transparent"
+                                          onClick={(e) => e.stopPropagation()}
+                                        />
+                                      ) : field.type === 'email' ? (
+                                        <Input
+                                          type="email"
+                                          value={field.value || data.recipient.email}
+                                          onChange={(e) => updateFieldValue(field.id, e.target.value)}
+                                          placeholder="Your email"
+                                          className="h-full text-xs border-0 bg-transparent"
+                                          onClick={(e) => e.stopPropagation()}
+                                        />
+                                      ) : field.type === 'date' ? (
+                                        <Input
+                                          type="date"
+                                          value={field.value || new Date().toISOString().split('T')[0]}
+                                          onChange={(e) => updateFieldValue(field.id, e.target.value)}
+                                          className="h-full text-xs border-0 bg-transparent"
+                                          onClick={(e) => e.stopPropagation()}
+                                        />
+                                      ) : (
+                                        <Input
+                                          value={field.value || ''}
+                                          onChange={(e) => updateFieldValue(field.id, e.target.value)}
+                                          placeholder="Enter text"
+                                          className="h-full text-xs border-0 bg-transparent"
+                                          onClick={(e) => e.stopPropagation()}
+                                        />
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
-                        );
-                      })}
-                  </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
@@ -585,6 +721,60 @@ export default function EsignSign() {
 
           {/* Sidebar */}
           <div className="space-y-4">
+            {/* E-SIGN Act Consent - Clickwrap style */}
+            <Card className={`border-2 ${hasConsented ? 'border-green-500 bg-green-50' : 'border-gray-200'}`}>
+              <CardContent className="pt-4">
+                {hasConsented ? (
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
+                    <div className="text-sm">
+                      <span className="font-medium text-green-700">
+                        Electronic signature consent accepted
+                      </span>
+                      <p className="text-xs text-gray-600 mt-1">
+                        You agreed to use electronic signatures on {consentedAt ? new Date(consentedAt).toLocaleString() : 'this session'}.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-2">
+                      <Checkbox
+                        id="esign-consent"
+                        checked={hasConsented}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            consentMutation.mutate();
+                          }
+                        }}
+                        disabled={consentMutation.isPending}
+                        className="mt-0.5"
+                      />
+                      <label htmlFor="esign-consent" className="text-sm leading-tight cursor-pointer">
+                        I agree to use electronic signatures and have reviewed the{" "}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setShowConsentDialog(true);
+                          }}
+                          className="text-blue-600 hover:text-blue-800 underline font-medium"
+                        >
+                          Electronic Signature Disclosure
+                        </button>
+                      </label>
+                    </div>
+                    {consentMutation.isPending && (
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-500" />
+                        Recording consent...
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Progress */}
             <Card>
               <CardHeader className="pb-2">
@@ -619,7 +809,11 @@ export default function EsignSign() {
                         isComplete ? 'bg-green-50 text-green-700' : 'bg-gray-50 hover:bg-gray-100'
                       }`}
                       onClick={() => {
-                        setCurrentPage(field.page);
+                        // Scroll to the page containing this field
+                        const pageElement = document.querySelector(`[data-page="${field.page}"]`);
+                        if (pageElement) {
+                          pageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
                         if (field.type === 'signature' || field.type === 'initials') {
                           setSelectedFieldId(field.id);
                           setShowSignatureModal(true);
@@ -642,23 +836,6 @@ export default function EsignSign() {
               </CardContent>
             </Card>
 
-            {/* Agreement */}
-            <Card>
-              <CardContent className="pt-4">
-                <div className="flex items-start gap-3">
-                  <Checkbox
-                    id="terms"
-                    checked={agreedToTerms}
-                    onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)}
-                  />
-                  <label htmlFor="terms" className="text-xs text-gray-600 cursor-pointer">
-                    I agree that my signature and initials on this document are legally binding,
-                    equivalent to signing on paper.
-                  </label>
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Signer Info */}
             <Card>
               <CardHeader className="pb-2">
@@ -677,6 +854,39 @@ export default function EsignSign() {
                     <p className="text-sm text-gray-500">{data.recipient.email}</p>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* AI Summarize */}
+            <Card>
+              <CardContent className="pt-4">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    if (summaryData) {
+                      setShowSummaryModal(true);
+                    } else {
+                      summarizeMutation.mutate();
+                    }
+                  }}
+                  disabled={summarizeMutation.isPending}
+                >
+                  {summarizeMutation.isPending ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2" />
+                      Analyzing document...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      {summaryData ? 'View AI Summary' : 'AI Summarize Document'}
+                    </>
+                  )}
+                </Button>
+                <p className="text-xs text-gray-500 mt-2 text-center">
+                  Get AI-powered key points and summary
+                </p>
               </CardContent>
             </Card>
           </div>
@@ -790,6 +1000,172 @@ export default function EsignSign() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* E-SIGN Act Disclosure Dialog - View only, consent via checkbox */}
+      <Dialog open={showConsentDialog} onOpenChange={setShowConsentDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-blue-600" />
+              Electronic Signature Disclosure
+            </DialogTitle>
+          </DialogHeader>
+
+          <ScrollArea className="max-h-[400px] pr-4">
+            <div className="space-y-4 text-sm">
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2">Consumer Consent to Use Electronic Signatures</h4>
+                <p className="text-gray-600">
+                  By checking the consent box, you are consenting to use electronic signatures to sign this document.
+                  This consent is provided pursuant to the Electronic Signatures in Global and National Commerce Act
+                  (E-SIGN Act) and the Uniform Electronic Transactions Act (UETA).
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2">What This Means</h4>
+                <ul className="list-disc pl-5 space-y-1 text-gray-600">
+                  <li>Your electronic signature will have the same legal validity as a handwritten signature.</li>
+                  <li>You agree to conduct this transaction electronically.</li>
+                  <li>You will receive a copy of the signed document via email.</li>
+                  <li>Records of your signature, including timestamp and IP address, will be maintained.</li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2">Your Rights</h4>
+                <ul className="list-disc pl-5 space-y-1 text-gray-600">
+                  <li>You have the right to receive this document on paper. To request a paper copy, contact the sender.</li>
+                  <li>You may withdraw this consent at any time before signing by closing this page or clicking "Decline."</li>
+                  <li>Withdrawing consent will not affect the validity of any signatures already provided.</li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2">Hardware and Software Requirements</h4>
+                <p className="text-gray-600">
+                  To access and retain electronic records, you need:
+                </p>
+                <ul className="list-disc pl-5 space-y-1 text-gray-600">
+                  <li>A computer or mobile device with internet access</li>
+                  <li>A current web browser (Chrome, Firefox, Safari, or Edge)</li>
+                  <li>A valid email address to receive signed documents</li>
+                  <li>Sufficient storage to save or print electronic records</li>
+                </ul>
+              </div>
+
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <p className="text-blue-800 text-xs">
+                  <strong>Document:</strong> {data?.envelope.title}<br />
+                  <strong>Signer:</strong> {data?.recipient.name} ({data?.recipient.email})
+                </p>
+              </div>
+            </div>
+          </ScrollArea>
+
+          <DialogFooter className="mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowConsentDialog(false)}
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI Summary Modal */}
+      <Dialog open={showSummaryModal} onOpenChange={setShowSummaryModal}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-purple-600" />
+              AI Document Summary
+            </DialogTitle>
+            <DialogDescription>
+              AI-generated overview of key points in this document
+            </DialogDescription>
+          </DialogHeader>
+
+          {summaryData && (
+            <ScrollArea className="max-h-[500px] pr-4">
+              <div className="space-y-6">
+                {/* Estimated Read Time */}
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Clock className="h-4 w-4" />
+                  <span>Full document read time: <strong>{summaryData.estimatedReadTime}</strong></span>
+                </div>
+
+                {/* Summary */}
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                    <FileCheck className="h-4 w-4 text-blue-600" />
+                    Summary
+                  </h4>
+                  <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                    {summaryData.summary}
+                  </p>
+                </div>
+
+                {/* Key Points */}
+                {summaryData.keyPoints.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                      <ListChecks className="h-4 w-4 text-green-600" />
+                      Key Points
+                    </h4>
+                    <ul className="space-y-2">
+                      {summaryData.keyPoints.map((point, index) => (
+                        <li key={index} className="flex items-start gap-2 text-gray-700">
+                          <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                          <span>{point}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Important Terms */}
+                {summaryData.importantTerms.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                      <Tag className="h-4 w-4 text-orange-600" />
+                      Important Terms & Conditions
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {summaryData.importantTerms.map((term, index) => (
+                        <span
+                          key={index}
+                          className="px-3 py-1 bg-orange-50 text-orange-800 rounded-full text-sm"
+                        >
+                          {term}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Disclaimer */}
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm text-amber-800">
+                      <p className="font-medium mb-1">Important Notice</p>
+                      <p>{summaryData.disclaimer}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </ScrollArea>
+          )}
+
+          <DialogFooter className="mt-4">
+            <Button onClick={() => setShowSummaryModal(false)}>
+              Close & Continue Signing
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

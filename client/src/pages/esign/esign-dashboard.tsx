@@ -36,6 +36,7 @@ type EnvelopeStatus = 'draft' | 'sent' | 'completed' | 'voided' | 'declined';
 
 interface Envelope {
   id: number;
+  envelopeId: string; // UUID for URLs
   title: string;
   status: EnvelopeStatus;
   signingOrder: string;
@@ -168,9 +169,12 @@ export default function EsignDashboard() {
       </div>
 
       <main className="container mx-auto px-4 py-8">
-        {/* Stats Cards */}
+        {/* Stats Cards - Click to filter */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card className="bg-white shadow-sm">
+          <Card
+            className={`bg-white shadow-sm cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] ${activeTab === 'all' ? 'ring-2 ring-blue-500' : ''}`}
+            onClick={() => setActiveTab('all')}
+          >
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -181,7 +185,10 @@ export default function EsignDashboard() {
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-white shadow-sm">
+          <Card
+            className={`bg-white shadow-sm cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] ${activeTab === 'sent' ? 'ring-2 ring-yellow-500' : ''}`}
+            onClick={() => setActiveTab('sent')}
+          >
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -192,7 +199,10 @@ export default function EsignDashboard() {
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-white shadow-sm">
+          <Card
+            className={`bg-white shadow-sm cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] ${activeTab === 'completed' ? 'ring-2 ring-green-500' : ''}`}
+            onClick={() => setActiveTab('completed')}
+          >
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -203,7 +213,10 @@ export default function EsignDashboard() {
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-white shadow-sm">
+          <Card
+            className={`bg-white shadow-sm cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] ${activeTab === 'draft' ? 'ring-2 ring-gray-500' : ''}`}
+            onClick={() => setActiveTab('draft')}
+          >
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -287,7 +300,7 @@ export default function EsignDashboard() {
                         <div
                           key={envelope.id}
                           className="flex items-center justify-between p-4 hover:bg-gray-50 cursor-pointer"
-                          onClick={() => setLocation(`/esign/envelope/${envelope.id}`)}
+                          onClick={() => setLocation(`/esign/envelope/${envelope.envelopeId}`)}
                         >
                           <div className="flex items-center gap-4">
                             <div className="p-2 bg-blue-50 rounded-lg">
@@ -332,7 +345,7 @@ export default function EsignDashboard() {
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem onClick={(e) => {
                                   e.stopPropagation();
-                                  setLocation(`/esign/envelope/${envelope.id}`);
+                                  setLocation(`/esign/envelope/${envelope.envelopeId}`);
                                 }}>
                                   <Eye className="h-4 w-4 mr-2" />
                                   View Details

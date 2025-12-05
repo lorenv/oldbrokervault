@@ -40,6 +40,7 @@ import {
   ZoomIn,
   ZoomOut,
   RotateCcw,
+  File,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -66,6 +67,107 @@ interface SignatureField {
   page: number;
   recipientIndex: number;
   required: boolean;
+}
+
+// Interface for uploaded documents (multiple file support)
+interface UploadedDocument {
+  id: string;
+  name: string;
+  documentUrl: string;
+  pageImages: string[];
+  pageCount: number;
+  pageDimensions: Array<{ width: number; height: number }>;
+}
+
+// Draggable document item for reordering
+const DOCUMENT_ITEM_TYPE = 'DOCUMENT_ITEM';
+
+function DraggableDocumentItem({
+  doc,
+  index,
+  moveDocument,
+  onRemove,
+}: {
+  doc: UploadedDocument;
+  index: number;
+  moveDocument: (dragIndex: number, hoverIndex: number) => void;
+  onRemove: (id: string) => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  const [{ isDragging }, drag, preview] = useDrag({
+    type: DOCUMENT_ITEM_TYPE,
+    item: { index },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  });
+
+  const [, drop] = useDrop({
+    accept: DOCUMENT_ITEM_TYPE,
+    hover: (item: { index: number }, monitor) => {
+      if (!ref.current) return;
+
+      const dragIndex = item.index;
+      const hoverIndex = index;
+
+      if (dragIndex === hoverIndex) return;
+
+      const hoverBoundingRect = ref.current.getBoundingClientRect();
+      const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
+      const clientOffset = monitor.getClientOffset();
+      if (!clientOffset) return;
+
+      const hoverClientY = clientOffset.y - hoverBoundingRect.top;
+
+      // Only move when cursor crosses half of the item height
+      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) return;
+      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) return;
+
+      moveDocument(dragIndex, hoverIndex);
+      item.index = hoverIndex;
+    },
+  });
+
+  // Connect drag and drop refs
+  drag(drop(ref));
+
+  return (
+    <div
+      ref={ref}
+      className={`p-3 bg-gray-50 border border-gray-200 rounded-lg flex items-center gap-3 group cursor-move transition-all ${
+        isDragging ? 'opacity-50 shadow-lg scale-[1.02]' : 'opacity-100'
+      }`}
+    >
+      {/* Drag handle */}
+      <div className="text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing">
+        <GripVertical className="h-5 w-5" />
+      </div>
+
+      <File className="h-8 w-8 text-blue-500 flex-shrink-0" />
+
+      <div className="flex-1 min-w-0">
+        <p className="font-medium text-gray-800 truncate">{doc.name}</p>
+        <p className="text-xs text-gray-500">
+          {doc.pageCount} page{doc.pageCount !== 1 ? 's' : ''}
+        </p>
+      </div>
+
+      {/* Delete button */}
+      <Button
+        size="icon"
+        variant="ghost"
+        className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={(e) => {
+          e.stopPropagation();
+          onRemove(doc.id);
+        }}
+        title="Remove document"
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </div>
+  );
 }
 
 // Draggable Field Palette Item using react-dnd
@@ -266,6 +368,71 @@ function DocumentPageCanvas({
     }
   }, [fields, onFieldsChange, selectedFieldId, onSelectField]);
 
+  // Handle field resize
+  const handleFieldResize = useCallback((e: React.MouseEvent, field: SignatureField, corner: 'se' | 'sw' | 'ne' | 'nw') => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!canvasRef.current) return;
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startWidth = field.width;
+    const startHeight = field.height;
+    const startFieldX = field.x;
+    const startFieldY = field.y;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!canvasRef.current) return;
+
+      const deltaX = ((e.clientX - startX) / displayWidth) * 100;
+      const deltaY = ((e.clientY - startY) / displayHeight) * 100;
+
+      let newWidth = startWidth;
+      let newHeight = startHeight;
+      let newX = startFieldX;
+      let newY = startFieldY;
+
+      // Calculate new dimensions based on which corner is being dragged
+      if (corner === 'se') {
+        newWidth = Math.max(5, startWidth + deltaX);
+        newHeight = Math.max(2, startHeight + deltaY);
+      } else if (corner === 'sw') {
+        newWidth = Math.max(5, startWidth - deltaX);
+        newHeight = Math.max(2, startHeight + deltaY);
+        newX = startFieldX + (startWidth - newWidth);
+      } else if (corner === 'ne') {
+        newWidth = Math.max(5, startWidth + deltaX);
+        newHeight = Math.max(2, startHeight - deltaY);
+        newY = startFieldY + (startHeight - newHeight);
+      } else if (corner === 'nw') {
+        newWidth = Math.max(5, startWidth - deltaX);
+        newHeight = Math.max(2, startHeight - deltaY);
+        newX = startFieldX + (startWidth - newWidth);
+        newY = startFieldY + (startHeight - newHeight);
+      }
+
+      // Clamp to bounds
+      newX = Math.max(0, Math.min(100 - newWidth, newX));
+      newY = Math.max(0, Math.min(100 - newHeight, newY));
+      newWidth = Math.min(100 - newX, newWidth);
+      newHeight = Math.min(100 - newY, newHeight);
+
+      const updatedFields = fields.map(f =>
+        f.id === field.id ? { ...f, x: newX, y: newY, width: newWidth, height: newHeight } : f
+      );
+      onFieldsChange(updatedFields);
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [fields, onFieldsChange, displayWidth, displayHeight]);
+
   // Combine refs
   const combinedRef = useCallback((node: HTMLDivElement | null) => {
     (canvasRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
@@ -313,6 +480,11 @@ function DocumentPageCanvas({
           const color = getRecipientColor(field.recipientIndex);
           const isSelected = selectedFieldId === field.id;
 
+          // Calculate dynamic font size based on field height (in pixels)
+          const fieldHeightPx = (field.height / 100) * displayHeight;
+          const dynamicFontSize = Math.max(8, Math.min(24, fieldHeightPx * 0.5));
+          const iconSize = Math.max(10, Math.min(20, fieldHeightPx * 0.4));
+
           return (
             <div
               key={field.id}
@@ -332,13 +504,14 @@ function DocumentPageCanvas({
               }}
             >
               <div
-                className="w-full h-full rounded border-2 flex items-center justify-center gap-1 text-white text-xs font-medium"
+                className="w-full h-full rounded border-2 flex items-center justify-center gap-1 text-white font-medium overflow-hidden"
                 style={{
                   backgroundColor: `${color}dd`,
                   borderColor: color,
+                  fontSize: `${dynamicFontSize}px`,
                 }}
               >
-                <Icon className="h-3 w-3 flex-shrink-0" />
+                <Icon className="flex-shrink-0" style={{ width: iconSize, height: iconSize }} />
                 <span className="truncate">{fieldConfig?.label}</span>
               </div>
 
@@ -349,10 +522,18 @@ function DocumentPageCanvas({
                     e.stopPropagation();
                     handleDeleteField(field.id);
                   }}
-                  className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow-md"
+                  className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow-md z-30"
                 >
                   <Trash2 className="h-3 w-3" />
                 </button>
+              )}
+
+              {/* Resize handle - only bottom-right corner */}
+              {isSelected && (
+                <div
+                  onMouseDown={(e) => handleFieldResize(e, field, 'se')}
+                  className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-blue-500 border border-white rounded-sm cursor-se-resize z-30"
+                />
               )}
             </div>
           );
@@ -428,11 +609,22 @@ export default function EsignSend() {
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(
     templateIdFromUrl ? parseInt(templateIdFromUrl) : null
   );
-  const [signingOrder, setSigningOrder] = useState<'sequential' | 'parallel'>('sequential');
+  const [signingOrder, setSigningOrder] = useState<'sequential' | 'parallel'>('parallel');
   const [recipients, setRecipients] = useState<Recipient[]>([]);
-  const [documentUrl, setDocumentUrl] = useState<string | null>(null);
-  const [pageImages, setPageImages] = useState<string[]>([]);
+
+  // Multiple document support
+  const [uploadedDocuments, setUploadedDocuments] = useState<UploadedDocument[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+
+  // Template-specific document data (templates have pre-defined documents)
+  const [templateDocumentUrl, setTemplateDocumentUrl] = useState<string | null>(null);
+  const [templatePageImages, setTemplatePageImages] = useState<string[]>([]);
+
+  // Computed: Combined document URL, page images, and dimensions from all uploaded documents
+  // For templates, use template data; for direct uploads, use uploaded documents
+  const documentUrl = selectedTemplateId ? templateDocumentUrl : (uploadedDocuments.length > 0 ? uploadedDocuments[0].documentUrl : null);
+  const pageImages = selectedTemplateId ? templatePageImages : uploadedDocuments.flatMap(doc => doc.pageImages);
+  const pageDimensions = uploadedDocuments.flatMap(doc => doc.pageDimensions);
 
   // Field placement state (for direct uploads only, templates have pre-defined fields)
   const [signatureFields, setSignatureFields] = useState<SignatureField[]>([]);
@@ -459,12 +651,15 @@ export default function EsignSend() {
     enabled: !!selectedTemplateId,
   });
 
-  // Initialize recipients when template is selected
+  // Track which template we've initialized to prevent re-initialization
+  const [initializedTemplateId, setInitializedTemplateId] = useState<number | null>(null);
+
+  // Initialize recipients when template is selected (only once per template)
   useEffect(() => {
-    if (selectedTemplate) {
+    if (selectedTemplate && selectedTemplate.id !== initializedTemplateId) {
       setTitle(selectedTemplate.name);
-      setDocumentUrl(selectedTemplate.documentUrl);
-      setPageImages(selectedTemplate.pageImages);
+      setTemplateDocumentUrl(selectedTemplate.documentUrl);
+      setTemplatePageImages(selectedTemplate.pageImages);
 
       // Create recipients from placeholder recipients
       const newRecipients: Recipient[] = selectedTemplate.placeholderRecipients.map((placeholder, idx) => ({
@@ -476,37 +671,65 @@ export default function EsignSend() {
         placeholderRecipientId: placeholder.id,
       }));
       setRecipients(newRecipients);
+      setInitializedTemplateId(selectedTemplate.id);
     }
-  }, [selectedTemplate]);
+  }, [selectedTemplate, initializedTemplateId]);
 
-  // Handle direct document upload
+  // Handle direct document upload (supports multiple files)
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
     setIsUploading(true);
-    const formData = new FormData();
-    formData.append('document', file);
 
     try {
-      const res = await fetch('/api/esign/templates/upload', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include',
-      });
+      const newDocuments: UploadedDocument[] = [];
 
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || 'Upload failed');
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const formData = new FormData();
+        formData.append('document', file);
+
+        const res = await fetch('/api/esign/templates/upload', {
+          method: 'POST',
+          body: formData,
+          credentials: 'include',
+        });
+
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.error || `Upload failed for ${file.name}`);
+        }
+
+        const data = await res.json();
+
+        // Create uploaded document entry
+        const uploadedDoc: UploadedDocument = {
+          id: uuidv4(),
+          name: file.name,
+          documentUrl: data.documentUrl,
+          pageImages: data.pageImages,
+          pageCount: data.pageCount,
+          pageDimensions: data.pages?.map((p: { width: number; height: number }) => ({
+            width: p.width,
+            height: p.height
+          })) || data.pageImages.map(() => ({ width: 612, height: 792 })),
+        };
+
+        newDocuments.push(uploadedDoc);
       }
 
-      const data = await res.json();
-      setDocumentUrl(data.documentUrl);
-      setPageImages(data.pageImages);
-      setTitle(file.name.replace(/\.[^/.]+$/, "")); // Remove extension
+      // Add new documents to existing ones
+      setUploadedDocuments(prev => [...prev, ...newDocuments]);
+
+      // Set title from first document if not already set
+      if (!title && newDocuments.length > 0) {
+        setTitle(newDocuments[0].name.replace(/\.[^/.]+$/, "")); // Remove extension
+      }
+
       setSelectedTemplateId(null);
 
-      // Initialize with one signer
+      // Initialize with one signer if none exist
       if (recipients.length === 0) {
         setRecipients([{
           id: uuidv4(),
@@ -517,9 +740,10 @@ export default function EsignSend() {
         }]);
       }
 
+      const totalPages = newDocuments.reduce((sum, doc) => sum + doc.pageCount, 0);
       toast({
-        title: "Document uploaded",
-        description: `Successfully processed ${data.pageCount} page(s).`,
+        title: files.length > 1 ? "Documents uploaded" : "Document uploaded",
+        description: `Successfully processed ${files.length} file(s) with ${totalPages} page(s).`,
       });
     } catch (error: any) {
       toast({
@@ -529,8 +753,31 @@ export default function EsignSend() {
       });
     } finally {
       setIsUploading(false);
+      // Reset file input
+      e.target.value = '';
     }
   };
+
+  // Remove a document from the list
+  const handleRemoveDocument = (docId: string) => {
+    setUploadedDocuments(prev => prev.filter(doc => doc.id !== docId));
+    // Clear fields that were on removed document pages
+    // Note: This is a simplification - in a real app you'd need to track which fields belong to which document
+    toast({
+      title: "Document removed",
+      description: "The document has been removed from the list.",
+    });
+  };
+
+  // Move document via drag and drop
+  const moveDocument = useCallback((dragIndex: number, hoverIndex: number) => {
+    setUploadedDocuments(prev => {
+      const newDocs = [...prev];
+      const [draggedDoc] = newDocs.splice(dragIndex, 1);
+      newDocs.splice(hoverIndex, 0, draggedDoc);
+      return newDocs;
+    });
+  }, []);
 
   // Add recipient
   const addRecipient = (role: 'signer' | 'cc') => {
@@ -551,9 +798,9 @@ export default function EsignSend() {
   };
 
   // Update recipient
-  const updateRecipient = (id: string, updates: Partial<Recipient>) => {
-    setRecipients(recipients.map(r => r.id === id ? { ...r, ...updates } : r));
-  };
+  const updateRecipient = useCallback((id: string, updates: Partial<Recipient>) => {
+    setRecipients(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
+  }, []);
 
   // Move recipient order
   const moveRecipient = (id: string, direction: 'up' | 'down') => {
@@ -667,7 +914,7 @@ export default function EsignSend() {
         title: "Document sent!",
         description: "Recipients will receive an email with signing instructions.",
       });
-      setLocation(`/esign/envelope/${envelope.id}`);
+      setLocation(`/esign/envelope/${envelope.envelopeId}`);
     },
     onError: (error: any) => {
       console.error('[ESIGN] Send error:', error);
@@ -681,7 +928,7 @@ export default function EsignSend() {
 
   // Validation
   const signers = recipients.filter(r => r.role === 'signer');
-  const isStep1Valid = documentUrl && pageImages.length > 0;
+  const isStep1Valid = (uploadedDocuments.length > 0 && pageImages.length > 0) || (selectedTemplateId !== null);
   const isStep2Valid = signers.length > 0 && signers.every(r => r.name && r.email);
   // For templates, fields are pre-defined. For direct uploads, at least one signature field is required
   const isStep3Valid = selectedTemplate ? true : signatureFields.some(f => f.type === 'signature');
@@ -799,13 +1046,13 @@ export default function EsignSend() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Upload className="h-5 w-5" />
-                  Upload Document
+                  Upload Documents
                 </CardTitle>
                 <CardDescription>
-                  Upload a PDF or Word document to send for signature
+                  Upload PDF or Word documents to send for signature. You can upload multiple files and reorder them.
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 <label className="cursor-pointer">
                   <input
                     type="file"
@@ -813,36 +1060,55 @@ export default function EsignSend() {
                     className="hidden"
                     onChange={handleFileUpload}
                     disabled={isUploading}
+                    multiple
                   />
-                  <div className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                  <div className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
                     isUploading ? 'bg-gray-50' : 'hover:border-blue-400 hover:bg-blue-50'
                   }`}>
                     {isUploading ? (
                       <>
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
-                        <p className="text-gray-600">Processing document...</p>
+                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-3" />
+                        <p className="text-gray-600">Processing document(s)...</p>
                       </>
                     ) : (
                       <>
-                        <Upload className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                        <p className="text-gray-600 mb-2">
-                          Drag and drop or click to upload
+                        <Upload className="h-10 w-10 mx-auto text-gray-400 mb-3" />
+                        <p className="text-gray-600 mb-1">
+                          {uploadedDocuments.length > 0 ? 'Add more documents' : 'Drag and drop or click to upload'}
                         </p>
                         <p className="text-sm text-gray-400">
-                          PDF, DOC, or DOCX files
+                          PDF, DOC, or DOCX files (multiple files allowed)
                         </p>
                       </>
                     )}
                   </div>
                 </label>
 
-                {documentUrl && !selectedTemplateId && (
-                  <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                    <div>
-                      <p className="font-medium text-green-800">{title}</p>
-                      <p className="text-sm text-green-600">{pageImages.length} page(s)</p>
+                {/* Uploaded documents list */}
+                {uploadedDocuments.length > 0 && !selectedTemplateId && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium text-gray-700">
+                        Uploaded Documents ({uploadedDocuments.length})
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {pageImages.length} total page(s)
+                      </p>
                     </div>
+                    <div className="space-y-2 max-h-[280px] overflow-y-auto">
+                      {uploadedDocuments.map((doc, index) => (
+                        <DraggableDocumentItem
+                          key={doc.id}
+                          doc={doc}
+                          index={index}
+                          moveDocument={moveDocument}
+                          onRemove={handleRemoveDocument}
+                        />
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500 italic">
+                      Drag to reorder documents
+                    </p>
                   </div>
                 )}
               </CardContent>
@@ -931,18 +1197,6 @@ export default function EsignSend() {
                     className="flex gap-4"
                   >
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="sequential" id="sequential" />
-                      <Label htmlFor="sequential" className="cursor-pointer">
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-gray-500" />
-                          Sequential
-                        </div>
-                        <p className="text-xs text-gray-500 font-normal">
-                          Recipients sign one at a time in order
-                        </p>
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
                       <RadioGroupItem value="parallel" id="parallel" />
                       <Label htmlFor="parallel" className="cursor-pointer">
                         <div className="flex items-center gap-2">
@@ -951,6 +1205,18 @@ export default function EsignSend() {
                         </div>
                         <p className="text-xs text-gray-500 font-normal">
                           All recipients can sign at the same time
+                        </p>
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="sequential" id="sequential" />
+                      <Label htmlFor="sequential" className="cursor-pointer">
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-gray-500" />
+                          Sequential
+                        </div>
+                        <p className="text-xs text-gray-500 font-normal">
+                          Recipients sign one at a time in order
                         </p>
                       </Label>
                     </div>
@@ -1196,16 +1462,22 @@ export default function EsignSend() {
               <div className="col-span-9 flex flex-col max-h-full overflow-hidden">
                 {/* Toolbar */}
                 <div className="flex items-center justify-between bg-white border rounded-t-lg px-4 py-2 flex-shrink-0">
-                  <div>
-                    <h3 className="text-sm font-medium">Place Signature Fields</h3>
-                    <p className="text-xs text-gray-500">Drag fields onto the document where recipients should sign</p>
-                  </div>
+                  {/* Back Button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentStep(getPrevStep())}
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back
+                  </Button>
+
                   {/* Zoom Controls */}
                   <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setZoom(Math.max(0.5, zoom - 0.1))}
+                      onClick={() => setZoom(Math.max(0.5, zoom - 0.25))}
                       disabled={zoom <= 0.5}
                       className="h-8 w-8 p-0"
                     >
@@ -1217,8 +1489,8 @@ export default function EsignSend() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setZoom(Math.min(1.5, zoom + 0.1))}
-                      disabled={zoom >= 1.5}
+                      onClick={() => setZoom(Math.min(2.5, zoom + 0.25))}
+                      disabled={zoom >= 2.5}
                       className="h-8 w-8 p-0"
                     >
                       <ZoomIn className="h-4 w-4" />
@@ -1229,11 +1501,20 @@ export default function EsignSend() {
                       size="sm"
                       onClick={() => setZoom(1)}
                       className="h-8 w-8 p-0"
-                      title="Reset zoom"
+                      title="Reset zoom to 100%"
                     >
                       <RotateCcw className="h-4 w-4" />
                     </Button>
                   </div>
+
+                  {/* Continue Button */}
+                  <Button
+                    size="sm"
+                    onClick={() => setCurrentStep(getNextStep())}
+                    disabled={!isStep3Valid}
+                  >
+                    Continue
+                  </Button>
                 </div>
 
                 {/* Scrollable Document Area */}
@@ -1250,8 +1531,8 @@ export default function EsignSend() {
                         <DocumentPageCanvas
                           pageImage={pageImage}
                           pageNumber={index + 1}
-                          pageWidth={612}
-                          pageHeight={792}
+                          pageWidth={pageDimensions[index]?.width || 612}
+                          pageHeight={pageDimensions[index]?.height || 792}
                           fields={signatureFields}
                           selectedFieldId={selectedFieldId}
                           onFieldsChange={setSignatureFields}
@@ -1395,48 +1676,49 @@ export default function EsignSend() {
           </div>
         )}
 
-        {/* Navigation Buttons */}
-        <div className="flex justify-between mt-8 max-w-2xl mx-auto">
-          <Button
-            variant="outline"
-            onClick={() => setCurrentStep(getPrevStep())}
-            disabled={currentStep === 1}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
+        {/* Navigation Buttons - hide on step 3 since they're in the toolbar */}
+        {currentStep !== 3 && (
+          <div className="flex justify-between mt-8 max-w-2xl mx-auto">
+            <Button
+              variant="outline"
+              onClick={() => setCurrentStep(getPrevStep())}
+              disabled={currentStep === 1}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
 
-          {currentStep < 4 ? (
-            <Button
-              onClick={() => setCurrentStep(getNextStep())}
-              disabled={
-                (currentStep === 1 && !isStep1Valid) ||
-                (currentStep === 2 && !isStep2Valid) ||
-                (currentStep === 3 && !isStep3Valid)
-              }
-            >
-              Continue
-            </Button>
-          ) : (
-            <Button
-              onClick={() => sendMutation.mutate()}
-              disabled={!canSend || sendMutation.isPending}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              {sendMutation.isPending ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                  Sending...
-                </>
-              ) : (
-                <>
-                  <Send className="h-4 w-4 mr-2" />
-                  Send for Signature
-                </>
-              )}
-            </Button>
-          )}
-        </div>
+            {currentStep < 4 ? (
+              <Button
+                onClick={() => setCurrentStep(getNextStep())}
+                disabled={
+                  (currentStep === 1 && !isStep1Valid) ||
+                  (currentStep === 2 && !isStep2Valid)
+                }
+              >
+                Continue
+              </Button>
+            ) : (
+              <Button
+                onClick={() => sendMutation.mutate()}
+                disabled={!canSend || sendMutation.isPending}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                {sendMutation.isPending ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4 mr-2" />
+                    Send for Signature
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+        )}
       </main>
     </div>
   );

@@ -807,27 +807,23 @@ export default function InvestorDatabasePage() {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/20">
-        <div className="container mx-auto p-6 space-y-6">
-          {/* Header with gradient background */}
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-600 via-blue-600 to-purple-600 p-8 shadow-xl mb-8">
-            <div
-              className="absolute inset-0 opacity-30"
-              style={{
-                backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.15'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-              }}
-            />
-            <div className="absolute -bottom-16 -right-16 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
-            <div className="absolute -top-16 -left-16 w-64 h-64 bg-purple-400/20 rounded-full blur-3xl" />
-
-            <div className="relative z-10">
-              <h1 className="text-4xl font-bold text-white mb-2">Investor Database</h1>
-              <p className="text-blue-100 text-lg">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 border-b border-slate-200 shadow-lg">
+          <div className="container mx-auto px-4 py-8">
+            <div>
+              <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
+                <Users className="h-8 w-8" />
+                Investor Database
+              </h1>
+              <p className="text-slate-200">
                 Manage and track your investor contacts across all documents
               </p>
             </div>
           </div>
+        </div>
 
+        <main className="container mx-auto px-4 py-8 space-y-6">
       {/* Collapsible Heat Map */}
       <Collapsible open={isHeatMapOpen} onOpenChange={setIsHeatMapOpen}>
         <Card className="border-0 shadow-lg bg-white/95 backdrop-blur-sm">
@@ -1524,7 +1520,7 @@ export default function InvestorDatabasePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-        </div>
+        </main>
       </div>
     </TooltipProvider>
   );
