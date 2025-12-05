@@ -337,6 +337,13 @@ function parseHtmlToText(html: string): string {
   text = text.replace(/&quot;/g, '"');
   text = text.replace(/&#39;/g, "'");
 
+  // Replace tabs with spaces (WinAnsi encoding doesn't support tabs)
+  text = text.replace(/\t/g, '    ');
+
+  // Remove other control characters that WinAnsi can't encode (except newline and carriage return)
+  // WinAnsi supports: 0x20-0x7E (printable ASCII), 0xA0-0xFF (extended Latin), newline (0x0A), carriage return (0x0D)
+  text = text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+
   // Clean up excessive whitespace
   text = text.replace(/\n\s*\n\s*\n/g, '\n\n');
   text = text.trim();
@@ -344,23 +351,46 @@ function parseHtmlToText(html: string): string {
   return text;
 }
 
+// Sanitize text for WinAnsi encoding (used by pdf-lib standard fonts)
+function sanitizeForWinAnsi(text: string): string {
+  // Replace tabs with spaces
+  let sanitized = text.replace(/\t/g, '    ');
+  // Remove control characters except newline (0x0A) and carriage return (0x0D)
+  sanitized = sanitized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+  // Replace any remaining non-WinAnsi characters with a placeholder
+  // WinAnsi supports: printable ASCII (0x20-0x7E) and Latin-1 supplement (0xA0-0xFF)
+  sanitized = sanitized.replace(/[^\x0A\x0D\x20-\x7E\xA0-\xFF]/g, '?');
+  return sanitized;
+}
+
 // Word wrap text to fit within maxWidth
 function wrapText(text: string, font: any, fontSize: number, maxWidth: number): string[] {
-  const words = text.split(' ');
+  // Sanitize text for WinAnsi encoding before processing
+  const sanitizedText = sanitizeForWinAnsi(text);
+  const words = sanitizedText.split(' ');
   const lines: string[] = [];
   let currentLine = '';
 
   for (const word of words) {
     const testLine = currentLine ? `${currentLine} ${word}` : word;
-    const testWidth = font.widthOfTextAtSize(testLine, fontSize);
+    try {
+      const testWidth = font.widthOfTextAtSize(testLine, fontSize);
 
-    if (testWidth <= maxWidth) {
-      currentLine = testLine;
-    } else {
+      if (testWidth <= maxWidth) {
+        currentLine = testLine;
+      } else {
+        if (currentLine) {
+          lines.push(currentLine);
+        }
+        currentLine = word;
+      }
+    } catch (e) {
+      // If encoding still fails, skip this word
+      console.warn(`[ESIGN] Skipping word due to encoding error: "${word.substring(0, 20)}..."`);
       if (currentLine) {
         lines.push(currentLine);
       }
-      currentLine = word;
+      currentLine = '';
     }
   }
 

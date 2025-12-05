@@ -23,7 +23,7 @@ import {
   Eye,
   Download,
   Trash2,
-  Settings,
+  Palette,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -145,8 +145,8 @@ export default function EsignDashboard() {
                 className="bg-white/10 border-white/20 text-white hover:bg-white/20"
                 onClick={() => setLocation("/esign/settings")}
               >
-                <Settings className="h-4 w-4 mr-2" />
-                Settings
+                <Palette className="h-4 w-4 mr-2" />
+                Branding
               </Button>
               <Button
                 variant="outline"

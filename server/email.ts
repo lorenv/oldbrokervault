@@ -1601,6 +1601,114 @@ This document is no longer valid and no further action is required from you.
   });
 }
 
+async function sendFirstDocumentCongratulationsEmail(params: {
+  userEmail: string;
+  userName: string;
+  documentTitle: string;
+  documentId: number;
+}): Promise<boolean> {
+  const { userEmail, userName, documentTitle, documentId } = params;
+  const documentUrl = `https://cimshare.com/cim/${documentId}`;
+  const firstName = userName.split(' ')[0] || 'there';
+
+  return sendEmail({
+    to: userEmail,
+    from: 'CIMShare <hello@cimshare.com>',
+    replyTo: 'support@cimshare.com',
+    subject: `Congratulations on your first CIM! - ${documentTitle}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 30px; text-align: center; border-radius: 8px 8px 0 0;">
+          <h1 style="color: white; margin: 0; font-size: 28px;">Congratulations! 🎉</h1>
+          <p style="color: rgba(255,255,255,0.9); margin-top: 10px; font-size: 16px;">You've created your first CIM</p>
+        </div>
+
+        <div style="padding: 30px;">
+          <p style="font-size: 16px; color: #333;">Hi ${firstName},</p>
+
+          <p style="font-size: 16px; color: #333; line-height: 1.6;">
+            You've just created your first Confidential Information Memorandum: <strong>"${documentTitle}"</strong>.
+            This is an exciting step in presenting your business professionally to potential buyers and investors!
+          </p>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${documentUrl}"
+               style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 32px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600; font-size: 16px;">
+              View Your Document
+            </a>
+          </div>
+
+          <div style="background-color: #f8f9fa; padding: 25px; border-radius: 8px; margin: 25px 0;">
+            <h3 style="margin-top: 0; color: #333; font-size: 18px;">💡 Next Steps to Maximize Your CIM</h3>
+
+            <div style="margin: 20px 0;">
+              <p style="margin: 12px 0; color: #555; font-size: 14px;">
+                <strong style="color: #667eea;">🔒 Protect with NDA Settings</strong><br>
+                Require potential buyers to sign an NDA before viewing your confidential business information.
+                This keeps your sensitive data secure.
+              </p>
+
+              <p style="margin: 12px 0; color: #555; font-size: 14px;">
+                <strong style="color: #667eea;">🔗 Configure Sharing Settings</strong><br>
+                Set password protection, expiration dates, and control who can access your document.
+                Track every view with detailed analytics.
+              </p>
+
+              <p style="margin: 12px 0; color: #555; font-size: 14px;">
+                <strong style="color: #667eea;">✍️ Use E-Signatures</strong><br>
+                Send documents for legally binding electronic signatures directly from CIMShare.
+              </p>
+            </div>
+          </div>
+
+          <p style="font-size: 16px; color: #333; line-height: 1.6;">
+            We're here to help you succeed. If you have any questions or feature suggestions,
+            don't hesitate to reach out!
+          </p>
+
+          <p style="font-size: 16px; color: #333; margin-top: 25px;">
+            Best regards,<br>
+            <strong>The CIMShare Team</strong>
+          </p>
+        </div>
+
+        <div style="background-color: #f8f9fa; padding: 20px 30px; border-radius: 0 0 8px 8px; border-top: 1px solid #eee;">
+          <p style="margin: 0; color: #666; font-size: 14px; text-align: center;">
+            Questions? Contact us at <a href="mailto:support@cimshare.com" style="color: #667eea;">support@cimshare.com</a>
+          </p>
+        </div>
+      </div>
+    `,
+    text: `
+Congratulations! 🎉
+
+Hi ${firstName},
+
+You've just created your first Confidential Information Memorandum: "${documentTitle}".
+This is an exciting step in presenting your business professionally to potential buyers and investors!
+
+View your document: ${documentUrl}
+
+NEXT STEPS TO MAXIMIZE YOUR CIM:
+
+🔒 Protect with NDA Settings
+Require potential buyers to sign an NDA before viewing your confidential business information.
+
+🔗 Configure Sharing Settings
+Set password protection, expiration dates, and control who can access your document.
+
+✍️ Use E-Signatures
+Send documents for legally binding electronic signatures directly from CIMShare.
+
+We're here to help you succeed. If you have any questions or feature suggestions,
+don't hesitate to reach out at support@cimshare.com!
+
+Best regards,
+The CIMShare Team
+    `.trim()
+  });
+}
+
 export {
   sendEmail,
   sendNdaSignedEmail,
@@ -1620,5 +1728,7 @@ export {
   sendEsignReminderEmail,
   sendEsignCompletedEmail,
   sendEsignDeclinedEmail,
-  sendEsignVoidedEmail
+  sendEsignVoidedEmail,
+  // User milestone emails
+  sendFirstDocumentCongratulationsEmail
 };

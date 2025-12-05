@@ -26,7 +26,8 @@
       "WebFetch(domain:platform.openai.com)",
       "WebFetch(domain:www.listendata.com)",
       "Bash(cat:*)",
-      "Bash(npx tsx:*)"
+      "Bash(npx tsx:*)",
+      "Bash(chmod:*)"
     ],
     "deny": [],
     "ask": [],
