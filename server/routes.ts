@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { analyzeCimTranscript, generateFlexibleCimDocument, generateCimWithWebsiteAnalysis, type FlexibleCimDocument } from "./perplexity";
+import { analyzeCimTranscript, generateFlexibleCimDocument, generateCimWithWebsiteAnalysis, startWebsiteAnalysis, type FlexibleCimDocument } from "./perplexity";
 import { normalizeUrl, extractLogoFromWebsite, extractWebsiteImages, downloadSelectedImages } from "./website-analyzer";
 import { imageManager } from "./image-manager";
 import { objectStorageImageManager } from "./image-manager-object-storage";
@@ -1700,7 +1700,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const purpose = data.purpose || 'business_overview';
         const tone = data.tone || 'professional';
         const audience = data.audience || 'investors';
-        
+
+        // OPTIMIZATION: Start website analysis and logo extraction in parallel at the beginning
+        let normalizedUrl: string | null = null;
+        let websiteAnalysisPromise: Promise<string | null> = Promise.resolve(null);
+        let logoExtractionPromise: Promise<string | null> = Promise.resolve(null);
+
+        if (data.websiteUrl) {
+          try {
+            normalizedUrl = normalizeUrl(data.websiteUrl);
+            console.log("🚀 Starting parallel website processing for regeneration...");
+
+            // Start both operations immediately - don't wait
+            websiteAnalysisPromise = startWebsiteAnalysis(data.websiteUrl);
+            logoExtractionPromise = extractLogoFromWebsite(normalizedUrl, req.user!.id)
+              .catch(err => {
+                console.error("Logo extraction error:", err);
+                return null;
+              });
+          } catch (error) {
+            console.error("Website URL normalization error:", error);
+          }
+        }
+
+        // Wait for website analysis to complete (it runs in parallel with logo extraction)
+        const websiteData = await websiteAnalysisPromise;
+
+        // Generate CIM with pre-fetched website data
         let analysis = await generateCimWithWebsiteAnalysis(
           data.transcript,
           data.directions,
@@ -1710,30 +1736,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           data.financials,
           data.websiteUrl,
           data.sectionDirections,
-          data.formattingProfile
+          data.formattingProfile,
+          websiteData // Pass pre-fetched data
         );
-        
-        // If website URL is provided, extract logo in parallel
+
+        // Now wait for logo extraction (should already be done or nearly done)
         if (data.websiteUrl) {
           try {
-            const normalizedUrl = normalizeUrl(data.websiteUrl);
-            
-            // Extract logo only (screenshot functionality removed for efficiency)
-            try {
-              console.log("Extracting logo from website...");
-              const logoUrl = await extractLogoFromWebsite(normalizedUrl, req.user!.id);
-              if (logoUrl) {
-                existingDoc.logoUrl = logoUrl;
-              }
+            const logoUrl = await logoExtractionPromise;
+            if (logoUrl) {
+              existingDoc.logoUrl = logoUrl;
               console.log("Logo extraction completed:", logoUrl);
-            } catch (logoError) {
-              console.error("Logo extraction error:", logoError);
             }
           } catch (error) {
             console.error("Website processing error:", error);
           }
         }
-        
+
         const updatedDoc = await storage.updateCimDocument(docId, {
           ...existingDoc,
           directions: data.directions,
@@ -1751,13 +1770,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const purpose = data.purpose || 'business_overview';
       const tone = data.tone || 'professional';
       const audience = data.audience || 'investors';
-      
+
       console.log("=== USING NEW FLEXIBLE CIM SYSTEM ===");
       console.log("Purpose:", purpose);
       console.log("Tone:", tone);
       console.log("Audience:", audience);
       console.log("Custom directions:", data.directions);
-      
+
+      // OPTIMIZATION: Start ALL website-related operations in parallel at the very beginning
+      // This includes: website crawling/analysis, logo extraction, and image extraction
+      let normalizedUrl: string | null = null;
+      let websiteAnalysisPromise: Promise<string | null> = Promise.resolve(null);
+      let logoExtractionPromise: Promise<string | null> = Promise.resolve(null);
+      let imageExtractionPromise: Promise<string[]> = Promise.resolve([]);
+
+      if (data.websiteUrl) {
+        try {
+          normalizedUrl = normalizeUrl(data.websiteUrl);
+          console.log("🚀 Starting ALL website operations in parallel at the beginning...");
+
+          // Start all three operations immediately - none wait for the others
+          websiteAnalysisPromise = startWebsiteAnalysis(data.websiteUrl);
+          logoExtractionPromise = extractLogoFromWebsite(normalizedUrl, req.user!.id)
+            .catch(err => {
+              console.error("Logo extraction error:", err);
+              return null;
+            });
+          imageExtractionPromise = extractWebsiteImages(normalizedUrl)
+            .catch(err => {
+              console.error("Image extraction error:", err);
+              return [];
+            });
+        } catch (error) {
+          console.error("Website URL normalization error:", error);
+        }
+      }
+
+      // Wait for website analysis first (needed for CIM generation)
+      const websiteData = await websiteAnalysisPromise;
+
+      // Generate CIM with pre-fetched website data
       let analysis = await generateCimWithWebsiteAnalysis(
         data.transcript,
         data.directions,
@@ -1767,14 +1819,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         data.financials,
         data.websiteUrl,
         data.sectionDirections,
-        data.formattingProfile
+        data.formattingProfile,
+        websiteData // Pass pre-fetched data - no duplicate API call
       );
-      
+
       console.log("=== FLEXIBLE CIM ANALYSIS RESULT ===");
       console.log("Analysis type:", typeof analysis);
       console.log("Has sections:", !!analysis.sections);
       console.log("Number of sections:", analysis.sections?.length || 0);
-      
+
       // Handle selected images early in the process for regular route
       let savedImagePaths: string[] = [];
       console.log("Checking for selected images:", {
@@ -1783,29 +1836,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         selectedImagesType: typeof data.selectedImages,
         selectedImagesLength: Array.isArray(data.selectedImages) ? data.selectedImages.length : 'not array'
       });
-      
+
       // Store selectedImages URLs for processing after CIM creation
       let selectedImageUrls: string[] = [];
       if (data.selectedImages && Array.isArray(data.selectedImages) && data.selectedImages.length > 0) {
         selectedImageUrls = data.selectedImages;
         console.log(`Will process ${selectedImageUrls.length} selected images after CIM creation`);
       }
-      
-      // If website URL is provided, extract logo and images in parallel
+
+      // Now collect the results from parallel logo/image extraction (should already be done)
       let logoUrl = null;
       let extractedImages: string[] = [];
-      
+
       if (data.websiteUrl) {
         try {
-          const normalizedUrl = normalizeUrl(data.websiteUrl);
-          console.log("Starting parallel website processing...");
-          
-          // Run logo extraction and image extraction in parallel for efficiency
+          // These promises were started at the beginning and should be ready now
           const [logoResult, imagesResult] = await Promise.allSettled([
-            extractLogoFromWebsite(normalizedUrl, req.user!.id),
-            extractWebsiteImages(normalizedUrl)
+            logoExtractionPromise,
+            imageExtractionPromise
           ]);
-          
+
           // Handle logo extraction result
           if (logoResult.status === 'fulfilled' && logoResult.value) {
             logoUrl = logoResult.value;
@@ -1813,7 +1863,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } else {
             console.log("Logo extraction failed or no logo found");
           }
-          
+
           // Handle image extraction result
           if (imagesResult.status === 'fulfilled' && Array.isArray(imagesResult.value)) {
             extractedImages = imagesResult.value;
@@ -1821,7 +1871,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } else {
             console.log("Image extraction failed or no images found");
           }
-          
+
         } catch (error) {
           console.error("Website processing error:", error);
           // Continue with just the transcript analysis
@@ -2346,7 +2396,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const purpose = data.purpose || 'business_overview';
       const tone = data.tone || 'professional';
       const audience = data.audience || 'investors';
-      
+
+      // OPTIMIZATION: Start ALL website-related operations in parallel at the very beginning
+      let normalizedUrl: string | null = null;
+      let websiteAnalysisPromise: Promise<string | null> = Promise.resolve(null);
+      let logoExtractionPromise: Promise<string | null> = Promise.resolve(null);
+
+      if (data.websiteUrl) {
+        try {
+          normalizedUrl = normalizeUrl(data.websiteUrl);
+          console.log("🚀 Starting website operations in parallel (upload route)...");
+
+          // Start both operations immediately
+          websiteAnalysisPromise = startWebsiteAnalysis(data.websiteUrl);
+          logoExtractionPromise = extractLogoFromWebsite(normalizedUrl, req.user!.id)
+            .catch(err => {
+              console.error("Logo extraction error:", err);
+              return null;
+            });
+        } catch (error) {
+          console.error("Website URL normalization error:", error);
+        }
+      }
+
+      // Wait for website analysis first (needed for CIM generation)
+      const websiteData = await websiteAnalysisPromise;
+
+      // Generate CIM with pre-fetched website data
       let analysis = await generateCimWithWebsiteAnalysis(
         transcript,
         data.directions,
@@ -2356,20 +2432,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         parsedFinancials,
         data.websiteUrl,
         data.sectionDirections,
-        data.formattingProfile
+        data.formattingProfile,
+        websiteData // Pass pre-fetched data
       );
-      
+
       // Handle selected images early in the process - always download if provided
       let savedImagePaths: string[] = [];
       if (data.selectedImages && Array.isArray(data.selectedImages) && data.selectedImages.length > 0) {
         try {
-          const normalizedUrl = data.websiteUrl ? normalizeUrl(data.websiteUrl) : 'unknown-source';
+          const imgNormalizedUrl = data.websiteUrl ? normalizeUrl(data.websiteUrl) : 'unknown-source';
           console.log(`Processing ${data.selectedImages.length} selected images...`);
           console.log("Selected image URLs to download:", data.selectedImages);
-          savedImagePaths = await downloadSelectedImages(data.selectedImages, normalizedUrl, req.user!.id);
+          savedImagePaths = await downloadSelectedImages(data.selectedImages, imgNormalizedUrl, req.user!.id);
           console.log(`Successfully downloaded ${savedImagePaths.length} selected images`);
           console.log("Downloaded image paths:", savedImagePaths);
-          
+
           // Store selected images in analysis object
           if (typeof analysis === 'object' && analysis !== null) {
             (analysis as any).selectedImages = savedImagePaths;
@@ -2385,19 +2462,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           length: data.selectedImages?.length || 0
         });
       }
-      
-      // If website URL is provided, extract logo in parallel (for file upload route)
+
+      // Now wait for logo extraction (should already be done or nearly done)
       let logoUrl = null;
       if (data.websiteUrl) {
         try {
-          const normalizedUrl = normalizeUrl(data.websiteUrl);
-          console.log("Extracting logo from website (upload route)...");
-          
-          try {
-            logoUrl = await extractLogoFromWebsite(normalizedUrl, req.user!.id);
+          logoUrl = await logoExtractionPromise;
+          if (logoUrl) {
             console.log("Logo extraction completed:", logoUrl);
-          } catch (logoError) {
-            console.error("Logo extraction error:", logoError);
           }
         } catch (error) {
           console.error("Website processing error:", error);

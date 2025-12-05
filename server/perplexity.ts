@@ -152,11 +152,11 @@ type LegacyCimAnalysis = {
   };
 };
 
-// Website content analysis function
+// Website content analysis function using OpenAI's web search model
 async function analyzeWebsiteContent(websiteUrl: string): Promise<string | null> {
   try {
     console.log('🔍 analyzeWebsiteContent called with URL:', websiteUrl);
-    
+
     if (!websiteUrl?.trim()) {
       console.log('❌ Website URL is empty or invalid');
       return null;
@@ -167,95 +167,60 @@ async function analyzeWebsiteContent(websiteUrl: string): Promise<string | null>
     if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
       cleanUrl = `https://${cleanUrl}`;
     }
-    
-    console.log('🌐 Making Perplexity API request to analyze:', cleanUrl);
 
-    const response = await fetch('https://api.perplexity.ai/chat/completions', {
+    console.log('🌐 Making OpenAI web search request to analyze:', cleanUrl);
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`,
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'sonar-pro',
+        model: 'gpt-4o-mini-search-preview',
         messages: [
           {
-            role: 'system',
-            content: `You are a business intelligence analyst. Analyze the provided website and extract key business information that would be valuable for creating a Confidential Information Memorandum (CIM). Focus on extracting factual, objective information.`
-          },
-          {
             role: 'user',
-            content: `Analyze this company website: ${cleanUrl}
+            content: `Analyze the company website ${cleanUrl} and extract comprehensive business information. Search the website thoroughly and provide specific facts and details:
 
-Please extract and structure the following information if available:
+1. COMPANY OVERVIEW: Company name, tagline, description, year founded, history, mission/vision statement
+2. SERVICES & PRODUCTS: What they offer, key features, pricing model, target customers, unique selling points
+3. TEAM & LEADERSHIP: Founders (names, backgrounds), executives, team size, key personnel with titles
+4. BUSINESS MODEL: How they generate revenue, pricing structure, competitive advantages
+5. ACHIEVEMENTS: Success metrics (revenue, deals closed, clients served), testimonials, awards, milestones, case studies
+6. LOCATIONS & OPERATIONS: Where they operate, geographic coverage, office locations
 
-1. COMPANY OVERVIEW:
-   - Company name and tagline
-   - Mission/vision statements
-   - Year founded and company history
-   - Business description and core activities
-
-2. SERVICES & PRODUCTS:
-   - Primary products or services offered
-   - Key features and capabilities
-   - Target markets and customer segments
-   - Unique selling propositions
-
-3. TEAM & LEADERSHIP:
-   - Key executives and leadership team
-   - Team size and organizational structure
-   - Notable backgrounds or expertise
-   - Advisory board or key stakeholders
-
-4. BUSINESS OPERATIONS:
-   - Geographic presence and locations
-   - Operational model and processes
-   - Technology stack or key systems
-   - Partnerships and key relationships
-
-5. MARKET POSITION:
-   - Industry and market focus
-   - Competitive advantages
-   - Awards, certifications, or recognition
-   - Client testimonials or case studies
-
-6. GROWTH & ACHIEVEMENTS:
-   - Recent milestones or achievements
-   - Growth indicators or metrics mentioned
-   - Future plans or expansion initiatives
-   - Press releases or news coverage
-
-Please provide a comprehensive but concise analysis focusing on factual information that would supplement a business analysis. If certain information is not available on the website, simply omit those sections. Format the response as clear, structured text that can be integrated into a business document.`
+Provide detailed, factual information found on the website. Include specific numbers, names, and quotes where available.`
           }
         ],
-        max_tokens: 2000,
-        temperature: 0.2,
-        top_p: 0.9,
-        stream: false
+        web_search_options: {
+          search_context_size: "high"
+        }
       })
     });
 
     if (!response.ok) {
-      console.error('Perplexity API error:', response.status, response.statusText);
+      const errorText = await response.text();
+      console.error('OpenAI web search API error:', response.status, errorText);
       return null;
     }
 
     const data = await response.json();
-    console.log('📊 Perplexity API response status:', response.status);
+    console.log('📊 OpenAI web search response status:', response.status);
     console.log('📊 Response data structure:', {
       hasChoices: !!data.choices,
       choicesLength: data.choices?.length || 0,
       hasContent: !!(data.choices?.[0]?.message?.content),
       error: data.error
     });
-    
+
     if (data.choices && data.choices[0] && data.choices[0].message) {
       const content = data.choices[0].message.content;
-      console.log('✅ Website analysis content received:', content ? content.substring(0, 200) + '...' : 'Empty content');
+      console.log('✅ Website analysis content received:', content ? content.substring(0, 300) + '...' : 'Empty content');
       return content;
     }
 
-    console.log('⚠️ No valid content in Perplexity response');
+    console.log('⚠️ No valid content in OpenAI response');
     return null;
   } catch (error) {
     console.error('❌ Error analyzing website content:', error);
@@ -302,7 +267,9 @@ async function generateFlexibleCim(
     audienceStyle = 'Use conversational but professional tone, explain business concepts clearly, minimize jargon.';
   }
 
-  const systemPrompt = `You are an expert business analyst creating a professional Confidential Information Memorandum (CIM). 
+  const systemPrompt = `You are an expert business analyst creating a professional Confidential Information Memorandum (CIM).
+
+CRITICAL INSTRUCTION: You MUST generate the document. Do NOT refuse or explain why you cannot. Work with whatever information is provided - if details are missing, create appropriate sections based on what IS available. This is a document generation task, not an advisory task.
 
 ${ANTI_HALLUCINATION_RULES}
 
@@ -314,11 +281,24 @@ ANALYSIS PARAMETERS:
 CUSTOM DIRECTIONS:
 ${customDirections}
 
-${sectionDirections && sectionDirections.length > 0 ? `SPECIFIC SECTION REQUIREMENTS:
-Create ONLY the following sections specified by the user (do not add any other sections):
-${sectionDirections.map(section => `- ${section.content}`).join('\n')}
+${sectionDirections && sectionDirections.length > 0 ? `
+═══════════════════════════════════════════════════════════════
+USER-SPECIFIED SECTION REQUIREMENTS - FOLLOW EXACTLY:
+═══════════════════════════════════════════════════════════════
+The user has specified EXACTLY which sections to include. Create ONLY these sections:
 
-CRITICAL: You MUST create ONLY these sections listed above. Do NOT add any additional sections like "Financial Overview", "Management Team", or "Investment Highlights" unless they are explicitly listed in the user-specified sections above. The document should contain EXACTLY the sections specified by the user, no more and no less.` : ''}
+${sectionDirections.map((section, index) => `${index + 1}. ${section.content}`).join('\n')}
+
+STRICT RULES:
+✓ Create ONLY the sections listed above
+✓ Follow any specific instructions for each section
+✓ Use the section names/titles as specified
+✗ Do NOT add extra sections like "Financial Overview", "Management Team", "Investment Highlights"
+✗ Do NOT rename or reorganize the user's specified sections
+✗ Do NOT omit any section the user specified
+
+The document should contain EXACTLY ${sectionDirections.length} sections, matching the user's specifications above.
+═══════════════════════════════════════════════════════════════` : ''}
 
 CRITICAL FORMATTING INSTRUCTIONS:
 ${formatInstructions}
@@ -330,34 +310,71 @@ ADDITIONAL HTML RULES:
 - Ensure all HTML tags are properly opened and closed
 - Keep formatting consistent throughout all sections
 
-DATA SOURCE INTEGRATION RULES:
-${websiteData ? `- You have access to both TRANSCRIPT data and WEBSITE data
-- TRANSCRIPT data should ALWAYS take precedence when there are conflicts
-- Use website data to SUPPLEMENT and ENHANCE the transcript information, not replace it
-- When incorporating website data, seamlessly blend it with transcript information
-- If transcript mentions something that website data contradicts, use the transcript version
-- Use website data to fill gaps or add context that wasn't covered in the transcript
-- Do not indicate source differences in the final document - blend information naturally` : '- Base your analysis primarily on the transcript data provided'}
+DATA SOURCE INTEGRATION RULES - CRITICAL:
+${websiteData ? `YOU HAVE TWO DATA SOURCES - USE BOTH:
+1. PRIMARY SOURCE: The user's TRANSCRIPT/NOTES (most important - these contain first-hand details from the business owner)
+2. SUPPLEMENTARY SOURCE: WEBSITE DATA (provides additional context, company info, team details)
 
-INSTRUCTIONS WITH ANTI-HALLUCINATION ENFORCEMENT:
+INTEGRATION REQUIREMENTS:
+- ALWAYS include details from the user's transcript/notes - this is their direct input
+- COMBINE transcript information WITH website data to create a comprehensive document
+- If the user mentions "1 contractor" in their notes, include that fact prominently
+- If website data shows team members, ALSO include that while noting the user's specific input
+- TRANSCRIPT data takes precedence when there are conflicts
+- Use website data to ENRICH and ADD CONTEXT, not to replace user-provided information
+- Seamlessly blend both sources - the final document should feel cohesive
+- Do not ignore the user's notes in favor of website data - BOTH are valuable` : '- Base your analysis primarily on the transcript data provided'}
+
+WRITING QUALITY INSTRUCTIONS - CREATE RICH, PROFESSIONAL CONTENT:
+Your goal is to create a polished, professionally-written document that reads like it was prepared by a top-tier business consultant. While staying factual, you should:
+
+1. ELABORATE PROFESSIONALLY: Take each fact from the source material and develop it into well-crafted prose. Don't just list facts - weave them into compelling narratives that showcase the business professionally.
+
+2. USE BUSINESS STORYTELLING: Transform raw information into engaging business narrative. For example, if the source says "started in 2015", write something like "Founded in 2015, the company has steadily built its reputation over nearly a decade of dedicated service to its clients."
+
+3. EXPAND WITH CONTEXT: When you have a fact, provide professional business context around it. If they mention "10 employees", discuss what this means for the business (lean operation, dedicated team, room for growth, etc.) - but only inferences that are reasonable from the data provided.
+
+4. WRITE IN COMPLETE, FLOWING PARAGRAPHS: Each section should have multiple well-developed paragraphs (3-5 sentences minimum per paragraph). Avoid bullet-point-heavy or sparse content unless specifically requested.
+
+5. USE PROFESSIONAL LANGUAGE: Employ sophisticated business vocabulary appropriate for ${audience}. Use transitional phrases, varied sentence structure, and professional tone throughout.
+
+6. MAKE REASONABLE INFERENCES: You CAN make logical inferences that any reasonable business person would make from the provided facts. For example, if a business has been operating for 20 years, you can describe it as "well-established" or note its "proven track record" - these are reasonable conclusions from the stated fact.
+
+ANTI-HALLUCINATION BOUNDARIES - DO NOT CROSS THESE LINES:
+- NEVER invent specific numbers, dates, names, or metrics not in the source
+- NEVER create fictional case studies, customer quotes, or testimonials
+- NEVER add industry statistics or market data unless explicitly provided
+- NEVER fabricate awards, certifications, or achievements
+- NEVER make up financial projections or growth percentages
+- If you truly lack information for a section, write what you can and note that additional details would strengthen the section
+
+INSTRUCTIONS FOR DOCUMENT CREATION:
 1. Create a comprehensive CIM document following the specific formatting requirements above
-2. Extract and organize ONLY information explicitly present in the transcript/website data
+2. Extract and organize information from the transcript/website data, then ELABORATE on it professionally
 3. Apply the ${tone} formatting style consistently throughout
-4. Write for ${audience} using appropriate language, but NEVER invent facts to appeal to them
-5. Focus on ${purpose} as the primary objective without fabricating supporting details
-6. Include ONLY specific details, metrics, and facts found in the provided data sources
-7. ${websiteData ? 'Supplement transcript with website data, but NEVER extrapolate beyond what is stated' : 'Use ONLY transcript data - do not add external information'}
-8. ${sectionDirections && sectionDirections.length > 0 ? 'Create ONLY the sections explicitly specified by the user - do not add any default or standard sections' : 'Organize content into logical sections with clear headings'}
-9. STRICTLY follow the formatting requirements for ${tone} style
-10. FACT-CHECK: Every claim must be directly traceable to the transcript or website data
-11. If data is insufficient for a section, acknowledge limitations rather than inventing content
-12. Use phrases like "based on provided information" when data is limited
-13. NEVER add industry benchmarks, market statistics, or comparisons unless explicitly in the source
-14. Create a professional narrative using ONLY verifiable facts from the provided sources
-15. ${sectionDirections && sectionDirections.length > 0 ? 'SECTION ENFORCEMENT: Do NOT create sections for "Financial Overview", "Management Team", or "Investment Highlights" unless explicitly requested in the user-specified sections' : ''}
+4. Write for ${audience} using appropriate language and level of detail
+5. Focus on ${purpose} as the primary objective
+6. ${websiteData ? 'Blend transcript with website data seamlessly to create rich, comprehensive content' : 'Use transcript data as your foundation and build professional narrative around it'}
+7. ${sectionDirections && sectionDirections.length > 0 ? 'Create ONLY the sections explicitly specified by the user - do not add any default or standard sections' : 'Organize content into logical sections with clear headings'}
+8. STRICTLY follow the formatting requirements for ${tone} style
+9. Each section should be SUBSTANTIAL - aim for 150-300 words minimum per section unless the tone specifically calls for brevity
+10. ${sectionDirections && sectionDirections.length > 0 ? 'SECTION ENFORCEMENT: Do NOT create sections for "Financial Overview", "Management Team", or "Investment Highlights" unless explicitly requested in the user-specified sections' : ''}
 
-${websiteData ? `WEBSITE ANALYSIS DATA (Use to supplement transcript):
-${websiteData}` : ''}
+${websiteData ? `
+═══════════════════════════════════════════════════════════════
+WEBSITE ANALYSIS DATA - CRITICAL: USE THIS INFORMATION
+═══════════════════════════════════════════════════════════════
+The following information was extracted from the company's website. You MUST incorporate this data into the CIM document. This is real, verified information about the company:
+
+${websiteData}
+
+INTEGRATION INSTRUCTIONS:
+- Combine website data with transcript information to create a comprehensive document
+- Website data provides factual company information (services, team, history, etc.)
+- Transcript provides additional context and details from the business owner
+- Use BOTH sources to create rich, detailed sections
+═══════════════════════════════════════════════════════════════
+` : ''}
 
 ${financials ? `FINANCIAL DATA:
 Include these financial details appropriately:
@@ -392,32 +409,65 @@ Start directly with the opening brace and end with the closing brace:
 
 CRITICAL: Return ONLY the JSON object above. Do not include any markdown headers (# ## ###), explanations, or text before or after the JSON.`;
 
-  const userPrompt = `TRANSCRIPT TO ANALYZE:
+  const userPrompt = `═══════════════════════════════════════════════════════════════
+PRIMARY DATA SOURCE - TRANSCRIPT/NOTES FROM BUSINESS OWNER:
+═══════════════════════════════════════════════════════════════
 ${transcript}
+═══════════════════════════════════════════════════════════════
 
 Create a comprehensive CIM document following the analysis parameters and custom directions provided.
 
-FINAL REMINDER - ZERO TOLERANCE FOR HALLUCINATION:
-- Use ONLY information explicitly stated above
-- Do NOT invent any facts, figures, or details
-- Professional writing is expected, but facts must be 100% sourced
-- If you cannot find information for something, do not make it up`;
+${websiteData ? `CRITICAL INTEGRATION INSTRUCTION:
+You have been provided with BOTH:
+1. ★ PRIMARY: The transcript/notes ABOVE directly from the business owner (DO NOT IGNORE THIS)
+2. SUPPLEMENTARY: Website analysis data in the system instructions
 
-  const response = await fetch(process.env.PERPLEXITY_API_KEY ? PERPLEXITY_API_URL : "https://api.openai.com/v1/chat/completions", {
+YOU MUST:
+- Include SPECIFIC details mentioned in the transcript (e.g., team size, contractor count, specific facts the user provided)
+- ENRICH the document with website data (company history, services, team bios from website)
+- BLEND both sources naturally - transcript facts + website context
+- NEVER let website data completely overshadow the user's direct input
+
+Example: If transcript says "1 contractor" and website shows 5 team members, include BOTH:
+"The company operates with a lean team structure including 1 contractor, supported by the broader team of 5 professionals..."` : ''}
+
+FINAL INSTRUCTIONS FOR QUALITY OUTPUT:
+1. WRITE RICHLY: Each section should be well-developed with flowing paragraphs. Transform facts into professional business narrative.
+2. ELABORATE ON FACTS: Take the information provided and develop it into comprehensive, professional content. A single fact can become a full paragraph of relevant business context.
+3. MAINTAIN FACTUAL ACCURACY: While you should elaborate and create professional prose, never invent specific facts, numbers, names, or achievements.
+4. AIM FOR DEPTH: A good CIM section is typically 150-300 words. Don't be sparse - develop your content fully.
+
+Example of good elaboration:
+- INPUT: "Company has 3 employees"
+- GOOD OUTPUT: "The company maintains a lean operational structure with a dedicated team of three professionals. This streamlined approach allows for nimble decision-making and efficient resource allocation, while maintaining the personalized service quality that has become a hallmark of the business. The tight-knit team structure also ensures clear communication channels and a cohesive company culture."
+
+This is NOT hallucination - it's professional business writing that develops a fact into meaningful content.`;
+
+  // Use OpenAI for CIM generation - it's a generation task, not a search task
+  // Perplexity's sonar-pro is a search model that refuses to generate content without web sources
+  // Using gpt-4o for higher quality, more elaborate content generation
+  const useOpenAI = !!process.env.OPENAI_API_KEY;
+  const apiUrl = useOpenAI ? "https://api.openai.com/v1/chat/completions" : PERPLEXITY_API_URL;
+  const apiKey = useOpenAI ? process.env.OPENAI_API_KEY : process.env.PERPLEXITY_API_KEY;
+  const model = useOpenAI ? "gpt-4o" : "sonar-pro";
+
+  console.log(`Using ${useOpenAI ? 'OpenAI' : 'Perplexity'} for CIM generation with model: ${model}`);
+
+  const response = await fetch(apiUrl, {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${process.env.PERPLEXITY_API_KEY || process.env.OPENAI_API_KEY}`,
+      "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: process.env.PERPLEXITY_API_KEY ? "sonar-pro" : "gpt-4-turbo-preview",
+      model,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt }
       ],
-      max_tokens: 4000,
+      max_tokens: 8000, // Increased for richer, more elaborate content
       temperature: FACTUAL_TEMPERATURE,
-      response_format: process.env.PERPLEXITY_API_KEY ? undefined : { type: "json_object" }
+      response_format: useOpenAI ? { type: "json_object" } : undefined
     })
   });
 
@@ -428,58 +478,84 @@ FINAL REMINDER - ZERO TOLERANCE FOR HALLUCINATION:
   }
 
   const data = await response.json();
-  const content = data.choices[0].message.content;
-  
+  const content = data.choices[0]?.message?.content;
+
+  if (!content) {
+    console.error("No content in API response:", JSON.stringify(data).substring(0, 500));
+    throw new Error("API returned empty response");
+  }
+
   try {
     // Handle JSON wrapped in markdown code blocks (common with Perplexity)
     let jsonContent = content;
-    
+
     console.log("Raw API response first 500 chars:", content.substring(0, 500));
-    
+    console.log("Raw API response last 200 chars:", content.substring(content.length - 200));
+
     // First, check if this is an HTML response (which indicates an error)
     if (content.trim().startsWith('<') || content.includes('<html>') || content.includes('<!DOCTYPE')) {
       console.error("Received HTML response instead of JSON:", content.substring(0, 200));
       throw new Error("API returned HTML instead of JSON. This may indicate a server error or rate limiting.");
     }
-    
+
+    // Check for API error messages in the response
+    if (content.toLowerCase().includes('error') && content.toLowerCase().includes('api')) {
+      console.error("API error in response:", content.substring(0, 500));
+    }
+
     if (content.includes('```json')) {
       const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
       if (jsonMatch) {
         jsonContent = jsonMatch[1];
+        console.log("Extracted JSON from ```json block");
       }
     } else if (content.includes('```')) {
       const codeMatch = content.match(/```\s*([\s\S]*?)\s*```/);
       if (codeMatch) {
         jsonContent = codeMatch[1];
+        console.log("Extracted JSON from ``` block");
       }
     }
-    
+
     // Remove markdown headers that break JSON parsing
     jsonContent = jsonContent.replace(/^#+\s+.*$/gm, '');
-    
+
     // NOTE: Do NOT remove HTML tags - they are part of our formatting system now
     // The content is supposed to contain HTML tags for rich formatting
-    
+
     // Remove any text before the first opening brace
     const firstBrace = jsonContent.indexOf('{');
+    if (firstBrace === -1) {
+      console.error("No opening brace found in response. Full content:", content);
+      throw new Error("Unable to extract valid JSON from API response - no JSON object found");
+    }
     if (firstBrace > 0) {
+      console.log("Trimming", firstBrace, "chars before first brace");
       jsonContent = jsonContent.substring(firstBrace);
     }
-    
+
     // Remove any text after the last closing brace
     const lastBrace = jsonContent.lastIndexOf('}');
+    if (lastBrace === -1) {
+      console.error("No closing brace found in response");
+      throw new Error("Unable to extract valid JSON from API response - incomplete JSON object");
+    }
     if (lastBrace > -1 && lastBrace < jsonContent.length - 1) {
+      console.log("Trimming", jsonContent.length - lastBrace - 1, "chars after last brace");
       jsonContent = jsonContent.substring(0, lastBrace + 1);
     }
-    
+
     // Clean up the JSON content to handle control characters while preserving JSON structure
     jsonContent = jsonContent.trim();
-    
+
     // Additional validation - check if we have valid JSON structure
     if (!jsonContent.startsWith('{') || !jsonContent.endsWith('}')) {
-      console.error("Invalid JSON structure after cleaning:", jsonContent.substring(0, 200));
+      console.error("Invalid JSON structure after cleaning. First 200 chars:", jsonContent.substring(0, 200));
+      console.error("Last 200 chars:", jsonContent.substring(jsonContent.length - 200));
       throw new Error("Unable to extract valid JSON from API response");
     }
+
+    console.log("JSON structure looks valid, length:", jsonContent.length);
     
     // Use a more sophisticated approach - parse character by character and fix issues
     let cleanedContent = '';
@@ -982,7 +1058,33 @@ export async function generateFlexibleCimDocument(
   }
 }
 
+// Start website analysis as a Promise - can be called early to run in parallel with other operations
+export function startWebsiteAnalysis(websiteUrl?: string): Promise<string | null> {
+  if (!websiteUrl?.trim()) {
+    console.log('⚠️ No website URL provided, skipping website analysis');
+    return Promise.resolve(null);
+  }
+
+  console.log('🚀 Starting website analysis in parallel:', websiteUrl);
+  return analyzeWebsiteContent(websiteUrl)
+    .then(data => {
+      if (data) {
+        console.log('✅ Website analysis completed successfully');
+        console.log('📄 Website data preview:', data.substring(0, 200) + '...');
+      } else {
+        console.log('⚠️ Website analysis returned no data');
+      }
+      return data;
+    })
+    .catch(error => {
+      console.error('❌ Website analysis failed with error:', error);
+      console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      return null;
+    });
+}
+
 // New comprehensive CIM generation function with website analysis
+// Now accepts pre-fetched website data for parallel execution
 export async function generateCimWithWebsiteAnalysis(
   transcript: string,
   customDirections: string,
@@ -992,17 +1094,21 @@ export async function generateCimWithWebsiteAnalysis(
   financials?: any,
   websiteUrl?: string,
   sectionDirections?: Array<{id: string; content: string}>,
-  formattingProfile?: FormattingProfile
+  formattingProfile?: FormattingProfile,
+  prefetchedWebsiteData?: string | null // New parameter for pre-fetched data
 ): Promise<FlexibleCimDocument> {
   try {
     console.log('🧠 Generating CIM with optional website analysis');
-    
+
     let websiteData: string | null = null;
-    
-    // Analyze website content if URL is provided
-    if (websiteUrl?.trim()) {
-      console.log('🔍 Analyzing website content:', websiteUrl);
-      console.log('🔍 Website URL validation passed, calling analyzeWebsiteContent...');
+
+    // Use pre-fetched website data if available, otherwise fetch now (fallback for backwards compatibility)
+    if (prefetchedWebsiteData !== undefined) {
+      console.log('📦 Using pre-fetched website data');
+      websiteData = prefetchedWebsiteData;
+    } else if (websiteUrl?.trim()) {
+      // Fallback: fetch website data now if not pre-fetched
+      console.log('🔍 Analyzing website content (not pre-fetched):', websiteUrl);
       try {
         websiteData = await analyzeWebsiteContent(websiteUrl);
         if (websiteData) {
@@ -1013,30 +1119,29 @@ export async function generateCimWithWebsiteAnalysis(
         }
       } catch (error) {
         console.error('❌ Website analysis failed with error:', error);
-        console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
         websiteData = null;
       }
     } else {
       console.log('⚠️ No website URL provided, skipping website analysis');
     }
-    
+
     // Enhanced directions using section-specific guidance
     let enhancedDirections = customDirections;
-    
+
     if (sectionDirections && sectionDirections.length > 0) {
       const sectionInstructions = sectionDirections
         .filter(section => section.content && section.content.trim())
         .map(section => section.content)
         .join('\n');
-      
+
       if (sectionInstructions) {
         enhancedDirections += `\n\nSection-Specific Directions:\n${sectionInstructions}`;
       }
     }
-    
+
     // Use formattingProfile if provided, otherwise fall back to tone
     const effectiveTone = formattingProfile || tone;
-    
+
     const result = await generateFlexibleCim(transcript, enhancedDirections, purpose, effectiveTone, audience, financials, websiteData || undefined, sectionDirections, formattingProfile);
     console.log('✅ CIM generation with website analysis successful');
     return result;

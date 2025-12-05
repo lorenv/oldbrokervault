@@ -139,6 +139,7 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
 
   // CIM Generation Progress State
   const [generationStage, setGenerationStage] = useState<CimGenerationStage | null>(null);
+  const stageTimersRef = useRef<NodeJS.Timeout[]>([]);
   const [progressStartTime, setProgressStartTime] = useState<number | null>(null);
   const [financialData, setFinancialData] = useState({
     askingPrice: '',
@@ -452,6 +453,10 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
       console.log('🚀 MUTATION STARTED - Form data:', data);
       console.log('🚀 NDA Settings at mutation start:', ndaSettings);
 
+      // Clear any existing timers before starting new ones
+      stageTimersRef.current.forEach(timer => clearTimeout(timer));
+      stageTimersRef.current = [];
+
       // Initialize progress tracking
       setGenerationStage("initializing");
       setProgressStartTime(Date.now());
@@ -468,20 +473,32 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
 
       // Start stage progression timers immediately (run independently while API works)
       // Stage 2: Processing transcript (3 second delay)
-      setTimeout(() => setGenerationStage("processing_transcript"), 3000);
+      stageTimersRef.current.push(
+        setTimeout(() => setGenerationStage("processing_transcript"), 3000)
+      );
 
       // Stage 3: Website analysis (if enabled, 6 second delay, otherwise skip to analyzing_content at 6 seconds)
       if (data.websiteUrl?.trim() && enableWebsiteAnalysis) {
-        setTimeout(() => setGenerationStage("analyzing_website"), 6000);
+        stageTimersRef.current.push(
+          setTimeout(() => setGenerationStage("analyzing_website"), 6000)
+        );
         // Stage 4: Analyzing content (9 seconds)
-        setTimeout(() => setGenerationStage("analyzing_content"), 9000);
+        stageTimersRef.current.push(
+          setTimeout(() => setGenerationStage("analyzing_content"), 9000)
+        );
         // Stage 5: Generating document (12 seconds)
-        setTimeout(() => setGenerationStage("generating_document"), 12000);
+        stageTimersRef.current.push(
+          setTimeout(() => setGenerationStage("generating_document"), 12000)
+        );
       } else {
         // Stage 4: Analyzing content (6 seconds - no website)
-        setTimeout(() => setGenerationStage("analyzing_content"), 6000);
+        stageTimersRef.current.push(
+          setTimeout(() => setGenerationStage("analyzing_content"), 6000)
+        );
         // Stage 5: Generating document (9 seconds - no website)
-        setTimeout(() => setGenerationStage("generating_document"), 9000);
+        stageTimersRef.current.push(
+          setTimeout(() => setGenerationStage("generating_document"), 9000)
+        );
       }
 
       if (data.transcript.length > 4000 || financialFiles.length > 0) {
@@ -644,10 +661,14 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
       setTimeout(() => {
         setGenerationStage(null);
         setProgressStartTime(null);
-        window.location.assign(`/documents/${result.id}?tab=edit&first-time=true`);
+        window.location.assign(`/documents/${result.id}?tab=edit`);
       }, 2600); // 600ms to show progress at 100% + 2000ms to display celebration
     },
     onError: (error) => {
+      // Clear all pending stage timers
+      stageTimersRef.current.forEach(timer => clearTimeout(timer));
+      stageTimersRef.current = [];
+
       // Reset progress state on error
       setGenerationStage(null);
       setProgressStartTime(null);
