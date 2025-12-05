@@ -45,14 +45,14 @@ const HELPFUL_TIPS = [
 
 const stageConfig = {
   initializing: {
-    label: "Initializing document creation",
+    label: "Starting document generation",
     icon: FileText,
-    progress: 5
+    progress: 8
   },
   processing_transcript: {
     label: "Processing your business information",
     icon: Upload,
-    progress: 20
+    progress: 22
   },
   analyzing_website: {
     label: "Analyzing website content and business intelligence",
@@ -133,23 +133,28 @@ export function CimGenerationProgress({
     }
   }, [stage, currentProgress, showCelebration]);
   
-  // Smooth progress animation with faster completion for final stages
+  // Smooth progress animation with faster start and completion
   useEffect(() => {
     // Helper to detect if we're in a completion stage
     const isCompletionStage = targetProgress >= 85;
-    
+    // Start faster so user sees immediate progress
+    const isStartStage = targetProgress <= 25;
+
     const interval = setInterval(() => {
       setCurrentProgress(prev => {
         if (prev >= targetProgress) return prev;
-        
-        // Speed up animation for final completion stages (85%+) for better UX
-        const animationSpeed = isCompletionStage ? 5 : 10; // Faster for completion stages
+
+        // Speed up animation for start (immediate feedback) and completion (quick finish)
+        let animationSpeed = 10;
+        if (isStartStage) animationSpeed = 4; // Fast start for immediate feedback
+        else if (isCompletionStage) animationSpeed = 5; // Fast completion
+
         const increment = Math.max(1, (targetProgress - prev) / animationSpeed);
-        
+
         return Math.min(prev + increment, targetProgress);
       });
-    }, isCompletionStage ? 50 : 100); // Faster interval for completion stages
-    
+    }, isStartStage ? 30 : (isCompletionStage ? 50 : 100)); // Fastest interval at start
+
     return () => clearInterval(interval);
   }, [targetProgress]);
 

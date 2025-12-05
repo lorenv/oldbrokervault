@@ -318,7 +318,7 @@ ${websiteData ? `YOU HAVE TWO DATA SOURCES - USE BOTH:
 INTEGRATION REQUIREMENTS:
 - ALWAYS include details from the user's transcript/notes - this is their direct input
 - COMBINE transcript information WITH website data to create a comprehensive document
-- If the user mentions "1 contractor" in their notes, include that fact prominently
+- If the user mentions specific numbers in their notes (employees, revenue, etc.), include those facts prominently
 - If website data shows team members, ALSO include that while noting the user's specific input
 - TRANSCRIPT data takes precedence when there are conflicts
 - Use website data to ENRICH and ADD CONTEXT, not to replace user-provided information
@@ -423,13 +423,14 @@ You have been provided with BOTH:
 2. SUPPLEMENTARY: Website analysis data in the system instructions
 
 YOU MUST:
-- Include SPECIFIC details mentioned in the transcript (e.g., team size, contractor count, specific facts the user provided)
+- Include SPECIFIC details mentioned in the transcript (any numbers, names, or facts the user provided)
 - ENRICH the document with website data (company history, services, team bios from website)
 - BLEND both sources naturally - transcript facts + website context
 - NEVER let website data completely overshadow the user's direct input
 
-Example: If transcript says "1 contractor" and website shows 5 team members, include BOTH:
-"The company operates with a lean team structure including 1 contractor, supported by the broader team of 5 professionals..."` : ''}
+HYPOTHETICAL EXAMPLE (do NOT use these specific details - they are illustrative only):
+If a transcript mentioned "1 contractor" and website showed 5 team members, you would include BOTH facts.
+IMPORTANT: The example above uses fake numbers for illustration - use ONLY the actual data provided to you.` : ''}
 
 FINAL INSTRUCTIONS FOR QUALITY OUTPUT:
 1. WRITE RICHLY: Each section should be well-developed with flowing paragraphs. Transform facts into professional business narrative.
@@ -437,11 +438,12 @@ FINAL INSTRUCTIONS FOR QUALITY OUTPUT:
 3. MAINTAIN FACTUAL ACCURACY: While you should elaborate and create professional prose, never invent specific facts, numbers, names, or achievements.
 4. AIM FOR DEPTH: A good CIM section is typically 150-300 words. Don't be sparse - develop your content fully.
 
-Example of good elaboration:
-- INPUT: "Company has 3 employees"
-- GOOD OUTPUT: "The company maintains a lean operational structure with a dedicated team of three professionals. This streamlined approach allows for nimble decision-making and efficient resource allocation, while maintaining the personalized service quality that has become a hallmark of the business. The tight-knit team structure also ensures clear communication channels and a cohesive company culture."
+WRITING STYLE EXAMPLE (do NOT use these specific numbers - they are illustrative only):
+- If given a fact like "X employees", elaborate it into professional prose
+- Transform simple facts into rich business narrative
+- This is professional writing, not hallucination - but ONLY elaborate on facts actually provided
 
-This is NOT hallucination - it's professional business writing that develops a fact into meaningful content.`;
+CRITICAL: Never reference "the transcript" or "business owner's notes" in the output - just write naturally about the business.`;
 
   // Use OpenAI for CIM generation - it's a generation task, not a search task
   // Perplexity's sonar-pro is a search model that refuses to generate content without web sources
