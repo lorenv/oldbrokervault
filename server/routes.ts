@@ -48,6 +48,7 @@ import migrateImagesToFiles from "./migrate-images";
 import { coverImageService } from "./cover-image-service";
 import { messageRoutes } from "./routes/messages";
 import messageAttachmentRoutes from "./routes/message-attachments";
+import { sendErrorReport } from "./error-reporter";
 import { registerMonitoringRoutes } from "./routes/monitoring-routes";
 import { setupSEORoutes } from "./seo-routes";
 import { textExtractionRouter } from "./routes/text-extraction";
@@ -552,6 +553,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         referer: req.get('referer')
       }
     });
+  });
+
+  // Client error reporting endpoint
+  app.post("/api/error-report", express.json(), async (req, res) => {
+    try {
+      const { error, stack, page, componentStack, additionalInfo } = req.body;
+
+      if (!error || !page) {
+        return res.status(400).json({ error: 'Missing required fields: error and page' });
+      }
+
+      // Get user info if authenticated
+      let userEmail: string | undefined;
+      let userId: number | undefined;
+      if (req.isAuthenticated() && req.user) {
+        userId = req.user.id;
+        const user = await storage.getUser(req.user.id);
+        userEmail = user?.email;
+      }
+
+      await sendErrorReport({
+        error: String(error).substring(0, 2000), // Limit error length
+        stack: stack ? String(stack).substring(0, 5000) : undefined,
+        page: String(page).substring(0, 500),
+        userEmail,
+        userId,
+        timestamp: new Date().toISOString(),
+        userAgent: req.get('user-agent'),
+        componentStack: componentStack ? String(componentStack).substring(0, 3000) : undefined,
+        additionalInfo,
+      });
+
+      res.json({ success: true });
+    } catch (err) {
+      logger.error('Error handling error report:', err);
+      res.status(500).json({ error: 'Failed to process error report' });
+    }
   });
 
   // Emergency session clear endpoint for corrupted sessions

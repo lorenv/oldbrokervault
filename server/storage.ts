@@ -8,6 +8,7 @@ import { asc } from "drizzle-orm";
 import * as fs from 'fs';
 import * as path from 'path';
 import { withRetry } from './db-utils';
+import { sendFirstDocumentCongratulationsEmail } from './email';
 
 const PostgresSessionStore = connectPg(session);
 
@@ -500,6 +501,13 @@ export class DatabaseStorage implements IStorage {
       throw new Error(`${limitType} CIM generation limit reached`);
     }
 
+    // Check if this is the user's first document (before creating the new one)
+    const [existingDocsCount] = await db
+      .select({ count: count() })
+      .from(cimDocuments)
+      .where(eq(cimDocuments.userId, userId));
+    const isFirstDocument = existingDocsCount.count === 0;
+
     const insertData = {
       userId,
       title: doc.title,
@@ -556,6 +564,30 @@ export class DatabaseStorage implements IStorage {
     await this.createDocumentBaseline(baseline);
 
     await this.updateDocumentCreationUsage(userId);
+
+    // Send congratulations email for first document (async, don't wait)
+    if (isFirstDocument) {
+      this.getUser(userId).then(user => {
+        if (user && user.email) {
+          const userName = user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'there';
+          sendFirstDocumentCongratulationsEmail({
+            userEmail: user.email,
+            userName,
+            documentTitle: cimDoc.title || 'Your CIM',
+            documentId: cimDoc.id,
+          }).then(success => {
+            if (success) {
+              console.log(`✅ Sent first document congratulations email to ${user.email}`);
+            }
+          }).catch(err => {
+            console.error('Failed to send first document email:', err);
+          });
+        }
+      }).catch(err => {
+        console.error('Failed to fetch user for first document email:', err);
+      });
+    }
+
     return cimDoc;
   }
 
