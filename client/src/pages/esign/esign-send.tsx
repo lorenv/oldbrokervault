@@ -1086,30 +1086,32 @@ export default function EsignSend() {
 
                 {/* Uploaded documents list */}
                 {uploadedDocuments.length > 0 && !selectedTemplateId && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-gray-700">
-                        Uploaded Documents ({uploadedDocuments.length})
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {pageImages.length} total page(s)
+                  <DndProvider backend={HTML5Backend}>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-gray-700">
+                          Uploaded Documents ({uploadedDocuments.length})
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {pageImages.length} total page(s)
+                        </p>
+                      </div>
+                      <div className="space-y-2 max-h-[280px] overflow-y-auto">
+                        {uploadedDocuments.map((doc, index) => (
+                          <DraggableDocumentItem
+                            key={doc.id}
+                            doc={doc}
+                            index={index}
+                            moveDocument={moveDocument}
+                            onRemove={handleRemoveDocument}
+                          />
+                        ))}
+                      </div>
+                      <p className="text-xs text-gray-500 italic">
+                        Drag to reorder documents
                       </p>
                     </div>
-                    <div className="space-y-2 max-h-[280px] overflow-y-auto">
-                      {uploadedDocuments.map((doc, index) => (
-                        <DraggableDocumentItem
-                          key={doc.id}
-                          doc={doc}
-                          index={index}
-                          moveDocument={moveDocument}
-                          onRemove={handleRemoveDocument}
-                        />
-                      ))}
-                    </div>
-                    <p className="text-xs text-gray-500 italic">
-                      Drag to reorder documents
-                    </p>
-                  </div>
+                  </DndProvider>
                 )}
               </CardContent>
             </Card>
