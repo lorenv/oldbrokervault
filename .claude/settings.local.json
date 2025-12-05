@@ -18,7 +18,9 @@
       "Bash(kill:*)",
       "Bash(fuser:*)",
       "Bash(ss:*)",
-      "Bash(netstat:*)"
+      "Bash(netstat:*)",
+      "WebSearch",
+      "Bash(libreoffice:*)"
     ],
     "deny": [],
     "ask": [],

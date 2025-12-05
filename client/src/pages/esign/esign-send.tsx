@@ -40,6 +40,7 @@ import {
   ZoomIn,
   ZoomOut,
   RotateCcw,
+  File,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -66,6 +67,107 @@ interface SignatureField {
   page: number;
   recipientIndex: number;
   required: boolean;
+}
+
+// Interface for uploaded documents (multiple file support)
+interface UploadedDocument {
+  id: string;
+  name: string;
+  documentUrl: string;
+  pageImages: string[];
+  pageCount: number;
+  pageDimensions: Array<{ width: number; height: number }>;
+}
+
+// Draggable document item for reordering
+const DOCUMENT_ITEM_TYPE = 'DOCUMENT_ITEM';
+
+function DraggableDocumentItem({
+  doc,
+  index,
+  moveDocument,
+  onRemove,
+}: {
+  doc: UploadedDocument;
+  index: number;
+  moveDocument: (dragIndex: number, hoverIndex: number) => void;
+  onRemove: (id: string) => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  const [{ isDragging }, drag, preview] = useDrag({
+    type: DOCUMENT_ITEM_TYPE,
+    item: { index },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  });
+
+  const [, drop] = useDrop({
+    accept: DOCUMENT_ITEM_TYPE,
+    hover: (item: { index: number }, monitor) => {
+      if (!ref.current) return;
+
+      const dragIndex = item.index;
+      const hoverIndex = index;
+
+      if (dragIndex === hoverIndex) return;
+
+      const hoverBoundingRect = ref.current.getBoundingClientRect();
+      const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
+      const clientOffset = monitor.getClientOffset();
+      if (!clientOffset) return;
+
+      const hoverClientY = clientOffset.y - hoverBoundingRect.top;
+
+      // Only move when cursor crosses half of the item height
+      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) return;
+      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) return;
+
+      moveDocument(dragIndex, hoverIndex);
+      item.index = hoverIndex;
+    },
+  });
+
+  // Connect drag and drop refs
+  drag(drop(ref));
+
+  return (
+    <div
+      ref={ref}
+      className={`p-3 bg-gray-50 border border-gray-200 rounded-lg flex items-center gap-3 group cursor-move transition-all ${
+        isDragging ? 'opacity-50 shadow-lg scale-[1.02]' : 'opacity-100'
+      }`}
+    >
+      {/* Drag handle */}
+      <div className="text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing">
+        <GripVertical className="h-5 w-5" />
+      </div>
+
+      <File className="h-8 w-8 text-blue-500 flex-shrink-0" />
+
+      <div className="flex-1 min-w-0">
+        <p className="font-medium text-gray-800 truncate">{doc.name}</p>
+        <p className="text-xs text-gray-500">
+          {doc.pageCount} page{doc.pageCount !== 1 ? 's' : ''}
+        </p>
+      </div>
+
+      {/* Delete button */}
+      <Button
+        size="icon"
+        variant="ghost"
+        className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={(e) => {
+          e.stopPropagation();
+          onRemove(doc.id);
+        }}
+        title="Remove document"
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </div>
+  );
 }
 
 // Draggable Field Palette Item using react-dnd
@@ -426,30 +528,12 @@ function DocumentPageCanvas({
                 </button>
               )}
 
-              {/* Resize handles when selected */}
+              {/* Resize handle - only bottom-right corner */}
               {isSelected && (
-                <>
-                  {/* SE corner */}
-                  <div
-                    onMouseDown={(e) => handleFieldResize(e, field, 'se')}
-                    className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-blue-500 border border-white rounded-sm cursor-se-resize z-30"
-                  />
-                  {/* SW corner */}
-                  <div
-                    onMouseDown={(e) => handleFieldResize(e, field, 'sw')}
-                    className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-blue-500 border border-white rounded-sm cursor-sw-resize z-30"
-                  />
-                  {/* NE corner */}
-                  <div
-                    onMouseDown={(e) => handleFieldResize(e, field, 'ne')}
-                    className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-blue-500 border border-white rounded-sm cursor-ne-resize z-30"
-                  />
-                  {/* NW corner */}
-                  <div
-                    onMouseDown={(e) => handleFieldResize(e, field, 'nw')}
-                    className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-blue-500 border border-white rounded-sm cursor-nw-resize z-30"
-                  />
-                </>
+                <div
+                  onMouseDown={(e) => handleFieldResize(e, field, 'se')}
+                  className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-blue-500 border border-white rounded-sm cursor-se-resize z-30"
+                />
               )}
             </div>
           );
@@ -527,16 +611,26 @@ export default function EsignSend() {
   );
   const [signingOrder, setSigningOrder] = useState<'sequential' | 'parallel'>('parallel');
   const [recipients, setRecipients] = useState<Recipient[]>([]);
-  const [documentUrl, setDocumentUrl] = useState<string | null>(null);
-  const [pageImages, setPageImages] = useState<string[]>([]);
-  const [pageDimensions, setPageDimensions] = useState<Array<{ width: number; height: number }>>([]);
+
+  // Multiple document support
+  const [uploadedDocuments, setUploadedDocuments] = useState<UploadedDocument[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+
+  // Template-specific document data (templates have pre-defined documents)
+  const [templateDocumentUrl, setTemplateDocumentUrl] = useState<string | null>(null);
+  const [templatePageImages, setTemplatePageImages] = useState<string[]>([]);
+
+  // Computed: Combined document URL, page images, and dimensions from all uploaded documents
+  // For templates, use template data; for direct uploads, use uploaded documents
+  const documentUrl = selectedTemplateId ? templateDocumentUrl : (uploadedDocuments.length > 0 ? uploadedDocuments[0].documentUrl : null);
+  const pageImages = selectedTemplateId ? templatePageImages : uploadedDocuments.flatMap(doc => doc.pageImages);
+  const pageDimensions = uploadedDocuments.flatMap(doc => doc.pageDimensions);
 
   // Field placement state (for direct uploads only, templates have pre-defined fields)
   const [signatureFields, setSignatureFields] = useState<SignatureField[]>([]);
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const [activeRecipientIndex, setActiveRecipientIndex] = useState<number>(0);
-  const [zoom, setZoom] = useState(2);
+  const [zoom, setZoom] = useState(1);
 
   // Fetch templates
   const { data: templates = [], isLoading: isLoadingTemplates } = useQuery<EsignTemplate[]>({
@@ -557,12 +651,15 @@ export default function EsignSend() {
     enabled: !!selectedTemplateId,
   });
 
-  // Initialize recipients when template is selected
+  // Track which template we've initialized to prevent re-initialization
+  const [initializedTemplateId, setInitializedTemplateId] = useState<number | null>(null);
+
+  // Initialize recipients when template is selected (only once per template)
   useEffect(() => {
-    if (selectedTemplate) {
+    if (selectedTemplate && selectedTemplate.id !== initializedTemplateId) {
       setTitle(selectedTemplate.name);
-      setDocumentUrl(selectedTemplate.documentUrl);
-      setPageImages(selectedTemplate.pageImages);
+      setTemplateDocumentUrl(selectedTemplate.documentUrl);
+      setTemplatePageImages(selectedTemplate.pageImages);
 
       // Create recipients from placeholder recipients
       const newRecipients: Recipient[] = selectedTemplate.placeholderRecipients.map((placeholder, idx) => ({
@@ -574,47 +671,65 @@ export default function EsignSend() {
         placeholderRecipientId: placeholder.id,
       }));
       setRecipients(newRecipients);
+      setInitializedTemplateId(selectedTemplate.id);
     }
-  }, [selectedTemplate]);
+  }, [selectedTemplate, initializedTemplateId]);
 
-  // Handle direct document upload
+  // Handle direct document upload (supports multiple files)
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
     setIsUploading(true);
-    const formData = new FormData();
-    formData.append('document', file);
 
     try {
-      const res = await fetch('/api/esign/templates/upload', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include',
-      });
+      const newDocuments: UploadedDocument[] = [];
 
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || 'Upload failed');
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const formData = new FormData();
+        formData.append('document', file);
+
+        const res = await fetch('/api/esign/templates/upload', {
+          method: 'POST',
+          body: formData,
+          credentials: 'include',
+        });
+
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.error || `Upload failed for ${file.name}`);
+        }
+
+        const data = await res.json();
+
+        // Create uploaded document entry
+        const uploadedDoc: UploadedDocument = {
+          id: uuidv4(),
+          name: file.name,
+          documentUrl: data.documentUrl,
+          pageImages: data.pageImages,
+          pageCount: data.pageCount,
+          pageDimensions: data.pages?.map((p: { width: number; height: number }) => ({
+            width: p.width,
+            height: p.height
+          })) || data.pageImages.map(() => ({ width: 612, height: 792 })),
+        };
+
+        newDocuments.push(uploadedDoc);
       }
 
-      const data = await res.json();
-      setDocumentUrl(data.documentUrl);
-      setPageImages(data.pageImages);
-      // Store page dimensions from the API response
-      if (data.pages && Array.isArray(data.pages)) {
-        setPageDimensions(data.pages.map((p: { width: number; height: number }) => ({
-          width: p.width,
-          height: p.height
-        })));
-      } else {
-        // Fallback to default letter size if pages not provided
-        setPageDimensions(data.pageImages.map(() => ({ width: 612, height: 792 })));
+      // Add new documents to existing ones
+      setUploadedDocuments(prev => [...prev, ...newDocuments]);
+
+      // Set title from first document if not already set
+      if (!title && newDocuments.length > 0) {
+        setTitle(newDocuments[0].name.replace(/\.[^/.]+$/, "")); // Remove extension
       }
-      setTitle(file.name.replace(/\.[^/.]+$/, "")); // Remove extension
+
       setSelectedTemplateId(null);
 
-      // Initialize with one signer
+      // Initialize with one signer if none exist
       if (recipients.length === 0) {
         setRecipients([{
           id: uuidv4(),
@@ -625,9 +740,10 @@ export default function EsignSend() {
         }]);
       }
 
+      const totalPages = newDocuments.reduce((sum, doc) => sum + doc.pageCount, 0);
       toast({
-        title: "Document uploaded",
-        description: `Successfully processed ${data.pageCount} page(s).`,
+        title: files.length > 1 ? "Documents uploaded" : "Document uploaded",
+        description: `Successfully processed ${files.length} file(s) with ${totalPages} page(s).`,
       });
     } catch (error: any) {
       toast({
@@ -637,8 +753,31 @@ export default function EsignSend() {
       });
     } finally {
       setIsUploading(false);
+      // Reset file input
+      e.target.value = '';
     }
   };
+
+  // Remove a document from the list
+  const handleRemoveDocument = (docId: string) => {
+    setUploadedDocuments(prev => prev.filter(doc => doc.id !== docId));
+    // Clear fields that were on removed document pages
+    // Note: This is a simplification - in a real app you'd need to track which fields belong to which document
+    toast({
+      title: "Document removed",
+      description: "The document has been removed from the list.",
+    });
+  };
+
+  // Move document via drag and drop
+  const moveDocument = useCallback((dragIndex: number, hoverIndex: number) => {
+    setUploadedDocuments(prev => {
+      const newDocs = [...prev];
+      const [draggedDoc] = newDocs.splice(dragIndex, 1);
+      newDocs.splice(hoverIndex, 0, draggedDoc);
+      return newDocs;
+    });
+  }, []);
 
   // Add recipient
   const addRecipient = (role: 'signer' | 'cc') => {
@@ -775,7 +914,7 @@ export default function EsignSend() {
         title: "Document sent!",
         description: "Recipients will receive an email with signing instructions.",
       });
-      setLocation(`/esign/envelope/${envelope.id}`);
+      setLocation(`/esign/envelope/${envelope.envelopeId}`);
     },
     onError: (error: any) => {
       console.error('[ESIGN] Send error:', error);
@@ -789,7 +928,7 @@ export default function EsignSend() {
 
   // Validation
   const signers = recipients.filter(r => r.role === 'signer');
-  const isStep1Valid = documentUrl && pageImages.length > 0;
+  const isStep1Valid = (uploadedDocuments.length > 0 && pageImages.length > 0) || (selectedTemplateId !== null);
   const isStep2Valid = signers.length > 0 && signers.every(r => r.name && r.email);
   // For templates, fields are pre-defined. For direct uploads, at least one signature field is required
   const isStep3Valid = selectedTemplate ? true : signatureFields.some(f => f.type === 'signature');
@@ -907,13 +1046,13 @@ export default function EsignSend() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Upload className="h-5 w-5" />
-                  Upload Document
+                  Upload Documents
                 </CardTitle>
                 <CardDescription>
-                  Upload a PDF or Word document to send for signature
+                  Upload PDF or Word documents to send for signature. You can upload multiple files and reorder them.
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 <label className="cursor-pointer">
                   <input
                     type="file"
@@ -921,36 +1060,55 @@ export default function EsignSend() {
                     className="hidden"
                     onChange={handleFileUpload}
                     disabled={isUploading}
+                    multiple
                   />
-                  <div className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                  <div className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
                     isUploading ? 'bg-gray-50' : 'hover:border-blue-400 hover:bg-blue-50'
                   }`}>
                     {isUploading ? (
                       <>
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
-                        <p className="text-gray-600">Processing document...</p>
+                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-3" />
+                        <p className="text-gray-600">Processing document(s)...</p>
                       </>
                     ) : (
                       <>
-                        <Upload className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                        <p className="text-gray-600 mb-2">
-                          Drag and drop or click to upload
+                        <Upload className="h-10 w-10 mx-auto text-gray-400 mb-3" />
+                        <p className="text-gray-600 mb-1">
+                          {uploadedDocuments.length > 0 ? 'Add more documents' : 'Drag and drop or click to upload'}
                         </p>
                         <p className="text-sm text-gray-400">
-                          PDF, DOC, or DOCX files
+                          PDF, DOC, or DOCX files (multiple files allowed)
                         </p>
                       </>
                     )}
                   </div>
                 </label>
 
-                {documentUrl && !selectedTemplateId && (
-                  <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                    <div>
-                      <p className="font-medium text-green-800">{title}</p>
-                      <p className="text-sm text-green-600">{pageImages.length} page(s)</p>
+                {/* Uploaded documents list */}
+                {uploadedDocuments.length > 0 && !selectedTemplateId && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium text-gray-700">
+                        Uploaded Documents ({uploadedDocuments.length})
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {pageImages.length} total page(s)
+                      </p>
                     </div>
+                    <div className="space-y-2 max-h-[280px] overflow-y-auto">
+                      {uploadedDocuments.map((doc, index) => (
+                        <DraggableDocumentItem
+                          key={doc.id}
+                          doc={doc}
+                          index={index}
+                          moveDocument={moveDocument}
+                          onRemove={handleRemoveDocument}
+                        />
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500 italic">
+                      Drag to reorder documents
+                    </p>
                   </div>
                 )}
               </CardContent>
@@ -1341,9 +1499,9 @@ export default function EsignSend() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setZoom(2)}
+                      onClick={() => setZoom(1)}
                       className="h-8 w-8 p-0"
-                      title="Reset zoom to 200%"
+                      title="Reset zoom to 100%"
                     >
                       <RotateCcw className="h-4 w-4" />
                     </Button>

@@ -75,7 +75,7 @@ export default function EsignSettings() {
 
   const saveMutation = useMutation({
     mutationFn: async (data: BrandingSettings) => {
-      return apiRequest("POST", "/api/esign/branding", {
+      return apiRequest("PUT", "/api/esign/branding", {
         body: data,
       });
     },

@@ -115,7 +115,7 @@ const actionLabels: Record<string, string> = {
 export default function EsignEnvelopeDetail() {
   const [, setLocation] = useLocation();
   const [, params] = useRoute("/esign/envelope/:id");
-  const envelopeId = params?.id ? parseInt(params.id) : null;
+  const envelopeId = params?.id || null; // Use string ID (supports both UUID and numeric)
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -292,46 +292,6 @@ export default function EsignEnvelopeDetail() {
               </div>
             </div>
 
-            <div className="flex gap-3">
-              {envelope.status === 'completed' && (
-                <Button
-                  variant="outline"
-                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-                  onClick={handleDownload}
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download
-                </Button>
-              )}
-              {envelope.status === 'sent' && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-red-600">
-                      <Ban className="h-4 w-4 mr-2" />
-                      Void
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Void this envelope?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This will cancel the signing process. All recipients will be notified
-                        and any collected signatures will be invalidated.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        className="bg-red-600 hover:bg-red-700"
-                        onClick={() => voidMutation.mutate("Voided by sender")}
-                      >
-                        Void Envelope
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              )}
-            </div>
           </div>
         </div>
       </div>
@@ -529,12 +489,12 @@ export default function EsignEnvelopeDetail() {
               </Card>
             )}
 
-            {/* Document Preview */}
+            {/* Document & Actions */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-sm">Document</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent className="space-y-3">
                 {/* Show signed document if completed, otherwise show original */}
                 {envelope.status === 'completed' && envelope.signedDocumentUrl ? (
                   <>
@@ -568,6 +528,55 @@ export default function EsignEnvelopeDetail() {
                   </Button>
                 ) : (
                   <p className="text-sm text-gray-500 text-center">No document available</p>
+                )}
+
+                {/* Actions for sent envelopes */}
+                {envelope.status === 'sent' && (
+                  <>
+                    <Separator />
+                    {/* Remind all pending signers */}
+                    {signers.some(r => r.status !== 'signed' && r.status !== 'declined') && (
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => {
+                          const pendingSigners = signers.filter(r => r.status !== 'signed' && r.status !== 'declined');
+                          pendingSigners.forEach(r => reminderMutation.mutate(r.id));
+                        }}
+                        disabled={reminderMutation.isPending}
+                      >
+                        <Mail className="h-4 w-4 mr-2" />
+                        Remind All
+                      </Button>
+                    )}
+                    {/* Void envelope */}
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" className="w-full text-red-600 hover:text-red-700 hover:bg-red-50">
+                          <Ban className="h-4 w-4 mr-2" />
+                          Void Envelope
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Void this envelope?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will cancel the signing process. All recipients will be notified
+                            and any collected signatures will be invalidated.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            className="bg-red-600 hover:bg-red-700"
+                            onClick={() => voidMutation.mutate("Voided by sender")}
+                          >
+                            Void Envelope
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </>
                 )}
               </CardContent>
             </Card>

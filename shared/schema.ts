@@ -1171,6 +1171,7 @@ export const esignTemplates = pgTable("esign_templates", {
 // E-signature envelopes - containers for signing transactions
 export const esignEnvelopes = pgTable("esign_envelopes", {
   id: serial("id").primaryKey(),
+  envelopeId: text("envelope_id").notNull().unique(), // Public UUID for URLs (e.g., "env_a1b2c3d4e5f6")
   userId: integer("user_id").notNull(),
   title: text("title").notNull(),
   message: text("message"), // Custom message to recipients
@@ -1180,6 +1181,9 @@ export const esignEnvelopes = pgTable("esign_envelopes", {
   pageImages: jsonb("page_images").default([]).notNull(), // Page image URLs
   totalPages: integer("total_pages").default(1).notNull(),
   templateId: integer("template_id"), // If created from template
+  // Document integrity fields for E-SIGN Act / UETA compliance
+  documentHash: text("document_hash"), // SHA-256 hash of original document for tamper detection
+  signedDocumentHash: text("signed_document_hash"), // SHA-256 hash of final signed document
   signedDocumentUrl: text("signed_document_url"), // Final signed PDF
   certificateUrl: text("certificate_url"), // Certificate of completion
   completedAt: timestamp("completed_at"),
@@ -1204,6 +1208,9 @@ export const esignRecipients = pgTable("esign_recipients", {
   signingOrder: integer("signing_order").notNull().default(1), // Order for sequential signing
   status: text("status").notNull().default("pending"), // pending, sent, viewed, signed, declined
   accessToken: text("access_token").notNull().unique(), // Unique signing URL token
+  // E-SIGN Act / UETA compliance fields
+  consentedAt: timestamp("consented_at"), // When user acknowledged e-signature consent
+  consentIpAddress: text("consent_ip_address"), // IP address at time of consent
   declineReason: text("decline_reason"),
   sentAt: timestamp("sent_at"),
   viewedAt: timestamp("viewed_at"),
@@ -1296,7 +1303,6 @@ export const insertUserBrandingSchema = createInsertSchema(userBranding).pick({
 
 export const insertEsignTemplateSchema = createInsertSchema(esignTemplates).pick({
   name: true,
-  description: true,
   documentUrl: true
 }).extend({
   name: z.string().min(1, "Template name is required"),

@@ -36,6 +36,7 @@ type EnvelopeStatus = 'draft' | 'sent' | 'completed' | 'voided' | 'declined';
 
 interface Envelope {
   id: number;
+  envelopeId: string; // UUID for URLs
   title: string;
   status: EnvelopeStatus;
   signingOrder: string;
@@ -299,7 +300,7 @@ export default function EsignDashboard() {
                         <div
                           key={envelope.id}
                           className="flex items-center justify-between p-4 hover:bg-gray-50 cursor-pointer"
-                          onClick={() => setLocation(`/esign/envelope/${envelope.id}`)}
+                          onClick={() => setLocation(`/esign/envelope/${envelope.envelopeId}`)}
                         >
                           <div className="flex items-center gap-4">
                             <div className="p-2 bg-blue-50 rounded-lg">
@@ -344,7 +345,7 @@ export default function EsignDashboard() {
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem onClick={(e) => {
                                   e.stopPropagation();
-                                  setLocation(`/esign/envelope/${envelope.id}`);
+                                  setLocation(`/esign/envelope/${envelope.envelopeId}`);
                                 }}>
                                   <Eye className="h-4 w-4 mr-2" />
                                   View Details

@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Loader2, Settings, Upload, X, FileText, Download, Copy, File, Save, FolderOpen, NotebookPen, DollarSign, Settings2, Shield, UserCheck, ExternalLink, Paperclip, Check, Zap, Sparkles } from "lucide-react";
+import { Loader2, Settings, Upload, X, FileText, Download, Copy, File, Save, FolderOpen, NotebookPen, DollarSign, Settings2, Shield, UserCheck, ExternalLink, Paperclip, Check, Zap, Sparkles, Plus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -749,14 +749,14 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
             <CardHeader className="pb-4">
               <div className="flex items-start gap-4">
                 <div className="w-14 h-14 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Sparkles className="h-7 w-7 text-blue-600" />
+                  <Plus className="h-7 w-7 text-blue-600" />
                 </div>
                 <div className="flex-1">
                   <CardTitle className="text-2xl font-bold text-gray-900 mb-2">
-                    Generate from Notes/Transcript
+                    Generate New CIM
                   </CardTitle>
                   <CardDescription className="text-base">
-                    Upload or paste your business notes and let AI generate a professional CIM for you with comprehensive analysis.
+                    AI generates professional CIMs from your notes, transcripts, and website URLs - automatically extracting information and images.
                   </CardDescription>
                 </div>
               </div>
@@ -766,7 +766,7 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
                 onClick={() => setCimMode('generate')}
                 className="w-full bg-gradient-to-r from-slate-600 to-blue-600 hover:from-slate-700 hover:to-blue-700 text-white h-12 text-base font-semibold shadow-md"
               >
-                <Sparkles className="h-5 w-5 mr-2" />
+                <Plus className="h-5 w-5 mr-2" />
                 Generate CIM with AI
               </Button>
             </CardContent>

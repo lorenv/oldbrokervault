@@ -29,22 +29,24 @@ import {
   sendEsignVoidedEmail
 } from '../email';
 import crypto from 'crypto';
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
+import mammoth from 'mammoth';
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import {
   generateSignedPdf,
   generateCertificateOfCompletion,
   combineSignedPdfWithCertificate
 } from '../services/esign-pdf-generator';
+import { summarizeDocumentForSigner } from '../openai';
+import * as pdfParseModule from 'pdf-parse';
+const pdfParse = (pdfParseModule as any).default || pdfParseModule;
 
-const execAsync = promisify(exec);
 const router = Router();
 
-// Configure multer for file uploads - accepts PDF and Word documents
-const upload = multer({
+// Configure multer for document uploads - accepts PDF and Word documents
+const documentUpload = multer({
   storage: multer.memoryStorage(),
   limits: {
     fileSize: 50 * 1024 * 1024, // 50MB limit
@@ -62,6 +64,32 @@ const upload = multer({
     }
   },
 });
+
+// Configure multer for image uploads - accepts common image formats
+const imageUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit for images
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedMimes = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'image/svg+xml',
+    ];
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files (JPEG, PNG, GIF, WebP, SVG) are allowed'));
+    }
+  },
+});
+
+// Keep 'upload' as alias for documentUpload for backwards compatibility
+const upload = documentUpload;
 
 // Helper to get client IP
 function getClientIP(req: Request): string {
@@ -90,6 +118,46 @@ async function getLocationFromIP(ip: string): Promise<string> {
   return 'Unknown';
 }
 
+// Generate unique envelope ID (UUID format with prefix)
+function generateEnvelopeId(): string {
+  const uuid = crypto.randomUUID().replace(/-/g, '');
+  return `env_${uuid}`;
+}
+
+// Generate SHA-256 hash of document for integrity verification (E-SIGN Act compliance)
+function generateDocumentHash(buffer: Buffer): string {
+  return crypto.createHash('sha256').update(buffer).digest('hex');
+}
+
+// Helper to find envelope by ID (supports both UUID and numeric ID)
+async function findEnvelopeById(idParam: string, userId: number) {
+  if (idParam.startsWith('env_')) {
+    // Lookup by envelopeId (UUID)
+    const [envelope] = await db
+      .select()
+      .from(esignEnvelopes)
+      .where(and(
+        eq(esignEnvelopes.envelopeId, idParam),
+        eq(esignEnvelopes.userId, userId)
+      ))
+      .limit(1);
+    return envelope;
+  } else {
+    // Lookup by numeric ID (backwards compatible)
+    const numericId = parseInt(idParam);
+    if (isNaN(numericId)) return null;
+    const [envelope] = await db
+      .select()
+      .from(esignEnvelopes)
+      .where(and(
+        eq(esignEnvelopes.id, numericId),
+        eq(esignEnvelopes.userId, userId)
+      ))
+      .limit(1);
+    return envelope;
+  }
+}
+
 // Helper to log audit events
 async function logAuditEvent(
   envelopeId: number,
@@ -113,31 +181,194 @@ async function logAuditEvent(
   }
 }
 
-// Helper to convert Word to PDF using LibreOffice
+// Helper to convert Word to PDF using mammoth and pdf-lib
 async function convertWordToPdf(buffer: Buffer, filename: string): Promise<Buffer> {
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'esign-'));
-  const inputPath = path.join(tempDir, filename);
-  const outputPath = path.join(tempDir, filename.replace(/\.docx?$/i, '.pdf'));
-
   try {
-    // Write buffer to temp file
-    await fs.writeFile(inputPath, buffer);
+    console.log(`[ESIGN] Converting Word document: ${filename} (${buffer.length} bytes)`);
 
-    // Convert using LibreOffice
-    const command = `libreoffice --headless --convert-to pdf --outdir "${tempDir}" "${inputPath}"`;
-    await execAsync(command, { timeout: 60000 });
+    // Validate buffer is not empty
+    if (!buffer || buffer.length === 0) {
+      throw new Error('Empty file buffer received');
+    }
 
-    // Read the converted PDF
-    const pdfBuffer = await fs.readFile(outputPath);
-    return pdfBuffer;
-  } finally {
-    // Cleanup temp files
+    // Check for valid DOCX magic bytes (PK zip header)
+    const isZipFile = buffer[0] === 0x50 && buffer[1] === 0x4B;
+    if (!isZipFile && filename.toLowerCase().endsWith('.docx')) {
+      console.warn('[ESIGN] File claims to be DOCX but does not have ZIP header');
+    }
+
+    // Check if this is an old .doc format (mammoth only supports .docx)
+    if (filename.toLowerCase().endsWith('.doc') && !filename.toLowerCase().endsWith('.docx')) {
+      // Check for old .doc magic bytes (D0 CF 11 E0 - OLE compound document)
+      const isOldDoc = buffer[0] === 0xD0 && buffer[1] === 0xCF && buffer[2] === 0x11 && buffer[3] === 0xE0;
+      if (isOldDoc) {
+        throw new Error('Old .doc format is not supported. Please save the document as .docx and try again.');
+      }
+    }
+
+    console.log('[ESIGN] Extracting HTML from Word document using mammoth...');
+
+    // Extract HTML from the Word document
+    let result;
     try {
-      await fs.rm(tempDir, { recursive: true, force: true });
-    } catch (e) {
-      console.error('Failed to cleanup temp directory:', e);
+      result = await mammoth.convertToHtml({ buffer });
+    } catch (mammothError: any) {
+      console.error('[ESIGN] Mammoth extraction error:', mammothError);
+      throw new Error(`Could not read Word document: ${mammothError.message}`);
+    }
+
+    const html = result.value;
+
+    console.log(`[ESIGN] Mammoth extracted ${html.length} characters of HTML`);
+
+    // Log any warnings from mammoth
+    if (result.messages && result.messages.length > 0) {
+      console.log('[ESIGN] Mammoth conversion messages:', result.messages);
+    }
+
+    // Create a new PDF document
+    const pdfDoc = await PDFDocument.create();
+    const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+    // Parse HTML and convert to plain text with basic formatting
+    const textContent = parseHtmlToText(html);
+
+    // Split content into pages (approximately 50 lines per page)
+    const lines = textContent.split('\n');
+    const linesPerPage = 50;
+    const fontSize = 11;
+    const lineHeight = 14;
+    const margin = 50;
+    const pageWidth = 612;  // Letter size
+    const pageHeight = 792;
+    const maxLineWidth = pageWidth - (margin * 2);
+
+    let currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
+    let y = pageHeight - margin;
+    let lineCount = 0;
+
+    for (const line of lines) {
+      // Check if we need a new page
+      if (lineCount >= linesPerPage || y < margin + lineHeight) {
+        currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
+        y = pageHeight - margin;
+        lineCount = 0;
+      }
+
+      // Handle bold text (indicated by ** markers from our parser)
+      const isBold = line.startsWith('**') && line.endsWith('**');
+      const font = isBold ? helveticaBold : helvetica;
+      const text = isBold ? line.slice(2, -2) : line;
+
+      // Word wrap if line is too long
+      const wrappedLines = wrapText(text, font, fontSize, maxLineWidth);
+
+      for (const wrappedLine of wrappedLines) {
+        if (y < margin + lineHeight) {
+          currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
+          y = pageHeight - margin;
+          lineCount = 0;
+        }
+
+        currentPage.drawText(wrappedLine, {
+          x: margin,
+          y,
+          size: fontSize,
+          font,
+          color: rgb(0, 0, 0),
+        });
+
+        y -= lineHeight;
+        lineCount++;
+      }
+    }
+
+    // If no content, add a blank page
+    if (pdfDoc.getPageCount() === 0) {
+      pdfDoc.addPage([pageWidth, pageHeight]);
+    }
+
+    const pdfBytes = await pdfDoc.save();
+    console.log(`[ESIGN] Successfully converted Word document to PDF (${pdfDoc.getPageCount()} pages)`);
+
+    return Buffer.from(pdfBytes);
+  } catch (error: any) {
+    console.error('[ESIGN] Word to PDF conversion failed:', error);
+    throw new Error(`Failed to convert Word document: ${error.message}`);
+  }
+}
+
+// Parse HTML to plain text with basic formatting markers
+function parseHtmlToText(html: string): string {
+  // Remove scripts and styles
+  let text = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+  text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+
+  // Handle headings (make them bold with extra spacing)
+  text = text.replace(/<h[1-6][^>]*>([\s\S]*?)<\/h[1-6]>/gi, '\n\n**$1**\n\n');
+
+  // Handle bold/strong
+  text = text.replace(/<(b|strong)[^>]*>([\s\S]*?)<\/(b|strong)>/gi, '**$2**');
+
+  // Handle paragraphs
+  text = text.replace(/<p[^>]*>/gi, '\n');
+  text = text.replace(/<\/p>/gi, '\n');
+
+  // Handle line breaks
+  text = text.replace(/<br\s*\/?>/gi, '\n');
+
+  // Handle list items
+  text = text.replace(/<li[^>]*>/gi, '\n• ');
+  text = text.replace(/<\/li>/gi, '');
+
+  // Handle divs and other block elements
+  text = text.replace(/<div[^>]*>/gi, '\n');
+  text = text.replace(/<\/div>/gi, '\n');
+
+  // Remove all remaining HTML tags
+  text = text.replace(/<[^>]+>/g, '');
+
+  // Decode HTML entities
+  text = text.replace(/&nbsp;/g, ' ');
+  text = text.replace(/&amp;/g, '&');
+  text = text.replace(/&lt;/g, '<');
+  text = text.replace(/&gt;/g, '>');
+  text = text.replace(/&quot;/g, '"');
+  text = text.replace(/&#39;/g, "'");
+
+  // Clean up excessive whitespace
+  text = text.replace(/\n\s*\n\s*\n/g, '\n\n');
+  text = text.trim();
+
+  return text;
+}
+
+// Word wrap text to fit within maxWidth
+function wrapText(text: string, font: any, fontSize: number, maxWidth: number): string[] {
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let currentLine = '';
+
+  for (const word of words) {
+    const testLine = currentLine ? `${currentLine} ${word}` : word;
+    const testWidth = font.widthOfTextAtSize(testLine, fontSize);
+
+    if (testWidth <= maxWidth) {
+      currentLine = testLine;
+    } else {
+      if (currentLine) {
+        lines.push(currentLine);
+      }
+      currentLine = word;
     }
   }
+
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+
+  return lines.length > 0 ? lines : [''];
 }
 
 // ============================================================================
@@ -217,7 +448,7 @@ router.put('/branding', async (req: Request, res: Response) => {
 });
 
 // Upload branding logo
-router.post('/branding/logo', upload.single('logo'), async (req: Request, res: Response) => {
+router.post('/branding/logo', imageUpload.single('logo'), async (req: Request, res: Response) => {
   try {
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
@@ -326,22 +557,45 @@ router.post('/templates/upload', upload.single('document'), async (req: Request,
       return res.status(400).json({ error: 'Document file is required' });
     }
 
-    console.log(`[ESIGN] Processing document: ${req.file.originalname}, mimetype: ${req.file.mimetype}`);
+    console.log(`[ESIGN] Processing document: ${req.file.originalname}, mimetype: ${req.file.mimetype}, size: ${req.file.buffer.length} bytes`);
 
     let pdfBuffer = req.file.buffer;
     let originalFilename = req.file.originalname;
 
+    // Determine if this is a Word document by MIME type OR file extension
+    const isWordDocument =
+      req.file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+      req.file.mimetype === 'application/msword' ||
+      req.file.originalname.toLowerCase().endsWith('.docx') ||
+      req.file.originalname.toLowerCase().endsWith('.doc');
+
+    const isPdf = req.file.mimetype === 'application/pdf' ||
+      req.file.originalname.toLowerCase().endsWith('.pdf');
+
     // Convert Word to PDF if necessary
-    if (req.file.mimetype !== 'application/pdf') {
-      console.log('[ESIGN] Converting Word document to PDF...');
+    if (isWordDocument && !isPdf) {
+      console.log('[ESIGN] Detected Word document, converting to PDF...');
       try {
         pdfBuffer = await convertWordToPdf(req.file.buffer, req.file.originalname);
         originalFilename = originalFilename.replace(/\.docx?$/i, '.pdf');
-        console.log('[ESIGN] Conversion successful');
+        console.log(`[ESIGN] Conversion successful, PDF size: ${pdfBuffer.length} bytes`);
       } catch (convError: any) {
         console.error('[ESIGN] Word conversion failed:', convError);
         return res.status(500).json({
           error: 'Failed to convert Word document to PDF',
+          details: convError.message
+        });
+      }
+    } else if (!isPdf) {
+      console.log(`[ESIGN] Unknown file type: ${req.file.mimetype}, attempting as Word document...`);
+      try {
+        pdfBuffer = await convertWordToPdf(req.file.buffer, req.file.originalname);
+        originalFilename = originalFilename.replace(/\.[^.]+$/, '.pdf');
+        console.log(`[ESIGN] Conversion successful, PDF size: ${pdfBuffer.length} bytes`);
+      } catch (convError: any) {
+        console.error('[ESIGN] Conversion failed:', convError);
+        return res.status(400).json({
+          error: 'Unsupported file format. Please upload a PDF or Word document.',
           details: convError.message
         });
       }
@@ -562,7 +816,7 @@ router.get('/envelopes', async (req: Request, res: Response) => {
       .select()
       .from(esignEnvelopes)
       .where(eq(esignEnvelopes.userId, req.user.id))
-      .orderBy(desc(esignEnvelopes.updatedAt));
+      .orderBy(desc(esignEnvelopes.createdAt));
 
     const envelopes = await query;
 
@@ -598,49 +852,65 @@ router.get('/envelopes', async (req: Request, res: Response) => {
   }
 });
 
-// Get single envelope with details
+// Get single envelope with details (supports both numeric ID and UUID)
 router.get('/envelopes/:id', async (req: Request, res: Response) => {
   try {
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const envelopeId = parseInt(req.params.id);
-    if (isNaN(envelopeId)) {
-      return res.status(400).json({ error: 'Invalid envelope ID' });
-    }
+    const idParam = req.params.id;
+    let envelope;
 
-    const [envelope] = await db
-      .select()
-      .from(esignEnvelopes)
-      .where(and(
-        eq(esignEnvelopes.id, envelopeId),
-        eq(esignEnvelopes.userId, req.user.id)
-      ))
-      .limit(1);
+    // Check if it's a UUID (starts with "env_") or numeric ID
+    if (idParam.startsWith('env_')) {
+      // Lookup by envelopeId (UUID)
+      [envelope] = await db
+        .select()
+        .from(esignEnvelopes)
+        .where(and(
+          eq(esignEnvelopes.envelopeId, idParam),
+          eq(esignEnvelopes.userId, req.user.id)
+        ))
+        .limit(1);
+    } else {
+      // Lookup by numeric ID (backwards compatible)
+      const numericId = parseInt(idParam);
+      if (isNaN(numericId)) {
+        return res.status(400).json({ error: 'Invalid envelope ID' });
+      }
+      [envelope] = await db
+        .select()
+        .from(esignEnvelopes)
+        .where(and(
+          eq(esignEnvelopes.id, numericId),
+          eq(esignEnvelopes.userId, req.user.id)
+        ))
+        .limit(1);
+    }
 
     if (!envelope) {
       return res.status(404).json({ error: 'Envelope not found' });
     }
 
-    // Get recipients
+    // Get recipients (using internal numeric ID)
     const recipients = await db
       .select()
       .from(esignRecipients)
-      .where(eq(esignRecipients.envelopeId, envelopeId))
+      .where(eq(esignRecipients.envelopeId, envelope.id))
       .orderBy(esignRecipients.signingOrder);
 
     // Get fields
     const fields = await db
       .select()
       .from(esignFields)
-      .where(eq(esignFields.envelopeId, envelopeId));
+      .where(eq(esignFields.envelopeId, envelope.id));
 
     // Get audit log
     const auditLog = await db
       .select()
       .from(esignAuditLog)
-      .where(eq(esignAuditLog.envelopeId, envelopeId))
+      .where(eq(esignAuditLog.envelopeId, envelope.id))
       .orderBy(desc(esignAuditLog.timestamp));
 
     res.json({
@@ -700,10 +970,22 @@ router.post('/envelopes/from-template/:templateId', async (req: Request, res: Re
     const placeholders = template.placeholderRecipients as any[];
     const templateFields = template.fields as any[];
 
-    // Create envelope
+    // Generate document hash for E-SIGN Act compliance
+    let documentHash: string | null = null;
+    try {
+      const storage = new ObjectStorageService();
+      const docKey = template.documentUrl.replace('/api/object-storage/', '');
+      const docBuffer = await storage.downloadBuffer(docKey);
+      documentHash = generateDocumentHash(docBuffer);
+    } catch (e) {
+      console.warn('[ESIGN] Could not generate document hash:', e);
+    }
+
+    // Create envelope with unique ID
     const [envelope] = await db
       .insert(esignEnvelopes)
       .values({
+        envelopeId: generateEnvelopeId(),
         userId: req.user.id,
         title: validated.title,
         message: validated.message || null,
@@ -712,6 +994,7 @@ router.post('/envelopes/from-template/:templateId', async (req: Request, res: Re
         pageImages: template.pageImages,
         totalPages: template.totalPages,
         templateId: template.id,
+        documentHash,
         status: 'draft',
       })
       .returning();
@@ -813,10 +1096,22 @@ router.post('/envelopes', async (req: Request, res: Response) => {
 
     const validated = createEnvelopeSchema.parse(req.body);
 
-    // Create envelope
+    // Generate document hash for E-SIGN Act compliance
+    let documentHash: string | null = null;
+    try {
+      const storage = new ObjectStorageService();
+      const docKey = validated.documentUrl.replace('/api/object-storage/', '');
+      const docBuffer = await storage.downloadBuffer(docKey);
+      documentHash = generateDocumentHash(docBuffer);
+    } catch (e) {
+      console.warn('[ESIGN] Could not generate document hash:', e);
+    }
+
+    // Create envelope with unique ID
     const [envelope] = await db
       .insert(esignEnvelopes)
       .values({
+        envelopeId: generateEnvelopeId(),
         userId: req.user.id,
         title: validated.title,
         message: validated.message || null,
@@ -824,6 +1119,7 @@ router.post('/envelopes', async (req: Request, res: Response) => {
         documentUrl: validated.documentUrl,
         pageImages: validated.pageImages,
         totalPages: validated.totalPages,
+        documentHash,
         status: 'draft',
       })
       .returning();
@@ -899,21 +1195,8 @@ router.post('/envelopes/:id/send', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const envelopeId = parseInt(req.params.id);
-    if (isNaN(envelopeId)) {
-      return res.status(400).json({ error: 'Invalid envelope ID' });
-    }
-
-    // Get envelope
-    const [envelope] = await db
-      .select()
-      .from(esignEnvelopes)
-      .where(and(
-        eq(esignEnvelopes.id, envelopeId),
-        eq(esignEnvelopes.userId, req.user.id)
-      ))
-      .limit(1);
-
+    // Get envelope (supports both UUID and numeric ID)
+    const envelope = await findEnvelopeById(req.params.id, req.user.id);
     if (!envelope) {
       return res.status(404).json({ error: 'Envelope not found' });
     }
@@ -926,7 +1209,7 @@ router.post('/envelopes/:id/send', async (req: Request, res: Response) => {
     const recipients = await db
       .select()
       .from(esignRecipients)
-      .where(eq(esignRecipients.envelopeId, envelopeId))
+      .where(eq(esignRecipients.envelopeId, envelope.id))
       .orderBy(esignRecipients.signingOrder);
 
     if (recipients.length === 0) {
@@ -990,7 +1273,7 @@ router.post('/envelopes/:id/send', async (req: Request, res: Response) => {
         })
         .where(eq(esignRecipients.id, recipient.id));
 
-      await logAuditEvent(envelopeId, 'recipient_sent', {
+      await logAuditEvent(envelope.id, 'recipient_sent', {
         recipientEmail: recipient.email,
         recipientName: recipient.name,
       }, req, recipient.id);
@@ -1003,9 +1286,9 @@ router.post('/envelopes/:id/send', async (req: Request, res: Response) => {
         status: 'sent',
         updatedAt: now,
       })
-      .where(eq(esignEnvelopes.id, envelopeId));
+      .where(eq(esignEnvelopes.id, envelope.id));
 
-    await logAuditEvent(envelopeId, 'envelope_sent', {
+    await logAuditEvent(envelope.id, 'envelope_sent', {
       recipientCount: recipientsToNotify.length,
     }, req);
 
@@ -1026,22 +1309,10 @@ router.post('/envelopes/:id/void', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const envelopeId = parseInt(req.params.id);
     const { reason } = req.body;
 
-    if (isNaN(envelopeId)) {
-      return res.status(400).json({ error: 'Invalid envelope ID' });
-    }
-
-    const [envelope] = await db
-      .select()
-      .from(esignEnvelopes)
-      .where(and(
-        eq(esignEnvelopes.id, envelopeId),
-        eq(esignEnvelopes.userId, req.user.id)
-      ))
-      .limit(1);
-
+    // Get envelope (supports both UUID and numeric ID)
+    const envelope = await findEnvelopeById(req.params.id, req.user.id);
     if (!envelope) {
       return res.status(404).json({ error: 'Envelope not found' });
     }
@@ -1058,15 +1329,15 @@ router.post('/envelopes/:id/void', async (req: Request, res: Response) => {
         voidReason: reason || null,
         updatedAt: new Date(),
       })
-      .where(eq(esignEnvelopes.id, envelopeId));
+      .where(eq(esignEnvelopes.id, envelope.id));
 
-    await logAuditEvent(envelopeId, 'envelope_voided', { reason }, req);
+    await logAuditEvent(envelope.id, 'envelope_voided', { reason }, req);
 
     // Send void notification to recipients
     const recipients = await db
       .select()
       .from(esignRecipients)
-      .where(eq(esignRecipients.envelopeId, envelopeId));
+      .where(eq(esignRecipients.envelopeId, envelope.id));
 
     const [sender] = await db
       .select()
@@ -1116,21 +1387,8 @@ router.delete('/envelopes/:id', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const envelopeId = parseInt(req.params.id);
-    if (isNaN(envelopeId)) {
-      return res.status(400).json({ error: 'Invalid envelope ID' });
-    }
-
-    // Get envelope and verify ownership
-    const [envelope] = await db
-      .select()
-      .from(esignEnvelopes)
-      .where(and(
-        eq(esignEnvelopes.id, envelopeId),
-        eq(esignEnvelopes.userId, req.user.id)
-      ))
-      .limit(1);
-
+    // Get envelope (supports both UUID and numeric ID)
+    const envelope = await findEnvelopeById(req.params.id, req.user.id);
     if (!envelope) {
       return res.status(404).json({ error: 'Envelope not found' });
     }
@@ -1141,12 +1399,12 @@ router.delete('/envelopes/:id', async (req: Request, res: Response) => {
     }
 
     // Delete related records first (fields, recipients, audit log)
-    await db.delete(esignFields).where(eq(esignFields.envelopeId, envelopeId));
-    await db.delete(esignRecipients).where(eq(esignRecipients.envelopeId, envelopeId));
-    await db.delete(esignAuditLog).where(eq(esignAuditLog.envelopeId, envelopeId));
+    await db.delete(esignFields).where(eq(esignFields.envelopeId, envelope.id));
+    await db.delete(esignRecipients).where(eq(esignRecipients.envelopeId, envelope.id));
+    await db.delete(esignAuditLog).where(eq(esignAuditLog.envelopeId, envelope.id));
 
     // Delete the envelope
-    await db.delete(esignEnvelopes).where(eq(esignEnvelopes.id, envelopeId));
+    await db.delete(esignEnvelopes).where(eq(esignEnvelopes.id, envelope.id));
 
     res.json({ success: true });
   } catch (error) {
@@ -1162,23 +1420,10 @@ router.post('/envelopes/:id/remind', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const envelopeId = parseInt(req.params.id);
     const { recipientId } = req.body;
 
-    if (isNaN(envelopeId)) {
-      return res.status(400).json({ error: 'Invalid envelope ID' });
-    }
-
-    // Verify envelope ownership
-    const [envelope] = await db
-      .select()
-      .from(esignEnvelopes)
-      .where(and(
-        eq(esignEnvelopes.id, envelopeId),
-        eq(esignEnvelopes.userId, req.user.id)
-      ))
-      .limit(1);
-
+    // Get envelope (supports both UUID and numeric ID)
+    const envelope = await findEnvelopeById(req.params.id, req.user.id);
     if (!envelope) {
       return res.status(404).json({ error: 'Envelope not found' });
     }
@@ -1194,7 +1439,7 @@ router.post('/envelopes/:id/remind', async (req: Request, res: Response) => {
         .select()
         .from(esignRecipients)
         .where(and(
-          eq(esignRecipients.envelopeId, envelopeId),
+          eq(esignRecipients.envelopeId, envelope.id),
           eq(esignRecipients.id, recipientId),
           eq(esignRecipients.role, 'signer')
         ));
@@ -1204,7 +1449,7 @@ router.post('/envelopes/:id/remind', async (req: Request, res: Response) => {
         .select()
         .from(esignRecipients)
         .where(and(
-          eq(esignRecipients.envelopeId, envelopeId),
+          eq(esignRecipients.envelopeId, envelope.id),
           eq(esignRecipients.role, 'signer')
         ));
       recipientsToRemind = recipientsToRemind.filter(r =>
@@ -1268,7 +1513,7 @@ router.post('/envelopes/:id/remind', async (req: Request, res: Response) => {
         })
         .where(eq(esignRecipients.id, recipient.id));
 
-      await logAuditEvent(envelopeId, 'reminder_sent', {
+      await logAuditEvent(envelope.id, 'reminder_sent', {
         recipientEmail: recipient.email,
       }, req, recipient.id);
 
@@ -1296,21 +1541,8 @@ router.get('/envelopes/:id/audit', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const envelopeId = parseInt(req.params.id);
-    if (isNaN(envelopeId)) {
-      return res.status(400).json({ error: 'Invalid envelope ID' });
-    }
-
-    // Verify ownership
-    const [envelope] = await db
-      .select()
-      .from(esignEnvelopes)
-      .where(and(
-        eq(esignEnvelopes.id, envelopeId),
-        eq(esignEnvelopes.userId, req.user.id)
-      ))
-      .limit(1);
-
+    // Get envelope (supports both UUID and numeric ID)
+    const envelope = await findEnvelopeById(req.params.id, req.user.id);
     if (!envelope) {
       return res.status(404).json({ error: 'Envelope not found' });
     }
@@ -1318,7 +1550,7 @@ router.get('/envelopes/:id/audit', async (req: Request, res: Response) => {
     const auditLog = await db
       .select()
       .from(esignAuditLog)
-      .where(eq(esignAuditLog.envelopeId, envelopeId))
+      .where(eq(esignAuditLog.envelopeId, envelope.id))
       .orderBy(desc(esignAuditLog.timestamp));
 
     res.json(auditLog);
@@ -1512,6 +1744,50 @@ router.post('/sign/:token/field/:fieldId', async (req: Request, res: Response) =
   }
 });
 
+// Record E-SIGN Act consent acknowledgment
+router.post('/sign/:token/consent', async (req: Request, res: Response) => {
+  try {
+    const { token } = req.params;
+
+    // Find recipient by token
+    const [recipient] = await db
+      .select()
+      .from(esignRecipients)
+      .where(eq(esignRecipients.accessToken, token))
+      .limit(1);
+
+    if (!recipient) {
+      return res.status(404).json({ error: 'Invalid signing link' });
+    }
+
+    // Don't allow consent if already signed or declined
+    if (recipient.status === 'signed' || recipient.status === 'declined') {
+      return res.status(400).json({ error: 'Document has already been processed' });
+    }
+
+    const ip = getClientIP(req);
+
+    // Record consent
+    await db
+      .update(esignRecipients)
+      .set({
+        consentedAt: new Date(),
+        consentIpAddress: ip,
+      })
+      .where(eq(esignRecipients.id, recipient.id));
+
+    await logAuditEvent(recipient.envelopeId, 'consent_recorded', {
+      recipientEmail: recipient.email,
+      consentIpAddress: ip,
+    }, req, recipient.id);
+
+    res.json({ success: true, consentedAt: new Date().toISOString() });
+  } catch (error) {
+    console.error('[ESIGN] Error recording consent:', error);
+    res.status(500).json({ error: 'Failed to record consent' });
+  }
+});
+
 // Complete signing
 router.post('/sign/:token/complete', async (req: Request, res: Response) => {
   try {
@@ -1537,6 +1813,14 @@ router.post('/sign/:token/complete', async (req: Request, res: Response) => {
 
     if (!envelope) {
       return res.status(404).json({ error: 'Document not found' });
+    }
+
+    // Verify E-SIGN Act consent was recorded
+    if (!recipient.consentedAt) {
+      return res.status(400).json({
+        error: 'You must agree to the electronic signature disclosure before signing',
+        code: 'CONSENT_REQUIRED',
+      });
     }
 
     // Check all required fields are completed
@@ -1636,17 +1920,24 @@ router.post('/sign/:token/complete', async (req: Request, res: Response) => {
       try {
         const signedPdf = await generateSignedPdf(
           envelope.documentUrl,
-          allFields.map(f => ({
-            id: f.id,
-            type: f.type,
-            x: f.x,
-            y: f.y,
-            width: f.width,
-            height: f.height,
-            page: f.page,
-            value: f.value,
-            completedAt: f.completedAt,
-          })),
+          allFields.map(f => {
+            // Find the recipient who owns this field to get their name
+            const fieldRecipient = allRecipients.find(r => r.id === f.recipientId);
+            return {
+              id: f.id,
+              type: f.type,
+              x: f.x,
+              y: f.y,
+              width: f.width,
+              height: f.height,
+              page: f.page,
+              value: f.value,
+              completedAt: f.completedAt,
+              recipientId: f.recipientId,
+              signerName: fieldRecipient?.name,
+              signerEmail: fieldRecipient?.email,
+            };
+          }),
           allSigners.map(s => ({
             name: s.name,
             email: s.email,
@@ -1655,7 +1946,7 @@ router.post('/sign/:token/complete', async (req: Request, res: Response) => {
             location: s.location,
           })),
           {
-            id: envelope.id,
+            envelopeId: envelope.envelopeId,
             title: envelope.title,
             createdAt: envelope.createdAt,
             completedAt: new Date(),
@@ -1664,7 +1955,7 @@ router.post('/sign/:token/complete', async (req: Request, res: Response) => {
 
         const certificate = await generateCertificateOfCompletion(
           {
-            id: envelope.id,
+            envelopeId: envelope.envelopeId,
             title: envelope.title,
             createdAt: envelope.createdAt,
             completedAt: new Date(),
@@ -1689,15 +1980,21 @@ router.post('/sign/:token/complete', async (req: Request, res: Response) => {
         // Combine signed PDF with certificate
         finalPdfBuffer = await combineSignedPdfWithCertificate(signedPdf, certificate);
 
+        // Generate hash of signed document for E-SIGN Act compliance
+        const signedDocumentHash = generateDocumentHash(finalPdfBuffer);
+
         // Upload to object storage
         const storage = new ObjectStorageService();
-        const signedFileName = `esign/signed/${envelope.id}_signed_${Date.now()}.pdf`;
+        const signedFileName = `esign/signed/${envelope.envelopeId}_signed_${Date.now()}.pdf`;
         const uploadResult = await storage.uploadBuffer(signedFileName, finalPdfBuffer, 'application/pdf');
 
-        // Update envelope with signed document URL
+        // Update envelope with signed document URL and hash
         await db
           .update(esignEnvelopes)
-          .set({ signedDocumentUrl: uploadResult.url })
+          .set({
+            signedDocumentUrl: uploadResult.url,
+            signedDocumentHash,
+          })
           .where(eq(esignEnvelopes.id, envelope.id));
 
         console.log(`[ESIGN] Generated signed PDF for envelope ${envelope.id}: ${uploadResult.url}`);
@@ -1707,7 +2004,7 @@ router.post('/sign/:token/complete', async (req: Request, res: Response) => {
       }
 
       // Send completion emails to all parties with the signed PDF attached
-      const envelopeUrl = `${process.env.APP_URL || 'https://cimshare.com'}/esign/envelope/${envelope.id}`;
+      const envelopeUrl = `${process.env.APP_URL || 'https://cimshare.com'}/esign/envelope/${envelope.envelopeId}`;
       const signerNames = allSigners.map(s => s.name).join(', ');
 
       // Prepare PDF attachment if available
@@ -1939,28 +2236,137 @@ router.post('/sign/:token/decline', async (req: Request, res: Response) => {
   }
 });
 
+// AI Document Summarization for signers
+router.post('/sign/:token/summarize', async (req: Request, res: Response) => {
+  try {
+    const { token } = req.params;
+
+    // Find recipient by token
+    const [recipient] = await db
+      .select()
+      .from(esignRecipients)
+      .where(eq(esignRecipients.accessToken, token))
+      .limit(1);
+
+    if (!recipient) {
+      return res.status(404).json({ error: 'Invalid signing link' });
+    }
+
+    // Get envelope
+    const [envelope] = await db
+      .select()
+      .from(esignEnvelopes)
+      .where(eq(esignEnvelopes.id, recipient.envelopeId))
+      .limit(1);
+
+    if (!envelope) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+
+    if (!envelope.documentUrl) {
+      return res.status(400).json({ error: 'No document available to summarize' });
+    }
+
+    console.log(`[ESIGN] Summarizing document for recipient ${recipient.id}`);
+
+    // Fetch the PDF and extract text
+    const storage = new ObjectStorageService();
+    let pdfBuffer: Buffer;
+
+    if (envelope.documentUrl.startsWith('/api/object-storage/')) {
+      const key = envelope.documentUrl.replace('/api/object-storage/', '');
+      pdfBuffer = await storage.downloadBuffer(key);
+    } else if (envelope.documentUrl.startsWith('http')) {
+      const response = await fetch(envelope.documentUrl);
+      if (!response.ok) {
+        throw new Error('Failed to fetch document');
+      }
+      pdfBuffer = Buffer.from(await response.arrayBuffer());
+    } else {
+      return res.status(400).json({ error: 'Invalid document URL format' });
+    }
+
+    // Extract text from PDF
+    let documentText = '';
+    try {
+      const pdfData = await pdfParse(pdfBuffer);
+      documentText = pdfData.text;
+    } catch (parseError: any) {
+      console.error('[ESIGN] PDF parse error:', parseError);
+      return res.status(400).json({ error: 'Could not extract text from document' });
+    }
+
+    if (!documentText || documentText.trim().length < 100) {
+      return res.status(400).json({
+        error: 'Document contains insufficient text for summarization. It may be an image-based PDF.'
+      });
+    }
+
+    // Generate AI summary
+    const summary = await summarizeDocumentForSigner(documentText);
+
+    // Log audit event
+    await logAuditEvent(envelope.id, 'document_summarized', recipient.id, getClientIP(req));
+
+    res.json({
+      success: true,
+      summary: summary.summary,
+      keyPoints: summary.keyPoints,
+      importantTerms: summary.importantTerms,
+      estimatedReadTime: summary.estimatedReadTime,
+      disclaimer: 'This summary is AI-generated for informational purposes only. It is not legal advice. Please read the full document carefully before signing.',
+    });
+  } catch (error: any) {
+    console.error('[ESIGN] Error summarizing document:', error);
+    res.status(500).json({ error: error.message || 'Failed to summarize document' });
+  }
+});
+
 // ============================================================================
 // VERIFICATION ROUTE (Public)
 // ============================================================================
 
 router.get('/verify/:envelopeId', async (req: Request, res: Response) => {
   try {
-    const envelopeId = parseInt(req.params.envelopeId);
-    if (isNaN(envelopeId)) {
-      return res.status(400).json({ error: 'Invalid envelope ID' });
-    }
+    const idParam = req.params.envelopeId;
+    let envelope;
 
-    const [envelope] = await db
-      .select({
-        id: esignEnvelopes.id,
-        title: esignEnvelopes.title,
-        status: esignEnvelopes.status,
-        completedAt: esignEnvelopes.completedAt,
-        createdAt: esignEnvelopes.createdAt,
-      })
-      .from(esignEnvelopes)
-      .where(eq(esignEnvelopes.id, envelopeId))
-      .limit(1);
+    // Check if it's a UUID (starts with "env_") or numeric ID
+    if (idParam.startsWith('env_')) {
+      [envelope] = await db
+        .select({
+          id: esignEnvelopes.id,
+          envelopeId: esignEnvelopes.envelopeId,
+          title: esignEnvelopes.title,
+          status: esignEnvelopes.status,
+          completedAt: esignEnvelopes.completedAt,
+          createdAt: esignEnvelopes.createdAt,
+          documentHash: esignEnvelopes.documentHash,
+          signedDocumentHash: esignEnvelopes.signedDocumentHash,
+        })
+        .from(esignEnvelopes)
+        .where(eq(esignEnvelopes.envelopeId, idParam))
+        .limit(1);
+    } else {
+      const numericId = parseInt(idParam);
+      if (isNaN(numericId)) {
+        return res.status(400).json({ error: 'Invalid envelope ID' });
+      }
+      [envelope] = await db
+        .select({
+          id: esignEnvelopes.id,
+          envelopeId: esignEnvelopes.envelopeId,
+          title: esignEnvelopes.title,
+          status: esignEnvelopes.status,
+          completedAt: esignEnvelopes.completedAt,
+          createdAt: esignEnvelopes.createdAt,
+          documentHash: esignEnvelopes.documentHash,
+          signedDocumentHash: esignEnvelopes.signedDocumentHash,
+        })
+        .from(esignEnvelopes)
+        .where(eq(esignEnvelopes.id, numericId))
+        .limit(1);
+    }
 
     if (!envelope) {
       return res.status(404).json({ error: 'Document not found' });
@@ -1975,18 +2381,20 @@ router.get('/verify/:envelopeId', async (req: Request, res: Response) => {
       })
       .from(esignRecipients)
       .where(and(
-        eq(esignRecipients.envelopeId, envelopeId),
+        eq(esignRecipients.envelopeId, envelope.id),
         eq(esignRecipients.role, 'signer')
       ))
       .orderBy(esignRecipients.signingOrder);
 
     res.json({
       envelope: {
-        id: envelope.id,
+        envelopeId: envelope.envelopeId, // Return UUID instead of numeric id
         title: envelope.title,
         status: envelope.status,
         completedAt: envelope.completedAt,
         createdAt: envelope.createdAt,
+        documentHash: envelope.documentHash,
+        signedDocumentHash: envelope.signedDocumentHash,
       },
       signers: signers.map(s => ({
         name: s.name,
@@ -2010,21 +2418,8 @@ router.get('/envelopes/:id/download', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const envelopeId = parseInt(req.params.id);
-    if (isNaN(envelopeId)) {
-      return res.status(400).json({ error: 'Invalid envelope ID' });
-    }
-
-    // Get envelope and verify ownership
-    const [envelope] = await db
-      .select()
-      .from(esignEnvelopes)
-      .where(and(
-        eq(esignEnvelopes.id, envelopeId),
-        eq(esignEnvelopes.userId, req.user.id)
-      ))
-      .limit(1);
-
+    // Get envelope (supports both UUID and numeric ID)
+    const envelope = await findEnvelopeById(req.params.id, req.user.id);
     if (!envelope) {
       return res.status(404).json({ error: 'Envelope not found' });
     }
