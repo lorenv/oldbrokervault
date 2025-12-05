@@ -1,6 +1,13 @@
 /**
  * Monitoring Routes for Database and Application Performance
  * Provides health checks and metrics endpoints for monitoring
+ *
+ * Includes:
+ * - Database health and performance metrics
+ * - External API health checks (OpenAI, Perplexity, Stripe, SendGrid)
+ * - CIM generation capability testing
+ * - File storage health
+ * - Scheduled health check runner with alerting
  */
 
 import { Express } from 'express';
@@ -8,6 +15,24 @@ import { poolOptimizer } from '../db';
 import { shareCache } from '../cache';
 import { db } from '../db';
 import { sql } from 'drizzle-orm';
+import {
+  runAllHealthChecks,
+  runQuickHealthCheck,
+  checkOpenAIHealth,
+  checkCIMGenerationHealth,
+  checkDatabaseHealth as checkDbHealth,
+  checkStripeHealth,
+  checkSendGridHealth,
+  checkStorageHealth,
+  checkPerplexityHealth,
+  checkEnvironmentHealth,
+} from '../monitoring/health-checks';
+import {
+  startMonitoring,
+  stopMonitoring,
+  getLatestReports,
+  triggerHealthCheck,
+} from '../monitoring/scheduler';
 
 export function registerMonitoringRoutes(app: Express) {
   /**
@@ -180,6 +205,220 @@ export function registerMonitoringRoutes(app: Express) {
    */
   app.get('/api/alive', (req, res) => {
     res.json({ alive: true, uptime: process.uptime() });
+  });
+
+  // ============================================================
+  // COMPREHENSIVE HEALTH CHECK ENDPOINTS
+  // ============================================================
+
+  /**
+   * GET /api/monitoring/health/comprehensive
+   * Full system health check including all external APIs
+   */
+  app.get('/api/monitoring/health/comprehensive', async (req, res) => {
+    // Check auth for comprehensive checks
+    const monitoringToken = req.headers['x-monitoring-token'];
+    if (monitoringToken !== process.env.MONITORING_TOKEN && !req.isAuthenticated?.()) {
+      // Allow unauthenticated access from localhost
+      const ip = req.ip || req.socket.remoteAddress;
+      if (ip !== '127.0.0.1' && ip !== '::1') {
+        return res.status(401).json({ error: 'Monitoring token required' });
+      }
+    }
+
+    try {
+      const report = await runAllHealthChecks();
+      const statusCode = report.overall === 'unhealthy' ? 503 : 200;
+      res.status(statusCode).json(report);
+    } catch (error) {
+      res.status(500).json({
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  });
+
+  /**
+   * GET /api/monitoring/health/quick
+   * Quick health check for critical services only
+   */
+  app.get('/api/monitoring/health/quick', async (req, res) => {
+    try {
+      const report = await runQuickHealthCheck();
+      const statusCode = report.overall === 'unhealthy' ? 503 : 200;
+      res.status(statusCode).json(report);
+    } catch (error) {
+      res.status(500).json({
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  });
+
+  /**
+   * GET /api/monitoring/health/cim
+   * Check CIM generation capability specifically
+   */
+  app.get('/api/monitoring/health/cim', async (req, res) => {
+    try {
+      const [openaiCheck, cimCheck] = await Promise.all([
+        checkOpenAIHealth(),
+        checkCIMGenerationHealth(),
+      ]);
+
+      const overall = cimCheck.status === 'unhealthy' ? 'unhealthy' :
+                      cimCheck.status === 'degraded' || openaiCheck.status !== 'healthy' ? 'degraded' : 'healthy';
+
+      res.status(overall === 'unhealthy' ? 503 : 200).json({
+        overall,
+        timestamp: new Date().toISOString(),
+        checks: {
+          openai: openaiCheck,
+          cimGeneration: cimCheck,
+        },
+      });
+    } catch (error) {
+      res.status(500).json({
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  });
+
+  /**
+   * GET /api/monitoring/health/:service
+   * Check specific service health
+   */
+  app.get('/api/monitoring/health/:service', async (req, res) => {
+    const { service } = req.params;
+
+    try {
+      let result;
+
+      switch (service.toLowerCase()) {
+        case 'openai':
+          result = await checkOpenAIHealth();
+          break;
+        case 'cim':
+          result = await checkCIMGenerationHealth();
+          break;
+        case 'database':
+        case 'db':
+          result = await checkDbHealth();
+          break;
+        case 'stripe':
+          result = await checkStripeHealth();
+          break;
+        case 'sendgrid':
+        case 'email':
+          result = await checkSendGridHealth();
+          break;
+        case 'storage':
+          result = await checkStorageHealth();
+          break;
+        case 'perplexity':
+          result = await checkPerplexityHealth();
+          break;
+        case 'environment':
+        case 'env':
+          result = checkEnvironmentHealth();
+          break;
+        default:
+          return res.status(404).json({ error: `Unknown service: ${service}` });
+      }
+
+      const statusCode = result.status === 'unhealthy' ? 503 : 200;
+      res.status(statusCode).json(result);
+    } catch (error) {
+      res.status(500).json({
+        status: 'error',
+        service,
+        message: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  });
+
+  /**
+   * GET /api/monitoring/scheduler/status
+   * Get scheduler status and latest reports
+   */
+  app.get('/api/monitoring/scheduler/status', (req, res) => {
+    const reports = getLatestReports();
+    res.json({
+      schedulerRunning: reports.isRunning,
+      lastQuickCheck: reports.quick?.timestamp || null,
+      lastFullCheck: reports.full?.timestamp || null,
+      lastQuickStatus: reports.quick?.overall || null,
+      lastFullStatus: reports.full?.overall || null,
+    });
+  });
+
+  /**
+   * POST /api/monitoring/scheduler/start
+   * Start the background monitoring scheduler
+   */
+  app.post('/api/monitoring/scheduler/start', (req, res) => {
+    const monitoringToken = req.headers['x-monitoring-token'];
+    if (monitoringToken !== process.env.MONITORING_TOKEN && !req.isAuthenticated?.()) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { alertEmail, slackWebhookUrl, webhookUrl } = req.body;
+
+    const alertConfig = {
+      enabled: !!(alertEmail || slackWebhookUrl || webhookUrl),
+      emailRecipients: alertEmail ? alertEmail.split(',').map((e: string) => e.trim()) : undefined,
+      slackWebhookUrl,
+      webhookUrl,
+    };
+
+    startMonitoring(alertConfig);
+
+    res.json({
+      message: 'Monitoring scheduler started',
+      alertConfig: {
+        emailEnabled: !!alertConfig.emailRecipients,
+        slackEnabled: !!alertConfig.slackWebhookUrl,
+        webhookEnabled: !!alertConfig.webhookUrl,
+      },
+    });
+  });
+
+  /**
+   * POST /api/monitoring/scheduler/stop
+   * Stop the background monitoring scheduler
+   */
+  app.post('/api/monitoring/scheduler/stop', (req, res) => {
+    const monitoringToken = req.headers['x-monitoring-token'];
+    if (monitoringToken !== process.env.MONITORING_TOKEN && !req.isAuthenticated?.()) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    stopMonitoring();
+    res.json({ message: 'Monitoring scheduler stopped' });
+  });
+
+  /**
+   * POST /api/monitoring/trigger
+   * Manually trigger a health check
+   */
+  app.post('/api/monitoring/trigger', async (req, res) => {
+    const monitoringToken = req.headers['x-monitoring-token'];
+    if (monitoringToken !== process.env.MONITORING_TOKEN && !req.isAuthenticated?.()) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { full = false } = req.body;
+
+    try {
+      const report = await triggerHealthCheck(full);
+      res.json(report);
+    } catch (error) {
+      res.status(500).json({
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
   });
 }
 

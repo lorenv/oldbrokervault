@@ -20,7 +20,13 @@
       "Bash(ss:*)",
       "Bash(netstat:*)",
       "WebSearch",
-      "Bash(libreoffice:*)"
+      "Bash(libreoffice:*)",
+      "Bash(node:*)",
+      "WebFetch(domain:docs.perplexity.ai)",
+      "WebFetch(domain:platform.openai.com)",
+      "WebFetch(domain:www.listendata.com)",
+      "Bash(cat:*)",
+      "Bash(npx tsx:*)"
     ],
     "deny": [],
     "ask": [],
