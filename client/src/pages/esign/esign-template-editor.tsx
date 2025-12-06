@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useRoute } from "wouter";
-import { DndContext, DragEndEvent, DragOverlay, useSensor, useSensors, PointerSensor, useDroppable, useDraggable, DragMoveEvent, closestCenter } from "@dnd-kit/core";
+import { DndContext, DragEndEvent, DragOverlay, useSensor, useSensors, PointerSensor, TouchSensor, useDroppable, useDraggable, DragMoveEvent, closestCenter } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,8 @@ import {
   X,
   Menu,
   File,
+  ChevronDown,
+  MousePointer,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -377,6 +379,8 @@ function DocumentCanvas({
   zoom,
   onDrop,
   registerCanvasRef,
+  isTapToPlaceMode,
+  onTapToPlace,
 }: {
   pageImage: string;
   pageNumber: number;
@@ -389,6 +393,8 @@ function DocumentCanvas({
   zoom: number;
   onDrop: (x: number, y: number, type: string) => void;
   registerCanvasRef: (pageNumber: number, ref: HTMLDivElement | null) => void;
+  isTapToPlaceMode?: boolean;
+  onTapToPlace?: (pageNumber: number, x: number, y: number) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: `canvas-page-${pageNumber}`,
@@ -401,6 +407,27 @@ function DocumentCanvas({
   // Calculate display width based on zoom
   const baseWidth = 612; // Standard letter width in points
   const displayWidth = baseWidth * zoom;
+
+  // Handle canvas click for tap-to-place mode
+  const handleCanvasClick = (e: React.MouseEvent) => {
+    if (!isTapToPlaceMode || !onTapToPlace) {
+      onSelectField(null);
+      return;
+    }
+
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    // Calculate position relative to canvas, accounting for zoom
+    const relativeX = (e.clientX - rect.left) / zoom;
+    const relativeY = (e.clientY - rect.top) / zoom;
+
+    // Convert to percentage of canvas dimensions (unzoomed)
+    const x = (relativeX / baseWidth) * 100;
+    const y = (relativeY / (rect.height / zoom)) * 100;
+
+    onTapToPlace(pageNumber, x, y);
+  };
 
   // Track actual canvas height for font size calculation
   useEffect(() => {
@@ -424,11 +451,11 @@ function DocumentCanvas({
       data-page={pageNumber}
       className={`relative border-2 rounded-lg overflow-hidden transition-colors flex-shrink-0 ${
         isOver ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-      }`}
+      } ${isTapToPlaceMode ? 'cursor-crosshair' : ''}`}
       style={{
         width: displayWidth,
       }}
-      onClick={() => onSelectField(null)}
+      onClick={handleCanvasClick}
     >
       <img
         src={pageImage}
@@ -512,6 +539,10 @@ export default function EsignTemplateEditor() {
   // Mobile sidebar state
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
 
+  // Mobile tap-to-place mode
+  const [mobileFieldType, setMobileFieldType] = useState<string | null>(null);
+  const [isTapToPlaceMode, setIsTapToPlaceMode] = useState(false);
+
   // Track canvas refs for accurate drop positioning
   const canvasRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const lastPointerPosition = useRef<{ x: number; y: number } | null>(null);
@@ -524,10 +555,16 @@ export default function EsignTemplateEditor() {
     }
   }, []);
 
-  // DnD sensors
+  // DnD sensors - include touch sensor for mobile
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 5 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 200,
+        tolerance: 5,
+      },
     })
   );
 
@@ -886,6 +923,35 @@ export default function EsignTemplateEditor() {
 
     lastPointerPosition.current = null;
   };
+
+  // Handle tap-to-place on mobile
+  const handleTapToPlace = useCallback((pageNumber: number, x: number, y: number) => {
+    if (!mobileFieldType || !activeRecipientId) return;
+
+    const fieldConfig = FIELD_TYPES.find(f => f.type === mobileFieldType);
+    const fieldWidth = fieldConfig?.defaultSize.width || 20;
+    const fieldHeight = fieldConfig?.defaultSize.height || 4;
+
+    // Center the field on the tap point
+    const centeredX = x - fieldWidth / 2;
+    const centeredY = y - fieldHeight / 2;
+
+    const newField: TemplateField = {
+      id: uuidv4(),
+      type: mobileFieldType as TemplateField['type'],
+      x: Math.max(0, Math.min(100 - fieldWidth, centeredX)),
+      y: Math.max(0, Math.min(100 - fieldHeight, centeredY)),
+      width: fieldWidth,
+      height: fieldHeight,
+      page: pageNumber,
+      assignedTo: activeRecipientId,
+      required: true,
+    };
+
+    setFields([...fields, newField]);
+    setSelectedFieldId(newField.id);
+    // Keep tap-to-place mode active so user can add multiple fields
+  }, [mobileFieldType, activeRecipientId, fields]);
 
   // Save template
   const saveMutation = useMutation({
@@ -1349,8 +1415,8 @@ export default function EsignTemplateEditor() {
             </div>
 
             {/* Main Canvas */}
-            <div className="flex-1 min-w-0">
-              <Card className="h-[calc(100vh-140px)] lg:h-[calc(100vh-180px)] flex flex-col">
+            <div className="flex-1 min-w-0 pb-32 lg:pb-0">
+              <Card className="h-[calc(100vh-200px)] lg:h-[calc(100vh-180px)] flex flex-col">
                 <CardHeader className="border-b flex-shrink-0">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-sm font-medium">
@@ -1435,7 +1501,10 @@ export default function EsignTemplateEditor() {
                             <Button
                               disabled={isUploading}
                               type="button"
-                              onClick={(e) => e.stopPropagation()}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                document.getElementById('template-file-upload')?.click();
+                              }}
                             >
                               <Upload className="h-4 w-4 mr-2" />
                               Choose Files
@@ -1468,6 +1537,8 @@ export default function EsignTemplateEditor() {
                             zoom={zoom}
                             onDrop={() => {}}
                             registerCanvasRef={registerCanvasRef}
+                            isTapToPlaceMode={isTapToPlaceMode}
+                            onTapToPlace={handleTapToPlace}
                           />
                         ))}
                       </div>
@@ -1478,6 +1549,143 @@ export default function EsignTemplateEditor() {
             </div>
           </div>
         </div>
+
+        {/* Mobile Bottom Bars - Only show when document is loaded */}
+        {pageImages.length > 0 && (
+          <>
+            {/* Mobile Field Placement Bar - positioned above nav bar */}
+            <div className="fixed bottom-16 left-0 right-0 bg-white border-t shadow-lg z-40 lg:hidden">
+              <div className="flex items-center gap-2 px-3 py-2">
+                {/* Recipient selector */}
+                <Select
+                  value={activeRecipientId || ""}
+                  onValueChange={(value) => setActiveRecipientId(value)}
+                >
+                  <SelectTrigger className="w-[130px] h-9 text-xs">
+                    <SelectValue placeholder="Recipient" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {recipients.map((recipient) => (
+                      <SelectItem key={recipient.id} value={recipient.id}>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: recipient.color }}
+                          />
+                          <span className="truncate">{recipient.label}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Field type selector */}
+                <Select
+                  value={mobileFieldType || ""}
+                  onValueChange={(value) => {
+                    setMobileFieldType(value);
+                    setIsTapToPlaceMode(true);
+                  }}
+                  disabled={!activeRecipientId}
+                >
+                  <SelectTrigger className="w-[120px] h-9 text-xs">
+                    <SelectValue placeholder="Field type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FIELD_TYPES.map((fieldType) => {
+                      const Icon = fieldType.icon;
+                      return (
+                        <SelectItem key={fieldType.type} value={fieldType.type}>
+                          <div className="flex items-center gap-2">
+                            <Icon className="h-3 w-3 flex-shrink-0" />
+                            <span>{fieldType.label}</span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+
+                {/* Tap-to-place indicator/toggle */}
+                {isTapToPlaceMode ? (
+                  <div className="flex items-center gap-2 flex-1">
+                    <div className="flex items-center gap-1.5 text-xs text-blue-600 bg-blue-50 px-2 py-1.5 rounded-md">
+                      <MousePointer className="h-3 w-3" />
+                      <span>Tap to place</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 text-xs ml-auto"
+                      onClick={() => {
+                        setIsTapToPlaceMode(false);
+                        setMobileFieldType(null);
+                      }}
+                    >
+                      Done
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="text-xs text-gray-500 flex-1">
+                    {!activeRecipientId ? (
+                      "Select recipient first"
+                    ) : (
+                      "Select field to place"
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Mobile Navigation Bar - bottom sticky */}
+            <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-40 lg:hidden">
+              <div className="flex items-center justify-between px-3 py-2">
+                {/* Back button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setLocation("/esign/templates")}
+                  className="h-10"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-1" />
+                  Back
+                </Button>
+
+                {/* Zoom controls */}
+                <div className="flex items-center gap-1 bg-gray-100 rounded-lg px-2 py-1">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8"
+                    onClick={() => setZoom(Math.max(0.5, zoom - 0.1))}
+                  >
+                    <ZoomOut className="h-4 w-4" />
+                  </Button>
+                  <span className="text-xs w-10 text-center font-medium">{Math.round(zoom * 100)}%</span>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8"
+                    onClick={() => setZoom(Math.min(1.5, zoom + 0.1))}
+                  >
+                    <ZoomIn className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {/* Save button */}
+                <Button
+                  onClick={() => saveMutation.mutate()}
+                  disabled={!canSave || saveMutation.isPending}
+                  size="sm"
+                  className="h-10"
+                >
+                  <Save className="h-4 w-4 mr-1" />
+                  {saveMutation.isPending ? "..." : "Save"}
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </DndContext>
   );

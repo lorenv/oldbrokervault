@@ -58,12 +58,11 @@ interface Recipient {
 interface AuditEntry {
   id: number;
   action: string;
-  actorEmail: string | null;
-  actorName: string | null;
   ipAddress: string | null;
   userAgent: string | null;
-  metadata: Record<string, any>;
-  createdAt: string;
+  location: string | null;
+  details: Record<string, any>;
+  timestamp: string;
 }
 
 interface Envelope {
@@ -403,17 +402,28 @@ export default function EsignEnvelopeDetail() {
                             <p className="font-medium text-sm">
                               {actionLabels[entry.action] || entry.action}
                             </p>
-                            {entry.actorEmail && (
-                              <p className="text-sm text-gray-500">{entry.actorName || entry.actorEmail}</p>
+                            {(entry.details?.recipientEmail || entry.details?.recipientName) && (
+                              <p className="text-sm text-gray-500">
+                                {entry.details?.recipientName || entry.details?.recipientEmail}
+                              </p>
                             )}
-                            <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-gray-400">
                               <span>
-                                {entry.createdAt ? format(new Date(entry.createdAt), "MMM d, yyyy 'at' h:mm a") : 'Unknown date'}
+                                {entry.timestamp ? format(new Date(entry.timestamp), "MMM d, yyyy 'at' h:mm a") : 'Unknown date'}
                               </span>
-                              {entry.ipAddress && (
+                              {(entry.ipAddress || entry.location) && (
                                 <span className="flex items-center gap-1">
                                   <MapPin className="h-3 w-3" />
-                                  {entry.ipAddress}
+                                  {entry.location && entry.location !== 'Unknown' ? (
+                                    <span>
+                                      {entry.location}
+                                      {entry.ipAddress && (
+                                        <span className="text-gray-300 ml-1">({entry.ipAddress})</span>
+                                      )}
+                                    </span>
+                                  ) : (
+                                    entry.ipAddress
+                                  )}
                                 </span>
                               )}
                             </div>
