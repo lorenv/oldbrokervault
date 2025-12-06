@@ -128,40 +128,43 @@ export default function EsignDashboard() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
       {/* Header */}
       <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 border-b border-slate-200 shadow-lg">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-between">
+        <div className="container mx-auto px-4 py-6 md:py-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
-                <FileSignature className="h-8 w-8" />
+              <h1 className="text-2xl md:text-3xl font-bold text-white mb-1 md:mb-2 flex items-center gap-2 md:gap-3">
+                <FileSignature className="h-6 w-6 md:h-8 md:w-8" />
                 E-Signatures
               </h1>
-              <p className="text-slate-200">
+              <p className="text-slate-200 text-sm md:text-base">
                 Send documents for signature and track their progress
               </p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-2 md:gap-3">
               <Button
                 variant="outline"
+                size="sm"
                 className="bg-white/10 border-white/20 text-white hover:bg-white/20"
                 onClick={() => setLocation("/esign/settings")}
               >
-                <Palette className="h-4 w-4 mr-2" />
-                Branding
+                <Palette className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Branding</span>
               </Button>
               <Button
                 variant="outline"
+                size="sm"
                 className="bg-white/10 border-white/20 text-white hover:bg-white/20"
                 onClick={() => setLocation("/esign/templates")}
               >
-                <FileText className="h-4 w-4 mr-2" />
-                Templates
+                <FileText className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Templates</span>
               </Button>
               <Button
+                size="sm"
                 className="bg-blue-600 hover:bg-blue-700 text-white"
                 onClick={() => setLocation("/esign/send")}
               >
-                <Plus className="h-4 w-4 mr-2" />
-                Send Document
+                <Plus className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Send Document</span>
               </Button>
             </div>
           </div>
@@ -230,37 +233,35 @@ export default function EsignDashboard() {
         </div>
 
         {/* Main Content */}
-        <Card className="bg-white shadow-lg">
+        <Card className="bg-white shadow-lg overflow-hidden">
           <CardHeader className="border-b">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <CardTitle>Documents</CardTitle>
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Search documents..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 w-64"
-                  />
-                </div>
+              <div className="relative w-full sm:w-auto">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search documents..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 w-full sm:w-64"
+                />
               </div>
             </div>
           </CardHeader>
           <CardContent className="p-0">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <div className="border-b px-6">
-                <TabsList className="h-12 bg-transparent">
-                  <TabsTrigger value="all" className="data-[state=active]:bg-blue-50">
+              <div className="border-b px-3 md:px-6 overflow-x-auto">
+                <TabsList className="h-12 bg-transparent w-max min-w-full md:w-auto">
+                  <TabsTrigger value="all" className="data-[state=active]:bg-blue-50 text-xs md:text-sm whitespace-nowrap">
                     All ({envelopes.length})
                   </TabsTrigger>
-                  <TabsTrigger value="sent" className="data-[state=active]:bg-yellow-50">
+                  <TabsTrigger value="sent" className="data-[state=active]:bg-yellow-50 text-xs md:text-sm whitespace-nowrap">
                     Pending ({stats.pending})
                   </TabsTrigger>
-                  <TabsTrigger value="completed" className="data-[state=active]:bg-green-50">
+                  <TabsTrigger value="completed" className="data-[state=active]:bg-green-50 text-xs md:text-sm whitespace-nowrap">
                     Completed ({stats.completed})
                   </TabsTrigger>
-                  <TabsTrigger value="draft" className="data-[state=active]:bg-gray-50">
+                  <TabsTrigger value="draft" className="data-[state=active]:bg-gray-50 text-xs md:text-sm whitespace-nowrap">
                     Drafts ({stats.draft})
                   </TabsTrigger>
                 </TabsList>
@@ -299,23 +300,23 @@ export default function EsignDashboard() {
                       return (
                         <div
                           key={envelope.id}
-                          className="flex items-center justify-between p-4 hover:bg-gray-50 cursor-pointer"
+                          className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 md:p-4 hover:bg-gray-50 cursor-pointer gap-3"
                           onClick={() => setLocation(`/esign/envelope/${envelope.envelopeId}`)}
                         >
-                          <div className="flex items-center gap-4">
-                            <div className="p-2 bg-blue-50 rounded-lg">
-                              <FileSignature className="h-5 w-5 text-blue-600" />
+                          <div className="flex items-center gap-3 md:gap-4 min-w-0">
+                            <div className="p-2 bg-blue-50 rounded-lg flex-shrink-0">
+                              <FileSignature className="h-4 w-4 md:h-5 md:w-5 text-blue-600" />
                             </div>
-                            <div>
-                              <h3 className="font-medium text-gray-900">
+                            <div className="min-w-0 flex-1">
+                              <h3 className="font-medium text-gray-900 truncate text-sm md:text-base">
                                 {envelope.title}
                               </h3>
-                              <div className="flex items-center gap-3 mt-1 text-sm text-gray-500">
+                              <div className="flex flex-wrap items-center gap-2 md:gap-3 mt-1 text-xs md:text-sm text-gray-500">
                                 <span className="flex items-center gap-1">
                                   <Users className="h-3 w-3" />
                                   {envelope.signerCount} signer{envelope.signerCount !== 1 ? 's' : ''}
                                 </span>
-                                <span>
+                                <span className="hidden xs:inline">
                                   {envelope.status === 'sent' && (
                                     <>{envelope.signedCount}/{envelope.signerCount} signed</>
                                   )}
@@ -330,8 +331,8 @@ export default function EsignDashboard() {
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-4">
-                            <Badge className={status.color}>
+                          <div className="flex items-center justify-between sm:justify-end gap-2 md:gap-4 ml-11 sm:ml-0">
+                            <Badge className={`${status.color} text-xs`}>
                               <StatusIcon className="h-3 w-3 mr-1" />
                               {status.label}
                             </Badge>

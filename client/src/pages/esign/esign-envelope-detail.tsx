@@ -58,12 +58,11 @@ interface Recipient {
 interface AuditEntry {
   id: number;
   action: string;
-  actorEmail: string | null;
-  actorName: string | null;
   ipAddress: string | null;
   userAgent: string | null;
-  metadata: Record<string, any>;
-  createdAt: string;
+  location: string | null;
+  details: Record<string, any>;
+  timestamp: string;
 }
 
 interface Envelope {
@@ -261,45 +260,44 @@ export default function EsignEnvelopeDetail() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
       {/* Header */}
       <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 border-b border-slate-200 shadow-lg">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-between">
+        <div className="container mx-auto px-4 py-6 md:py-8">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-white/80 hover:text-white hover:bg-white/10 -ml-2"
+                onClick={() => setLocation("/esign")}
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Back
+              </Button>
+            </div>
             <div>
-              <div className="flex items-center gap-3 mb-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-white/80 hover:text-white hover:bg-white/10 -ml-2"
-                  onClick={() => setLocation("/esign")}
-                >
-                  <ArrowLeft className="h-4 w-4 mr-1" />
-                  Back
-                </Button>
-              </div>
-              <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
-                <FileSignature className="h-8 w-8" />
-                {envelope.title}
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-2 flex items-center gap-2 md:gap-3">
+                <FileSignature className="h-6 w-6 md:h-8 md:w-8 flex-shrink-0" />
+                <span className="truncate">{envelope.title}</span>
               </h1>
-              <div className="flex items-center gap-4">
-                <Badge className={`${status.color} px-3 py-1`}>
-                  <StatusIcon className="h-4 w-4 mr-1" />
+              <div className="flex flex-wrap items-center gap-2 md:gap-4">
+                <Badge className={`${status.color} px-2 md:px-3 py-1 text-xs md:text-sm`}>
+                  <StatusIcon className="h-3 w-3 md:h-4 md:w-4 mr-1" />
                   {status.label}
                 </Badge>
                 {envelope.status === 'sent' && (
-                  <span className="text-slate-200 text-sm">
+                  <span className="text-slate-200 text-xs md:text-sm">
                     {signedCount}/{signers.length} signed
                   </span>
                 )}
               </div>
             </div>
-
           </div>
         </div>
       </div>
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <main className="container mx-auto px-4 py-6 md:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4 md:space-y-6">
             {/* Recipients */}
             <Card>
               <CardHeader>
@@ -322,22 +320,22 @@ export default function EsignEnvelopeDetail() {
                           return (
                             <div
                               key={recipient.id}
-                              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                              className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-gray-50 rounded-lg gap-3"
                             >
-                              <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-3 min-w-0">
                                 <div
-                                  className="w-8 h-8 rounded-full flex items-center justify-center text-white font-medium"
+                                  className="w-8 h-8 rounded-full flex items-center justify-center text-white font-medium flex-shrink-0"
                                   style={{ backgroundColor: recipient.color }}
                                 >
                                   {recipient.name.charAt(0).toUpperCase()}
                                 </div>
-                                <div>
-                                  <p className="font-medium">{recipient.name}</p>
-                                  <p className="text-sm text-gray-500">{recipient.email}</p>
+                                <div className="min-w-0">
+                                  <p className="font-medium truncate">{recipient.name}</p>
+                                  <p className="text-sm text-gray-500 truncate">{recipient.email}</p>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-2">
-                                <Badge className={recipientStatus.color}>
+                              <div className="flex items-center gap-2 ml-11 sm:ml-0">
+                                <Badge className={`${recipientStatus.color} text-xs`}>
                                   {recipientStatus.label}
                                 </Badge>
                                 {envelope.status === 'sent' && recipient.status !== 'signed' && recipient.status !== 'declined' && (
@@ -347,8 +345,8 @@ export default function EsignEnvelopeDetail() {
                                     onClick={() => reminderMutation.mutate(recipient.id)}
                                     disabled={reminderMutation.isPending}
                                   >
-                                    <Mail className="h-4 w-4 mr-1" />
-                                    Remind
+                                    <Mail className="h-4 w-4 sm:mr-1" />
+                                    <span className="hidden sm:inline">Remind</span>
                                   </Button>
                                 )}
                               </div>
@@ -404,17 +402,28 @@ export default function EsignEnvelopeDetail() {
                             <p className="font-medium text-sm">
                               {actionLabels[entry.action] || entry.action}
                             </p>
-                            {entry.actorEmail && (
-                              <p className="text-sm text-gray-500">{entry.actorName || entry.actorEmail}</p>
+                            {(entry.details?.recipientEmail || entry.details?.recipientName) && (
+                              <p className="text-sm text-gray-500">
+                                {entry.details?.recipientName || entry.details?.recipientEmail}
+                              </p>
                             )}
-                            <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-gray-400">
                               <span>
-                                {entry.createdAt ? format(new Date(entry.createdAt), "MMM d, yyyy 'at' h:mm a") : 'Unknown date'}
+                                {entry.timestamp ? format(new Date(entry.timestamp), "MMM d, yyyy 'at' h:mm a") : 'Unknown date'}
                               </span>
-                              {entry.ipAddress && (
+                              {(entry.ipAddress || entry.location) && (
                                 <span className="flex items-center gap-1">
                                   <MapPin className="h-3 w-3" />
-                                  {entry.ipAddress}
+                                  {entry.location && entry.location !== 'Unknown' ? (
+                                    <span>
+                                      {entry.location}
+                                      {entry.ipAddress && (
+                                        <span className="text-gray-300 ml-1">({entry.ipAddress})</span>
+                                      )}
+                                    </span>
+                                  ) : (
+                                    entry.ipAddress
+                                  )}
                                 </span>
                               )}
                             </div>
@@ -429,7 +438,7 @@ export default function EsignEnvelopeDetail() {
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {/* Details */}
             <Card>
               <CardHeader>

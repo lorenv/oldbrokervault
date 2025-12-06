@@ -106,49 +106,54 @@ export default function EsignTemplates() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
       {/* Header */}
       <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 border-b border-slate-200 shadow-lg">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-between">
+        <div className="container mx-auto px-4 py-6 md:py-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
-                <FileText className="h-8 w-8" />
-                E-Signature Templates
+              <h1 className="text-2xl md:text-3xl font-bold text-white mb-1 md:mb-2 flex items-center gap-2 md:gap-3">
+                <FileText className="h-6 w-6 md:h-8 md:w-8" />
+                <span className="hidden sm:inline">E-Signature Templates</span>
+                <span className="sm:hidden">Templates</span>
               </h1>
-              <p className="text-slate-200">
+              <p className="text-slate-200 text-sm md:text-base">
                 Create reusable templates with pre-placed signature fields
               </p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-2 md:gap-3">
               <Button
                 variant="outline"
+                size="sm"
                 className="bg-white/10 border-white/20 text-white hover:bg-white/20"
                 onClick={() => setLocation("/esign")}
               >
-                Back to Dashboard
+                <span className="hidden sm:inline">Back to Dashboard</span>
+                <span className="sm:hidden">Back</span>
               </Button>
               <Button
+                size="sm"
                 className="bg-blue-600 hover:bg-blue-700 text-white"
                 onClick={() => setLocation("/esign/templates/new")}
               >
-                <Plus className="h-4 w-4 mr-2" />
-                Create Template
+                <Plus className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Create Template</span>
+                <span className="sm:hidden">Create</span>
               </Button>
             </div>
           </div>
         </div>
       </div>
 
-      <main className="container mx-auto px-4 py-8">
-        <Card className="bg-white shadow-lg">
+      <main className="container mx-auto px-4 py-6 md:py-8">
+        <Card className="bg-white shadow-lg overflow-hidden">
           <CardHeader className="border-b">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <CardTitle>Your Templates</CardTitle>
-              <div className="relative">
+              <div className="relative w-full sm:w-auto">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   placeholder="Search templates..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 w-64"
+                  className="pl-10 w-full sm:w-64"
                 />
               </div>
             </div>
@@ -178,7 +183,7 @@ export default function EsignTemplates() {
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 md:p-6">
                 {filteredTemplates.map((template) => (
                   <Card
                     key={template.id}

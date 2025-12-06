@@ -11,5 +11,6 @@
     pkgs.python311
     pkgs.python311Packages.pandas
     pkgs.python311Packages.openpyxl
+    pkgs.libreoffice-still
   ];
 }

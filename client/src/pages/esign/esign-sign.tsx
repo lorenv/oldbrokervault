@@ -1,12 +1,19 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute } from "wouter";
+import { format, parse } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Dialog,
   DialogContent,
@@ -44,6 +51,7 @@ import {
   ListChecks,
   Tag,
   AlertTriangle,
+  CalendarIcon,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -108,6 +116,9 @@ export default function EsignSign() {
     importantTerms: string[];
     estimatedReadTime: string;
     disclaimer: string;
+    totalPages?: number;
+    pagesAnalyzed?: number;
+    pageLimitReached?: boolean;
   } | null>(null);
 
   // Canvas for drawing signature
@@ -443,33 +454,35 @@ export default function EsignSign() {
         className="sticky top-0 z-50 border-b shadow-sm"
         style={{ backgroundColor: brandingColor }}
       >
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+        <div className="container mx-auto px-3 md:px-4 py-3 md:py-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 md:gap-4 min-w-0">
               {data.branding?.logoUrl ? (
                 <img
                   src={data.branding.logoUrl}
                   alt="Company logo"
-                  className="h-8 max-w-[150px] object-contain"
+                  className="h-6 md:h-8 max-w-[100px] md:max-w-[150px] object-contain"
                 />
               ) : data.branding?.companyName ? (
-                <span className="text-xl font-bold text-white">
+                <span className="text-base md:text-xl font-bold text-white truncate">
                   {data.branding.companyName}
                 </span>
               ) : (
-                <FileSignature className="h-8 w-8 text-white" />
+                <FileSignature className="h-6 w-6 md:h-8 md:w-8 text-white flex-shrink-0" />
               )}
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 md:gap-3">
               <Button
                 variant="ghost"
+                size="sm"
                 className="text-white hover:bg-white/20"
                 onClick={() => setShowDeclineModal(true)}
               >
-                <X className="h-4 w-4 mr-2" />
-                Decline
+                <X className="h-4 w-4 md:mr-2" />
+                <span className="hidden md:inline">Decline</span>
               </Button>
               <Button
+                size="sm"
                 className="bg-white hover:bg-gray-100"
                 style={{ color: brandingColor }}
                 onClick={() => submitMutation.mutate()}
@@ -477,13 +490,13 @@ export default function EsignSign() {
               >
                 {submitMutation.isPending ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 mr-2" style={{ borderColor: brandingColor }} />
-                    Submitting...
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 md:mr-2" style={{ borderColor: brandingColor }} />
+                    <span className="hidden md:inline">Submitting...</span>
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                    Finish
+                    <CheckCircle2 className="h-4 w-4 md:mr-2" />
+                    <span className="hidden md:inline">Finish</span>
                   </>
                 )}
               </Button>
@@ -493,44 +506,46 @@ export default function EsignSign() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <main className="flex-1 container mx-auto px-3 md:px-4 py-4 md:py-6">
+        <div className="flex flex-col lg:grid lg:grid-cols-4 gap-4 md:gap-6">
           {/* Document Viewer */}
-          <div className="lg:col-span-3">
-            <Card>
-              <CardHeader className="border-b">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>{data.envelope.title}</CardTitle>
+          <div className="lg:col-span-3 order-2 lg:order-1">
+            <Card className="overflow-hidden">
+              <CardHeader className="border-b p-3 md:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="min-w-0">
+                    <CardTitle className="text-base md:text-lg truncate">{data.envelope.title}</CardTitle>
                     {data.envelope.message && (
-                      <CardDescription className="mt-1">
+                      <CardDescription className="mt-1 text-sm line-clamp-2">
                         {data.envelope.message}
                       </CardDescription>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
                     <Button
                       size="icon"
                       variant="ghost"
+                      className="h-8 w-8"
                       onClick={() => setZoom(Math.max(0.5, zoom - 0.1))}
                     >
                       <ZoomOut className="h-4 w-4" />
                     </Button>
-                    <span className="text-sm w-12 text-center">{Math.round(zoom * 100)}%</span>
+                    <span className="text-xs md:text-sm w-10 md:w-12 text-center">{Math.round(zoom * 100)}%</span>
                     <Button
                       size="icon"
                       variant="ghost"
+                      className="h-8 w-8"
                       onClick={() => setZoom(Math.min(2, zoom + 0.1))}
                     >
                       <ZoomIn className="h-4 w-4" />
                     </Button>
-                    <span className="text-sm text-gray-500 ml-4">
+                    <span className="text-xs md:text-sm text-gray-500 ml-2 md:ml-4 whitespace-nowrap">
                       {pageImages.length} page{pageImages.length !== 1 ? 's' : ''}
                     </span>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="p-6 overflow-auto max-h-[calc(100vh-250px)]">
+              <CardContent className="p-3 md:p-6 overflow-auto max-h-[50vh] lg:max-h-[calc(100vh-250px)]">
                 {/* Scrollable container for all pages */}
                 <div className="space-y-6">
                   {pageImages.map((pageImage, pageIndex) => {
@@ -602,9 +617,27 @@ export default function EsignSign() {
                                               className="max-w-full max-h-full object-contain"
                                             />
                                           ) : (
-                                            <span className="text-lg" style={{ fontFamily: 'cursive', color: '#0d0d4d' }}>
-                                              {field.value}
-                                            </span>
+                                            // Text signature - scale font size based on field height
+                                            // field.height is percentage of page, page is 612x792 base scaled by zoom
+                                            // Calculate pixel height and use ~55% for font size
+                                            (() => {
+                                              const basePageHeight = 792 * zoom;
+                                              const fieldPixelHeight = (field.height / 100) * basePageHeight;
+                                              const fontSize = Math.max(12, Math.min(fieldPixelHeight * 0.55, field.type === 'initials' ? 28 : 42));
+                                              return (
+                                                <span
+                                                  style={{
+                                                    fontFamily: 'cursive',
+                                                    color: '#0d0d4d',
+                                                    fontSize: `${fontSize}px`,
+                                                    lineHeight: 1,
+                                                    whiteSpace: 'nowrap',
+                                                  }}
+                                                >
+                                                  {field.value}
+                                                </span>
+                                              );
+                                            })()
                                           )}
                                         </div>
                                         {/* L-shaped frame OUTSIDE the signature area with rounded corner */}
@@ -688,13 +721,54 @@ export default function EsignSign() {
                                           onClick={(e) => e.stopPropagation()}
                                         />
                                       ) : field.type === 'date' ? (
-                                        <Input
-                                          type="date"
-                                          value={field.value || new Date().toISOString().split('T')[0]}
-                                          onChange={(e) => updateFieldValue(field.id, e.target.value)}
-                                          className="h-full text-xs border-0 bg-transparent"
-                                          onClick={(e) => e.stopPropagation()}
-                                        />
+                                        <Popover>
+                                          <PopoverTrigger asChild>
+                                            <button
+                                              className="w-full h-full flex items-center justify-between px-2 text-xs text-left hover:bg-gray-50 transition-colors"
+                                              onClick={(e) => e.stopPropagation()}
+                                            >
+                                              <span className={field.value ? "text-gray-900" : "text-gray-400"}>
+                                                {field.value
+                                                  ? format(parse(field.value, 'yyyy-MM-dd', new Date()), 'MMM d, yyyy')
+                                                  : "Select date..."}
+                                              </span>
+                                              <CalendarIcon className="h-3 w-3 text-gray-400" />
+                                            </button>
+                                          </PopoverTrigger>
+                                          <PopoverContent className="w-auto p-0" align="start">
+                                            <Calendar
+                                              mode="single"
+                                              selected={field.value ? parse(field.value, 'yyyy-MM-dd', new Date()) : undefined}
+                                              onSelect={(date) => {
+                                                if (date) {
+                                                  updateFieldValue(field.id, format(date, 'yyyy-MM-dd'));
+                                                }
+                                              }}
+                                              defaultMonth={new Date()}
+                                              initialFocus
+                                            />
+                                            <div className="border-t p-2 flex justify-between items-center">
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-xs"
+                                                onClick={() => updateFieldValue(field.id, format(new Date(), 'yyyy-MM-dd'))}
+                                              >
+                                                Today
+                                              </Button>
+                                              {field.value && (
+                                                <Button
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  className="text-xs text-gray-500"
+                                                  onClick={() => updateFieldValue(field.id, '')}
+                                                >
+                                                  Clear
+                                                </Button>
+                                              )}
+                                            </div>
+                                          </PopoverContent>
+                                        </Popover>
                                       ) : (
                                         <Input
                                           value={field.value || ''}
@@ -719,8 +793,8 @@ export default function EsignSign() {
             </Card>
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-4">
+          {/* Sidebar - Shows first on mobile */}
+          <div className="space-y-3 md:space-y-4 order-1 lg:order-2">
             {/* E-SIGN Act Consent - Clickwrap style */}
             <Card className={`border-2 ${hasConsented ? 'border-green-500 bg-green-50' : 'border-gray-200'}`}>
               <CardContent className="pt-4">
@@ -772,6 +846,39 @@ export default function EsignSign() {
                     )}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+
+            {/* AI Summarize - Help signers understand the document */}
+            <Card>
+              <CardContent className="pt-4">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    if (summaryData) {
+                      setShowSummaryModal(true);
+                    } else {
+                      summarizeMutation.mutate();
+                    }
+                  }}
+                  disabled={summarizeMutation.isPending}
+                >
+                  {summarizeMutation.isPending ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2" />
+                      Analyzing document...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      {summaryData ? 'View AI Summary' : 'AI Summarize Document'}
+                    </>
+                  )}
+                </Button>
+                <p className="text-xs text-gray-500 mt-2 text-center">
+                  Get AI-powered key points and summary
+                </p>
               </CardContent>
             </Card>
 
@@ -857,38 +964,6 @@ export default function EsignSign() {
               </CardContent>
             </Card>
 
-            {/* AI Summarize */}
-            <Card>
-              <CardContent className="pt-4">
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => {
-                    if (summaryData) {
-                      setShowSummaryModal(true);
-                    } else {
-                      summarizeMutation.mutate();
-                    }
-                  }}
-                  disabled={summarizeMutation.isPending}
-                >
-                  {summarizeMutation.isPending ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2" />
-                      Analyzing document...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      {summaryData ? 'View AI Summary' : 'AI Summarize Document'}
-                    </>
-                  )}
-                </Button>
-                <p className="text-xs text-gray-500 mt-2 text-center">
-                  Get AI-powered key points and summary
-                </p>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </main>
@@ -1090,6 +1165,19 @@ export default function EsignSign() {
           {summaryData && (
             <ScrollArea className="max-h-[500px] pr-4">
               <div className="space-y-6">
+                {/* Page limit notice */}
+                {summaryData.pageLimitReached && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm text-blue-800">
+                        This summary is based on the first {summaryData.pagesAnalyzed} pages of your {summaryData.totalPages}-page document.
+                        Please review the full document before signing.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Estimated Read Time */}
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <Clock className="h-4 w-4" />
