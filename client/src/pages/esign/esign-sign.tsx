@@ -42,7 +42,7 @@ import {
   AlertCircle,
   ZoomIn,
   ZoomOut,
-  X,
+  Ban,
   XCircle,
   Shield,
   FileCheck,
@@ -52,7 +52,15 @@ import {
   Tag,
   AlertTriangle,
   CalendarIcon,
+  MoreHorizontal,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 
 interface SigningField {
@@ -110,6 +118,7 @@ export default function EsignSign() {
   const [consentedAt, setConsentedAt] = useState<string | null>(null);
   const [showSuccessState, setShowSuccessState] = useState(false);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
+  const [showFieldsModal, setShowFieldsModal] = useState(false);
   const [summaryData, setSummaryData] = useState<{
     summary: string;
     keyPoints: string[];
@@ -475,28 +484,28 @@ export default function EsignSign() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-white hover:bg-white/20"
+                className="text-white/80 hover:text-white hover:bg-white/20"
                 onClick={() => setShowDeclineModal(true)}
               >
-                <X className="h-4 w-4 md:mr-2" />
-                <span className="hidden md:inline">Decline</span>
+                <Ban className="h-4 w-4 mr-1 md:mr-2" />
+                <span className="text-xs md:text-sm">Decline</span>
               </Button>
               <Button
                 size="sm"
-                className="bg-white hover:bg-gray-100"
+                className="bg-white hover:bg-gray-100 font-semibold px-4 md:px-6"
                 style={{ color: brandingColor }}
                 onClick={() => submitMutation.mutate()}
                 disabled={!canSubmit || submitMutation.isPending}
               >
                 {submitMutation.isPending ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 md:mr-2" style={{ borderColor: brandingColor }} />
-                    <span className="hidden md:inline">Submitting...</span>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 mr-2" style={{ borderColor: brandingColor }} />
+                    <span>Finishing...</span>
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 className="h-4 w-4 md:mr-2" />
-                    <span className="hidden md:inline">Finish</span>
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    <span>Finish</span>
                   </>
                 )}
               </Button>
@@ -522,32 +531,35 @@ export default function EsignSign() {
                     )}
                   </div>
                   <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8"
-                      onClick={() => setZoom(Math.max(0.5, zoom - 0.1))}
-                    >
-                      <ZoomOut className="h-4 w-4" />
-                    </Button>
-                    <span className="text-xs md:text-sm w-10 md:w-12 text-center">{Math.round(zoom * 100)}%</span>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8"
-                      onClick={() => setZoom(Math.min(2, zoom + 0.1))}
-                    >
-                      <ZoomIn className="h-4 w-4" />
-                    </Button>
-                    <span className="text-xs md:text-sm text-gray-500 ml-2 md:ml-4 whitespace-nowrap">
+                    {/* Desktop zoom controls - hidden on mobile (use pinch to zoom) */}
+                    <div className="hidden md:flex items-center gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8"
+                        onClick={() => setZoom(Math.max(0.5, zoom - 0.1))}
+                      >
+                        <ZoomOut className="h-4 w-4" />
+                      </Button>
+                      <span className="text-sm w-12 text-center">{Math.round(zoom * 100)}%</span>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8"
+                        onClick={() => setZoom(Math.min(2, zoom + 0.1))}
+                      >
+                        <ZoomIn className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <span className="text-xs md:text-sm text-gray-500 md:ml-4 whitespace-nowrap">
                       {pageImages.length} page{pageImages.length !== 1 ? 's' : ''}
                     </span>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="p-3 md:p-6 overflow-auto max-h-[50vh] lg:max-h-[calc(100vh-250px)]">
-                {/* Scrollable container for all pages */}
-                <div className="space-y-6">
+              <CardContent className="p-3 md:p-6 overflow-auto max-h-[50vh] lg:max-h-[calc(100vh-250px)] touch-pan-x touch-pan-y touch-pinch-zoom">
+                {/* Scrollable container for all pages - pinch to zoom on mobile */}
+                <div className="space-y-6 origin-top-left" style={{ touchAction: 'pan-x pan-y pinch-zoom' }}>
                   {pageImages.map((pageImage, pageIndex) => {
                     const pageNumber = pageIndex + 1;
                     const pageFields = fields.filter(f => f.page === pageNumber);
@@ -795,7 +807,7 @@ export default function EsignSign() {
 
           {/* Sidebar - Shows first on mobile */}
           <div className="space-y-3 md:space-y-4 order-1 lg:order-2">
-            {/* E-SIGN Act Consent - Clickwrap style */}
+            {/* E-SIGN Act Consent - Clickwrap style - Always visible */}
             <Card className={`border-2 ${hasConsented ? 'border-green-500 bg-green-50' : 'border-gray-200'}`}>
               <CardContent className="pt-4">
                 {hasConsented ? (
@@ -849,8 +861,45 @@ export default function EsignSign() {
               </CardContent>
             </Card>
 
-            {/* AI Summarize - Help signers understand the document */}
-            <Card>
+            {/* Mobile: Menu for AI Summarize and Required Fields */}
+            <div className="lg:hidden">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between">
+                    <span className="flex items-center gap-2">
+                      <MoreHorizontal className="h-4 w-4" />
+                      More Options
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {completedRequiredFields.length}/{requiredFields.length} fields
+                    </span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-[calc(100vw-2rem)] max-w-sm">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      if (summaryData) {
+                        setShowSummaryModal(true);
+                      } else {
+                        summarizeMutation.mutate();
+                      }
+                    }}
+                    disabled={summarizeMutation.isPending}
+                  >
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    {summarizeMutation.isPending ? 'Analyzing...' : summaryData ? 'View AI Summary' : 'AI Summarize Document'}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setShowFieldsModal(true)}>
+                    <ListChecks className="h-4 w-4 mr-2" />
+                    Required Fields ({completedRequiredFields.length}/{requiredFields.length})
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* Desktop: AI Summarize - Help signers understand the document */}
+            <Card className="hidden lg:block">
               <CardContent className="pt-4">
                 <Button
                   variant="outline"
@@ -882,8 +931,8 @@ export default function EsignSign() {
               </CardContent>
             </Card>
 
-            {/* Progress */}
-            <Card>
+            {/* Desktop: Progress - Hidden on mobile */}
+            <Card className="hidden lg:block">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">Signing Progress</CardTitle>
               </CardHeader>
@@ -901,8 +950,8 @@ export default function EsignSign() {
               </CardContent>
             </Card>
 
-            {/* Fields to Complete */}
-            <Card>
+            {/* Desktop: Fields to Complete - Hidden on mobile (shown in modal) */}
+            <Card className="hidden lg:block">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">Required Fields</CardTitle>
               </CardHeader>
@@ -943,8 +992,8 @@ export default function EsignSign() {
               </CardContent>
             </Card>
 
-            {/* Signer Info */}
-            <Card>
+            {/* Desktop: Signer Info - Hidden on mobile */}
+            <Card className="hidden lg:block">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">Signing as</CardTitle>
               </CardHeader>
@@ -1250,6 +1299,66 @@ export default function EsignSign() {
           <DialogFooter className="mt-4">
             <Button onClick={() => setShowSummaryModal(false)}>
               Close & Continue Signing
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Mobile Required Fields Modal */}
+      <Dialog open={showFieldsModal} onOpenChange={setShowFieldsModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ListChecks className="h-5 w-5" />
+              Required Fields
+            </DialogTitle>
+            <DialogDescription>
+              {completedRequiredFields.length} of {requiredFields.length} fields completed
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+            {requiredFields.map((field) => {
+              const isComplete = !!field.value;
+              return (
+                <button
+                  key={field.id}
+                  className={`w-full p-3 rounded-lg text-left text-sm flex items-center gap-3 transition-colors ${
+                    isComplete ? 'bg-green-50 text-green-700' : 'bg-gray-50 hover:bg-gray-100'
+                  }`}
+                  onClick={() => {
+                    setShowFieldsModal(false);
+                    // Scroll to the page containing this field
+                    setTimeout(() => {
+                      const pageElement = document.querySelector(`[data-page="${field.page}"]`);
+                      if (pageElement) {
+                        pageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }
+                      if (field.type === 'signature' || field.type === 'initials') {
+                        setSelectedFieldId(field.id);
+                        setShowSignatureModal(true);
+                      }
+                    }, 100);
+                  }}
+                >
+                  {isComplete ? (
+                    <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0" />
+                  ) : (
+                    <div
+                      className="w-5 h-5 rounded-full border-2 flex-shrink-0"
+                      style={{ borderColor: data.recipient.color }}
+                    />
+                  )}
+                  <span className="capitalize flex-1">{field.type}</span>
+                  <span className="text-xs text-gray-400">Page {field.page}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowFieldsModal(false)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

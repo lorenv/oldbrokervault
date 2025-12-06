@@ -246,18 +246,20 @@ function DocumentPageCanvas({
   }, []);
 
   // Calculate display dimensions maintaining aspect ratio based on actual image dimensions
-  const baseDisplayWidth = 612; // Base display width in pixels for portrait
-  
+  const baseDisplayWidth = 612; // Base display width in pixels (consistent with esign-sign.tsx)
+
   // Use actual image dimensions once loaded
   const actualWidth = imageDimensions?.width || 1;
   const actualHeight = imageDimensions?.height || 1;
   const aspectRatio = actualHeight / actualWidth;
-  
-  // For landscape images, use a wider base display width
-  const isLandscape = imageDimensions ? actualWidth > actualHeight : false;
-  const effectiveBaseWidth = isLandscape ? baseDisplayWidth * 1.3 : baseDisplayWidth;
-  const displayWidth = effectiveBaseWidth * zoom;
+
+  // Use consistent base width for all orientations to match esign-sign.tsx coordinate system
+  // The image will naturally display at this width with height auto-calculated
+  const displayWidth = baseDisplayWidth * zoom;
   const displayHeight = imageDimensions ? displayWidth * aspectRatio : 0;
+
+  // For landscape images, the container will be shorter/wider due to aspect ratio
+  const isLandscape = imageDimensions ? actualWidth > actualHeight : false;
 
   // Convert pixel coordinates to percentage (based on display dimensions)
   const pixelToPercent = useCallback((pixelX: number, pixelY: number) => {
@@ -653,7 +655,7 @@ export default function EsignSend() {
 
   // Mobile-specific state for tap-to-place mode
   const [isTapToPlaceMode, setIsTapToPlaceMode] = useState(false);
-  const [mobileFieldType, setMobileFieldType] = useState<string | null>(null);
+  const [mobileFieldType, setMobileFieldType] = useState<string | null>('signature'); // Default to signature
 
   // Fetch templates
   const { data: templates = [], isLoading: isLoadingTemplates } = useQuery<EsignTemplate[]>({
@@ -1489,7 +1491,8 @@ export default function EsignSend() {
         {/* Step 3: Place Fields (only for direct uploads, not templates) */}
         {currentStep === 3 && !selectedTemplate && (
           <DndProvider backend={HTML5Backend}>
-            <div className="flex flex-col lg:grid lg:grid-cols-12 gap-4 lg:gap-6 pb-36 lg:pb-0" style={{ minHeight: 'calc(100vh - 320px)' }}>
+            {/* Add top padding on mobile for fixed header, bottom padding for fixed field bar */}
+            <div className="flex flex-col lg:grid lg:grid-cols-12 gap-4 lg:gap-6 pt-14 pb-20 lg:pt-0 lg:pb-0" style={{ minHeight: 'calc(100vh - 320px)' }}>
               {/* Left Sidebar - Field Palette & Recipients - Hidden on mobile, shown on lg+ */}
               <div className="hidden lg:block lg:col-span-3 space-y-4 overflow-y-auto lg:max-h-[calc(100vh-280px)]">
                 {/* Select Recipient for Field Assignment */}
@@ -1594,8 +1597,8 @@ export default function EsignSend() {
 
               {/* Document Canvas - Vertical Scrollable */}
               <div className="lg:col-span-9 flex flex-col lg:max-h-[calc(100vh-280px)] overflow-hidden order-first lg:order-last">
-                {/* Toolbar */}
-                <div className="flex items-center justify-between bg-white border rounded-t-lg px-4 py-2 flex-shrink-0">
+                {/* Desktop Toolbar - hidden on mobile */}
+                <div className="hidden lg:flex items-center justify-between bg-white border rounded-t-lg px-4 py-2 flex-shrink-0">
                   {/* Back Button */}
                   <Button
                     variant="outline"
@@ -1651,9 +1654,9 @@ export default function EsignSend() {
                   </Button>
                 </div>
 
-                {/* Scrollable Document Area */}
-                <div className="flex-1 overflow-auto bg-gray-100 border border-t-0 rounded-b-lg min-h-0">
-                  <div className="p-6 flex flex-col items-center gap-6">
+                {/* Scrollable Document Area - supports both vertical and horizontal scroll for landscape */}
+                <div className="flex-1 overflow-auto bg-gray-100 border lg:border-t-0 rounded-lg lg:rounded-t-none min-h-0">
+                  <div className="p-4 lg:p-6 flex flex-col items-center gap-6 min-w-fit">
                     {pageImages.map((pageImage, index) => (
                       <div key={index} className="flex flex-col items-center flex-shrink-0">
                         {/* Page Number Badge */}
@@ -1683,97 +1686,8 @@ export default function EsignSend() {
               </div>
             </div>
 
-            {/* Mobile Bottom Bars - Only show on mobile screens */}
-            {/* Mobile Field Placement Bar - positioned above nav bar */}
-            <div className="fixed bottom-16 left-0 right-0 bg-white border-t shadow-lg z-40 lg:hidden">
-              <div className="flex items-center gap-2 px-3 py-2">
-                {/* Recipient selector */}
-                <Select
-                  value={activeRecipientIndex.toString()}
-                  onValueChange={(value) => setActiveRecipientIndex(parseInt(value))}
-                >
-                  <SelectTrigger className="w-[130px] h-9 text-xs">
-                    <SelectValue placeholder="Recipient" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {signers.map((recipient, index) => {
-                      const signerIndex = recipients.findIndex(r => r.id === recipient.id);
-                      const color = getRecipientColor(recipient, signerIndex);
-                      return (
-                        <SelectItem key={recipient.id} value={signerIndex.toString()}>
-                          <div className="flex items-center gap-2">
-                            <div
-                              className="w-3 h-3 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: color }}
-                            />
-                            <span className="truncate">{recipient.name || recipient.email || `Signer ${index + 1}`}</span>
-                          </div>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-
-                {/* Field type selector */}
-                <Select
-                  value={mobileFieldType || ""}
-                  onValueChange={(value) => {
-                    setMobileFieldType(value);
-                    setIsTapToPlaceMode(true);
-                  }}
-                  disabled={signers.length === 0}
-                >
-                  <SelectTrigger className="w-[120px] h-9 text-xs">
-                    <SelectValue placeholder="Field type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {FIELD_TYPES.map((fieldType) => {
-                      const Icon = fieldType.icon;
-                      return (
-                        <SelectItem key={fieldType.type} value={fieldType.type}>
-                          <div className="flex items-center gap-2">
-                            <Icon className="h-3 w-3 flex-shrink-0" />
-                            <span>{fieldType.label}</span>
-                          </div>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-
-                {/* Tap-to-place indicator/toggle */}
-                {isTapToPlaceMode ? (
-                  <div className="flex items-center gap-2 flex-1">
-                    <div className="flex items-center gap-1.5 text-xs text-blue-600 bg-blue-50 px-2 py-1.5 rounded-md">
-                      <Pointer className="h-3 w-3" />
-                      <span>Tap to place</span>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-8 text-xs ml-auto"
-                      onClick={() => {
-                        setIsTapToPlaceMode(false);
-                        setMobileFieldType(null);
-                      }}
-                    >
-                      Done
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="text-xs text-gray-500 flex-1">
-                    {signers.length === 0 ? (
-                      "Add signers first"
-                    ) : (
-                      "Select field to place"
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Mobile Navigation Bar - bottom sticky */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-40 lg:hidden">
+            {/* Mobile Top Navigation Bar - sticky at top on mobile */}
+            <div className="fixed top-0 left-0 right-0 bg-white border-b shadow-md z-50 lg:hidden">
               <div className="flex items-center justify-between px-3 py-2">
                 {/* Back button */}
                 <Button
@@ -1816,6 +1730,93 @@ export default function EsignSend() {
                 >
                   Continue
                 </Button>
+              </div>
+            </div>
+
+            {/* Mobile Field Placement Bar - bottom sticky with translucent blur effect */}
+            <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t shadow-lg z-40 lg:hidden">
+              <div className="flex items-center gap-2 px-3 py-3">
+                {/* Recipient selector */}
+                <Select
+                  value={activeRecipientIndex.toString()}
+                  onValueChange={(value) => setActiveRecipientIndex(parseInt(value))}
+                >
+                  <SelectTrigger className="w-[130px] h-9 text-xs bg-white/90">
+                    <SelectValue placeholder="Recipient" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {signers.map((recipient, index) => {
+                      const signerIndex = recipients.findIndex(r => r.id === recipient.id);
+                      const color = getRecipientColor(recipient, signerIndex);
+                      return (
+                        <SelectItem key={recipient.id} value={signerIndex.toString()}>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-3 h-3 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: color }}
+                            />
+                            <span className="truncate">{recipient.name || recipient.email || `Signer ${index + 1}`}</span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+
+                {/* Field type selector */}
+                <Select
+                  value={mobileFieldType || "signature"}
+                  onValueChange={(value) => {
+                    setMobileFieldType(value);
+                    setIsTapToPlaceMode(true);
+                  }}
+                  disabled={signers.length === 0}
+                >
+                  <SelectTrigger className="w-[120px] h-9 text-xs bg-white/90">
+                    <SelectValue placeholder="Field type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FIELD_TYPES.map((fieldType) => {
+                      const Icon = fieldType.icon;
+                      return (
+                        <SelectItem key={fieldType.type} value={fieldType.type}>
+                          <div className="flex items-center gap-2">
+                            <Icon className="h-3 w-3 flex-shrink-0" />
+                            <span>{fieldType.label}</span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+
+                {/* Tap-to-place indicator/toggle */}
+                {isTapToPlaceMode ? (
+                  <div className="flex items-center gap-2 flex-1">
+                    <div className="flex items-center gap-1.5 text-xs text-blue-600 bg-blue-100/80 px-2 py-1.5 rounded-md">
+                      <Pointer className="h-3 w-3" />
+                      <span>Tap to place</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 text-xs ml-auto"
+                      onClick={() => {
+                        setIsTapToPlaceMode(false);
+                      }}
+                    >
+                      Done
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="text-xs text-gray-500 flex-1">
+                    {signers.length === 0 ? (
+                      "Add signers first"
+                    ) : (
+                      "Tap document to place"
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </DndProvider>
