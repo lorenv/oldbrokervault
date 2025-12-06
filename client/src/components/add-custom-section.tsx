@@ -195,7 +195,6 @@ export function AddCustomSection({ docId, onSectionAdded }: AddCustomSectionProp
   const addUnsplashImage = async (image: any) => {
     // Trigger Unsplash download event
     try {
-      console.log('Triggering Unsplash download for:', image.links.download_location);
       const response = await fetch('/api/unsplash/download', {
         method: 'POST',
         headers: {
@@ -207,12 +206,9 @@ export function AddCustomSection({ docId, onSectionAdded }: AddCustomSectionProp
       });
 
       if (response.ok) {
-        console.log('Unsplash download event triggered successfully');
       } else {
-        console.error('Failed to trigger Unsplash download event:', response.status, response.statusText);
       }
     } catch (error) {
-      console.error('Failed to trigger Unsplash download event:', error);
     }
 
     const imageUrl = image.urls?.regular || image.urls?.small;

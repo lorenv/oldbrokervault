@@ -69,7 +69,6 @@ export function SharePage() {
       if (!accessToken) return null;
       const response = await fetch(`/api/nda/validate-token/${accessToken}`);
       if (!response.ok) {
-        console.error('Token validation failed:', response.status, response.statusText);
         // Don't return invalid here - let the query error handling take care of it
         throw new Error(`Token validation failed: ${response.status}`);
       }
@@ -86,7 +85,6 @@ export function SharePage() {
   const { data: ndaCheck, isLoading: isCheckingNda, error: ndaCheckError } = useQuery({
     queryKey: ['/api/share/nda-check', shareSlug],
     queryFn: async () => {
-      console.log('⚡ Fast NDA check for:', shareSlug);
       const response = await fetch(`/api/share/${shareSlug}/nda-check`);
 
       if (!response.ok) {
@@ -94,7 +92,6 @@ export function SharePage() {
       }
 
       const data = await response.json();
-      console.log('⚡ NDA check result:', data);
       return data;
     },
     enabled: !!shareSlug,
@@ -108,7 +105,6 @@ export function SharePage() {
   const { data: shareData, isLoading, error } = useQuery({
     queryKey: ['/api/share', shareSlug, accessToken],
     queryFn: async () => {
-      console.log('📄 Loading full document data for:', shareSlug);
       const url = accessToken ? `/api/share/${shareSlug}?token=${accessToken}` : `/api/share/${shareSlug}`;
       const response = await fetch(url, {
         method: 'GET',
@@ -120,12 +116,10 @@ export function SharePage() {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ Share API error:', response.status, errorText);
         throw new Error(`Failed to fetch shared CIM: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log('✅ Full document data received');
       return data;
     },
     enabled: Boolean(shouldLoadFullData),
@@ -143,7 +137,6 @@ export function SharePage() {
         throw new Error('Failed to fetch files');
       }
       const data = await response.json();
-      console.log('🔍 Share page uploaded files data:', data);
       return data;
     },
     enabled: !!shareSlug && !!shareData?.cim?.analysis?.isUploadedFile,
@@ -152,8 +145,6 @@ export function SharePage() {
   });
 
   useEffect(() => {
-    console.log('🔄 Share page effect - shareData:', shareData, 'error:', error, 'isLoading:', isLoading);
-    console.log('🔍 NDA check data:', ndaCheck);
 
     // Don't show bypass screen anymore - the server already handles owner bypass
     // The owner will see the document directly since requiresNda is false for them
@@ -421,7 +412,6 @@ export function SharePage() {
                           document.body.removeChild(a);
                         }
                       } catch (error) {
-                        console.error('Export failed:', error);
                       } finally {
                         setIsExportingPdf(false);
                       }
@@ -470,7 +460,6 @@ export function SharePage() {
                     alt="Company Logo"
                     className="h-16 md:h-20 max-w-[200px] object-contain"
                     onError={(e) => {
-                      console.error('Logo failed to load:', shareData.cim.logoUrl);
                       e.currentTarget.style.display = 'none';
                     }}
                   />
@@ -510,7 +499,6 @@ export function SharePage() {
                           document.body.removeChild(a);
                         }
                       } catch (error) {
-                        console.error('Export failed:', error);
                       } finally {
                         setIsExportingPdf(false);
                       }
@@ -657,11 +645,6 @@ export function SharePage() {
                             alt="Company Logo"
                             className="h-24 md:h-36 object-contain"
                             onError={(e) => {
-                              console.error('Financial section logo failed to load:', {
-                                attemptedUrl: shareData.cim.logoUrl,
-                                fallbackUrl: shareData.cim.userProfile?.businessLogo,
-                                fullShareData: shareData.cim
-                              });
                               e.currentTarget.style.display = 'none';
                             }}
                           />

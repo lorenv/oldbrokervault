@@ -60,7 +60,6 @@ function loadTemplates(): MessageTemplate[] {
       return JSON.parse(stored);
     }
   } catch (e) {
-    console.error('Failed to load templates:', e);
   }
   return DEFAULT_TEMPLATES;
 }
@@ -70,7 +69,6 @@ function saveTemplates(templates: MessageTemplate[]): void {
   try {
     localStorage.setItem(TEMPLATES_STORAGE_KEY, JSON.stringify(templates));
   } catch (e) {
-    console.error('Failed to save templates:', e);
   }
 }
 

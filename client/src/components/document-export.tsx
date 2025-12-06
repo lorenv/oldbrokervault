@@ -137,19 +137,12 @@ export function DocumentExport({
 
   const updateShareSettings = async () => {
     if (!docId) {
-      console.log('❌ updateShareSettings: No docId provided');
       return;
     }
 
-    console.log('🔄 Starting share settings update...', {
-      docId,
-      shareSettings,
-      userId: user?.id
-    });
 
     // Validate NDA template selection when NDA protection is enabled
     if (shareSettings.ndaProtected && !shareSettings.ndaTemplateId) {
-      console.log('❌ NDA validation failed: NDA protection enabled but no template selected');
       toast({
         title: "NDA Template Required",
         description: "Please select an NDA template when enabling NDA protection.",
@@ -173,24 +166,16 @@ export function DocumentExport({
         ndaTemplateId: shareSettings.ndaTemplateId
       };
 
-      console.log('📡 Sending share settings update request:', payload);
 
       const response = await apiRequest('POST', `/api/cim/${docId}/share`, { body: payload });
 
-      console.log('📡 Share settings update response:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok
-      });
 
       if (response.ok) {
         const result = await response.json();
-        console.log('✅ Share settings updated successfully:', result);
 
         if (result.shareSlug) {
           const baseUrl = window.location.hostname === 'localhost' ? window.location.origin : 'https://cimshare.com';
           const url = `${baseUrl}/share/${result.shareSlug}`;
-          console.log('🔗 Setting share URL:', url);
           setShareUrl(url);
         }
         toast({
@@ -199,15 +184,9 @@ export function DocumentExport({
         });
       } else {
         const errorText = await response.text();
-        console.error('❌ Share settings update failed:', {
-          status: response.status,
-          statusText: response.statusText,
-          errorText
-        });
         throw new Error(`Failed to update settings: ${response.status} - ${errorText}`);
       }
     } catch (error) {
-      console.error('❌ Error updating share settings:', error);
       toast({
         title: "Error updating share settings",
         description: `Failed to save settings: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -397,14 +376,12 @@ export function DocumentExport({
 
   const fetchShareSettings = async () => {
     if (!docId) {
-      console.log('❌ fetchShareSettings: No docId provided');
       return;
     }
 
     // Use cached data if available, otherwise make API call
     if (cimDocumentData && Object.keys(cimDocumentData).length > 0) {
       const doc = cimDocumentData as any;
-      console.log('📋 Using cached document data');
 
       const newSettings = {
         shareEnabled: doc.shareEnabled || false,
@@ -429,21 +406,13 @@ export function DocumentExport({
       return;
     }
 
-    console.log('🔍 Fetching share settings for document:', docId);
     setIsLoadingShareSettings(true);
 
     try {
       const response = await apiRequest('GET', `/api/cim/${docId}`);
-      console.log('📡 Share settings response status:', response.status);
 
       if (response.ok) {
         const doc = await response.json();
-        console.log('📋 Document data received:', {
-          shareEnabled: doc.shareEnabled,
-          shareSlug: doc.shareSlug,
-          ndaProtected: doc.ndaProtected,
-          ndaTemplateId: doc.ndaTemplateId
-        });
 
         const newSettings = {
           shareEnabled: doc.shareEnabled || false,
@@ -455,24 +424,19 @@ export function DocumentExport({
           ndaTemplateId: doc.ndaTemplateId || null
         };
 
-        console.log('🔄 Setting new share settings:', newSettings);
         setShareSettings(newSettings);
 
         // Set share URL if sharing is enabled
         if (doc.shareEnabled && doc.shareSlug) {
           const baseUrl = window.location.hostname === 'localhost' ? window.location.origin : 'https://cimshare.com';
           const url = `${baseUrl}/share/${doc.shareSlug}`;
-          console.log('🔗 Setting share URL:', url);
           setShareUrl(url);
         } else {
-          console.log('🚫 No share URL to set (sharing disabled or no slug)');
           setShareUrl('');
         }
       } else {
-        console.error('❌ Failed to fetch document:', response.status, response.statusText);
       }
     } catch (error) {
-      console.error('❌ Error fetching share settings:', error);
     } finally {
       setIsLoadingShareSettings(false);
     }
@@ -576,7 +540,6 @@ export function DocumentExport({
         description: "The CIM content has been copied to your clipboard as plain text",
       });
     } catch (error) {
-      console.error("Plain text clipboard error:", error);
       toast({
         title: "Copy Failed",
         description: "Could not copy to clipboard. Please try a different browser or export option.",
@@ -593,7 +556,6 @@ export function DocumentExport({
         navigator.clipboard.writeText(text);
         return;
       } catch (err) {
-        console.warn("Clipboard API failed, trying fallback method", err);
       }
     }
 
@@ -615,7 +577,6 @@ export function DocumentExport({
     try {
       successful = document.execCommand('copy');
     } catch (err) {
-      console.error("execCommand error", err);
     }
 
     // Clean up
@@ -685,7 +646,6 @@ export function DocumentExport({
         description: "HTML code has been copied. Paste it into a webpage, email, or any editor that accepts HTML to preserve formatting.",
       });
     } catch (error) {
-      console.error("HTML clipboard export error:", error);
       toast({
         title: "Export Failed",
         description: error instanceof Error ? error.message : "Failed to copy HTML to clipboard",

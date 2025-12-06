@@ -224,7 +224,7 @@ export function DocumentDetailPage() {
     try {
       const shareUrl = generateShareUrl();
       await navigator.clipboard.writeText(shareUrl);
-      console.log('Copy successful:', shareUrl); // Debug log
+// Debug log
       setCopyButtonState('copied');
       // Reset after 1 second, with a brief 'hidden' state to prevent tooltip flash
       setTimeout(() => {
@@ -233,7 +233,7 @@ export function DocumentDetailPage() {
         setTimeout(() => setCopyButtonState('idle'), 200);
       }, 1000);
     } catch (error) {
-      console.error('Copy failed:', error); // Debug log
+// Debug log
       setCopyButtonState('error');
       // Reset after 1 second, with a brief 'hidden' state to prevent tooltip flash
       setTimeout(() => {

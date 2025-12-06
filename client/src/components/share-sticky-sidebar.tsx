@@ -90,7 +90,6 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
       });
 
     } catch (error) {
-      console.error('Error sending broker contact:', error);
       toast({
         title: "Failed to send message",
         description: error instanceof Error ? error.message : "Please try again later.",

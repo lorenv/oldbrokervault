@@ -53,7 +53,6 @@ export default function EnhancedNdaTemplateEditorPage() {
       }, 100);
     },
     onError: (error) => {
-      console.error('Error creating template:', error);
       toast({
         title: "Error",
         description: "Failed to create template. Please try again.",
@@ -88,7 +87,6 @@ export default function EnhancedNdaTemplateEditorPage() {
       }, 100);
     },
     onError: (error) => {
-      console.error('Error updating template:', error);
       toast({
         title: "Error",
         description: "Failed to update template. Please try again.",

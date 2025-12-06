@@ -178,7 +178,6 @@ export default function EnhancedNdaClickwrap({
       });
       
     } catch (error) {
-      console.error('Error signing document:', error);
       toast({
         title: "Error signing document",
         description: "Please try again or contact support if the problem persists",

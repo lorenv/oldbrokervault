@@ -108,19 +108,12 @@ export function GetStartedChecklist() {
           }))
         );
       } catch (error) {
-        console.error('Failed to load checklist progress:', error);
       }
     }
 
     // Update the share CIM link if we have documents data
     if (documentsData && (documentsData as any).documents) {
       const documents = (documentsData as any).documents;
-      console.log('📋 All documents:', documents.map((d: any) => ({ 
-        id: d.id, 
-        title: d.title, 
-        isExample: d.isExample,
-        hasAnalysis: !!d.analysis || !!d.businessName 
-      })));
       const exampleDoc = documents.find((doc: any) => 
         (doc.title && doc.title.toLowerCase().includes("tony") && doc.title.toLowerCase().includes("transmission")) ||
         (doc.businessName && doc.businessName.toLowerCase().includes("tony") && doc.businessName.toLowerCase().includes("transmission")) ||
@@ -128,9 +121,7 @@ export function GetStartedChecklist() {
       );
       
       if (exampleDoc) {
-        console.log('📋 Found example doc:', exampleDoc.id, exampleDoc.businessName);
         const shareUrl = `/documents/${exampleDoc.id}?tab=share`;
-        console.log('📋 Setting share URL to:', shareUrl);
         setChecklistItems(items => 
           items.map(item => 
             item.id === 'share-cim' 
@@ -139,11 +130,9 @@ export function GetStartedChecklist() {
           )
         );
       } else {
-        console.log('📋 No Tony transmission doc found, using first document');
         if (documents.length > 0) {
           const firstDoc = documents[0];
           const shareUrl = `/documents/${firstDoc.id}?tab=share`;
-          console.log('📋 Setting share URL to first doc:', shareUrl);
           setChecklistItems(items => 
             items.map(item => 
               item.id === 'share-cim' 
@@ -154,9 +143,6 @@ export function GetStartedChecklist() {
         }
       }
     } else {
-      console.log('📋 No documents data available:', documentsData);
-      console.log('📋 User available:', !!user);
-      console.log('📋 Checklist visible:', isVisible);
     }
   }, [documentsData, user]);
 
@@ -181,7 +167,6 @@ export function GetStartedChecklist() {
     localStorage.setItem(`get-started-progress-${userId}`, JSON.stringify(progress));
 
     // Navigate to the target page
-    console.log('📋 Navigating to:', item.href);
     
     // For account page tabs, use window.location to force proper URL handling
     if (item.href.startsWith('/account?tab=')) {
@@ -194,7 +179,6 @@ export function GetStartedChecklist() {
   const handleDismiss = () => {
     if (!user) return;
     
-    console.log('📋 Dismissing checklist for user:', user.id);
     setIsVisible(false);
     
     // Set the dismissal flag in localStorage
@@ -203,7 +187,6 @@ export function GetStartedChecklist() {
     
     // Verify it was set
     const verified = localStorage.getItem(dismissalKey);
-    console.log('📋 Dismissal flag set and verified:', verified);
   };
 
   const toggleExpanded = () => {

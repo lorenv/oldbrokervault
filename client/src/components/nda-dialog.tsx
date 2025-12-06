@@ -56,7 +56,6 @@ export function NdaDialog({
       const redirectUrl = `/share/${shareSlug}/sign-nda?${params.toString()}`;
       window.location.href = redirectUrl;
     } catch (error) {
-      console.error('Redirect error:', error);
       setIsSigning(false);
       toast({
         title: "Error",

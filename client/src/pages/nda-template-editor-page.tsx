@@ -50,12 +50,6 @@ export default function NdaTemplateEditorPage() {
       signatureFields: any[];
       recipients: any[];
     }) => {
-      console.log('Saving template with data:', {
-        name: templateData.name,
-        hasFileContent: !!templateData.fileContent,
-        signatureFieldsCount: templateData.signatureFields?.length || 0,
-        recipientsCount: templateData.recipients?.length || 0
-      });
 
       const url = isNewTemplate 
         ? '/api/nda-templates'
@@ -78,7 +72,6 @@ export default function NdaTemplateEditorPage() {
       return response.json();
     },
     onSuccess: (template) => {
-      console.log('Template saved successfully:', template.id);
       toast({
         title: "Template saved",
         description: "Your NDA template has been saved successfully"
@@ -87,7 +80,6 @@ export default function NdaTemplateEditorPage() {
       setLocation('/nda-templates');
     },
     onError: (error) => {
-      console.error('Save error:', error);
       toast({
         title: "Save failed",
         description: error.message,

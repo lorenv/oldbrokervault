@@ -210,15 +210,6 @@ export function CimDisplay({
   // Update sections when analysis changes (e.g., when switching documents)
   useEffect(() => {
     const newSections = initializeSections();
-    console.log("🔍 CimDisplay sections debug:", {
-      isSharedView: isSharedView,
-      analysis: analysis,
-      sectionsFromAnalysis: analysis?.sections,
-      sectionsType: typeof analysis?.sections,
-      isArray: Array.isArray(analysis?.sections),
-      newSections: newSections,
-      newSectionsCount: newSections.length
-    });
     setSections(newSections);
   }, [analysis]);
   const [confirmDeleteSectionId, setConfirmDeleteSectionId] = useState<string | null>(null);
@@ -238,7 +229,6 @@ export function CimDisplay({
   // Update local state when props change (important for shared views)
   useEffect(() => {
     if (selectedImages && selectedImages.length > 0) {
-      console.log("Updating localSelectedImages from props:", selectedImages);
       setLocalSelectedImages(selectedImages);
       setBrokenImages(new Set()); // Reset broken images when new images arrive
     }
@@ -247,7 +237,6 @@ export function CimDisplay({
   // Also reset broken images when localSelectedImages changes
   useEffect(() => {
     if (localSelectedImages && localSelectedImages.length > 0) {
-      console.log("Reset broken images for localSelectedImages:", localSelectedImages);
       setBrokenImages(new Set());
     }
   }, [localSelectedImages]);
@@ -258,8 +247,6 @@ export function CimDisplay({
 
   // Debug selectedImages prop
   useEffect(() => {
-    console.log("CimDisplay selectedImages prop:", selectedImages);
-    console.log("CimDisplay localSelectedImages state:", localSelectedImages);
   }, [selectedImages]);
   const [isLogoUploading, setIsLogoUploading] = useState(false);
   const [isBusinessImagesUploading, setIsBusinessImagesUploading] = useState(false);
@@ -456,7 +443,6 @@ export function CimDisplay({
 
   // Create truly unified sections list by merging regular and custom sections into one sortable array
   const createUnifiedSections = () => {
-    console.log("🔍 Creating unified sections, regular sections count:", sections.length, sections);
     // Start with all regular sections
     const regularSectionItems = sections.map((section: any, index: number) => ({
       id: section.id || section.title || `section-${index}`,
@@ -592,7 +578,6 @@ export function CimDisplay({
         toast({ title: "Upload Failed", description: error.error || "Failed to upload logo.", variant: "destructive" });
       }
     } catch (error) {
-      console.error('Logo upload error:', error);
       toast({ title: "Upload Failed", description: "An error occurred during upload.", variant: "destructive" });
     } finally {
       setIsLogoUploading(false);
@@ -643,7 +628,6 @@ export function CimDisplay({
         }
       }
     } catch (error) {
-      console.error('Upload error:', error);
       toast({ title: "Upload Failed", description: "An error occurred during upload.", variant: "destructive" });
     }
 
@@ -789,17 +773,9 @@ export function CimDisplay({
                         className="w-full h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
                         onClick={() => openLightbox(index)}
                         onError={(e) => {
-                          console.error(`Image failed to load: ${image}`, e);
-                          console.error('Image error details:', {
-                            src: e.currentTarget.src,
-                            naturalWidth: e.currentTarget.naturalWidth,
-                            naturalHeight: e.currentTarget.naturalHeight,
-                            complete: e.currentTarget.complete
-                          });
                           setBrokenImages((prev: any) => new Set([...Array.from(prev), index]));
                         }}
                         onLoad={() => {
-                          console.log(`Image loaded successfully: ${image}`);
                           // Remove from broken images if it was previously broken
                           setBrokenImages((prev: Set<number>) => {
                             const newSet = new Set(Array.from(prev));
@@ -1141,7 +1117,6 @@ export function CimDisplay({
                                         throw new Error('Save failed');
                                       }
                                     } catch (error) {
-                                      console.error('Error saving HTML section:', error);
                                       // Only show generic error if we haven't already shown CSP error
                                       if (error instanceof Error && error.message !== 'Save failed') {
                                         toast({

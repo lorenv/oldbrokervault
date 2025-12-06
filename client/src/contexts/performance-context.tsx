@@ -104,9 +104,6 @@ export function PerformanceProvider({
 
     // Warn about excessive renders
     if (count > 50 && count % 10 === 0) {
-      console.warn(
-        `[Performance Warning] ${componentName} has rendered ${count} times`
-      );
     }
   };
 
@@ -115,11 +112,6 @@ export function PerformanceProvider({
 
     if (duration > slowRenderThreshold) {
       metrics.current.slowComponents.add(componentName);
-      console.warn(
-        `[Performance Warning] ${componentName} rendered slowly (${duration.toFixed(
-          2
-        )}ms)`
-      );
     }
   };
 
@@ -178,12 +170,8 @@ export function PerformanceProvider({
       
       if (currentMetrics.renderCount.size > 0) {
         console.group('[Performance Metrics]');
-        console.log('FPS:', currentMetrics.fps || 'N/A');
-        console.log('Memory:', currentMetrics.memoryUsage?.toFixed(2) + ' MB' || 'N/A');
-        console.log('Render Counts:', Object.fromEntries(currentMetrics.renderCount));
         
         if (currentMetrics.slowComponents.size > 0) {
-          console.log('Slow Components:', Array.from(currentMetrics.slowComponents));
         }
         console.groupEnd();
       }

@@ -103,7 +103,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch (e) {
         // If incognito detection fails, proceed with login attempt
-        console.warn("Could not detect incognito mode:", e);
       }
 
       try {
@@ -111,25 +110,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         // Log response details before parsing
         const contentType = res.headers.get('content-type') || '';
-        console.log("Login response details:", {
-          status: res.status,
-          statusText: res.statusText,
-          contentType: contentType,
-          url: res.url
-        });
         
         if (!contentType.includes('application/json')) {
           // If we're not getting JSON, let's see what we got
           const text = await res.text();
-          console.error("Expected JSON but got:", contentType, "Content:", text.substring(0, 500));
           throw new Error(`Server returned ${contentType} instead of JSON. This suggests a routing or server configuration issue.`);
         }
         
         const userData = await res.json();
-        console.log("Login successful, received user data:", userData);
         return userData;
       } catch (error: any) {
-        console.error("Login error:", error);
         
         // Parse the error message from the API response
         const errorMessage = error.message || "Invalid email or password";
@@ -182,7 +172,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw new Error("Please disable incognito/private browsing mode to register. Incognito mode blocks the secure cookies needed for authentication.");
         }
       } catch (e) {
-        console.warn("Could not detect incognito mode during registration:", e);
       }
 
       try {
@@ -223,7 +212,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Play success sound
       const audio = new Audio('/success-sound.mp3');
       audio.volume = 0.4;
-      audio.play().catch(e => console.log('Could not play success sound:', e));
+      audio.play().catch(() => {});
       
       // Trigger celebratory confetti
       try {

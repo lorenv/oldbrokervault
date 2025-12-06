@@ -39,7 +39,6 @@ export function AcceptCollaborationPage() {
         setDocumentId(data.documentId);
         setStatus("success");
       } catch (error) {
-        console.error("Accept collaboration error:", error);
         setStatus("error");
         setErrorMessage(error instanceof Error ? error.message : "Failed to accept invitation");
       }

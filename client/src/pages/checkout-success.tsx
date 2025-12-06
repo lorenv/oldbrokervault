@@ -24,7 +24,6 @@ export default function CheckoutSuccess() {
       }
 
       try {
-        console.log('🔄 Verifying checkout session:', sessionId);
         
         // First, verify the checkout session and update subscription (using public endpoint)
         const response = await apiRequest("GET", `/api/subscription/verify-checkout?session_id=${sessionId}`);
@@ -34,7 +33,6 @@ export default function CheckoutSuccess() {
           throw new Error(data.error || 'Failed to verify subscription');
         }
 
-        console.log('✅ Subscription verified:', data);
 
         // Clear any cached user data to ensure fresh data
         queryClient.removeQueries({ queryKey: ["/api/user"] });
@@ -65,7 +63,6 @@ export default function CheckoutSuccess() {
         }, 3000);
 
       } catch (error) {
-        console.error('❌ Error verifying session:', error);
         setStatus('error');
         setMessage(error instanceof Error ? error.message : 'Failed to verify your subscription. Please contact support.');
         

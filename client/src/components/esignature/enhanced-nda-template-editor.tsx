@@ -110,13 +110,6 @@ export default function EnhancedNdaTemplateEditor({
   // Load template data on mount
   useEffect(() => {
     if (initialTemplate) {
-      console.log('Loading template:', {
-        id: initialTemplate.id,
-        name: initialTemplate.name,
-        hasFileContent: !!initialTemplate.fileContent,
-        signatureFields: initialTemplate.signatureFields,
-        signatureFieldsCount: Array.isArray(initialTemplate.signatureFields) ? initialTemplate.signatureFields.length : 0
-      });
 
       setTemplateName(initialTemplate.name || '');
       setPdfBase64(initialTemplate.fileContent || '');
@@ -128,7 +121,6 @@ export default function EnhancedNdaTemplateEditor({
           try {
             parsedFields = JSON.parse(initialTemplate.signatureFields);
           } catch (e) {
-            console.error('Failed to parse signature fields:', e);
             parsedFields = [];
           }
         } else if (Array.isArray(initialTemplate.signatureFields)) {
@@ -136,7 +128,6 @@ export default function EnhancedNdaTemplateEditor({
         }
       }
 
-      console.log('Parsed signature fields:', parsedFields);
 
       // For NDA templates, always use the single designated signer
       // Update existing fields to assign to the NDA signer if they're unassigned
@@ -186,7 +177,6 @@ export default function EnhancedNdaTemplateEditor({
       const isBase64 = !fileContent.startsWith('/') && !fileContent.startsWith('http');
       
       if (isBase64) {
-        console.log('Loading template from base64 content...');
         // Handle base64 PDF content - convert to page images using the upload endpoint
         try {
           // Create a temporary blob from base64
@@ -213,7 +203,6 @@ export default function EnhancedNdaTemplateEditor({
           }
           
           const result = await response.json();
-          console.log('Template processing result:', result);
           
           // Use the processed template data
           setTotalPages(result.pageCount || 1);
@@ -232,7 +221,6 @@ export default function EnhancedNdaTemplateEditor({
           setPageImages(newPageImages);
           
         } catch (base64Error) {
-          console.error('Error processing base64 PDF:', base64Error);
           // Fallback to showing a placeholder
           setTotalPages(1);
           setPageImages([{
@@ -244,11 +232,9 @@ export default function EnhancedNdaTemplateEditor({
         }
         
       } else {
-        console.log('Loading template from URL:', fileContent);
         // Handle URL-based file content (existing logic)
         const templateIdMatch = fileContent.match(/\/templates\/(\d+)\//);
         if (!templateIdMatch) {
-          console.error('Could not extract template ID from file URL:', fileContent);
           return;
         }
         
@@ -277,7 +263,6 @@ export default function EnhancedNdaTemplateEditor({
               pageCount = discoveredPages;
             }
           } catch (error) {
-            console.warn('Could not discover page count, using default:', error);
           }
         }
         
@@ -298,7 +283,6 @@ export default function EnhancedNdaTemplateEditor({
       }
       
     } catch (error) {
-      console.error('Error loading template images:', error);
       // Fallback to a single page if we can't load the images
       setTotalPages(1);
       setPageImages([]);
@@ -336,7 +320,6 @@ export default function EnhancedNdaTemplateEditor({
 
       if (!response.ok) {
         const errorData = await response.text();
-        console.error('Upload failed:', response.status, errorData);
         throw new Error(`Failed to upload PDF: ${response.status} ${errorData}`);
       }
 
@@ -362,7 +345,6 @@ export default function EnhancedNdaTemplateEditor({
       });
 
     } catch (error) {
-      console.error('Error uploading file:', error);
       toast({
         title: "Upload failed",
         description: error instanceof Error ? error.message : "Failed to upload PDF file",
@@ -418,18 +400,6 @@ export default function EnhancedNdaTemplateEditor({
 
     setIsSaving(true);
 
-    console.log('Saving template with signature fields:', {
-      fieldsCount: fields.length,
-      fields: fields,
-      fieldsDetails: fields.map(f => ({
-        id: f.id,
-        type: f.type,
-        x: f.x,
-        y: f.y,
-        pageNumber: f.pageNumber,
-        assignedTo: f.assignedTo
-      }))
-    });
 
     try {
       const saveData = {
@@ -446,7 +416,6 @@ export default function EnhancedNdaTemplateEditor({
         }))
       };
 
-      console.log('Calling onSave with data:', saveData);
       await onSave(saveData);
 
       toast({
@@ -454,7 +423,6 @@ export default function EnhancedNdaTemplateEditor({
         description: "NDA template has been saved successfully",
       });
     } catch (error) {
-      console.error('Error saving template:', error);
       toast({
         title: "Save failed", 
         description: error instanceof Error ? error.message : "Failed to save template",
@@ -573,14 +541,6 @@ export default function EnhancedNdaTemplateEditor({
         container.appendChild(button);
         
         // Debug logging
-        console.log('Save button state:', {
-          canSave,
-          isSaving,
-          templateName: templateName.trim(),
-          hasPdfBase64: !!pdfBase64,
-          recipientsCount: recipients.length,
-          disabled: button.disabled
-        });
       }
     }
     

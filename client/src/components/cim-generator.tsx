@@ -122,7 +122,7 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
       const response = await apiRequest("GET", "/api/nda-templates");
       if (!response.ok) throw new Error('Failed to fetch NDA templates');
       const data = await response.json();
-      console.log('NDA templates loaded:', data); // Debug log
+// Debug log
       return data;
     }
   });
@@ -252,7 +252,6 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
           }
         }
       } catch (error) {
-        console.error('Failed to fetch supported file types:', error);
       }
     };
 
@@ -292,7 +291,6 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
         });
       }
     } catch (error: any) {
-      console.error('Error extracting images:', error);
       
       // Try to get user-friendly message from error response
       let errorMessage = "Failed to extract images from website";
@@ -360,7 +358,6 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
         })
       });
     } catch (error) {
-      console.error('Failed to trigger Unsplash download event:', error);
     }
 
     const photographerUrl = `${image.user.links.html}?utm_source=CIM_Generator&utm_medium=referral`;
@@ -377,11 +374,9 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
   const handleTextFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) {
-      console.log('No file selected');
       return;
     }
 
-    console.log('File selected:', file.name, 'Size:', file.size, 'Type:', file.type);
     setIsUploadingFile(true);
     setUploadingFileName(file.name);
     setShowSuccessAnimation(false);
@@ -389,23 +384,19 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      console.log('FormData created with file');
 
       const response = await apiRequest('POST', '/api/text-extraction/extract', {
         body: formData
         // Don't set Content-Type header, let browser set it with boundary for FormData
       });
 
-      console.log('Response received:', response.status, response.statusText);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('Error response:', errorData);
         throw new Error(errorData.error || 'Failed to extract text from file');
       }
 
       const result = await response.json();
-      console.log('Extraction result:', result);
       
       if (result.success) {
         // Set the extracted text in the form
@@ -426,7 +417,6 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
         throw new Error(result.error || 'Text extraction failed');
       }
     } catch (error) {
-      console.error('File upload error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to extract text from file';
       
       toast({
@@ -450,8 +440,6 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
 
   const generateMutation = useMutation({
     mutationFn: async (data: FormValues) => {
-      console.log('🚀 MUTATION STARTED - Form data:', data);
-      console.log('🚀 NDA Settings at mutation start:', ndaSettings);
 
       // Clear any existing timers before starting new ones
       stageTimersRef.current.forEach(timer => clearTimeout(timer));
@@ -535,13 +523,6 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
         }));
 
         // Debug: Log what we're sending via FormData
-        console.log("=== FRONTEND FORMDATA DEBUG ===");
-        console.log("Financial data state:", financialData);
-        console.log("Financial files state:", financialFiles);
-        console.log("FormData financials:", JSON.stringify({
-          enabled: true,
-          ...financialData
-        }));
 
         // Add financial files to FormData
         financialFiles.forEach((file, index) => {
@@ -603,12 +584,6 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
         };
 
         // Debug: Log what we're sending to the server
-        console.log("=== FRONTEND PAYLOAD DEBUG ===");
-        console.log("Financial data state:", financialData);
-        console.log("Financial files state:", financialFiles);
-        console.log("Payload financials:", payload.financials);
-        console.log("Full payload keys:", Object.keys(payload));
-        console.log("Payload size:", JSON.stringify(payload).length);
 
         try {
           // Include formatting parameters and section directions in payload
@@ -674,7 +649,6 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
       setProgressStartTime(null);
       setWebsiteAnalysisStage(null);
 
-      console.error("Generation error:", error);
       toast({
         title: "Error Generating CIM",
         description: error instanceof Error ? error.message : "An unexpected error occurred",
@@ -713,7 +687,6 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
       });
     },
     onError: (error) => {
-      console.error("Regeneration error:", error);
       toast({
         title: "Error Regenerating Analysis",
         description: error instanceof Error ? error.message : "An unexpected error occurred",
@@ -1172,8 +1145,6 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
                   ref={textFileInputRef}
                   accept=".pdf,.docx,.doc,.txt,.rtf,.md,.vtt"
                   onChange={(e) => {
-                    console.log('File input onChange triggered');
-                    console.log('Files selected:', e.target.files?.length);
                     handleTextFileUpload(e);
                   }}
                   className="hidden"
@@ -1184,8 +1155,6 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    console.log('Upload button clicked');
-                    console.log('textFileInputRef.current:', textFileInputRef.current);
                     textFileInputRef.current?.click();
                   }}
                   disabled={isUploadingFile}
@@ -1459,7 +1428,6 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
                       </SelectTrigger>
                       <SelectContent>
                         {(() => {
-                          console.log('Rendering NDA dropdown - templates:', ndaTemplates, 'length:', ndaTemplates.length, 'loading:', ndaTemplatesLoading, 'error:', ndaTemplatesError);
                           return (
                             <>
                               {ndaTemplates.length > 0 ? (

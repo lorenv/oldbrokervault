@@ -11,7 +11,6 @@ export const initGA = () => {
   const measurementId = import.meta.env.VITE_GA_MEASUREMENT_ID;
 
   if (!measurementId) {
-    console.warn('Missing required Google Analytics key: VITE_GA_MEASUREMENT_ID');
     return;
   }
 
@@ -36,11 +35,9 @@ export const initGA = () => {
   
   // Log when script loads successfully
   script1.onload = () => {
-    console.log('Google Analytics loaded successfully');
   };
   
   script1.onerror = () => {
-    console.error('Failed to load Google Analytics script');
   };
   
   document.head.appendChild(script1);

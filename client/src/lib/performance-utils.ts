@@ -203,15 +203,9 @@ export function usePerformanceMonitor(componentName: string) {
 
     if (process.env.NODE_ENV === 'development') {
       if (renderCount.current > 50) {
-        console.warn(
-          `[Performance] ${componentName} has rendered ${renderCount.current} times`
-        );
       }
       if (renderTime > 16) {
         // More than one frame (16ms)
-        console.warn(
-          `[Performance] ${componentName} render took ${renderTime.toFixed(2)}ms`
-        );
       }
     }
   });

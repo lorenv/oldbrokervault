@@ -83,7 +83,6 @@ export function EmailShareDialog({
       setCustomMessage("");
       onOpenChange(false);
     } catch (error) {
-      console.error("Email sharing error:", error);
       toast({
         title: "Send Failed",
         description: error instanceof Error ? error.message : "Failed to send email. Please try again.",

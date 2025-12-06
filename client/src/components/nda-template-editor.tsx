@@ -78,7 +78,6 @@ export default function NdaTemplateEditor({ initialTemplate, onSave, isLoading }
       };
       reader.readAsDataURL(file);
     } catch (error) {
-      console.error('Error uploading file:', error);
       toast({
         title: "Upload failed",
         description: "Failed to upload PDF file",
@@ -157,7 +156,6 @@ export default function NdaTemplateEditor({ initialTemplate, onSave, isLoading }
         description: "Your NDA template has been saved successfully"
       });
     } catch (error) {
-      console.error('Save error:', error);
       toast({
         title: "Save failed",
         description: "Failed to save template",

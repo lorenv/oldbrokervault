@@ -132,7 +132,6 @@ export default function PdfCanvasViewer({
     const loadPdf = async () => {
       setIsLoading(true);
       try {
-        console.log('Loading PDF with base64 length:', pdfBase64.length);
         
         // Try multiple loading methods for better compatibility
         let loadingTask;
@@ -146,7 +145,6 @@ export default function PdfCanvasViewer({
             isEvalSupported: false,
           });
         } catch (error) {
-          console.log('Data URL method failed, trying Uint8Array method');
           
           // Method 2: Uint8Array conversion
           const binaryString = atob(pdfBase64);
@@ -163,13 +161,10 @@ export default function PdfCanvasViewer({
         }
         
         const pdf = await loadingTask.promise;
-        console.log('PDF loaded successfully, pages:', pdf.numPages);
         setPdfDoc(pdf);
         setTotalPages(pdf.numPages);
         setCurrentPage(1);
       } catch (error) {
-        console.error('Error loading PDF:', error);
-        console.error('PDF base64 preview:', pdfBase64.substring(0, 100) + '...');
       } finally {
         setIsLoading(false);
       }
@@ -184,7 +179,6 @@ export default function PdfCanvasViewer({
 
     const renderPage = async () => {
       try {
-        console.log('Rendering page:', currentPage, 'with scale:', scale);
         const page = await pdfDoc.getPage(currentPage);
         const canvas = canvasRef.current!;
         const context = canvas.getContext('2d')!;
@@ -202,9 +196,7 @@ export default function PdfCanvasViewer({
         };
 
         await page.render(renderContext).promise;
-        console.log('Page rendered successfully');
       } catch (error) {
-        console.error('Error rendering page:', error);
       }
     };
 
