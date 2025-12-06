@@ -51,7 +51,6 @@ export function UploadedFileViewer({ cimDocument, shareSlug, userProfile, upload
         document.body.removeChild(a);
       }
     } catch (error) {
-      console.error('Download failed:', error);
     } finally {
       setIsDownloading(false);
     }
@@ -83,7 +82,6 @@ export function UploadedFileViewer({ cimDocument, shareSlug, userProfile, upload
       document.body.removeChild(link);
       URL.revokeObjectURL(link.href);
     } catch (error) {
-      console.error('Bulk download failed:', error);
     } finally {
       setIsBulkDownloading(false);
     }
@@ -119,8 +117,6 @@ export function UploadedFileViewer({ cimDocument, shareSlug, userProfile, upload
                 src={`${singleFileUrl}#toolbar=1&navpanes=1&scrollbar=1`}
                 className="w-full h-full border rounded-lg"
                 title="Document Viewer"
-                onLoad={() => console.log('PDF iframe loaded successfully')}
-                onError={() => console.error('PDF iframe failed to load')}
               />
             </div>
           </CardContent>

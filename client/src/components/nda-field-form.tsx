@@ -133,7 +133,6 @@ export default function NdaFieldForm({
       // Submit the field values as-is (signature fields now contain text)
       await onSubmit(fieldValues);
     } catch (error) {
-      console.error('Error submitting NDA:', error);
       toast({
         title: "Submission failed",
         description: "Please try again or contact support",

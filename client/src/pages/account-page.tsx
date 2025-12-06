@@ -94,7 +94,6 @@ export default function AccountPage() {
     const handlePopState = () => {
       const searchParams = new URLSearchParams(window.location.search);
       const newTab = searchParams.get('tab') || 'account';
-      console.log('🔄 Browser navigation - new tab from URL:', newTab);
       setActiveTab(newTab);
     };
 
@@ -269,7 +268,6 @@ export default function AccountPage() {
     } catch (error) {
       // Log error for debugging in development only
       if (process.env.NODE_ENV === 'development') {
-        console.error("Subscription action error:", error);
       }
       toast({
         title: "Error",
@@ -285,43 +283,33 @@ export default function AccountPage() {
     const sessionId = params.get('session_id');
     const tabParam = params.get('tab');
 
-    console.log('🔍 Account page mounted - checking for session_id:', sessionId, 'tab:', tabParam);
     
     // Set the tab from URL if it exists
     if (tabParam && tabParam !== activeTab) {
-      console.log('🔄 Setting active tab from URL parameter:', tabParam);
       setActiveTab(tabParam);
     }
     
     if (sessionId) {
-      console.log('📞 Calling verifyStripeSession with sessionId:', sessionId);
       verifyStripeSession(sessionId);
     }
   }, []);
 
   const verifyStripeSession = async (sessionId: string) => {
     try {
-      console.log('🚀 Starting Stripe session verification for session:', sessionId);
       const response = await apiRequest("GET", `/api/subscription/verify-session?session_id=${sessionId}`);
-      console.log('📡 Received response status:', response.status);
       const data = await response.json();
-      console.log('📦 Response data:', data);
 
       if (data.success) {
-        console.log('✅ Subscription verification successful, refreshing user data...');
         
         // Force refetch the user query to refresh the subscription status
-        console.log('🔄 Invalidating user queries...');
         await queryClient.invalidateQueries({ queryKey: ["/api/user"] });
         
         // Add a small delay to ensure session update has propagated
         await new Promise(resolve => setTimeout(resolve, 500));
-        console.log('🔄 Refetching user data...');
         await queryClient.refetchQueries({ queryKey: ["/api/user"] });
         
         // Force a complete cache reset for the user data
         queryClient.removeQueries({ queryKey: ["/api/user"] });
-        console.log('🔄 Removed cached user data, fetching fresh...');
         await queryClient.refetchQueries({ queryKey: ["/api/user"] });
 
         toast({
@@ -333,19 +321,15 @@ export default function AccountPage() {
         window.history.replaceState({}, '', '/account?tab=billing');
         
         // Update the active tab state to match the URL change
-        console.log('🎯 Forcing tab to billing after successful verification');
         setActiveTab('billing');
         
       } else {
         throw new Error(data.error || "Failed to verify subscription");
       }
     } catch (error) {
-      console.error("❌ Stripe session verification error:", error);
       
       // Show more detailed error information
       if (error instanceof Error) {
-        console.error("Error message:", error.message);
-        console.error("Error stack:", error.stack);
       }
       
       toast({
@@ -419,7 +403,6 @@ export default function AccountPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={(tab) => {
-        console.log('🎯 Tab clicked:', tab);
         setActiveTab(tab);
         // Update URL to reflect the tab change
         window.history.pushState({}, '', `/account?tab=${tab}`);

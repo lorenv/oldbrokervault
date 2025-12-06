@@ -48,7 +48,6 @@ export function InvitationLandingPage() {
           setLocation(`/accept-collaboration/${params.token}`);
         }
       } catch (error) {
-        console.error("Fetch invitation error:", error);
         setError(error instanceof Error ? error.message : "Failed to load invitation");
         setLoading(false);
       }

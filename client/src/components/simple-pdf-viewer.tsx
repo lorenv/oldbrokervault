@@ -125,7 +125,6 @@ export default function SimplePdfViewer({
   React.useEffect(() => {
     if (pdfBase64) {
       try {
-        console.log('Creating PDF blob URL from base64, length:', pdfBase64.length);
         
         // Convert base64 to blob
         const binaryString = atob(pdfBase64);
@@ -138,14 +137,12 @@ export default function SimplePdfViewer({
         const url = URL.createObjectURL(blob);
         setPdfUrl(url);
         
-        console.log('PDF blob URL created successfully');
         
         // Cleanup function
         return () => {
           URL.revokeObjectURL(url);
         };
       } catch (error) {
-        console.error('Error creating PDF blob URL:', error);
       }
     }
   }, [pdfBase64]);
@@ -253,8 +250,6 @@ export default function SimplePdfViewer({
           src={pdfUrl}
           className="w-full h-full pointer-events-none"
           title="PDF Template"
-          onLoad={() => console.log('PDF iframe loaded successfully')}
-          onError={(e) => console.error('PDF iframe error:', e)}
         />
         
         {/* Clickable Overlay for Field Placement */}

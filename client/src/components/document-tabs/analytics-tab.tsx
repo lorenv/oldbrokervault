@@ -35,11 +35,6 @@ export function DocumentAnalyticsTab({ cimDocument, ndaSignatures }: DocumentAna
     });
 
     // DEBUG: Log the data being used for chart
-    console.log("🔍 CHART DATA DEBUG:", {
-      viewStats,
-      dailyViews: viewStats?.dailyViews,
-      totalViews: viewStats?.totalViews
-    });
 
     return days.map(day => {
       const dayStr = format(day, 'yyyy-MM-dd');
@@ -51,7 +46,6 @@ export function DocumentAnalyticsTab({ cimDocument, ndaSignatures }: DocumentAna
       
       // DEBUG: Log individual day calculation
       if (dayViews > 0 || daySignatures > 0) {
-        console.log("🔍 DAY DATA:", { dayStr, dayViews, daySignatures });
       }
       
       return {

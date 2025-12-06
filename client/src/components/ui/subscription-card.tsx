@@ -81,7 +81,6 @@ export function SubscriptionCard({
         throw new Error("No portal URL received");
       }
     } catch (error) {
-      console.error("Error accessing customer portal:", error);
       toast({
         title: "Unable to open billing portal",
         description: error instanceof Error ? error.message : "Please try again or contact support if the issue persists.",

@@ -35,7 +35,6 @@ export class ErrorBoundary extends Component<Props, State> {
 
     // Also log in development
     if (process.env.NODE_ENV === 'development') {
-      console.error('Error boundary caught an error:', error, errorInfo);
     }
   }
 

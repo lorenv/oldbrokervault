@@ -41,7 +41,6 @@ export async function reportError(options: ErrorReportOptions): Promise<void> {
     });
   } catch (e) {
     // Silently fail - don't want error reporting to cause more errors
-    console.error('Failed to report error:', e);
   } finally {
     isReporting = false;
   }

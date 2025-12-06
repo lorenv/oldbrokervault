@@ -4,7 +4,6 @@ async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     let errorMessage;
     const contentType = res.headers.get('content-type') || '';
-    console.log(`Error response content-type: ${contentType}`);
     
     try {
       // Clone the response so we can read it multiple times if needed
@@ -17,11 +16,9 @@ async function throwIfResNotOk(res: Response) {
       } else {
         // If not JSON, get text
         const text = await clonedRes.text();
-        console.log(`Non-JSON error response (first 500 chars):`, text.substring(0, 500));
         errorMessage = text || res.statusText;
       }
     } catch (parseError) {
-      console.log(`Error parsing response:`, parseError);
       errorMessage = res.statusText;
     }
     throw new Error(`${res.status}: ${errorMessage}`);
@@ -48,11 +45,6 @@ export async function apiRequest(
   }
   
   const fullUrl = url.startsWith('/') ? `${window.location.origin}${url}` : url;
-  console.log(`Making ${method} request to ${fullUrl}`, {
-    body: body instanceof FormData ? 'FormData' : body,
-    credentials: 'include',
-    headers: headers
-  });
 
   const res = await fetch(fullUrl, {
     method,
@@ -61,13 +53,6 @@ export async function apiRequest(
     credentials: "include",
   });
 
-  console.log(`Response from ${fullUrl}:`, {
-    status: res.status,
-    statusText: res.statusText,
-    contentType: res.headers.get('content-type'),
-    actualUrl: res.url,
-    requestUrl: fullUrl
-  });
 
   await throwIfResNotOk(res);
   return res;
@@ -81,7 +66,6 @@ export const getQueryFn: <T>(options: {
   async ({ queryKey }) => {
     const url = queryKey[0] as string;
     const fullUrl = url.startsWith('/') ? `${window.location.origin}${url}` : url;
-    console.log(`Query request to ${fullUrl}`, { credentials: 'include' });
     
     const res = await fetch(fullUrl, {
       credentials: "include",
@@ -90,13 +74,6 @@ export const getQueryFn: <T>(options: {
       }
     });
 
-    console.log(`Query response from ${fullUrl}:`, {
-      status: res.status,
-      statusText: res.statusText,
-      contentType: res.headers.get('content-type'),
-      actualUrl: res.url,
-      requestUrl: fullUrl
-    });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
       return null;

@@ -227,7 +227,6 @@ export function CoverImageManager({
 
     // Trigger Unsplash download event
     try {
-      console.log('Triggering Unsplash download for:', image.links.download_location);
       const response = await fetch('/api/unsplash/download', {
         method: 'POST',
         headers: {
@@ -239,12 +238,9 @@ export function CoverImageManager({
       });
 
       if (response.ok) {
-        console.log('Unsplash download event triggered successfully');
       } else {
-        console.error('Failed to trigger Unsplash download event:', response.status, response.statusText);
       }
     } catch (error) {
-      console.error('Failed to trigger Unsplash download event:', error);
     }
 
     // Create attribution with UTM parameters

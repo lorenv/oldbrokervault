@@ -15,12 +15,10 @@ export function usePerformanceMonitoring(componentName: string) {
 
     // Only log in development
     if (process.env.NODE_ENV === 'development') {
-      console.log(`${componentName} render time: ${renderTime.toFixed(2)}ms`);
       
       // Memory usage if available
       if ('memory' in performance) {
         const memory = (performance as any).memory;
-        console.log(`Memory usage: ${(memory.usedJSHeapSize / 1024 / 1024).toFixed(2)}MB`);
       }
     }
   }, [componentName, startTime]);
@@ -35,7 +33,6 @@ export function usePerformanceMonitoring(componentName: string) {
       const end = performance.now();
       
       if (process.env.NODE_ENV === 'development') {
-        console.log(`${functionName} execution time: ${(end - start).toFixed(2)}ms`);
       }
       
       return result;

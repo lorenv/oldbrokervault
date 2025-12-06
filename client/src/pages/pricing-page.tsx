@@ -45,7 +45,6 @@ export default function PricingPage() {
           setUser(userData);
         }
       } catch (error) {
-        console.log('User data unavailable, showing pricing without user context');
       } finally {
         setIsLoading(false);
       }
@@ -121,7 +120,6 @@ export default function PricingPage() {
         window.open(url, '_blank');
       }
     } catch (error) {
-      console.error("Subscription action error:", error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to process subscription action",
@@ -131,7 +129,6 @@ export default function PricingPage() {
   };
 
   // Debug: Log the actual subscription status
-  console.log('[Pricing Page] User subscription status:', user?.subscriptionStatus);
 
   const plans = [
     {

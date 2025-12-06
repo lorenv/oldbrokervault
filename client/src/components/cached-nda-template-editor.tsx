@@ -64,25 +64,15 @@ export default function CachedNdaTemplateEditor({ initialTemplate, onSave, isLoa
   // Update state when initialTemplate changes
   React.useEffect(() => {
     if (initialTemplate) {
-      console.log('Loading cached template data:', {
-        name: initialTemplate.name,
-        hasFileContent: !!initialTemplate.fileContent,
-        fieldsCount: initialTemplate.signatureFields?.length || 0,
-        pagesCount: initialTemplate.pageImages?.length || 0,
-        pageImages: initialTemplate.pageImages
-      });
       setTemplateName(initialTemplate.name || '');
       setPdfBase64(initialTemplate.fileContent || '');
       setSignatureFields(initialTemplate.signatureFields || []);
       if (initialTemplate.pageImages && initialTemplate.pageImages.length > 0) {
-        console.log('Setting cached page images:', initialTemplate.pageImages);
         setPageImages(initialTemplate.pageImages);
       } else {
-        console.log('No cached page images found, will need to convert PDF');
         setPageImages([]);
       }
     } else {
-      console.log('No initial template provided, starting fresh');
       setTemplateName('');
       setPdfBase64('');
       setSignatureFields([]);
@@ -118,7 +108,6 @@ export default function CachedNdaTemplateEditor({ initialTemplate, onSave, isLoa
       };
       reader.readAsDataURL(file);
     } catch (error) {
-      console.error('Error uploading file:', error);
       toast({
         title: "Upload failed",
         description: "Failed to upload PDF file",
@@ -187,7 +176,6 @@ export default function CachedNdaTemplateEditor({ initialTemplate, onSave, isLoa
         signatureFields: signatureFields
       });
     } catch (error) {
-      console.error('Save failed:', error);
     } finally {
       setIsSaving(false);
     }
@@ -215,16 +203,6 @@ export default function CachedNdaTemplateEditor({ initialTemplate, onSave, isLoa
                     placeholder="Enter template name..."
                   />
                 </div>
-
-                {/* Debug logging for Save button */}
-                {console.log('🔍 CachedEditor Save button condition check:', {
-                  initialTemplate,
-                  hasInitialTemplate: !!initialTemplate,
-                  hasPdfBase64: !!pdfBase64,
-                  hasTemplateName: !!templateName.trim(),
-                  isNewTemplate: !initialTemplate,
-                  shouldShowSave: !initialTemplate && pdfBase64
-                })}
 
                 {!initialTemplate && pdfBase64 && (
                   <Button 

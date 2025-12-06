@@ -299,12 +299,6 @@ export default function EsignDashboard() {
                       const StatusIcon = status.icon;
 
                       // Debug: log envelope data
-                      console.log('[ESIGN UI DEBUG]', envelope.title, {
-                        status: envelope.status,
-                        pendingSigners: envelope.pendingSigners,
-                        signerCount: envelope.signerCount,
-                        signedCount: envelope.signedCount
-                      });
 
                       return (
                         <div

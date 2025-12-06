@@ -58,7 +58,6 @@ export default function FillableNdaDocument({
     // Set a timeout to show fallback if images don't load
     const fallbackTimeout = setTimeout(() => {
       if (!imagesLoaded && signatureFields.length > 0) {
-        console.warn('Images taking too long to load, showing fallback form');
         setImagesLoaded(true); // This will trigger the fallback form
         setImageLoadError(true);
       }
@@ -92,10 +91,8 @@ export default function FillableNdaDocument({
 
         if (response.ok) {
           const data = await response.json();
-          console.log('PDF conversion response:', data);
           
           if (data.success && data.pages) {
-            console.log('Raw page data received:', data.pages.length, 'pages');
             
             // Process pages with dimensions for accurate field positioning
             const processedPages = await Promise.all(
@@ -111,7 +108,6 @@ export default function FillableNdaDocument({
                   img.crossOrigin = 'anonymous';
 
                   img.onload = () => {
-                    console.log(`Page ${index + 1} loaded successfully: ${img.width}x${img.height}`);
                     resolve({
                       imageUrl: page.imageUrl,
                       width: img.naturalWidth || img.width || 800,  // Fallback width
@@ -120,8 +116,6 @@ export default function FillableNdaDocument({
                   };
 
                   img.onerror = (error) => {
-                    console.error(`Failed to load page ${index + 1}:`, error);
-                    console.error('Image URL:', page.imageUrl);
                     // Instead of rejecting, resolve with default dimensions
                     // This allows fields to still render even if image fails
                     resolve({
@@ -131,13 +125,11 @@ export default function FillableNdaDocument({
                     });
                   };
 
-                  console.log(`Loading page ${index + 1} from:`, page.imageUrl);
                   img.src = page.imageUrl;
                 });
               })
             );
             
-            console.log('All pages processed successfully:', processedPages.map(p => ({w: p.width, h: p.height})));
             setDocumentImages(processedPages);
             setImagesLoaded(true);
 
@@ -145,19 +137,15 @@ export default function FillableNdaDocument({
             const cacheKey = `nda_images_${btoa(ndaContent).substring(0, 16)}`;
             sessionStorage.setItem(cacheKey, JSON.stringify(processedPages));
           } else {
-            console.error('Invalid response structure:', data);
           }
         } else {
-          console.error('Failed to convert PDF to images, status:', response.status);
           const errorText = await response.text();
-          console.error('Error response:', errorText);
 
           // Set error state and show fallback
           setImageLoadError(true);
           setImagesLoaded(true); // This will trigger the fallback form
         }
       } catch (error) {
-        console.error('Error converting PDF:', error);
 
         // Set error state and show fallback
         setImageLoadError(true);
@@ -231,7 +219,6 @@ export default function FillableNdaDocument({
     try {
       await onSubmit(fieldValues);
     } catch (error) {
-      console.error('Submission error:', error);
       toast({
         title: "Submission Failed",
         description: "Please try again or contact support",
@@ -257,13 +244,11 @@ export default function FillableNdaDocument({
             style={{ maxWidth: '100%' }}
             onError={(e) => {
               // Don't hide the image - instead show a placeholder background
-              console.error('Image failed to render in browser:', pageData.imageUrl);
               e.currentTarget.style.backgroundColor = '#f3f4f6';
               e.currentTarget.style.minHeight = '1100px';
               setImageLoadError(true);
             }}
             onLoad={(e) => {
-              console.log(`Image rendered successfully in browser: ${e.currentTarget.naturalWidth}x${e.currentTarget.naturalHeight}`);
             }}
           />
           

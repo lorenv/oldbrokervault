@@ -52,7 +52,6 @@ export default function EnhancedNdaSigningPage() {
       
       if (!response.ok) {
         const text = await response.text();
-        console.error('API Error Response:', text.substring(0, 200));
         throw new Error(`Failed to fetch template: ${response.status}`);
       }
       
@@ -65,19 +64,11 @@ export default function EnhancedNdaSigningPage() {
   // Sign NDA mutation
   const signNdaMutation = useMutation({
     mutationFn: async (fieldValues: Record<string, string>) => {
-      console.log('=== FRONTEND NDA SIGNING DEBUG ===');
-      console.log('Template data:', templateData);
-      console.log('Signature fields:', templateData?.signatureFields);
-      console.log('Field values received:', fieldValues);
-      console.log('Prefilled name:', prefilledName);
-      console.log('Prefilled email:', prefilledEmail);
       
       // Extract required values from field data or URL parameters
       const nameField = templateData?.signatureFields.find(f => f.type === 'name');
       const emailField = templateData?.signatureFields.find(f => f.type === 'email');
       
-      console.log('Name field found:', nameField);
-      console.log('Email field found:', emailField);
       
       // PRIORITY ORDER: URL parameters (from dialog) > field values (manual entry) > defaults
       // This ensures email from name/email dialog always flows through properly
@@ -86,16 +77,9 @@ export default function EnhancedNdaSigningPage() {
 
       // Additional safety check: ensure we have valid email before proceeding
       if (!signerEmail || !signerEmail.trim()) {
-        console.error('CRITICAL: No email address found in any source!');
-        console.error('Sources checked: prefilledEmail =', prefilledEmail, ', fieldValue =', emailField ? fieldValues[emailField.id] : 'no email field');
         throw new Error('Email address is required for NDA signing');
       }
 
-      console.log('Final signer name:', signerName);
-      console.log('Final signer email:', signerEmail);
-      console.log('Email source priority: URL params =', prefilledEmail, ', field value =', emailField ? fieldValues[emailField.id] : 'N/A');
-      console.log('=== END FRONTEND DEBUG ===');
-      console.log('NDA signing request data:', { signerName, signerEmail, fieldValues });
 
       const response = await fetch(`/api/share/${shareSlug}/sign-nda`, {
         method: 'POST',
@@ -110,29 +94,23 @@ export default function EnhancedNdaSigningPage() {
       });
 
       if (!response.ok) {
-        console.error('Response not OK. Status:', response.status, 'Status Text:', response.statusText);
         const contentType = response.headers.get('content-type');
-        console.error('Content-Type:', contentType);
 
         let error;
         try {
           error = await response.json();
-          console.error('NDA signing error from server (parsed JSON):', error);
         } catch (e) {
           const text = await response.text();
-          console.error('Failed to parse JSON. Raw response:', text);
           throw new Error(`Server error: ${response.status} - ${text.substring(0, 200)}`);
         }
 
         const errorMessage = error.details || error.error || 'Failed to sign NDA';
-        console.error('Final error message:', errorMessage);
         throw new Error(errorMessage);
       }
 
       return response.json();
     },
     onSuccess: (data) => {
-      console.log('NDA signed successfully:', data);
       setSignResponse(data);
       setIsComplete(true);
       // No automatic redirect - user will check email for access link

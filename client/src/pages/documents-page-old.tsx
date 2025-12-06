@@ -264,7 +264,6 @@ export default function DocumentsPage() {
         description: "Formatted HTML content has been copied to your clipboard. You can paste it into a document or email.",
       });
     } catch (error) {
-      console.error("HTML export error:", error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to export HTML",
@@ -373,7 +372,6 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
         description: `Your ${format.toUpperCase()} export has started. Check your downloads.`,
       });
     } catch (error) {
-      console.error(`${format} export error:`, error);
       toast({
         title: "Export Failed",
         description: `Failed to export to ${format.toUpperCase()}. Please try again.`,

@@ -50,7 +50,6 @@ export function DocumentLockIndicator({
         const data = await response.json();
         setLockStatus(data);
       } catch (error) {
-        console.error("Failed to check lock status:", error);
       }
     };
 
@@ -180,7 +179,6 @@ export function useDocumentLock(documentId: number) {
         return true;
       }
     } catch (error: any) {
-      console.error("Failed to acquire lock:", error);
       return false;
     }
     return false;
@@ -193,7 +191,6 @@ export function useDocumentLock(documentId: number) {
       await apiRequest("DELETE", `/api/cim/${documentId}/lock`);
       setHasLock(false);
     } catch (error) {
-      console.error("Failed to release lock:", error);
     }
   };
 
@@ -208,7 +205,6 @@ export function useDocumentLock(documentId: number) {
       try {
         await apiRequest("POST", `/api/cim/${documentId}/lock/heartbeat`);
       } catch (error) {
-        console.error("Heartbeat failed:", error);
         stopHeartbeat();
         setHasLock(false);
 

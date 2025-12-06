@@ -1328,7 +1328,6 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                               }
                             }
                           } catch (error) {
-                            console.error('Failed to fetch investor contact:', error);
                             // Still show the modal with basic info
                             setViewingContact({
                               id: null,
@@ -1581,7 +1580,6 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                                   }
                                 }
                               } catch (error) {
-                                console.error('Failed to fetch investor contact:', error);
                                 setViewingContact({
                                   id: null,
                                   name: signature.signerName,

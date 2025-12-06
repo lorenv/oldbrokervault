@@ -29,7 +29,9 @@
       "Bash(npx tsx:*)",
       "Bash(chmod:*)",
       "Bash(apt-cache search:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": [],

@@ -126,7 +126,6 @@ export default function EnhancedPdfViewer({
   React.useEffect(() => {
     if (pdfBase64) {
       try {
-        console.log('Creating PDF blob URL from base64, length:', pdfBase64.length);
         
         // Convert base64 to blob
         const binaryString = atob(pdfBase64);
@@ -139,14 +138,12 @@ export default function EnhancedPdfViewer({
         const url = URL.createObjectURL(blob);
         setPdfUrl(url);
         
-        console.log('PDF blob URL created successfully');
         
         // Cleanup function
         return () => {
           URL.revokeObjectURL(url);
         };
       } catch (error) {
-        console.error('Error creating PDF blob URL:', error);
       }
     }
   }, [pdfBase64]);
@@ -276,14 +273,12 @@ export default function EnhancedPdfViewer({
             data={pdfUrl}
             type="application/pdf"
             className="w-full h-full border-0"
-            onLoad={() => console.log('PDF object loaded')}
           >
             {/* Fallback: Iframe */}
             <iframe
               src={pdfUrl}
               className="w-full h-full border-0"
               title="PDF Template"
-              onLoad={() => console.log('PDF iframe fallback loaded')}
             >
               {/* Final fallback: Canvas with instructions */}
               <div className="flex items-center justify-center h-full bg-gray-100">

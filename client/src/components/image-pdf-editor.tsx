@@ -63,12 +63,6 @@ export default function ImagePdfEditor({
   const [isSaving, setIsSaving] = useState(false);
 
   // Debug log to check if this is a new template
-  console.log('🔧 ImagePdfEditor props:', { 
-    isNewTemplate, 
-    hasOnSave: !!onSave, 
-    templateName: localTemplateName,
-    hasPdfBase64: !!pdfBase64
-  });
 
   // Helper functions for field management
   const addField = useCallback((x: number, y: number, type: SignatureField['type'], pageNumber: number) => {
@@ -86,7 +80,6 @@ export default function ImagePdfEditor({
              type === 'email' ? 'Email Address' : 'Text Field'
     };
     
-    console.log('Creating new field:', newField);
     const updatedFields = [...signatureFields, newField];
     onFieldsChange(updatedFields);
   }, [signatureFields, onFieldsChange]);
@@ -96,7 +89,6 @@ export default function ImagePdfEditor({
       if (field.id === fieldId) {
         // Force update - ignore any overlap detection
         const updatedField = { ...field, ...updates };
-        console.log('🔄 FORCE UPDATE field:', fieldId, 'from:', { x: field.x, y: field.y, page: field.pageNumber }, 'to:', updates);
         return updatedField;
       }
       return field;
@@ -116,12 +108,10 @@ export default function ImagePdfEditor({
     if (!pdfBase64) return;
 
     const convertPdfToImage = async () => {
-      console.log('Starting PDF conversion, setting loading to true');
       setIsLoading(true);
       setError('');
 
       try {
-        console.log('Converting all PDF pages to images via server');
         const response = await fetch('/api/pdf-to-image', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -133,7 +123,6 @@ export default function ImagePdfEditor({
         }
 
         const data = await response.json();
-        console.log('All', data.totalPages, 'PDF pages converted successfully');
 
         const processedPages = await Promise.all(
           data.pages.map((page: any) => {
@@ -142,7 +131,6 @@ export default function ImagePdfEditor({
               // Use the imageUrl directly from the API response
               const imageUrl = page.imageUrl || `/api/temp-image/${page.filename}`;
               img.onload = () => {
-                console.log(`Image loaded for page ${page.pageNumber}: ${img.width}x${img.height}`);
                 resolve({
                   pageNumber: page.pageNumber,
                   imageDataUrl: imageUrl,
@@ -151,7 +139,6 @@ export default function ImagePdfEditor({
                 });
               };
               img.onerror = () => {
-                console.error(`Failed to load image for page ${page.pageNumber}, URL: ${imageUrl}`);
                 resolve({
                   pageNumber: page.pageNumber,
                   imageDataUrl: imageUrl,
@@ -164,13 +151,11 @@ export default function ImagePdfEditor({
           })
         );
 
-        console.log('All page images processed:', processedPages.length);
         setPageImages(processedPages);
         setTotalPages(data.totalPages || 1);
         setIsLoading(false);
 
       } catch (error: any) {
-        console.error('PDF to image conversion error:', error);
         setError(`Failed to convert PDF to image: ${error.message}`);
         setIsLoading(false);
       }
@@ -313,7 +298,6 @@ export default function ImagePdfEditor({
                           e.currentTarget.style.backgroundColor = 'transparent';
                           e.currentTarget.style.border = 'none';
                           
-                          console.log('🎯 DROP EVENT on page', page.pageNumber);
                           
                           const rect = e.currentTarget.getBoundingClientRect();
                           const relativeX = e.clientX - rect.left;
@@ -328,23 +312,12 @@ export default function ImagePdfEditor({
                           const x = zoomAdjustedX * scaleX;
                           const y = zoomAdjustedY * scaleY;
                           
-                          console.log('📐 Drop coordinates:', { 
-                            relativeX, 
-                            relativeY, 
-                            zoomLevel, 
-                            zoomFactor, 
-                            zoomAdjustedX, 
-                            zoomAdjustedY, 
-                            scaledX: x, 
-                            scaledY: y 
-                          });
                           
                           // Check if it's a new field or existing field move
                           const fieldId = e.dataTransfer.getData('application/field-id');
                           const fieldType = e.dataTransfer.getData('application/field-type');
                           const textPlain = e.dataTransfer.getData('text/plain');
                           
-                          console.log('🔍 Retrieved data:', { fieldId, fieldType, textPlain, allTypes: Array.from(e.dataTransfer.types) });
                           
                           // Handle field movement with precise coordinate updates
                           const existingFieldId = fieldId || (textPlain && textPlain.startsWith('field_') ? textPlain : null);
@@ -353,7 +326,6 @@ export default function ImagePdfEditor({
                             // Moving existing field - force coordinate update regardless of overlap
                             const newX = Math.max(0, Math.round(x));
                             const newY = Math.max(0, Math.round(y));
-                            console.log('✅ Moving existing field', existingFieldId, 'to page', page.pageNumber, 'at', newX, newY);
                             updateField(existingFieldId, { 
                               x: newX, 
                               y: newY, 
@@ -361,14 +333,11 @@ export default function ImagePdfEditor({
                             });
                           } else if (fieldType && ['signature', 'name', 'date', 'email', 'text'].includes(fieldType)) {
                             // Adding new field
-                            console.log('✅ Adding new field', fieldType, 'at coordinates', Math.round(x), Math.round(y));
                             addField(Math.max(0, Math.round(x - 15)), Math.max(0, Math.round(y - 8)), fieldType as SignatureField['type'], page.pageNumber);
                           } else if (textPlain && ['signature', 'name', 'date', 'email', 'text'].includes(textPlain)) {
                             // Fallback for new field creation
-                            console.log('✅ Adding new field (fallback)', textPlain, 'at coordinates', Math.round(x), Math.round(y));
                             addField(Math.max(0, Math.round(x - 15)), Math.max(0, Math.round(y - 8)), textPlain as SignatureField['type'], page.pageNumber);
                           } else {
-                            console.log('❌ NO FIELD DATA FOUND - fieldId:', fieldId, 'fieldType:', fieldType, 'textPlain:', textPlain);
                           }
                         }}
                         onDragOver={(e) => {
@@ -386,7 +355,6 @@ export default function ImagePdfEditor({
                         onDragEnter={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          console.log('🚪 DRAG ENTER page', page.pageNumber);
                           
                           // Enhanced enter feedback
                           e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.15)';
@@ -437,7 +405,6 @@ export default function ImagePdfEditor({
                                 zIndex: 20,
                               }}
                               onDragStart={(e) => {
-                                console.log('🔄 FIELD DRAG START:', field.id);
                                 e.dataTransfer.clearData();
                                 e.dataTransfer.setData('application/field-id', field.id);
                                 e.dataTransfer.setData('text/plain', field.id);
@@ -453,7 +420,6 @@ export default function ImagePdfEditor({
                                 e.currentTarget.style.background = 'rgba(59, 130, 246, 0.2)';
                               }}
                               onDragEnd={(e) => {
-                                console.log('🔄 FIELD DRAG END:', field.id);
                                 // Clean reset of drag styling
                                 e.currentTarget.style.opacity = '1';
                                 e.currentTarget.style.transform = 'scale(1)';
