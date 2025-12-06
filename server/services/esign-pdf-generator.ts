@@ -1,9 +1,14 @@
 import { PDFDocument, rgb, StandardFonts, PDFPage } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import * as fs from 'fs';
+import * as fsp from 'fs/promises';
 import * as path from 'path';
 import crypto from 'crypto';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 import { ObjectStorageService } from '../object-storage';
+
+const execAsync = promisify(exec);
 
 interface SignedField {
   id: number;
@@ -36,6 +41,62 @@ interface EnvelopeInfo {
 }
 
 /**
+ * Check if a file is a PDF by examining its magic bytes
+ */
+function isPdfBuffer(buffer: Buffer): boolean {
+  // PDF magic bytes: %PDF
+  return buffer.length >= 4 &&
+         buffer[0] === 0x25 && // %
+         buffer[1] === 0x50 && // P
+         buffer[2] === 0x44 && // D
+         buffer[3] === 0x46;   // F
+}
+
+/**
+ * Convert a non-PDF document to PDF using LibreOffice
+ */
+async function convertToPdf(documentBuffer: Buffer, originalFilename: string): Promise<Buffer> {
+  const tempDir = path.join(process.cwd(), 'temp', `convert-${Date.now()}`);
+
+  try {
+    await fsp.mkdir(tempDir, { recursive: true });
+
+    // Write the document to a temp file
+    const inputPath = path.join(tempDir, originalFilename);
+    await fsp.writeFile(inputPath, documentBuffer);
+
+    // Convert to PDF using LibreOffice
+    const pdfOutputDir = path.join(tempDir, 'pdf');
+    await fsp.mkdir(pdfOutputDir, { recursive: true });
+
+    console.log(`[ESIGN-PDF] Converting ${originalFilename} to PDF using LibreOffice...`);
+    await execAsync(
+      `libreoffice --headless --convert-to pdf --outdir "${pdfOutputDir}" "${inputPath}"`,
+      { timeout: 120000 }
+    );
+
+    // Find the generated PDF
+    const pdfFiles = await fsp.readdir(pdfOutputDir);
+    const pdfFile = pdfFiles.find(f => f.toLowerCase().endsWith('.pdf'));
+
+    if (!pdfFile) {
+      throw new Error('LibreOffice did not generate a PDF file');
+    }
+
+    const pdfPath = path.join(pdfOutputDir, pdfFile);
+    const pdfBuffer = await fsp.readFile(pdfPath);
+    console.log(`[ESIGN-PDF] Successfully converted to PDF (${pdfBuffer.length} bytes)`);
+
+    return pdfBuffer;
+  } finally {
+    // Clean up temp directory
+    fsp.rm(tempDir, { recursive: true, force: true }).catch(() => {
+      console.warn(`[ESIGN-PDF] Failed to clean up temp directory: ${tempDir}`);
+    });
+  }
+}
+
+/**
  * Generates a signed PDF with all signature fields overlaid on the original document
  */
 export async function generateSignedPdf(
@@ -44,29 +105,43 @@ export async function generateSignedPdf(
   signers: SignerInfo[],
   envelope: EnvelopeInfo
 ): Promise<Buffer> {
-  // Fetch original PDF
+  // Fetch original document
   const storage = new ObjectStorageService();
-  let pdfBytes: Buffer;
+  let documentBytes: Buffer;
+  let originalFilename = 'document';
 
   if (originalPdfUrl.startsWith('http')) {
     // Full HTTP URL - fetch directly
     const response = await fetch(originalPdfUrl);
     if (!response.ok) {
-      throw new Error(`Failed to fetch original PDF: ${response.statusText}`);
+      throw new Error(`Failed to fetch original document: ${response.statusText}`);
     }
-    pdfBytes = Buffer.from(await response.arrayBuffer());
+    documentBytes = Buffer.from(await response.arrayBuffer());
+    // Try to extract filename from URL
+    const urlPath = new URL(originalPdfUrl).pathname;
+    originalFilename = path.basename(urlPath) || 'document';
   } else if (originalPdfUrl.startsWith('/api/object-storage/')) {
     // Object storage URL - extract the key and download from storage
-    // URL format: /api/object-storage/private/esign/templates/123/file.pdf
-    // or: /api/object-storage/path/to/file.pdf
     const key = originalPdfUrl.replace('/api/object-storage/', '');
-    console.log(`[ESIGN-PDF] Downloading PDF from object storage: ${key}`);
-    pdfBytes = await storage.downloadBuffer(key);
+    console.log(`[ESIGN-PDF] Downloading document from object storage: ${key}`);
+    documentBytes = await storage.downloadBuffer(key);
+    originalFilename = path.basename(key);
   } else if (fs.existsSync(originalPdfUrl)) {
     // Local file path that exists
-    pdfBytes = fs.readFileSync(originalPdfUrl);
+    documentBytes = fs.readFileSync(originalPdfUrl);
+    originalFilename = path.basename(originalPdfUrl);
   } else {
-    throw new Error(`Cannot access PDF at: ${originalPdfUrl}`);
+    throw new Error(`Cannot access document at: ${originalPdfUrl}`);
+  }
+
+  // Check if the document is already a PDF, if not, convert it
+  let pdfBytes: Buffer;
+  if (isPdfBuffer(documentBytes)) {
+    console.log(`[ESIGN-PDF] Document is already a PDF`);
+    pdfBytes = documentBytes;
+  } else {
+    console.log(`[ESIGN-PDF] Document is not a PDF (${originalFilename}), converting...`);
+    pdfBytes = await convertToPdf(documentBytes, originalFilename);
   }
 
   const pdfDoc = await PDFDocument.load(pdfBytes);

@@ -4,6 +4,10 @@ import * as path from 'path';
 import { fromBuffer } from 'pdf2pic';
 import sharp from 'sharp';
 import { ObjectStorageService } from '../object-storage';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 interface PageInfo {
   url: string;
@@ -131,6 +135,143 @@ export async function processPDFToImages(file: FileUpload, id: number, isTemplat
       }
     }
     throw new Error('Failed to process PDF document: Unknown error occurred');
+  }
+}
+
+/**
+ * Process any LibreOffice-supported document format to images.
+ * Supports: Word (.docx, .doc), Excel (.xlsx, .xls), PowerPoint (.pptx, .ppt),
+ * OpenDocument (.odt, .ods, .odp), RTF, and more.
+ */
+export async function processDocumentToImages(file: FileUpload, id: number, isTemplate: boolean = false): Promise<ProcessedDocument> {
+  const tempDir = path.join(process.cwd(), 'temp', `${isTemplate ? 'template' : 'doc'}-convert-${id}`);
+
+  try {
+    console.log(`[DOC_PROC] Starting document processing for ${file.originalname}`);
+
+    // Create temporary directory
+    await fs.mkdir(tempDir, { recursive: true });
+
+    // Write the document to a temp file
+    const inputPath = path.join(tempDir, file.originalname);
+    await fs.writeFile(inputPath, file.buffer);
+    console.log(`[DOC_PROC] Written input file: ${inputPath}`);
+
+    // Use LibreOffice to convert document to PDF (preserves all formatting)
+    const pdfOutputDir = path.join(tempDir, 'pdf');
+    await fs.mkdir(pdfOutputDir, { recursive: true });
+
+    console.log(`[DOC_PROC] Converting document to PDF using LibreOffice...`);
+    try {
+      await execAsync(
+        `libreoffice --headless --convert-to pdf --outdir "${pdfOutputDir}" "${inputPath}"`,
+        { timeout: 120000 } // 120 second timeout for large spreadsheets/presentations
+      );
+    } catch (loError: any) {
+      console.error('[DOC_PROC] LibreOffice conversion failed:', loError);
+      throw new Error(`LibreOffice conversion failed: ${loError.message}`);
+    }
+
+    // Find the generated PDF
+    const pdfFiles = await fs.readdir(pdfOutputDir);
+    const pdfFile = pdfFiles.find(f => f.toLowerCase().endsWith('.pdf'));
+
+    if (!pdfFile) {
+      throw new Error('LibreOffice did not generate a PDF file');
+    }
+
+    const pdfPath = path.join(pdfOutputDir, pdfFile);
+    const pdfBuffer = await fs.readFile(pdfPath);
+    console.log(`[DOC_PROC] PDF generated: ${pdfPath} (${pdfBuffer.length} bytes)`);
+
+    // Now convert the PDF to images using the existing method
+    const imagesDir = path.join(tempDir, 'images');
+    await fs.mkdir(imagesDir, { recursive: true });
+
+    const convert = fromBuffer(pdfBuffer, {
+      density: 150,
+      saveFilename: "page",
+      savePath: imagesDir,
+      format: "png",
+      width: 1200,
+      preserveAspectRatio: true,
+      quality: 85
+    });
+
+    console.log(`[DOC_PROC] Converting PDF pages to images...`);
+    const results = await convert.bulk(-1);
+    const pageCount = results.length;
+    const imageUrls: string[] = [];
+    const pages: PageInfo[] = [];
+
+    console.log(`[DOC_PROC] Processing ${pageCount} pages`);
+
+    // Process images in parallel batches
+    const batchSize = 3;
+    for (let i = 0; i < results.length; i += batchSize) {
+      const batch = results.slice(i, i + batchSize);
+
+      await Promise.all(batch.map(async (pageResult, batchIndex) => {
+        const pageIndex = i + batchIndex;
+        if (pageResult.path) {
+          try {
+            const imageBuffer = await fs.readFile(pageResult.path);
+
+            const optimizedBuffer = await sharp(imageBuffer)
+              .png({
+                compressionLevel: 6,
+                quality: 85,
+                progressive: true
+              })
+              .toBuffer();
+
+            const metadata = await sharp(optimizedBuffer).metadata();
+            const imageWidth = metadata.width || 612;
+            const imageHeight = metadata.height || 792;
+            const isLandscape = imageWidth > imageHeight;
+
+            const objectStorageService = new ObjectStorageService();
+            const storageKey = `private/${isTemplate ? 'templates' : 'documents'}/${id}/pages/page-${pageIndex + 1}.png`;
+            const uploadResult = await objectStorageService.uploadBuffer(storageKey, optimizedBuffer, 'image/png');
+
+            console.log(`[DOC_PROC] Processed page ${pageIndex + 1}: ${uploadResult.url} (${imageWidth}x${imageHeight}, ${isLandscape ? 'landscape' : 'portrait'})`);
+
+            imageUrls[pageIndex] = uploadResult.url;
+            pages[pageIndex] = {
+              url: uploadResult.url,
+              width: imageWidth,
+              height: imageHeight
+            };
+
+          } catch (error) {
+            console.error(`[DOC_PROC] Failed to process page ${pageIndex + 1}:`, error);
+            throw error;
+          }
+        }
+      }));
+    }
+
+    // Clean up temporary directory
+    fs.rm(tempDir, { recursive: true, force: true }).catch(() => {
+      console.warn(`[DOC_PROC] Failed to clean up temp directory: ${tempDir}`);
+    });
+
+    console.log(`[DOC_PROC] Successfully processed ${pageCount} pages from document`);
+
+    return {
+      pageCount,
+      imageUrls: imageUrls.filter(url => url),
+      pages: pages.filter(p => p),
+    };
+
+  } catch (error) {
+    console.error('[DOC_PROC] Document processing error:', error);
+    fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+
+    if (error instanceof Error) {
+      throw new Error(`Document processing failed: ${error.message}`);
+    }
+    throw new Error('Failed to process document: Unknown error occurred');
   }
 }
 

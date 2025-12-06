@@ -154,44 +154,58 @@ export default function EsignSettings() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
       {/* Header */}
       <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 border-b border-slate-200 shadow-lg">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              className="text-white hover:bg-white/10"
-              onClick={() => setLocation("/esign")}
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
-                <Settings className="h-8 w-8" />
-                E-Signature Settings
-              </h1>
-              <p className="text-slate-200">
-                Customize your branding for signing emails and documents
-              </p>
+        <div className="container mx-auto px-4 py-6 md:py-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-3 md:gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-white hover:bg-white/10"
+                onClick={() => setLocation("/esign")}
+              >
+                <ArrowLeft className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Back</span>
+              </Button>
+              <div>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1 md:mb-2 flex items-center gap-2 md:gap-3">
+                  <Settings className="h-6 w-6 md:h-8 md:w-8" />
+                  <span className="hidden sm:inline">E-Signature Settings</span>
+                  <span className="sm:hidden">Settings</span>
+                </h1>
+                <p className="text-slate-200 text-sm md:text-base hidden sm:block">
+                  Customize your branding for signing emails and documents
+                </p>
+              </div>
             </div>
+            {/* Save Button in Header */}
+            <Button
+              size="sm"
+              onClick={handleSave}
+              disabled={saveMutation.isPending}
+              style={{ backgroundColor: formData.primaryColor || "#0072CE" }}
+              className="text-white self-start sm:self-auto"
+            >
+              {saveMutation.isPending ? "Saving..." : "Save Settings"}
+            </Button>
           </div>
         </div>
       </div>
 
-      <main className="container mx-auto px-4 py-8 max-w-3xl">
+      <main className="container mx-auto px-4 py-6 md:py-8 max-w-3xl">
         {/* Company Logo */}
-        <Card className="mb-6">
+        <Card className="mb-4 md:mb-6">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-base md:text-lg">
               <Image className="h-5 w-5" />
               Company Logo
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-sm">
               Your logo will appear in signing invitation emails and on the signing page
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-6">
-              <div className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 overflow-hidden">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
+              <div className="w-24 h-24 sm:w-32 sm:h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 overflow-hidden flex-shrink-0">
                 {formData.logoUrl ? (
                   <img
                     src={formData.logoUrl}
@@ -199,10 +213,10 @@ export default function EsignSettings() {
                     className="max-w-full max-h-full object-contain"
                   />
                 ) : (
-                  <Building2 className="h-12 w-12 text-gray-400" />
+                  <Building2 className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400" />
                 )}
               </div>
-              <div className="flex-1">
+              <div className="flex-1 w-full">
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -210,9 +224,10 @@ export default function EsignSettings() {
                   accept="image/*"
                   className="hidden"
                 />
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     variant="outline"
+                    size="sm"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploadMutation.isPending}
                   >
@@ -222,6 +237,7 @@ export default function EsignSettings() {
                   {formData.logoUrl && (
                     <Button
                       variant="outline"
+                      size="sm"
                       className="text-red-600 hover:text-red-700"
                       onClick={() => setFormData((prev) => ({ ...prev, logoUrl: null }))}
                     >
@@ -230,7 +246,7 @@ export default function EsignSettings() {
                     </Button>
                   )}
                 </div>
-                <p className="text-sm text-gray-500 mt-2">
+                <p className="text-xs sm:text-sm text-gray-500 mt-2">
                   Recommended: 400x100px or similar aspect ratio. Max 5MB.
                 </p>
               </div>
@@ -239,13 +255,13 @@ export default function EsignSettings() {
         </Card>
 
         {/* Company Name */}
-        <Card className="mb-6">
+        <Card className="mb-4 md:mb-6">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-base md:text-lg">
               <Building2 className="h-5 w-5" />
               Company Name
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-sm">
               The name that appears in emails sent to signers
             </CardDescription>
           </CardHeader>
@@ -266,7 +282,7 @@ export default function EsignSettings() {
         </Card>
 
         {/* Primary Color */}
-        <Card className="mb-6">
+        <Card className="mb-4 md:mb-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Palette className="h-5 w-5" />
@@ -321,36 +337,36 @@ export default function EsignSettings() {
         </Card>
 
         {/* Preview */}
-        <Card className="mb-6">
+        <Card>
           <CardHeader>
-            <CardTitle>Preview</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-base md:text-lg">Preview</CardTitle>
+            <CardDescription className="text-sm">
               How your branding will appear in signing emails
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="border rounded-lg p-6 bg-white">
+            <div className="border rounded-lg p-4 md:p-6 bg-white">
               <div className="max-w-md mx-auto">
                 {formData.logoUrl && (
                   <div className="text-center mb-4">
                     <img
                       src={formData.logoUrl}
                       alt="Logo preview"
-                      className="h-12 mx-auto object-contain"
+                      className="h-10 md:h-12 mx-auto object-contain"
                     />
                   </div>
                 )}
-                <div className="text-center mb-6">
-                  <h3 className="text-xl font-semibold text-gray-900">
+                <div className="text-center mb-4 md:mb-6">
+                  <h3 className="text-base md:text-xl font-semibold text-gray-900">
                     {formData.companyName || "Your Company"} has sent you a document to sign
                   </h3>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                  <p className="text-sm text-gray-600 mb-2">Document</p>
-                  <p className="font-medium">Sample Agreement.pdf</p>
+                <div className="bg-gray-50 rounded-lg p-3 md:p-4 mb-4">
+                  <p className="text-xs md:text-sm text-gray-600 mb-1 md:mb-2">Document</p>
+                  <p className="font-medium text-sm md:text-base">Sample Agreement.pdf</p>
                 </div>
                 <button
-                  className="w-full py-3 rounded-lg text-white font-medium"
+                  className="w-full py-2.5 md:py-3 rounded-lg text-white font-medium text-sm md:text-base"
                   style={{ backgroundColor: formData.primaryColor || "#0072CE" }}
                 >
                   Review & Sign Document
@@ -359,19 +375,6 @@ export default function EsignSettings() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Save Button */}
-        <div className="flex justify-end">
-          <Button
-            size="lg"
-            onClick={handleSave}
-            disabled={saveMutation.isPending}
-            style={{ backgroundColor: formData.primaryColor || "#0072CE" }}
-            className="text-white"
-          >
-            {saveMutation.isPending ? "Saving..." : "Save Settings"}
-          </Button>
-        </div>
       </main>
     </div>
   );

@@ -18,7 +18,7 @@ import {
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import multer from 'multer';
-import { processPDFToImages } from '../services/pdf-processor';
+import { processPDFToImages, processDocumentToImages } from '../services/pdf-processor';
 import { ObjectStorageService } from '../object-storage';
 import { generateSecureToken } from '../token-utils';
 import {
@@ -40,12 +40,13 @@ import {
   combineSignedPdfWithCertificate
 } from '../services/esign-pdf-generator';
 import { summarizeDocumentForSigner } from '../openai';
+import { summarizeDocumentWithVision } from '../services/anthropic-vision';
 import * as pdfParseModule from 'pdf-parse';
 const pdfParse = (pdfParseModule as any).default || pdfParseModule;
 
 const router = Router();
 
-// Configure multer for document uploads - accepts PDF and Word documents
+// Configure multer for document uploads - accepts PDF, Word, Excel, PowerPoint
 const documentUpload = multer({
   storage: multer.memoryStorage(),
   limits: {
@@ -53,14 +54,28 @@ const documentUpload = multer({
   },
   fileFilter: (req, file, cb) => {
     const allowedMimes = [
+      // PDF
       'application/pdf',
+      // Word documents
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
       'application/msword', // .doc
+      'application/vnd.oasis.opendocument.text', // .odt
+      'application/rtf', // .rtf
+      'text/rtf',
+      // Excel spreadsheets
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+      'application/vnd.ms-excel', // .xls
+      'application/vnd.oasis.opendocument.spreadsheet', // .ods
+      'text/csv', // .csv
+      // PowerPoint presentations
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx
+      'application/vnd.ms-powerpoint', // .ppt
+      'application/vnd.oasis.opendocument.presentation', // .odp
     ];
     if (allowedMimes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Only PDF and Word documents are allowed'));
+      cb(new Error('Only PDF, Word, Excel, and PowerPoint documents are allowed'));
     }
   },
 });
@@ -592,58 +607,112 @@ router.post('/templates/upload', upload.single('document'), async (req: Request,
     let pdfBuffer = req.file.buffer;
     let originalFilename = req.file.originalname;
 
-    // Determine if this is a Word document by MIME type OR file extension
-    const isWordDocument =
-      req.file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-      req.file.mimetype === 'application/msword' ||
-      req.file.originalname.toLowerCase().endsWith('.docx') ||
-      req.file.originalname.toLowerCase().endsWith('.doc');
+    const fileExt = req.file.originalname.toLowerCase().split('.').pop() || '';
+    const mimetype = req.file.mimetype;
 
-    const isPdf = req.file.mimetype === 'application/pdf' ||
-      req.file.originalname.toLowerCase().endsWith('.pdf');
+    // Determine document type by MIME type OR file extension
+    const isPdf = mimetype === 'application/pdf' || fileExt === 'pdf';
 
-    // Convert Word to PDF if necessary
-    if (isWordDocument && !isPdf) {
-      console.log('[ESIGN] Detected Word document, converting to PDF...');
+    // LibreOffice-supported document formats
+    const libreOfficeFormats = {
+      // Word documents
+      word: ['docx', 'doc', 'odt', 'rtf'],
+      wordMimes: [
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/msword',
+        'application/vnd.oasis.opendocument.text',
+        'application/rtf',
+        'text/rtf'
+      ],
+      // Excel spreadsheets
+      excel: ['xlsx', 'xls', 'ods', 'csv'],
+      excelMimes: [
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-excel',
+        'application/vnd.oasis.opendocument.spreadsheet',
+        'text/csv'
+      ],
+      // PowerPoint presentations
+      powerpoint: ['pptx', 'ppt', 'odp'],
+      powerpointMimes: [
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'application/vnd.ms-powerpoint',
+        'application/vnd.oasis.opendocument.presentation'
+      ]
+    };
+
+    const isLibreOfficeSupported =
+      libreOfficeFormats.word.includes(fileExt) ||
+      libreOfficeFormats.wordMimes.includes(mimetype) ||
+      libreOfficeFormats.excel.includes(fileExt) ||
+      libreOfficeFormats.excelMimes.includes(mimetype) ||
+      libreOfficeFormats.powerpoint.includes(fileExt) ||
+      libreOfficeFormats.powerpointMimes.includes(mimetype);
+
+    // Generate a unique template ID
+    const tempTemplateId = Date.now();
+    const objectStorage = new ObjectStorageService();
+    let processedDocument;
+    let documentUrl: string;
+
+    // Process LibreOffice-supported documents (Word, Excel, PowerPoint, etc.)
+    if (isLibreOfficeSupported && !isPdf) {
+      const docType = libreOfficeFormats.word.includes(fileExt) || libreOfficeFormats.wordMimes.includes(mimetype)
+        ? 'Word'
+        : libreOfficeFormats.excel.includes(fileExt) || libreOfficeFormats.excelMimes.includes(mimetype)
+        ? 'Excel'
+        : 'PowerPoint';
+
+      console.log(`[ESIGN] Detected ${docType} document, processing with LibreOffice...`);
       try {
-        pdfBuffer = await convertWordToPdf(req.file.buffer, req.file.originalname);
-        originalFilename = originalFilename.replace(/\.docx?$/i, '.pdf');
-        console.log(`[ESIGN] Conversion successful, PDF size: ${pdfBuffer.length} bytes`);
+        processedDocument = await processDocumentToImages({
+          buffer: req.file.buffer,
+          originalname: req.file.originalname,
+        }, tempTemplateId, true);
+
+        // Store original document in object storage
+        const docStorageKey = `private/esign/templates/${tempTemplateId}/${originalFilename}`;
+        const docUploadResult = await objectStorage.uploadBuffer(docStorageKey, req.file.buffer, req.file.mimetype);
+        documentUrl = docUploadResult.url;
+        console.log(`[ESIGN] ${docType} document processed successfully, ${processedDocument.pageCount} pages`);
       } catch (convError: any) {
-        console.error('[ESIGN] Word conversion failed:', convError);
+        console.error(`[ESIGN] ${docType} processing failed:`, convError);
         return res.status(500).json({
-          error: 'Failed to convert Word document to PDF',
+          error: `Failed to process ${docType} document`,
           details: convError.message
         });
       }
-    } else if (!isPdf) {
-      console.log(`[ESIGN] Unknown file type: ${req.file.mimetype}, attempting as Word document...`);
+    } else if (isPdf) {
+      // Process PDF directly to images
+      processedDocument = await processPDFToImages({
+        buffer: pdfBuffer,
+        originalname: originalFilename,
+      }, tempTemplateId, true);
+
+      // Store original PDF in object storage
+      const pdfStorageKey = `private/esign/templates/${tempTemplateId}/${originalFilename}`;
+      const pdfUploadResult = await objectStorage.uploadBuffer(pdfStorageKey, pdfBuffer, 'application/pdf');
+      documentUrl = pdfUploadResult.url;
+    } else {
+      // Unknown file type - try processing with LibreOffice as fallback
+      console.log(`[ESIGN] Unknown file type: ${mimetype} (${fileExt}), attempting with LibreOffice...`);
       try {
-        pdfBuffer = await convertWordToPdf(req.file.buffer, req.file.originalname);
-        originalFilename = originalFilename.replace(/\.[^.]+$/, '.pdf');
-        console.log(`[ESIGN] Conversion successful, PDF size: ${pdfBuffer.length} bytes`);
+        processedDocument = await processDocumentToImages({
+          buffer: req.file.buffer,
+          originalname: req.file.originalname,
+        }, tempTemplateId, true);
+
+        const docStorageKey = `private/esign/templates/${tempTemplateId}/${originalFilename}`;
+        const docUploadResult = await objectStorage.uploadBuffer(docStorageKey, req.file.buffer, req.file.mimetype);
+        documentUrl = docUploadResult.url;
       } catch (convError: any) {
         console.error('[ESIGN] Conversion failed:', convError);
         return res.status(400).json({
-          error: 'Unsupported file format. Please upload a PDF or Word document.',
+          error: 'Unsupported file format. Please upload a PDF, Word, Excel, or PowerPoint document.',
           details: convError.message
         });
       }
     }
-
-    // Generate a unique template ID
-    const tempTemplateId = Date.now();
-
-    // Process PDF to images
-    const processedDocument = await processPDFToImages({
-      buffer: pdfBuffer,
-      originalname: originalFilename,
-    }, tempTemplateId, true);
-
-    // Store original PDF in object storage
-    const objectStorage = new ObjectStorageService();
-    const pdfStorageKey = `private/esign/templates/${tempTemplateId}/${originalFilename}`;
-    const pdfUploadResult = await objectStorage.uploadBuffer(pdfStorageKey, pdfBuffer, 'application/pdf');
 
     console.log(`[ESIGN] Successfully processed ${processedDocument.pageCount} pages`);
 
@@ -653,7 +722,7 @@ router.post('/templates/upload', upload.single('document'), async (req: Request,
       pageCount: processedDocument.pageCount,
       pageImages: processedDocument.imageUrls,
       pages: processedDocument.pages, // Include page dimensions
-      documentUrl: pdfUploadResult.url,
+      documentUrl: documentUrl,
       originalFileName: req.file.originalname,
     });
   } catch (error: any) {
@@ -2266,7 +2335,7 @@ router.post('/sign/:token/decline', async (req: Request, res: Response) => {
   }
 });
 
-// AI Document Summarization for signers
+// AI Document Summarization for signers using Claude Vision
 router.post('/sign/:token/summarize', async (req: Request, res: Response) => {
   try {
     const { token } = req.params;
@@ -2293,47 +2362,22 @@ router.post('/sign/:token/summarize', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Document not found' });
     }
 
-    if (!envelope.documentUrl) {
-      return res.status(400).json({ error: 'No document available to summarize' });
+    // Check for page images (used for vision-based summarization)
+    const pageImages = envelope.pageImages as string[] | null;
+
+    if (!pageImages || pageImages.length === 0) {
+      return res.status(400).json({ error: 'No document pages available to summarize' });
     }
 
-    console.log(`[ESIGN] Summarizing document for recipient ${recipient.id}`);
+    const maxPages = 8;
+    const totalPages = pageImages.length;
+    const pagesAnalyzed = Math.min(totalPages, maxPages);
 
-    // Fetch the PDF and extract text
-    const storage = new ObjectStorageService();
-    let pdfBuffer: Buffer;
+    console.log(`[ESIGN] Summarizing ${pagesAnalyzed} of ${totalPages} page(s) for recipient ${recipient.id} using Claude Vision`);
 
-    if (envelope.documentUrl.startsWith('/api/object-storage/')) {
-      const key = envelope.documentUrl.replace('/api/object-storage/', '');
-      pdfBuffer = await storage.downloadBuffer(key);
-    } else if (envelope.documentUrl.startsWith('http')) {
-      const response = await fetch(envelope.documentUrl);
-      if (!response.ok) {
-        throw new Error('Failed to fetch document');
-      }
-      pdfBuffer = Buffer.from(await response.arrayBuffer());
-    } else {
-      return res.status(400).json({ error: 'Invalid document URL format' });
-    }
-
-    // Extract text from PDF
-    let documentText = '';
-    try {
-      const pdfData = await pdfParse(pdfBuffer);
-      documentText = pdfData.text;
-    } catch (parseError: any) {
-      console.error('[ESIGN] PDF parse error:', parseError);
-      return res.status(400).json({ error: 'Could not extract text from document' });
-    }
-
-    if (!documentText || documentText.trim().length < 100) {
-      return res.status(400).json({
-        error: 'Document contains insufficient text for summarization. It may be an image-based PDF.'
-      });
-    }
-
-    // Generate AI summary
-    const summary = await summarizeDocumentForSigner(documentText);
+    // Use Claude Vision to analyze page images directly
+    // Limit to first 8 pages to control costs while getting good coverage
+    const summary = await summarizeDocumentWithVision(pageImages, maxPages);
 
     // Log audit event
     await logAuditEvent(envelope.id, 'document_summarized', recipient.id, getClientIP(req));
@@ -2344,6 +2388,9 @@ router.post('/sign/:token/summarize', async (req: Request, res: Response) => {
       keyPoints: summary.keyPoints,
       importantTerms: summary.importantTerms,
       estimatedReadTime: summary.estimatedReadTime,
+      totalPages,
+      pagesAnalyzed,
+      pageLimitReached: totalPages > maxPages,
       disclaimer: 'This summary is AI-generated for informational purposes only. It is not legal advice. Please read the full document carefully before signing.',
     });
   } catch (error: any) {

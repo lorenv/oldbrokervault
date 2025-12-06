@@ -615,6 +615,7 @@ export default function EsignSend() {
   // Multiple document support
   const [uploadedDocuments, setUploadedDocuments] = useState<UploadedDocument[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Template-specific document data (templates have pre-defined documents)
   const [templateDocumentUrl, setTemplateDocumentUrl] = useState<string | null>(null);
@@ -675,18 +676,35 @@ export default function EsignSend() {
     }
   }, [selectedTemplate, initializedTemplateId]);
 
-  // Handle direct document upload (supports multiple files)
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+  // Allowed file extensions for validation
+  const allowedExtensions = ['.pdf', '.doc', '.docx', '.odt', '.rtf', '.xlsx', '.xls', '.ods', '.csv', '.pptx', '.ppt', '.odp'];
+
+  // Process files (shared by file input and drag/drop)
+  const processFiles = async (files: FileList | File[]) => {
+    const fileArray = Array.from(files);
+    if (fileArray.length === 0) return;
+
+    // Validate file types
+    const invalidFiles = fileArray.filter(file => {
+      const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+      return !allowedExtensions.includes(ext);
+    });
+
+    if (invalidFiles.length > 0) {
+      toast({
+        title: "Invalid file type",
+        description: `Only PDF, Word, Excel, and PowerPoint files are allowed. Invalid: ${invalidFiles.map(f => f.name).join(', ')}`,
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsUploading(true);
 
     try {
       const newDocuments: UploadedDocument[] = [];
 
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
+      for (const file of fileArray) {
         const formData = new FormData();
         formData.append('document', file);
 
@@ -742,8 +760,8 @@ export default function EsignSend() {
 
       const totalPages = newDocuments.reduce((sum, doc) => sum + doc.pageCount, 0);
       toast({
-        title: files.length > 1 ? "Documents uploaded" : "Document uploaded",
-        description: `Successfully processed ${files.length} file(s) with ${totalPages} page(s).`,
+        title: fileArray.length > 1 ? "Documents uploaded" : "Document uploaded",
+        description: `Successfully processed ${fileArray.length} file(s) with ${totalPages} page(s).`,
       });
     } catch (error: any) {
       toast({
@@ -753,8 +771,51 @@ export default function EsignSend() {
       });
     } finally {
       setIsUploading(false);
-      // Reset file input
-      e.target.value = '';
+    }
+  };
+
+  // Handle direct document upload (supports multiple files)
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    await processFiles(files);
+    // Reset file input
+    e.target.value = '';
+  };
+
+  // Drag and drop handlers
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isUploading) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only set dragging to false if we're leaving the drop zone entirely
+    if (e.currentTarget === e.target) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    if (isUploading) return;
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      await processFiles(files);
     }
   };
 
@@ -978,33 +1039,36 @@ export default function EsignSend() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
       {/* Header */}
       <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 border-b border-slate-200 shadow-lg">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-between">
+        <div className="container mx-auto px-4 py-6 md:py-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
-                <Send className="h-8 w-8" />
-                Send Document for Signature
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1 md:mb-2 flex items-center gap-2 md:gap-3">
+                <Send className="h-6 w-6 md:h-8 md:w-8" />
+                <span className="hidden sm:inline">Send Document for Signature</span>
+                <span className="sm:hidden">Send for Signature</span>
               </h1>
-              <p className="text-slate-200">
+              <p className="text-slate-200 text-sm md:text-base">
                 Upload a document or use a template and send it for signing
               </p>
             </div>
             <Button
               variant="outline"
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+              size="sm"
+              className="bg-white/10 border-white/20 text-white hover:bg-white/20 self-start sm:self-auto"
               onClick={() => setLocation("/esign")}
             >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
+              <ArrowLeft className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Back to Dashboard</span>
+              <span className="sm:hidden">Back</span>
             </Button>
           </div>
         </div>
       </div>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-6 md:py-8">
         {/* Progress Steps */}
-        <div className="flex items-center justify-center mb-8">
-          <div className="flex items-center gap-4">
+        <div className="flex items-center justify-center mb-6 md:mb-8 overflow-x-auto pb-2">
+          <div className="flex items-center gap-2 md:gap-4">
             {steps.map(({ step, label }, index) => (
               <div key={step} className="flex items-center">
                 <button
@@ -1013,7 +1077,7 @@ export default function EsignSend() {
                       setCurrentStep(step);
                     }
                   }}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-full transition-colors ${
+                  className={`flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-1.5 md:py-2 rounded-full transition-colors text-sm md:text-base whitespace-nowrap ${
                     currentStep === step
                       ? 'bg-blue-600 text-white'
                       : currentStepIndex > index
@@ -1022,16 +1086,16 @@ export default function EsignSend() {
                   }`}
                 >
                   {currentStepIndex > index ? (
-                    <CheckCircle className="h-5 w-5" />
+                    <CheckCircle className="h-4 w-4 md:h-5 md:w-5" />
                   ) : (
-                    <span className="w-5 h-5 flex items-center justify-center rounded-full bg-current/10 text-sm font-medium">
+                    <span className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center rounded-full bg-current/10 text-xs md:text-sm font-medium">
                       {index + 1}
                     </span>
                   )}
-                  <span className="font-medium">{label}</span>
+                  <span className="font-medium hidden sm:inline">{label}</span>
                 </button>
                 {index < steps.length - 1 && (
-                  <div className={`w-16 h-0.5 mx-2 ${currentStepIndex > index ? 'bg-green-300' : 'bg-gray-200'}`} />
+                  <div className={`w-4 md:w-16 h-0.5 mx-1 md:mx-2 ${currentStepIndex > index ? 'bg-green-300' : 'bg-gray-200'}`} />
                 )}
               </div>
             ))}
@@ -1049,40 +1113,60 @@ export default function EsignSend() {
                   Upload Documents
                 </CardTitle>
                 <CardDescription>
-                  Upload PDF or Word documents to send for signature. You can upload multiple files and reorder them.
+                  Upload documents to send for signature. Supports PDF, Word, Excel, and PowerPoint files.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <label className="cursor-pointer">
+                <div
+                  className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer ${
+                    isDragging
+                      ? 'border-blue-500 bg-blue-50'
+                      : isUploading
+                      ? 'bg-gray-50 cursor-wait'
+                      : 'hover:border-blue-400 hover:bg-blue-50'
+                  }`}
+                  onDragEnter={handleDragEnter}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={() => !isUploading && document.getElementById('esign-file-upload')?.click()}
+                >
                   <input
                     type="file"
-                    accept=".pdf,.doc,.docx"
+                    id="esign-file-upload"
+                    accept=".pdf,.doc,.docx,.odt,.rtf,.xlsx,.xls,.ods,.csv,.pptx,.ppt,.odp"
                     className="hidden"
                     onChange={handleFileUpload}
                     disabled={isUploading}
                     multiple
                   />
-                  <div className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-                    isUploading ? 'bg-gray-50' : 'hover:border-blue-400 hover:bg-blue-50'
-                  }`}>
-                    {isUploading ? (
-                      <>
-                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-3" />
-                        <p className="text-gray-600">Processing document(s)...</p>
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="h-10 w-10 mx-auto text-gray-400 mb-3" />
-                        <p className="text-gray-600 mb-1">
-                          {uploadedDocuments.length > 0 ? 'Add more documents' : 'Drag and drop or click to upload'}
-                        </p>
-                        <p className="text-sm text-gray-400">
-                          PDF, DOC, or DOCX files (multiple files allowed)
-                        </p>
-                      </>
-                    )}
-                  </div>
-                </label>
+                  {isUploading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-3" />
+                      <p className="text-gray-600">Processing document(s)...</p>
+                    </>
+                  ) : isDragging ? (
+                    <>
+                      <Upload className="h-10 w-10 mx-auto text-blue-500 mb-3" />
+                      <p className="text-blue-600 font-medium mb-1">
+                        Drop files here
+                      </p>
+                      <p className="text-sm text-blue-400">
+                        Release to upload
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-10 w-10 mx-auto text-gray-400 mb-3" />
+                      <p className="text-gray-600 mb-1">
+                        {uploadedDocuments.length > 0 ? 'Add more documents' : 'Drag and drop or click to upload'}
+                      </p>
+                      <p className="text-sm text-gray-400">
+                        PDF, Word, Excel, or PowerPoint (multiple files allowed)
+                      </p>
+                    </>
+                  )}
+                </div>
 
                 {/* Uploaded documents list */}
                 {uploadedDocuments.length > 0 && !selectedTemplateId && (
@@ -1259,7 +1343,7 @@ export default function EsignSend() {
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
                             <Label className="text-xs">Full Name</Label>
                             <Input
@@ -1357,9 +1441,9 @@ export default function EsignSend() {
         {/* Step 3: Place Fields (only for direct uploads, not templates) */}
         {currentStep === 3 && !selectedTemplate && (
           <DndProvider backend={HTML5Backend}>
-            <div className="grid grid-cols-12 gap-6" style={{ height: 'calc(100vh - 280px)', maxHeight: 'calc(100vh - 280px)' }}>
+            <div className="flex flex-col lg:grid lg:grid-cols-12 gap-4 lg:gap-6" style={{ minHeight: 'calc(100vh - 320px)' }}>
               {/* Left Sidebar - Field Palette & Recipients */}
-              <div className="col-span-3 space-y-4 overflow-y-auto max-h-full">
+              <div className="lg:col-span-3 space-y-4 overflow-y-auto lg:max-h-[calc(100vh-280px)]">
                 {/* Select Recipient for Field Assignment */}
                 <Card>
                   <CardHeader className="pb-3">
@@ -1461,7 +1545,7 @@ export default function EsignSend() {
               </div>
 
               {/* Document Canvas - Vertical Scrollable */}
-              <div className="col-span-9 flex flex-col max-h-full overflow-hidden">
+              <div className="lg:col-span-9 flex flex-col lg:max-h-[calc(100vh-280px)] overflow-hidden order-first lg:order-last">
                 {/* Toolbar */}
                 <div className="flex items-center justify-between bg-white border rounded-t-lg px-4 py-2 flex-shrink-0">
                   {/* Back Button */}

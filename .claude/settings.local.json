@@ -27,7 +27,9 @@
       "WebFetch(domain:www.listendata.com)",
       "Bash(cat:*)",
       "Bash(npx tsx:*)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(apt-cache search:*)",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": [],

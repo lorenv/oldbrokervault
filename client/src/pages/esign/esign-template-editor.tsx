@@ -498,6 +498,7 @@ export default function EsignTemplateEditor() {
 
   // Multiple document support
   const [uploadedDocuments, setUploadedDocuments] = useState<UploadedDocument[]>([]);
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
 
   // Computed: Combined document URL and page images from all uploaded documents
   const documentUrl = uploadedDocuments.length > 0 ? uploadedDocuments[0].documentUrl : "";
@@ -609,18 +610,35 @@ export default function EsignTemplateEditor() {
     }
   };
 
-  // File upload handler (supports multiple files)
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+  // Allowed file extensions for validation
+  const allowedExtensions = ['.pdf', '.doc', '.docx', '.odt', '.rtf', '.xlsx', '.xls', '.ods', '.csv', '.pptx', '.ppt', '.odp'];
+
+  // Process files (shared by file input and drag/drop)
+  const processFiles = async (files: FileList | File[]) => {
+    const fileArray = Array.from(files);
+    if (fileArray.length === 0) return;
+
+    // Validate file types
+    const invalidFiles = fileArray.filter(file => {
+      const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+      return !allowedExtensions.includes(ext);
+    });
+
+    if (invalidFiles.length > 0) {
+      toast({
+        title: "Invalid file type",
+        description: `Only PDF, Word, Excel, and PowerPoint files are allowed. Invalid: ${invalidFiles.map(f => f.name).join(', ')}`,
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsUploading(true);
 
     try {
       const newDocuments: UploadedDocument[] = [];
 
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
+      for (const file of fileArray) {
         const formData = new FormData();
         formData.append('document', file);
 
@@ -651,8 +669,8 @@ export default function EsignTemplateEditor() {
 
       const totalPages = newDocuments.reduce((sum, doc) => sum + doc.pageCount, 0);
       toast({
-        title: files.length > 1 ? "Documents uploaded" : "Document uploaded",
-        description: `Successfully processed ${files.length} file(s) with ${totalPages} page(s).`,
+        title: fileArray.length > 1 ? "Documents uploaded" : "Document uploaded",
+        description: `Successfully processed ${fileArray.length} file(s) with ${totalPages} page(s).`,
       });
     } catch (error: any) {
       toast({
@@ -662,8 +680,50 @@ export default function EsignTemplateEditor() {
       });
     } finally {
       setIsUploading(false);
-      // Reset file input
-      e.target.value = '';
+    }
+  };
+
+  // File upload handler (supports multiple files)
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    await processFiles(files);
+    // Reset file input
+    e.target.value = '';
+  };
+
+  // Drag and drop handlers for file upload
+  const handleFileDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isUploading) {
+      setIsDraggingFile(true);
+    }
+  };
+
+  const handleFileDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.currentTarget === e.target) {
+      setIsDraggingFile(false);
+    }
+  };
+
+  const handleFileDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleFileDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingFile(false);
+
+    if (isUploading) return;
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      await processFiles(files);
     }
   };
 
@@ -1087,7 +1147,7 @@ export default function EsignTemplateEditor() {
                       <label className="cursor-pointer">
                         <input
                           type="file"
-                          accept=".pdf,.doc,.docx"
+                          accept=".pdf,.doc,.docx,.odt,.rtf,.xlsx,.xls,.ods,.csv,.pptx,.ppt,.odp"
                           className="hidden"
                           onChange={handleFileUpload}
                           disabled={isUploading}
@@ -1319,43 +1379,69 @@ export default function EsignTemplateEditor() {
                 </CardHeader>
                 <CardContent className="p-0 flex-1 overflow-hidden">
                   {pageImages.length === 0 ? (
-                    <div className="h-full flex items-center justify-center">
-                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
-                        <FileText className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">
-                          Upload Documents
-                        </h3>
-                        <p className="text-gray-500 mb-4">
-                          Upload PDF or Word documents to get started (multiple files allowed)
-                        </p>
-                        <div>
-                          <input
-                            type="file"
-                            id="template-file-upload"
-                            accept=".pdf,.doc,.docx"
-                            className="hidden"
-                            onChange={handleFileUpload}
-                            disabled={isUploading}
-                            multiple
-                          />
-                          <Button
-                            disabled={isUploading}
-                            onClick={() => document.getElementById('template-file-upload')?.click()}
-                            type="button"
-                          >
-                            {isUploading ? (
-                              <>
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                                Processing...
-                              </>
-                            ) : (
-                              <>
-                                <Upload className="h-4 w-4 mr-2" />
-                                Choose Files
-                              </>
-                            )}
-                          </Button>
-                        </div>
+                    <div className="h-full flex items-center justify-center p-6">
+                      <div
+                        className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors w-full max-w-md ${
+                          isDraggingFile
+                            ? 'border-blue-500 bg-blue-50'
+                            : isUploading
+                            ? 'border-gray-300 bg-gray-50 cursor-wait'
+                            : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'
+                        }`}
+                        onDragEnter={handleFileDragEnter}
+                        onDragOver={handleFileDragOver}
+                        onDragLeave={handleFileDragLeave}
+                        onDrop={handleFileDrop}
+                        onClick={() => !isUploading && document.getElementById('template-file-upload')?.click()}
+                      >
+                        <input
+                          type="file"
+                          id="template-file-upload"
+                          accept=".pdf,.doc,.docx,.odt,.rtf,.xlsx,.xls,.ods,.csv,.pptx,.ppt,.odp"
+                          className="hidden"
+                          onChange={handleFileUpload}
+                          disabled={isUploading}
+                          multiple
+                        />
+                        {isUploading ? (
+                          <>
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">
+                              Processing...
+                            </h3>
+                            <p className="text-gray-500">
+                              Please wait while we process your document(s)
+                            </p>
+                          </>
+                        ) : isDraggingFile ? (
+                          <>
+                            <Upload className="h-12 w-12 mx-auto text-blue-500 mb-4" />
+                            <h3 className="text-lg font-medium text-blue-600 mb-2">
+                              Drop files here
+                            </h3>
+                            <p className="text-blue-400">
+                              Release to upload
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <FileText className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">
+                              Drag & Drop or Click to Upload
+                            </h3>
+                            <p className="text-gray-500 mb-4">
+                              Supports PDF, Word, Excel, and PowerPoint (multiple files allowed)
+                            </p>
+                            <Button
+                              disabled={isUploading}
+                              type="button"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Upload className="h-4 w-4 mr-2" />
+                              Choose Files
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
                   ) : (
