@@ -29,7 +29,9 @@ export class DatabaseBackupManager {
    */
   async createFullBackup(label?: string): Promise<string> {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const fileName = `backup-${label || 'auto'}-${timestamp}.sql`;
+    // Sanitize label to prevent command injection - only allow alphanumeric, dash, underscore
+    const sanitizedLabel = (label || 'auto').replace(/[^a-zA-Z0-9_-]/g, '');
+    const fileName = `backup-${sanitizedLabel}-${timestamp}.sql`;
     const filePath = path.join(this.backupDir, fileName);
     
     try {
@@ -89,15 +91,27 @@ export class DatabaseBackupManager {
   async restoreFromBackup(backupPath: string): Promise<void> {
     try {
       console.log('🔄 Restoring database from backup...');
-      
+
       const databaseUrl = process.env.DATABASE_URL;
       if (!databaseUrl) {
         throw new Error('DATABASE_URL not found');
       }
-      
+
+      // Security: Validate backup path is within allowed directory and is a .sql file
+      const resolvedPath = path.resolve(backupPath);
+      const resolvedBackupDir = path.resolve(this.backupDir);
+      if (!resolvedPath.startsWith(resolvedBackupDir) || !resolvedPath.endsWith('.sql')) {
+        throw new Error('Invalid backup path: must be within backup directory and be a .sql file');
+      }
+
+      // Verify file exists
+      if (!fs.existsSync(resolvedPath)) {
+        throw new Error('Backup file does not exist');
+      }
+
       // Drop all tables and recreate from backup
-      execSync(`psql "${databaseUrl}" < "${backupPath}"`, { stdio: 'inherit' });
-      
+      execSync(`psql "${databaseUrl}" < "${resolvedPath}"`, { stdio: 'inherit' });
+
       console.log('✅ Database restored successfully');
     } catch (error) {
       console.error('❌ Restore failed:', error);

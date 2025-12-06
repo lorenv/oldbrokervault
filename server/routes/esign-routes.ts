@@ -935,11 +935,26 @@ router.get('/envelopes', async (req: Request, res: Response) => {
         const signers = recipients.filter(r => r.role === 'signer');
         const signedCount = signers.filter(r => r.status === 'signed').length;
 
+        // Get pending signers (not yet signed) for "waiting on" display
+        const pendingSigners = signers
+          .filter(r => r.status !== 'signed')
+          .map(r => r.name);
+
+        // Debug logging
+        console.log(`[ESIGN DEBUG] Envelope ${envelope.id} (${envelope.title}):`, {
+          recipientCount: recipients.length,
+          signerCount: signers.length,
+          signedCount,
+          signerNames: signers.map(s => ({ name: s.name, email: s.email, status: s.status })),
+          pendingSigners
+        });
+
         return {
           ...envelope,
           recipientCount: recipients.length,
           signerCount: signers.length,
           signedCount,
+          pendingSigners,
         };
       })
     );

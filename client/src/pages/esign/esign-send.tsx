@@ -41,6 +41,7 @@ import {
   ZoomOut,
   RotateCcw,
   File,
+  Pointer,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -214,6 +215,9 @@ interface DocumentPageCanvasProps {
   onSelectField: (id: string | null) => void;
   zoom: number;
   getRecipientColor: (index: number) => string;
+  // Mobile tap-to-place support
+  isTapToPlaceMode?: boolean;
+  onTapToPlace?: (pageNumber: number, x: number, y: number, pageWidth: number, pageHeight: number) => void;
 }
 
 function DocumentPageCanvas({
@@ -227,6 +231,8 @@ function DocumentPageCanvas({
   onSelectField,
   zoom,
   getRecipientColor,
+  isTapToPlaceMode,
+  onTapToPlace,
 }: DocumentPageCanvasProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -441,17 +447,29 @@ function DocumentPageCanvas({
 
   const pageFields = fields.filter(f => f.page === pageNumber);
 
+  // Handle canvas click - either tap-to-place or deselect
+  const handleCanvasClick = useCallback((e: React.MouseEvent) => {
+    if (isTapToPlaceMode && onTapToPlace && canvasRef.current) {
+      const rect = canvasRef.current.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / zoom;
+      const y = (e.clientY - rect.top) / zoom;
+      onTapToPlace(pageNumber, x, y, displayWidth / zoom, displayHeight / zoom);
+    } else {
+      onSelectField(null);
+    }
+  }, [isTapToPlaceMode, onTapToPlace, pageNumber, displayWidth, displayHeight, zoom, onSelectField]);
+
   return (
     <div
       ref={combinedRef}
       className={`relative bg-white rounded-lg shadow-lg overflow-hidden border-2 transition-colors flex-shrink-0 ${
         isOver ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200'
-      }`}
+      } ${isTapToPlaceMode ? 'cursor-crosshair' : ''}`}
       style={{
         width: imageLoaded ? displayWidth : baseDisplayWidth * zoom,
         minHeight: imageLoaded ? undefined : 400,
       }}
-      onClick={() => onSelectField(null)}
+      onClick={handleCanvasClick}
     >
       {/* Loading placeholder while image dimensions are being determined */}
       {!imageLoaded && (
@@ -632,6 +650,10 @@ export default function EsignSend() {
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const [activeRecipientIndex, setActiveRecipientIndex] = useState<number>(0);
   const [zoom, setZoom] = useState(1);
+
+  // Mobile-specific state for tap-to-place mode
+  const [isTapToPlaceMode, setIsTapToPlaceMode] = useState(false);
+  const [mobileFieldType, setMobileFieldType] = useState<string | null>(null);
 
   // Fetch templates
   const { data: templates = [], isLoading: isLoadingTemplates } = useQuery<EsignTemplate[]>({
@@ -910,6 +932,33 @@ export default function EsignSend() {
     if (!recipient) return ESIGN_RECIPIENT_COLORS[0];
     return getRecipientColor(recipient, index);
   }, [recipients, selectedTemplate]);
+
+  // Mobile tap-to-place handler - places a field at the tapped location
+  const handleMobileTapToPlace = useCallback((pageNumber: number, x: number, y: number, pageWidth: number, pageHeight: number) => {
+    if (!isTapToPlaceMode || !mobileFieldType) return;
+
+    const fieldConfig = FIELD_TYPES.find(f => f.type === mobileFieldType);
+    if (!fieldConfig) return;
+
+    // Convert tap coordinates to percentage-based positioning
+    const xPercent = (x / pageWidth) * 100;
+    const yPercent = (y / pageHeight) * 100;
+
+    const newField: SignatureField = {
+      id: uuidv4(),
+      type: mobileFieldType,
+      x: xPercent,
+      y: yPercent,
+      width: fieldConfig.defaultSize.width,
+      height: fieldConfig.defaultSize.height,
+      page: pageNumber,
+      recipientIndex: activeRecipientIndex,
+      required: true,
+    };
+
+    setSignatureFields(prev => [...prev, newField]);
+    // Keep tap-to-place mode active for placing multiple fields
+  }, [isTapToPlaceMode, mobileFieldType, activeRecipientIndex]);
 
   // Send envelope mutation
   const sendMutation = useMutation({
@@ -1441,9 +1490,9 @@ export default function EsignSend() {
         {/* Step 3: Place Fields (only for direct uploads, not templates) */}
         {currentStep === 3 && !selectedTemplate && (
           <DndProvider backend={HTML5Backend}>
-            <div className="flex flex-col lg:grid lg:grid-cols-12 gap-4 lg:gap-6" style={{ minHeight: 'calc(100vh - 320px)' }}>
-              {/* Left Sidebar - Field Palette & Recipients */}
-              <div className="lg:col-span-3 space-y-4 overflow-y-auto lg:max-h-[calc(100vh-280px)]">
+            <div className="flex flex-col lg:grid lg:grid-cols-12 gap-4 lg:gap-6 pb-36 lg:pb-0" style={{ minHeight: 'calc(100vh - 320px)' }}>
+              {/* Left Sidebar - Field Palette & Recipients - Hidden on mobile, shown on lg+ */}
+              <div className="hidden lg:block lg:col-span-3 space-y-4 overflow-y-auto lg:max-h-[calc(100vh-280px)]">
                 {/* Select Recipient for Field Assignment */}
                 <Card>
                   <CardHeader className="pb-3">
@@ -1625,11 +1674,149 @@ export default function EsignSend() {
                           onSelectField={setSelectedFieldId}
                           zoom={zoom}
                           getRecipientColor={getRecipientColorByIndex}
+                          isTapToPlaceMode={isTapToPlaceMode}
+                          onTapToPlace={handleMobileTapToPlace}
                         />
                       </div>
                     ))}
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Mobile Bottom Bars - Only show on mobile screens */}
+            {/* Mobile Field Placement Bar - positioned above nav bar */}
+            <div className="fixed bottom-16 left-0 right-0 bg-white border-t shadow-lg z-40 lg:hidden">
+              <div className="flex items-center gap-2 px-3 py-2">
+                {/* Recipient selector */}
+                <Select
+                  value={activeRecipientIndex.toString()}
+                  onValueChange={(value) => setActiveRecipientIndex(parseInt(value))}
+                >
+                  <SelectTrigger className="w-[130px] h-9 text-xs">
+                    <SelectValue placeholder="Recipient" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {signers.map((recipient, index) => {
+                      const signerIndex = recipients.findIndex(r => r.id === recipient.id);
+                      const color = getRecipientColor(recipient, signerIndex);
+                      return (
+                        <SelectItem key={recipient.id} value={signerIndex.toString()}>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-3 h-3 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: color }}
+                            />
+                            <span className="truncate">{recipient.name || recipient.email || `Signer ${index + 1}`}</span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+
+                {/* Field type selector */}
+                <Select
+                  value={mobileFieldType || ""}
+                  onValueChange={(value) => {
+                    setMobileFieldType(value);
+                    setIsTapToPlaceMode(true);
+                  }}
+                  disabled={signers.length === 0}
+                >
+                  <SelectTrigger className="w-[120px] h-9 text-xs">
+                    <SelectValue placeholder="Field type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FIELD_TYPES.map((fieldType) => {
+                      const Icon = fieldType.icon;
+                      return (
+                        <SelectItem key={fieldType.type} value={fieldType.type}>
+                          <div className="flex items-center gap-2">
+                            <Icon className="h-3 w-3 flex-shrink-0" />
+                            <span>{fieldType.label}</span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+
+                {/* Tap-to-place indicator/toggle */}
+                {isTapToPlaceMode ? (
+                  <div className="flex items-center gap-2 flex-1">
+                    <div className="flex items-center gap-1.5 text-xs text-blue-600 bg-blue-50 px-2 py-1.5 rounded-md">
+                      <Pointer className="h-3 w-3" />
+                      <span>Tap to place</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 text-xs ml-auto"
+                      onClick={() => {
+                        setIsTapToPlaceMode(false);
+                        setMobileFieldType(null);
+                      }}
+                    >
+                      Done
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="text-xs text-gray-500 flex-1">
+                    {signers.length === 0 ? (
+                      "Add signers first"
+                    ) : (
+                      "Select field to place"
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Mobile Navigation Bar - bottom sticky */}
+            <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-40 lg:hidden">
+              <div className="flex items-center justify-between px-3 py-2">
+                {/* Back button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setCurrentStep(getPrevStep())}
+                  className="h-10"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-1" />
+                  Back
+                </Button>
+
+                {/* Zoom controls */}
+                <div className="flex items-center gap-1 bg-gray-100 rounded-lg px-2 py-1">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8"
+                    onClick={() => setZoom(Math.max(0.5, zoom - 0.25))}
+                  >
+                    <ZoomOut className="h-4 w-4" />
+                  </Button>
+                  <span className="text-xs w-10 text-center font-medium">{Math.round(zoom * 100)}%</span>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8"
+                    onClick={() => setZoom(Math.min(2.5, zoom + 0.25))}
+                  >
+                    <ZoomIn className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {/* Continue button */}
+                <Button
+                  onClick={() => setCurrentStep(getNextStep())}
+                  disabled={!isStep3Valid}
+                  size="sm"
+                  className="h-10"
+                >
+                  Continue
+                </Button>
               </div>
             </div>
           </DndProvider>

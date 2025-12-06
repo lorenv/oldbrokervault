@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { FileSignature, Calendar, Mail, Type, AlignLeft } from 'lucide-react';
 import SignaturePad from 'signature_pad';
+import { sanitizeHtml } from '@/lib/sanitize';
 
 interface SignatureField {
   id: string;
@@ -300,9 +301,9 @@ export default function EnhancedNdaClickwrap({
           <CardTitle>Confidentiality Agreement</CardTitle>
         </CardHeader>
         <CardContent>
-          <div 
+          <div
             className="prose max-w-none text-sm leading-relaxed max-h-96 overflow-y-auto border rounded-md p-4 bg-gray-50"
-            dangerouslySetInnerHTML={{ __html: ndaContent }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(ndaContent) }}
           />
         </CardContent>
       </Card>

@@ -34,6 +34,7 @@ import { CoverImageDisplay } from "./cover-image-display";
 import { DocumentExport } from "./document-export";
 import { useCustomSections } from "@/hooks/use-cim-document";
 import { EnhancedInlineEditor } from "./enhanced-inline-editor";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 import ReactMarkdown from 'react-markdown';
 import {
@@ -919,7 +920,7 @@ export function CimDisplay({
                           ) : (
                             <div className="prose prose-base max-w-none break-words overflow-hidden text-base leading-relaxed">
                               {/<[^>]+>/.test(section.content) ? (
-                                <div dangerouslySetInnerHTML={{ __html: section.content }} />
+                                <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(section.content) }} />
                               ) : (
                                 <ReactMarkdown 
                                   components={{
@@ -1010,7 +1011,7 @@ export function CimDisplay({
                             ) : (
                               <div className="prose prose-base max-w-none break-words overflow-hidden text-base leading-relaxed">
                                 {customSection.content.includes('<') && customSection.content.includes('>') ? (
-                                  <div dangerouslySetInnerHTML={{ __html: customSection.content }} />
+                                  <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(customSection.content) }} />
                                 ) : (
                                   <ReactMarkdown
                                     components={{
