@@ -46,6 +46,7 @@ interface Envelope {
   recipientCount: number;
   signerCount: number;
   signedCount: number;
+  pendingSigners: string[];
 }
 
 const statusConfig: Record<EnvelopeStatus, { label: string; icon: any; color: string }> = {
@@ -297,13 +298,21 @@ export default function EsignDashboard() {
                       const status = statusConfig[envelope.status];
                       const StatusIcon = status.icon;
 
+                      // Debug: log envelope data
+                      console.log('[ESIGN UI DEBUG]', envelope.title, {
+                        status: envelope.status,
+                        pendingSigners: envelope.pendingSigners,
+                        signerCount: envelope.signerCount,
+                        signedCount: envelope.signedCount
+                      });
+
                       return (
                         <div
                           key={envelope.id}
                           className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 md:p-4 hover:bg-gray-50 cursor-pointer gap-3"
                           onClick={() => setLocation(`/esign/envelope/${envelope.envelopeId}`)}
                         >
-                          <div className="flex items-center gap-3 md:gap-4 min-w-0">
+                          <div className="flex items-center gap-3 md:gap-4 min-w-0 flex-1">
                             <div className="p-2 bg-blue-50 rounded-lg flex-shrink-0">
                               <FileSignature className="h-4 w-4 md:h-5 md:w-5 text-blue-600" />
                             </div>
@@ -328,6 +337,26 @@ export default function EsignDashboard() {
                                   )}
                                 </span>
                               </div>
+                              {/* Progress bar and waiting on status for sent (pending) envelopes only */}
+                              {envelope.status === 'sent' && envelope.signerCount > 0 && (
+                                <div className="mt-2 space-y-1">
+                                  {/* Mini progress bar */}
+                                  <div className="w-full max-w-[180px] h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full bg-green-500 rounded-full transition-all duration-300"
+                                      style={{ width: `${(envelope.signedCount / envelope.signerCount) * 100}%` }}
+                                    />
+                                  </div>
+                                  {/* Waiting on text */}
+                                  {envelope.pendingSigners && envelope.pendingSigners.length > 0 && (
+                                    <p className="text-xs text-amber-600 font-medium">
+                                      {envelope.pendingSigners.length === 1
+                                        ? `Waiting on ${envelope.pendingSigners[0]}`
+                                        : `Waiting on ${envelope.pendingSigners.length} signatures`}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </div>
 

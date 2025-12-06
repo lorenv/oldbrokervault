@@ -14,6 +14,7 @@ import { Shield, FileText, AlertCircle, Download, Package, DollarSign, TrendingU
 import { OwnerToolbar } from "@/components/owner-toolbar";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 export function SharePage() {
   const [matchShare, paramsShare] = useRoute("/share/:shareSlug");
@@ -452,7 +453,7 @@ export function SharePage() {
           {shareData.cim.coverImageAttribution && (
             <div
               className="absolute bottom-2 right-2 text-white/70 text-xs bg-black/20 px-2 py-1 rounded backdrop-blur-sm"
-              dangerouslySetInnerHTML={{ __html: shareData.cim.coverImageAttribution }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(shareData.cim.coverImageAttribution) }}
             />
           )}
         </div>

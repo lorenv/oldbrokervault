@@ -39,7 +39,7 @@ import {
   Menu,
   File,
   ChevronDown,
-  MousePointer,
+  Pointer,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -1610,7 +1610,7 @@ export default function EsignTemplateEditor() {
                 {isTapToPlaceMode ? (
                   <div className="flex items-center gap-2 flex-1">
                     <div className="flex items-center gap-1.5 text-xs text-blue-600 bg-blue-50 px-2 py-1.5 rounded-md">
-                      <MousePointer className="h-3 w-3" />
+                      <Pointer className="h-3 w-3" />
                       <span>Tap to place</span>
                     </div>
                     <Button

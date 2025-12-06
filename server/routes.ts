@@ -5394,26 +5394,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.sendStatus(200);
   });
 
-  // Auto-grant admin privileges to lorenvandegrift@gmail.com
-  app.post("/api/auto-grant-admin", async (req, res) => {
-    try {
-      const targetEmail = 'lorenvandegrift@gmail.com';
-      const user = await storage.getUserByEmail(targetEmail);
-      
-      if (user) {
-        await db.update(users).set({ 
-          isAdmin: true,
-          subscriptionStatus: 'admin'
-        }).where(eq(users.id, user.id));
-        res.json({ success: true, message: `Admin privileges granted to ${targetEmail}` });
-      } else {
-        res.status(404).json({ error: "User not found" });
-      }
-    } catch (error) {
-      console.error("Error granting admin privileges:", error);
-      res.status(500).json({ error: "Failed to grant admin privileges" });
-    }
-  });
+  // REMOVED: Auto-grant admin endpoint was a security vulnerability
+  // Admin privileges should be granted through a secure admin panel or direct database access only
 
   app.post("/api/cim/export/word/:id", async (req, res) => {
     console.log("Word export request received for document ID:", req.params.id);

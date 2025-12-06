@@ -17,6 +17,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 interface InsertableSectionProps {
   afterSection: string;
@@ -338,9 +339,9 @@ export function CustomSection({ id, type, title, content, imageUrl, imageUrls, o
             </div>
           ) : (
             <div 
-              className="cursor-pointer min-h-[2rem]" 
+              className="cursor-pointer min-h-[2rem]"
               onClick={() => setIsEditing(true)}
-              dangerouslySetInnerHTML={{ __html: content || '<p>Click to edit text...</p>' }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) || '<p>Click to edit text...</p>' }}
             />
           )}
         </div>
