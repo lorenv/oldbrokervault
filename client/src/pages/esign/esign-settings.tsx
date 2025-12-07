@@ -56,6 +56,18 @@ export default function EsignSettings() {
     },
   });
 
+  // Fetch user's extracted brand colors from their logo
+  const { data: userData } = useQuery({
+    queryKey: ["/api/user"],
+    queryFn: async () => {
+      const res = await fetch("/api/user", { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+  });
+
+  const extractedBrandColors: string[] = userData?.brandColors || [];
+
   const [formData, setFormData] = useState<BrandingSettings>({
     companyName: null,
     logoUrl: null,
@@ -294,24 +306,62 @@ export default function EsignSettings() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex flex-wrap gap-3">
-                {defaultColors.map((color) => (
-                  <button
-                    key={color}
-                    className={`w-10 h-10 rounded-lg border-2 transition-all ${
-                      formData.primaryColor === color
-                        ? "border-gray-900 ring-2 ring-offset-2 ring-gray-400"
-                        : "border-gray-200 hover:border-gray-400"
-                    }`}
-                    style={{ backgroundColor: color }}
-                    onClick={() => setFormData((prev) => ({ ...prev, primaryColor: color }))}
-                  >
-                    {formData.primaryColor === color && (
-                      <Check className="h-5 w-5 text-white mx-auto" />
-                    )}
-                  </button>
-                ))}
+              {/* Extracted Brand Colors from Logo */}
+              {extractedBrandColors.length > 0 && (
+                <div className="mb-4">
+                  <Label className="text-sm font-medium text-purple-700 mb-2 block">
+                    Your Brand Colors (from logo)
+                  </Label>
+                  <div className="flex flex-wrap gap-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                    {extractedBrandColors.map((color, idx) => (
+                      <button
+                        key={`extracted-${idx}`}
+                        className={`w-10 h-10 rounded-lg border-2 transition-all relative ${
+                          formData.primaryColor?.toLowerCase() === color.toLowerCase()
+                            ? "border-purple-600 ring-2 ring-offset-2 ring-purple-400"
+                            : "border-purple-300 hover:border-purple-500"
+                        }`}
+                        style={{ backgroundColor: color }}
+                        onClick={() => setFormData((prev) => ({ ...prev, primaryColor: color }))}
+                        title={color}
+                      >
+                        {formData.primaryColor?.toLowerCase() === color.toLowerCase() && (
+                          <Check className="h-5 w-5 text-white mx-auto drop-shadow-md" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-purple-600 mt-1">
+                    Colors automatically extracted from your business logo
+                  </p>
+                </div>
+              )}
+
+              {/* Default Color Options */}
+              <div>
+                <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                  {extractedBrandColors.length > 0 ? "Or choose a preset color" : "Choose a color"}
+                </Label>
+                <div className="flex flex-wrap gap-3">
+                  {defaultColors.map((color) => (
+                    <button
+                      key={color}
+                      className={`w-10 h-10 rounded-lg border-2 transition-all ${
+                        formData.primaryColor === color
+                          ? "border-gray-900 ring-2 ring-offset-2 ring-gray-400"
+                          : "border-gray-200 hover:border-gray-400"
+                      }`}
+                      style={{ backgroundColor: color }}
+                      onClick={() => setFormData((prev) => ({ ...prev, primaryColor: color }))}
+                    >
+                      {formData.primaryColor === color && (
+                        <Check className="h-5 w-5 text-white mx-auto" />
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
+
               <div className="flex items-center gap-3 max-w-xs">
                 <Label htmlFor="customColor" className="shrink-0">Custom:</Label>
                 <Input
