@@ -451,10 +451,10 @@ async function loadPdfBackgroundTemplate(templateName?: string): Promise<pdfLib.
       console.log("No background template requested");
       return null;
     }
-    
+
     const templateFilename = `${templateName}.pdf`;
     const backgroundPath = path.resolve(process.cwd(), 'pdf-templates', templateFilename);
-    
+
     if (!fs.existsSync(backgroundPath)) {
       console.log("PDF background template not found at:", backgroundPath);
       // Fallback to classic template
@@ -467,14 +467,229 @@ async function loadPdfBackgroundTemplate(templateName?: string): Promise<pdfLib.
       }
       return null;
     }
-    
+
     const backgroundBytes = fs.readFileSync(backgroundPath);
     const backgroundDoc = await pdfLib.PDFDocument.load(backgroundBytes);
-    
+
     console.log(`Successfully loaded PDF background template: ${templateName}`);
     return backgroundDoc;
   } catch (error) {
     console.error("Failed to load PDF background template:", error);
+    return null;
+  }
+}
+
+// Parse hex color to RGB values (0-1 range for pdf-lib)
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!result) return { r: 0.5, g: 0.5, b: 0.5 }; // Default gray
+  return {
+    r: parseInt(result[1], 16) / 255,
+    g: parseInt(result[2], 16) / 255,
+    b: parseInt(result[3], 16) / 255
+  };
+}
+
+// Generate branded PDF background template dynamically
+async function generateBrandedPdfTemplate(
+  brandedTemplate: string,
+  brandColors: string[] | null,
+  businessLogo: string | null,
+  baseUrl?: string
+): Promise<pdfLib.PDFDocument | null> {
+  try {
+    if (!brandedTemplate || brandedTemplate === 'none') {
+      return null;
+    }
+
+    console.log(`Generating branded PDF template: ${brandedTemplate}`);
+
+    // Create a new PDF document for the template
+    const templateDoc = await pdfLib.PDFDocument.create();
+    const page = templateDoc.addPage([612, 792]); // US Letter size
+
+    // Get primary brand color or default to a professional blue
+    const primaryColor = brandColors && brandColors[0] ? hexToRgb(brandColors[0]) : { r: 0.2, g: 0.4, b: 0.6 };
+    const secondaryColor = brandColors && brandColors[1] ? hexToRgb(brandColors[1]) : { r: 0.9, g: 0.9, b: 0.9 };
+
+    // Load logo if available
+    let logoImage: pdfLib.PDFImage | null = null;
+    if (businessLogo) {
+      try {
+        let logoBuffer: Buffer | null = null;
+
+        if (businessLogo.startsWith('data:image/')) {
+          // Base64 encoded logo
+          const base64Data = businessLogo.split(',')[1];
+          logoBuffer = Buffer.from(base64Data, 'base64');
+        } else if (businessLogo.startsWith('/api/') || businessLogo.startsWith('http')) {
+          // URL to logo - fetch it
+          const logoUrl = businessLogo.startsWith('http') ? businessLogo : `${baseUrl || ''}${businessLogo}`;
+          try {
+            const response = await fetch(logoUrl);
+            if (response.ok) {
+              logoBuffer = Buffer.from(await response.arrayBuffer());
+            }
+          } catch (fetchError) {
+            console.warn('Failed to fetch logo from URL:', fetchError);
+          }
+        } else if (fs.existsSync(businessLogo)) {
+          // File path to logo
+          logoBuffer = fs.readFileSync(businessLogo);
+        }
+
+        if (logoBuffer) {
+          // Try to embed as PNG first, then JPEG
+          try {
+            // Convert to PNG using sharp for consistent handling
+            const pngBuffer = await sharp(logoBuffer).png().toBuffer();
+            logoImage = await templateDoc.embedPng(pngBuffer);
+          } catch (pngError) {
+            try {
+              const jpgBuffer = await sharp(logoBuffer).jpeg().toBuffer();
+              logoImage = await templateDoc.embedJpg(jpgBuffer);
+            } catch (jpgError) {
+              console.warn('Failed to embed logo image:', jpgError);
+            }
+          }
+        }
+      } catch (logoError) {
+        console.warn('Error processing logo for branded template:', logoError);
+      }
+    }
+
+    // Apply branded template based on selection
+    switch (brandedTemplate) {
+      case 'watermark':
+        // Centered watermark logo at low opacity
+        if (logoImage) {
+          const logoScale = Math.min(300 / logoImage.width, 300 / logoImage.height, 1);
+          const logoWidth = logoImage.width * logoScale;
+          const logoHeight = logoImage.height * logoScale;
+          page.drawImage(logoImage, {
+            x: (612 - logoWidth) / 2,
+            y: (792 - logoHeight) / 2,
+            width: logoWidth,
+            height: logoHeight,
+            opacity: 0.08
+          });
+        }
+        break;
+
+      case 'footer':
+        // Small logo in bottom-left footer
+        if (logoImage) {
+          const logoScale = Math.min(80 / logoImage.width, 40 / logoImage.height, 1);
+          const logoWidth = logoImage.width * logoScale;
+          const logoHeight = logoImage.height * logoScale;
+          page.drawImage(logoImage, {
+            x: 36,
+            y: 20,
+            width: logoWidth,
+            height: logoHeight,
+            opacity: 0.7
+          });
+        }
+        // Subtle footer line
+        page.drawLine({
+          start: { x: 36, y: 65 },
+          end: { x: 576, y: 65 },
+          thickness: 0.5,
+          color: pdfLib.rgb(primaryColor.r, primaryColor.g, primaryColor.b),
+          opacity: 0.3
+        });
+        break;
+
+      case 'accent':
+        // Thin header bar with primary brand color
+        page.drawRectangle({
+          x: 0,
+          y: 792 - 8,
+          width: 612,
+          height: 8,
+          color: pdfLib.rgb(primaryColor.r, primaryColor.g, primaryColor.b)
+        });
+        // Logo in footer
+        if (logoImage) {
+          const logoScale = Math.min(80 / logoImage.width, 35 / logoImage.height, 1);
+          const logoWidth = logoImage.width * logoScale;
+          const logoHeight = logoImage.height * logoScale;
+          page.drawImage(logoImage, {
+            x: 36,
+            y: 18,
+            width: logoWidth,
+            height: logoHeight,
+            opacity: 0.8
+          });
+        }
+        // Footer line
+        page.drawLine({
+          start: { x: 36, y: 58 },
+          end: { x: 576, y: 58 },
+          thickness: 0.5,
+          color: pdfLib.rgb(primaryColor.r, primaryColor.g, primaryColor.b),
+          opacity: 0.4
+        });
+        break;
+
+      case 'full':
+        // Full branded template with header bar, footer bar, and logo
+        // Header bar
+        page.drawRectangle({
+          x: 0,
+          y: 792 - 12,
+          width: 612,
+          height: 12,
+          color: pdfLib.rgb(primaryColor.r, primaryColor.g, primaryColor.b)
+        });
+        // Footer bar
+        page.drawRectangle({
+          x: 0,
+          y: 0,
+          width: 612,
+          height: 50,
+          color: pdfLib.rgb(secondaryColor.r, secondaryColor.g, secondaryColor.b),
+          opacity: 0.5
+        });
+        // Accent line above footer
+        page.drawLine({
+          start: { x: 0, y: 50 },
+          end: { x: 612, y: 50 },
+          thickness: 2,
+          color: pdfLib.rgb(primaryColor.r, primaryColor.g, primaryColor.b)
+        });
+        // Logo in footer center
+        if (logoImage) {
+          const logoScale = Math.min(100 / logoImage.width, 35 / logoImage.height, 1);
+          const logoWidth = logoImage.width * logoScale;
+          const logoHeight = logoImage.height * logoScale;
+          page.drawImage(logoImage, {
+            x: (612 - logoWidth) / 2,
+            y: 8,
+            width: logoWidth,
+            height: logoHeight,
+            opacity: 0.9
+          });
+        }
+        // Side accent lines
+        page.drawLine({
+          start: { x: 20, y: 70 },
+          end: { x: 20, y: 780 },
+          thickness: 1,
+          color: pdfLib.rgb(primaryColor.r, primaryColor.g, primaryColor.b),
+          opacity: 0.15
+        });
+        break;
+
+      default:
+        console.log(`Unknown branded template: ${brandedTemplate}`);
+        return null;
+    }
+
+    console.log(`Successfully generated branded template: ${brandedTemplate}`);
+    return templateDoc;
+  } catch (error) {
+    console.error('Failed to generate branded PDF template:', error);
     return null;
   }
 }
@@ -2510,28 +2725,39 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
   return await docx.Packer.toBuffer(doc);
 }
 
-export async function generatePDF(analysis: any, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[], userProfile?: any, financialData?: any, financialFiles?: any[], baseUrl?: string, documentTitle?: string, customSections?: any[], coverImageUrl?: string | null, coverImagePosition?: string | null, documentId?: number, pdfTemplate?: string, shareSlug?: string): Promise<Buffer> {
+export async function generatePDF(analysis: any, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[], userProfile?: any, financialData?: any, financialFiles?: any[], baseUrl?: string, documentTitle?: string, customSections?: any[], coverImageUrl?: string | null, coverImagePosition?: string | null, documentId?: number, pdfTemplate?: string, shareSlug?: string, brandedPdfTemplate?: string, brandColors?: string[] | null, businessLogo?: string | null): Promise<Buffer> {
   return new Promise(async (resolve, reject) => {
     const pdfStartTime = Date.now();
     console.log("⚡ Starting ULTRA-OPTIMIZED PDF generation with template:", pdfTemplate || 'classic');
+    console.log("🎨 Branded PDF template:", brandedPdfTemplate || 'none');
     console.log("🚨 FINANCIAL FILES DEBUG - ENTRY POINT:", financialFiles ? financialFiles.length : "NO FILES");
     console.log("🚨 SHARE SLUG DEBUG:", shareSlug || "NO SLUG");
-    
+
     // PERFORMANCE OPTIMIZATION: Load background template asynchronously if needed
-    const backgroundTemplatePromise = pdfTemplate && pdfTemplate !== 'none' 
-      ? loadPdfBackgroundTemplate(pdfTemplate) 
-      : Promise.resolve(null);
-    
+    // Priority: branded template > static template
+    let backgroundTemplatePromise: Promise<pdfLib.PDFDocument | null>;
+
+    if (brandedPdfTemplate && brandedPdfTemplate !== 'none' && (brandColors || businessLogo)) {
+      // Use dynamically generated branded template
+      console.log("Using branded PDF template with user's logo and colors");
+      backgroundTemplatePromise = generateBrandedPdfTemplate(brandedPdfTemplate, brandColors || null, businessLogo || null, baseUrl);
+    } else if (pdfTemplate && pdfTemplate !== 'none') {
+      // Fallback to static template files
+      backgroundTemplatePromise = loadPdfBackgroundTemplate(pdfTemplate);
+    } else {
+      backgroundTemplatePromise = Promise.resolve(null);
+    }
+
     // PERFORMANCE OPTIMIZATION: Initialize PDF with optimized settings
     const doc = new PDFDocument({
       bufferPages: true, // Enable page buffering for faster processing
       autoFirstPage: true // Let PDFKit handle first page creation
     });
     const buffers: Buffer[] = [];
-    
+
     // PERFORMANCE OPTIMIZATION: Use system fonts for faster generation
     console.log("Using system fonts for faster PDF generation");
-    
+
     // Background template processing
     const backgroundTemplate = await backgroundTemplatePromise;
     console.log("Background template loaded:", Date.now() - pdfStartTime + "ms");

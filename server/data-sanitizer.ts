@@ -11,7 +11,7 @@ import { User } from "@shared/schema";
  */
 export function sanitizeUser(user: User): Partial<User> {
   if (!user) return {};
-  
+
   return {
     id: user.id,
     email: user.email,
@@ -27,8 +27,12 @@ export function sanitizeUser(user: User): Partial<User> {
     businessName: user.businessName,
     businessLogo: user.businessLogo,
     profilePhoto: user.profilePhoto,
-    pdfBackgroundTemplate: user.pdfBackgroundTemplate
-    // Explicitly excluded: password, stripeCustomerId, subscriptionId, 
+    pdfBackgroundTemplate: user.pdfBackgroundTemplate,
+    customSubdomain: user.customSubdomain,
+    brandColors: user.brandColors,
+    brandedPdfTemplate: user.brandedPdfTemplate,
+    createdAt: user.createdAt
+    // Explicitly excluded: password, stripeCustomerId, subscriptionId,
     // googleAccessToken, googleRefreshToken, googleTokenExpiry
   };
 }

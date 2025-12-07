@@ -7,7 +7,7 @@ import { normalizeUrl, extractLogoFromWebsite, extractWebsiteImages, downloadSel
 import { imageManager } from "./image-manager";
 import { objectStorageImageManager } from "./image-manager-object-storage";
 import { fileStorageManager } from "./file-storage";
-import { insertCimDocumentSchema, insertUploadedCimSchema, subscriptionPlans, users, insertNdaTemplateSchema, insertNdaSignatureSchema, financialFiles, insertFinancialFileSchema, insertCollaboratorSchema, uploadedFiles, ndaAccessTokens, insertAnalysisTemplateSchema } from "@shared/schema";
+import { insertCimDocumentSchema, insertUploadedCimSchema, subscriptionPlans, users, insertNdaTemplateSchema, insertNdaSignatureSchema, financialFiles, insertFinancialFileSchema, insertCollaboratorSchema, uploadedFiles, ndaAccessTokens, insertAnalysisTemplateSchema, userBranding } from "@shared/schema";
 import { z } from "zod";
 import { searchService, versionService, analyticsService } from "./premium-services";
 import { db } from "./db";
@@ -6778,47 +6778,128 @@ ${finalQuestion}
     }, 30000);
 
     try {
-      const { name, title, phoneNumber, businessName, businessLogo, profilePhoto } = req.body;
-      
+      const { name, title, phoneNumber, businessName, businessLogo, profilePhoto, customSubdomain } = req.body;
+
       // Validate input data
       if (typeof name !== 'string' && name !== undefined ||
           typeof title !== 'string' && title !== undefined ||
           typeof phoneNumber !== 'string' && phoneNumber !== undefined ||
-          typeof businessName !== 'string' && businessName !== undefined) {
+          typeof businessName !== 'string' && businessName !== undefined ||
+          typeof customSubdomain !== 'string' && customSubdomain !== undefined) {
         clearTimeout(timeout);
         return res.status(400).json({ error: "Invalid input data types" });
+      }
+
+      // Validate custom subdomain format if provided
+      let processedSubdomain = customSubdomain;
+      if (customSubdomain) {
+        // Must be 3-32 chars, lowercase alphanumeric and hyphens only, no leading/trailing hyphens
+        const subdomainRegex = /^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$|^[a-z0-9]{1,2}$/;
+        if (!subdomainRegex.test(customSubdomain)) {
+          clearTimeout(timeout);
+          return res.status(400).json({
+            error: "Invalid subdomain format",
+            message: "Subdomain must be 1-32 characters, using only lowercase letters, numbers, and hyphens"
+          });
+        }
+
+        // Check for reserved subdomains
+        const reservedSubdomains = ['www', 'app', 'api', 'mail', 'admin', 'support', 'help', 'blog', 'docs', 'status'];
+        if (reservedSubdomains.includes(customSubdomain)) {
+          clearTimeout(timeout);
+          return res.status(400).json({
+            error: "Reserved subdomain",
+            message: "This subdomain is reserved and cannot be used"
+          });
+        }
+
+        // Check if subdomain is already taken by another user
+        const existingUser = await storage.getUserBySubdomain(customSubdomain);
+        if (existingUser && existingUser.id !== req.user!.id) {
+          clearTimeout(timeout);
+          return res.status(409).json({
+            error: "Subdomain already taken",
+            message: "This subdomain is already in use by another account"
+          });
+        }
       }
       
       // Process images with size limits and better error handling
       let processedBusinessLogo = businessLogo;
       let processedProfilePhoto = profilePhoto;
       
+      // Track if we need to extract brand colors from a new logo upload
+      let extractedBrandColors: string[] | null = null;
+
       // Process business logo if it's a new upload - save as file instead of base64
       if (businessLogo && businessLogo.startsWith('data:image/')) {
         try {
           // Check size limit (increased to 10MB base64 for better handling)
           if (businessLogo.length > 10 * 1024 * 1024) {
             clearTimeout(timeout);
-            return res.status(413).json({ 
+            return res.status(413).json({
               error: "Business logo file too large",
               message: "Please use an image smaller than 7MB"
             });
           }
-          
+
           const base64Data = businessLogo.split(',')[1];
           if (!base64Data) {
             throw new Error("Invalid base64 data format");
           }
-          
+
           const imageBuffer = Buffer.from(base64Data, 'base64');
-          
+
+          // Extract brand colors from the logo
+          try {
+            const { extractBrandColors } = await import('./services/brand-color-extractor');
+            const colors = await extractBrandColors(imageBuffer);
+            extractedBrandColors = colors.colors;
+            console.log('Extracted brand colors from logo:', extractedBrandColors);
+
+            // Sync primary brand color to e-signature branding settings
+            if (extractedBrandColors.length > 0) {
+              const primaryColor = extractedBrandColors[0];
+              try {
+                // Check if user has existing e-signature branding
+                const [existingBranding] = await db
+                  .select()
+                  .from(userBranding)
+                  .where(eq(userBranding.userId, req.user!.id))
+                  .limit(1);
+
+                if (existingBranding) {
+                  // Update existing branding with primary color
+                  await db
+                    .update(userBranding)
+                    .set({ primaryColor, updatedAt: new Date() })
+                    .where(eq(userBranding.userId, req.user!.id));
+                } else {
+                  // Create new branding entry with primary color
+                  await db.insert(userBranding).values({
+                    userId: req.user!.id,
+                    primaryColor,
+                    companyName: businessName || null,
+                  });
+                }
+                console.log('Synced primary brand color to e-signature settings:', primaryColor);
+              } catch (syncError) {
+                console.warn('E-signature branding sync failed:', syncError);
+                // Continue - this is not a critical failure
+              }
+            }
+          } catch (colorError) {
+            console.warn('Brand color extraction failed:', colorError);
+            // Continue without brand colors - not a critical failure
+          }
+
           // Save as persistent file instead of base64 data
           try {
             const logoMetadata = await imageManager.saveImageFromBuffer(
-              imageBuffer, 
-              `logo_${req.user!.id}_${Date.now()}.png`, 
-              'image/png', 
-              req.user!.id, 
+              imageBuffer,
+              `logo_${req.user!.id}_${Date.now()}.png`,
+              'image/png',
+              req.user!.id,
               'logos'
             );
             processedBusinessLogo = logoMetadata.publicPath; // Use file path instead of base64
@@ -6830,7 +6911,7 @@ ${finalQuestion}
         } catch (error) {
           console.error('Business logo processing error:', error);
           clearTimeout(timeout);
-          return res.status(400).json({ 
+          return res.status(400).json({
             error: "Invalid image format",
             message: "Please upload a valid image file"
           });
@@ -6882,14 +6963,22 @@ ${finalQuestion}
       }
       
       // Update user profile in database
-      const updatedUser = await storage.updateUserProfile(req.user!.id, {
+      const profileUpdate: any = {
         name,
         title,
         phoneNumber,
         businessName,
         businessLogo: processedBusinessLogo,
-        profilePhoto: processedProfilePhoto
-      });
+        profilePhoto: processedProfilePhoto,
+        customSubdomain: processedSubdomain || null
+      };
+
+      // Add brand colors if we extracted them from a new logo
+      if (extractedBrandColors && extractedBrandColors.length > 0) {
+        profileUpdate.brandColors = extractedBrandColors;
+      }
+
+      const updatedUser = await storage.updateUserProfile(req.user!.id, profileUpdate);
       
       // Invalidate user cache to ensure fresh data on next request
       const { invalidateUserCache } = await import("./auth");
@@ -6905,6 +6994,9 @@ ${finalQuestion}
         businessName: updatedUser.businessName,
         businessLogo: updatedUser.businessLogo,
         profilePhoto: updatedUser.profilePhoto,
+        customSubdomain: updatedUser.customSubdomain,
+        brandColors: updatedUser.brandColors,
+        brandedPdfTemplate: updatedUser.brandedPdfTemplate,
         email: updatedUser.email
         // Explicitly omitting: password, stripeCustomerId, subscriptionId, googleTokens, etc.
       });
@@ -6944,16 +7036,54 @@ ${finalQuestion}
     }
   });
 
+  // Branded PDF template preference endpoint
+  app.put("/api/user/branded-pdf-template", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const { brandedPdfTemplate } = req.body;
+
+      // Validate template option
+      const validTemplates = ['none', 'watermark', 'footer', 'accent', 'full'];
+      if (!validTemplates.includes(brandedPdfTemplate)) {
+        return res.status(400).json({
+          error: "Invalid template option",
+          message: "Please select a valid template option"
+        });
+      }
+
+      // Update user's branded PDF template preference
+      const updatedUser = await storage.updateUserProfile(req.user!.id, {
+        brandedPdfTemplate
+      });
+
+      // Invalidate user cache
+      const { invalidateUserCache } = await import("./auth");
+      invalidateUserCache(req.user!.id);
+
+      res.json({
+        brandedPdfTemplate: updatedUser.brandedPdfTemplate,
+        message: "Branded PDF template updated successfully"
+      });
+    } catch (error) {
+      console.error('Branded PDF template update error:', error);
+      res.status(500).json({
+        error: "Failed to update template preference",
+        message: "Please try again later"
+      });
+    }
+  });
+
   // Settings management routes
   app.get("/api/settings", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     try {
       const user = await storage.getUser(req.user!.id);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
-      
+
       // Return user settings for the settings page
       const settingsData = {
         fullName: user.name,

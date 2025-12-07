@@ -130,7 +130,11 @@ export interface IStorage {
     profilePhoto?: string;
     businessLogoBackup?: string;
     profilePhotoBackup?: string;
+    customSubdomain?: string | null;
+    brandColors?: string[] | null;
+    brandedPdfTemplate?: string;
   }): Promise<User>;
+  getUserBySubdomain(subdomain: string): Promise<User | undefined>;
   updateUserEmail(userId: number, email: string): Promise<void>;
   updateUserPassword(userId: number, hashedPassword: string): Promise<void>;
   updateCimImages(cimId: number, imagePaths: string[]): Promise<void>;
@@ -1101,11 +1105,21 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
     profilePhoto?: string;
     businessLogoBackup?: string;
     profilePhotoBackup?: string;
+    customSubdomain?: string | null;
+    brandColors?: string[] | null;
+    brandedPdfTemplate?: string;
   }): Promise<User> {
     const [user] = await db.update(users)
       .set(profile)
       .where(eq(users.id, userId))
       .returning();
+    return user;
+  }
+
+  async getUserBySubdomain(subdomain: string): Promise<User | undefined> {
+    const [user] = await db.select()
+      .from(users)
+      .where(eq(users.customSubdomain, subdomain));
     return user;
   }
 

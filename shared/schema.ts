@@ -111,6 +111,12 @@ export const users = pgTable("users", {
   verificationCodeExpiry: timestamp("verification_code_expiry"),
   // PDF export preferences
   pdfBackgroundTemplate: text("pdf_background_template").default("classic"),
+  // Custom subdomain for branded share links (e.g., "acme" for acme.yourdomain.com)
+  customSubdomain: text("custom_subdomain"),
+  // Brand colors extracted from logo (array of hex colors, e.g., ["#1a365d", "#e53e3e"])
+  brandColors: jsonb("brand_colors"),
+  // Branded PDF template selection: "none", "watermark", "footer", "accent", "full"
+  brandedPdfTemplate: text("branded_pdf_template").default("none"),
   // Email preferences
   emailPreferences: jsonb("email_preferences").default({ onboarding: true, marketing: true, transactional: true }),
   unsubscribeToken: text("unsubscribe_token"),

@@ -27,10 +27,10 @@ import { useLocation } from "wouter";
 import { SubscriptionCard } from "@/components/ui/subscription-card";
 import { SecurityDashboard } from "@/components/security-dashboard";
 import { UserManagement } from "@/components/user-management";
-import { User, Phone, Building, Upload, Camera, Shield, Lock, CreditCard, Settings, FileImage, FileText } from "lucide-react";
+import { User, Phone, Building, Upload, Camera, Shield, Lock, CreditCard, Settings, FileImage, FileText, Globe } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PdfTemplateSelector } from "@/components/pdf-template-selector";
+import { UnifiedPdfTemplateSelector } from "@/components/unified-pdf-template-selector";
 
 // Define authorized admin emails
 const AUTHORIZED_ADMIN_EMAILS = [
@@ -111,6 +111,7 @@ export default function AccountPage() {
     businessName: "",
     businessLogo: "",
     profilePhoto: "",
+    customSubdomain: "",
   });
 
   // Fetch profile data
@@ -128,6 +129,7 @@ export default function AccountPage() {
         businessName: (profile as any).businessName || "",
         businessLogo: (profile as any).businessLogo || "",
         profilePhoto: (profile as any).profilePhoto || "",
+        customSubdomain: (profile as any).customSubdomain || "",
       });
     }
   }, [profile]);
@@ -722,6 +724,27 @@ export default function AccountPage() {
                             Remove
                           </Button>
                         </div>
+                        {/* Brand Colors Extracted from Logo */}
+                        {(profile as any)?.brandColors && (profile as any).brandColors.length > 0 && (
+                          <div className="pt-3 border-t border-gray-100 mt-3">
+                            <p className="text-xs font-medium text-gray-600 mb-2">Extracted Brand Colors</p>
+                            <div className="flex gap-2 justify-center flex-wrap">
+                              {((profile as any).brandColors as string[]).map((color, idx) => (
+                                <div key={idx} className="flex flex-col items-center gap-1">
+                                  <div
+                                    className="w-6 h-6 rounded-full border border-gray-200 shadow-sm"
+                                    style={{ backgroundColor: color }}
+                                    title={color}
+                                  />
+                                  <span className="text-[10px] text-gray-400 font-mono">{color}</span>
+                                </div>
+                              ))}
+                            </div>
+                            <p className="text-[10px] text-gray-400 mt-2">
+                              Used for branded PDF templates & e-signatures
+                            </p>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className="py-6">
@@ -753,6 +776,36 @@ export default function AccountPage() {
                 </div>
               </div>
 
+              {/* Custom Subdomain Section */}
+              <div className="space-y-2 pt-4 border-t border-gray-100">
+                <Label htmlFor="customSubdomain" className="flex items-center gap-2">
+                  <Globe className="h-4 w-4" />
+                  Custom Share Link Subdomain
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="customSubdomain"
+                    value={profileForm.customSubdomain}
+                    onChange={(e) => {
+                      // Only allow lowercase letters, numbers, and hyphens
+                      const sanitized = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+                      handleInputChange("customSubdomain", sanitized);
+                    }}
+                    placeholder="your-company"
+                    className="flex-1"
+                    maxLength={32}
+                  />
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">.cimshare.com</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {profileForm.customSubdomain ? (
+                    <>Your share links will be: <span className="font-medium text-blue-600">{profileForm.customSubdomain}.cimshare.com/share/...</span></>
+                  ) : (
+                    <>Choose a subdomain for branded share links (lowercase letters, numbers, and hyphens only)</>
+                  )}
+                </p>
+              </div>
+
               <div className="border-t border-gray-100 pt-5">
                 <Button
                   onClick={handleProfileSave}
@@ -765,8 +818,8 @@ export default function AccountPage() {
             </CardContent>
           </Card>
 
-          {/* PDF Background Templates */}
-          <PdfTemplateSelector />
+          {/* PDF Templates (Branded + Background combined) */}
+          <UnifiedPdfTemplateSelector />
 
         </TabsContent>
 
