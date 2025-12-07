@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye, FileSignature, UserCheck, FileText, TrendingUp, TrendingDown, Download, RefreshCw, Check, X, CheckCheck, MapPin, Copy } from "lucide-react";
+import { Eye, FileSignature, UserCheck, FileText, TrendingUp, TrendingDown, Download, RefreshCw, Check, X, CheckCheck, MapPin, Copy, Clock } from "lucide-react";
 import { Line, LineChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { format, subDays, eachDayOfInterval } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -72,6 +72,18 @@ export default function AnalyticsPage() {
   const activeDocuments = analytics?.activeDocuments || 0;
   const viewsTrend = analytics?.viewsTrend || 0;
   const signaturesTrend = analytics?.signaturesTrend || 0;
+
+  // Helper to format time spent
+  const formatTimeSpent = (seconds: number) => {
+    if (!seconds || seconds === 0) return '-';
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    if (minutes < 60) return `${minutes}m ${remainingSeconds}s`;
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    return `${hours}h ${remainingMinutes}m`;
+  };
 
   // Filter pending approvals by document
   const filteredPendingApprovals = pendingApprovalsData?.filter((approval: any) =>
@@ -971,8 +983,15 @@ export default function AnalyticsPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700 min-w-[300px]">Document Name</th>
+                    <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700 min-w-[250px]">Document Name</th>
                     <th className="text-center py-3 px-4 font-semibold text-sm text-gray-700">Views</th>
+                    <th className="text-center py-3 px-4 font-semibold text-sm text-gray-700">
+                      <span className="flex items-center justify-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        Avg Time
+                      </span>
+                    </th>
+                    <th className="text-center py-3 px-4 font-semibold text-sm text-gray-700">Downloads</th>
                     <th className="text-center py-3 px-4 font-semibold text-sm text-gray-700">Signatures</th>
                     <th className="text-center py-3 px-4 font-semibold text-sm text-gray-700">Status</th>
                   </tr>
@@ -981,12 +1000,16 @@ export default function AnalyticsPage() {
                   {filteredDocuments && filteredDocuments.length > 0 ? (
                     (showAllDocuments ? filteredDocuments : filteredDocuments.slice(0, 5)).map((doc: any) => (
                       <tr key={doc.id} className="border-b hover:bg-gray-50 cursor-pointer transition-colors">
-                        <td className="py-3 px-4 min-w-[300px]">
+                        <td className="py-3 px-4 min-w-[250px]">
                           <a href={`/documents/${doc.id}`} className="text-blue-600 hover:font-bold font-medium">
                             {doc.title}
                           </a>
                         </td>
                         <td className="text-center py-3 px-4">{doc.views}</td>
+                        <td className="text-center py-3 px-4 text-gray-600">
+                          {formatTimeSpent(doc.avgTimePerView)}
+                        </td>
+                        <td className="text-center py-3 px-4">{doc.downloads || 0}</td>
                         <td className="text-center py-3 px-4">{doc.signatures}</td>
                         <td className="text-center py-3 px-4">
                           <span className={`inline-block px-2 py-1 text-xs rounded-full ${
@@ -999,7 +1022,7 @@ export default function AnalyticsPage() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={4} className="text-center py-8 text-gray-500">
+                      <td colSpan={6} className="text-center py-8 text-gray-500">
                         No documents found
                       </td>
                     </tr>

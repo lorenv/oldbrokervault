@@ -216,10 +216,10 @@ export default function AccountPage() {
 
     try {
       // Compress image before uploading
-      const compressedDataUrl = await compressImage(file, 800, 0.8);
+      let finalDataUrl = await compressImage(file, 800, 0.8);
 
       // Check compressed size (should be under 2MB base64)
-      if (compressedDataUrl.length > 2 * 1024 * 1024) {
+      if (finalDataUrl.length > 2 * 1024 * 1024) {
         // Try with higher compression
         const moreCompressed = await compressImage(file, 600, 0.6);
         if (moreCompressed.length > 2 * 1024 * 1024) {
@@ -230,15 +230,46 @@ export default function AccountPage() {
           });
           return;
         }
-        handleInputChange(field, moreCompressed);
-      } else {
-        handleInputChange(field, compressedDataUrl);
+        finalDataUrl = moreCompressed;
       }
 
+      // Update local state
+      const updatedForm = { ...profileForm, [field]: finalDataUrl };
+      setProfileForm(updatedForm);
+
+      // Auto-save immediately to persist the image and extract brand colors
       toast({
-        title: "Image Processed",
-        description: "Image has been compressed and optimized for upload.",
+        title: "Uploading...",
+        description: "Saving your image...",
       });
+
+      try {
+        const response = await apiRequest("PUT", "/api/profile", { body: updatedForm });
+        const data = await response.json();
+
+        // Update local state with server response (includes file path and extracted colors)
+        setProfileForm(prev => ({
+          ...prev,
+          [field]: data[field] || prev[field]
+        }));
+
+        // Invalidate queries to refresh data
+        queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+
+        toast({
+          title: "Image Saved",
+          description: field === 'businessLogo'
+            ? "Your logo has been uploaded and brand colors extracted."
+            : "Your profile photo has been saved.",
+        });
+      } catch (saveError) {
+        toast({
+          title: "Save Failed",
+          description: "Image was processed but failed to save. Please try again.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       toast({
         title: "Upload Failed",

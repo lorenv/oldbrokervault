@@ -169,6 +169,50 @@ export function SharePage() {
     }
   }, [shareData?.bypassedNda, shareData?.isOwner, shareData?.isCollaborator, hasShownBypassNotification, toast]);
 
+  // Heartbeat tracking for time spent on page
+  useEffect(() => {
+    const sessionId = shareData?.viewSessionId;
+    if (!sessionId) return; // Don't track for owners or if no session
+
+    const HEARTBEAT_INTERVAL = 30000; // 30 seconds
+
+    const sendHeartbeat = async () => {
+      try {
+        await fetch('/api/track/heartbeat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId,
+            additionalSeconds: 30
+          })
+        });
+      } catch (error) {
+        console.error('Heartbeat failed:', error);
+      }
+    };
+
+    // Send heartbeat every 30 seconds
+    const intervalId = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
+
+    // Also send on page unload
+    const handleUnload = () => {
+      // Use sendBeacon for reliable delivery on page close
+      navigator.sendBeacon('/api/track/heartbeat', JSON.stringify({
+        sessionId,
+        additionalSeconds: Math.floor((Date.now() % HEARTBEAT_INTERVAL) / 1000)
+      }));
+    };
+
+    window.addEventListener('beforeunload', handleUnload);
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('beforeunload', handleUnload);
+      // Send final heartbeat on cleanup
+      sendHeartbeat();
+    };
+  }, [shareData?.viewSessionId]);
+
   if (isCheckingNda || isLoading || isValidatingToken) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/40 p-4">
@@ -410,6 +454,20 @@ export function SharePage() {
                           a.click();
                           window.URL.revokeObjectURL(url);
                           document.body.removeChild(a);
+
+                          // Track download
+                          if (shareData.viewSessionId) {
+                            fetch('/api/track/download', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                documentId: shareData.cim.id,
+                                downloadType: 'pdf',
+                                viewerEmail: shareData.viewerEmail,
+                                sessionId: shareData.viewSessionId
+                              })
+                            }).catch(console.error);
+                          }
                         }
                       } catch (error) {
                       } finally {
@@ -497,6 +555,20 @@ export function SharePage() {
                           a.click();
                           window.URL.revokeObjectURL(url);
                           document.body.removeChild(a);
+
+                          // Track download
+                          if (shareData.viewSessionId) {
+                            fetch('/api/track/download', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                documentId: shareData.cim.id,
+                                downloadType: 'pdf',
+                                viewerEmail: shareData.viewerEmail,
+                                sessionId: shareData.viewSessionId
+                              })
+                            }).catch(console.error);
+                          }
                         }
                       } catch (error) {
                       } finally {
