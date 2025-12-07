@@ -366,6 +366,20 @@ export const documentViews = pgTable("document_views", {
   userAgent: text("user_agent"),
   viewedAt: timestamp("viewed_at").defaultNow().notNull(),
   location: text("location"), // Geolocation data
+  sessionId: text("session_id"), // Unique session identifier for tracking time spent
+  timeSpentSeconds: integer("time_spent_seconds").default(0), // Total time spent viewing
+  lastHeartbeat: timestamp("last_heartbeat"), // Last heartbeat timestamp for session tracking
+});
+
+// Download tracking for analytics
+export const documentDownloads = pgTable("document_downloads", {
+  id: serial("id").primaryKey(),
+  cimDocumentId: integer("cim_document_id").notNull(),
+  viewerEmail: text("viewer_email"), // Email of downloader (if known via NDA)
+  viewerIdentifier: text("viewer_identifier"), // Session ID for anonymous
+  downloadType: text("download_type").notNull(), // 'pdf', 'docx', 'excel', etc.
+  ipAddress: text("ip_address"),
+  downloadedAt: timestamp("downloaded_at").defaultNow().notNull(),
 });
 
 

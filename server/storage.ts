@@ -1,4 +1,4 @@
-import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, uploadedFiles, customSections, ndaTemplates, ndaSignatures, ndaAccessTokens, ndaRedirectLinks, documentViews, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, NdaAccessToken, InsertNdaAccessToken, NdaRedirectLink, InsertNdaRedirectLink, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator, documentLocks, DocumentLock, documentActivityLog, DocumentActivityLog, customTags, analysisTemplates, AnalysisTemplate, InsertAnalysisTemplate, financialFiles, documentVersions, documentAnalytics, documentBaselines, DocumentBaseline, InsertDocumentBaseline, contentStyleTemplates, ContentStyleTemplate, InsertContentStyleTemplate, messageAttachments, MessageAttachment, InsertMessageAttachment, onboardingEmailSequences, userEmailQueue, OnboardingEmailSequence, UserEmailQueue, InsertUserEmailQueue } from "@shared/schema";
+import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, uploadedFiles, customSections, ndaTemplates, ndaSignatures, ndaAccessTokens, ndaRedirectLinks, documentViews, documentDownloads, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, NdaAccessToken, InsertNdaAccessToken, NdaRedirectLink, InsertNdaRedirectLink, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator, documentLocks, DocumentLock, documentActivityLog, DocumentActivityLog, customTags, analysisTemplates, AnalysisTemplate, InsertAnalysisTemplate, financialFiles, documentVersions, documentAnalytics, documentBaselines, DocumentBaseline, InsertDocumentBaseline, contentStyleTemplates, ContentStyleTemplate, InsertContentStyleTemplate, messageAttachments, MessageAttachment, InsertMessageAttachment, onboardingEmailSequences, userEmailQueue, OnboardingEmailSequence, UserEmailQueue, InsertUserEmailQueue } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
@@ -1391,28 +1391,163 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
 
   // New granular view tracking methods
   async trackDocumentView(
-    documentId: number, 
+    documentId: number,
     viewerType: 'anonymous' | 'nda_signer',
     options: {
       viewerIdentifier?: string;
       ipAddress?: string;
       userAgent?: string;
       location?: string;
+      sessionId?: string;
     } = {}
-  ): Promise<void> {
-    await db.insert(documentViews).values({
+  ): Promise<number> {
+    const [result] = await db.insert(documentViews).values({
       cimDocumentId: documentId,
       viewerType,
       viewerIdentifier: options.viewerIdentifier,
       ipAddress: options.ipAddress,
       userAgent: options.userAgent,
       location: options.location,
-    });
+      sessionId: options.sessionId,
+      timeSpentSeconds: 0,
+      lastHeartbeat: new Date(),
+    }).returning({ id: documentViews.id });
 
     // Update document's last viewed timestamp
     await db.update(cimDocuments)
       .set({ shareLastViewed: new Date() })
       .where(eq(cimDocuments.id, documentId));
+
+    return result.id;
+  }
+
+  // Update time spent for a viewing session via heartbeat
+  async updateViewHeartbeat(sessionId: string, additionalSeconds: number): Promise<void> {
+    await db.update(documentViews)
+      .set({
+        timeSpentSeconds: sql`COALESCE(${documentViews.timeSpentSeconds}, 0) + ${additionalSeconds}`,
+        lastHeartbeat: new Date(),
+      })
+      .where(eq(documentViews.sessionId, sessionId));
+  }
+
+  // Track document download
+  async trackDocumentDownload(
+    documentId: number,
+    downloadType: string,
+    options: {
+      viewerEmail?: string;
+      viewerIdentifier?: string;
+      ipAddress?: string;
+    } = {}
+  ): Promise<void> {
+    await db.insert(documentDownloads).values({
+      cimDocumentId: documentId,
+      downloadType,
+      viewerEmail: options.viewerEmail,
+      viewerIdentifier: options.viewerIdentifier,
+      ipAddress: options.ipAddress,
+    });
+  }
+
+  // Get download stats for a document
+  async getDocumentDownloadStats(documentId: number): Promise<{
+    totalDownloads: number;
+    downloadsByType: Record<string, number>;
+    downloadsByViewer: { email: string; count: number }[];
+  }> {
+    const [totalResult] = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(documentDownloads)
+      .where(eq(documentDownloads.cimDocumentId, documentId));
+
+    const byType = await db
+      .select({
+        downloadType: documentDownloads.downloadType,
+        count: sql<number>`COUNT(*)`
+      })
+      .from(documentDownloads)
+      .where(eq(documentDownloads.cimDocumentId, documentId))
+      .groupBy(documentDownloads.downloadType);
+
+    const byViewer = await db
+      .select({
+        email: documentDownloads.viewerEmail,
+        count: sql<number>`COUNT(*)`
+      })
+      .from(documentDownloads)
+      .where(
+        and(
+          eq(documentDownloads.cimDocumentId, documentId),
+          sql`${documentDownloads.viewerEmail} IS NOT NULL`
+        )
+      )
+      .groupBy(documentDownloads.viewerEmail);
+
+    return {
+      totalDownloads: totalResult?.count || 0,
+      downloadsByType: byType.reduce((acc, row) => {
+        acc[row.downloadType] = row.count;
+        return acc;
+      }, {} as Record<string, number>),
+      downloadsByViewer: byViewer.map(row => ({
+        email: row.email || 'unknown',
+        count: row.count
+      }))
+    };
+  }
+
+  // Get viewer analytics for a specific signer
+  async getSignerAnalytics(documentId: number, signerEmail: string): Promise<{
+    totalViews: number;
+    totalTimeSpentSeconds: number;
+    totalDownloads: number;
+    viewSessions: { viewedAt: Date; timeSpentSeconds: number }[];
+    downloads: { downloadType: string; downloadedAt: Date }[];
+  }> {
+    const views = await db
+      .select({
+        viewedAt: documentViews.viewedAt,
+        timeSpentSeconds: documentViews.timeSpentSeconds,
+      })
+      .from(documentViews)
+      .where(
+        and(
+          eq(documentViews.cimDocumentId, documentId),
+          eq(documentViews.viewerIdentifier, signerEmail)
+        )
+      )
+      .orderBy(desc(documentViews.viewedAt));
+
+    const downloads = await db
+      .select({
+        downloadType: documentDownloads.downloadType,
+        downloadedAt: documentDownloads.downloadedAt,
+      })
+      .from(documentDownloads)
+      .where(
+        and(
+          eq(documentDownloads.cimDocumentId, documentId),
+          eq(documentDownloads.viewerEmail, signerEmail)
+        )
+      )
+      .orderBy(desc(documentDownloads.downloadedAt));
+
+    const totalTimeSpent = views.reduce((sum, v) => sum + (v.timeSpentSeconds || 0), 0);
+
+    return {
+      totalViews: views.length,
+      totalTimeSpentSeconds: totalTimeSpent,
+      totalDownloads: downloads.length,
+      viewSessions: views.map(v => ({
+        viewedAt: v.viewedAt,
+        timeSpentSeconds: v.timeSpentSeconds || 0
+      })),
+      downloads: downloads.map(d => ({
+        downloadType: d.downloadType,
+        downloadedAt: d.downloadedAt
+      }))
+    };
   }
 
   async getDocumentViewStats(documentId: number): Promise<{

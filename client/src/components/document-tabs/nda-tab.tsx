@@ -39,7 +39,8 @@ import {
   GripVertical,
   Settings,
   Search,
-  X
+  X,
+  BarChart3
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -173,6 +174,35 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
   // Drag and drop state  - track which signature stage each signature belongs to
   const [signatureStages, setSignatureStages] = useState<Record<number, string>>({});
   const [activeId, setActiveId] = useState<number | null>(null);
+
+  // Signer analytics modal state
+  const [analyticsSignerEmail, setAnalyticsSignerEmail] = useState<string | null>(null);
+  const [analyticsSignerName, setAnalyticsSignerName] = useState<string>('');
+
+  // Fetch signer analytics when modal is open
+  const { data: signerAnalytics, isLoading: isLoadingAnalytics } = useQuery({
+    queryKey: ['/api/cim', cimDocument.id, 'signer-analytics', analyticsSignerEmail],
+    queryFn: async () => {
+      if (!analyticsSignerEmail) return null;
+      const response = await fetch(`/api/cim/${cimDocument.id}/signer-analytics/${encodeURIComponent(analyticsSignerEmail)}`, {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch analytics');
+      return response.json();
+    },
+    enabled: !!analyticsSignerEmail
+  });
+
+  // Helper to format time spent
+  const formatTimeSpent = (seconds: number) => {
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    if (minutes < 60) return `${minutes}m ${remainingSeconds}s`;
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    return `${hours}h ${remainingMinutes}m`;
+  };
 
   // Setup DnD sensors
   const sensors = useSensors(
@@ -1499,6 +1529,17 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                         >
                           <Link2Off className="h-3 w-3" />
                         </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setAnalyticsSignerEmail(signature.signerEmail);
+                            setAnalyticsSignerName(signature.signerName);
+                          }}
+                          title="View engagement analytics"
+                        >
+                          <BarChart3 className="h-3 w-3" />
+                        </Button>
                       </div>
                     </TableCell>
                       </TableRow>
@@ -1862,6 +1903,100 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
 
           <DialogFooter>
             <Button onClick={() => setIsManagingStages(false)}>Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Signer Analytics Modal */}
+      <Dialog open={!!analyticsSignerEmail} onOpenChange={(open) => !open && setAnalyticsSignerEmail(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Engagement Analytics
+            </DialogTitle>
+            <DialogDescription>
+              Viewing activity for {analyticsSignerName}
+            </DialogDescription>
+          </DialogHeader>
+
+          {isLoadingAnalytics ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : signerAnalytics ? (
+            <div className="space-y-4">
+              {/* Summary Stats */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-blue-50 rounded-lg p-3 text-center">
+                  <div className="text-2xl font-bold text-blue-600">{signerAnalytics.totalViews}</div>
+                  <div className="text-xs text-blue-700">Total Views</div>
+                </div>
+                <div className="bg-green-50 rounded-lg p-3 text-center">
+                  <div className="text-2xl font-bold text-green-600">
+                    {formatTimeSpent(signerAnalytics.totalTimeSpentSeconds)}
+                  </div>
+                  <div className="text-xs text-green-700">Time Spent</div>
+                </div>
+                <div className="bg-purple-50 rounded-lg p-3 text-center">
+                  <div className="text-2xl font-bold text-purple-600">{signerAnalytics.totalDownloads}</div>
+                  <div className="text-xs text-purple-700">Downloads</div>
+                </div>
+              </div>
+
+              {/* View Sessions */}
+              {signerAnalytics.viewSessions.length > 0 && (
+                <div>
+                  <h4 className="font-medium text-sm mb-2">Recent Views</h4>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {signerAnalytics.viewSessions.slice(0, 10).map((session: any, idx: number) => (
+                      <div key={idx} className="flex justify-between items-center text-sm bg-gray-50 rounded px-3 py-2">
+                        <span className="text-gray-600">
+                          {format(new Date(session.viewedAt), 'MMM d, h:mm a')}
+                        </span>
+                        <Badge variant="outline">
+                          <Clock className="h-3 w-3 mr-1" />
+                          {formatTimeSpent(session.timeSpentSeconds)}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Downloads */}
+              {signerAnalytics.downloads.length > 0 && (
+                <div>
+                  <h4 className="font-medium text-sm mb-2">Downloads</h4>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {signerAnalytics.downloads.map((download: any, idx: number) => (
+                      <div key={idx} className="flex justify-between items-center text-sm bg-gray-50 rounded px-3 py-2">
+                        <span className="text-gray-600">
+                          {format(new Date(download.downloadedAt), 'MMM d, h:mm a')}
+                        </span>
+                        <Badge variant="secondary">
+                          <Download className="h-3 w-3 mr-1" />
+                          {download.downloadType.toUpperCase()}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {signerAnalytics.totalViews === 0 && signerAnalytics.totalDownloads === 0 && (
+                <div className="text-center py-4 text-gray-500">
+                  <Eye className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No activity recorded yet</p>
+                </div>
+              )}
+            </div>
+          ) : null}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAnalyticsSignerEmail(null)}>
+              Close
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

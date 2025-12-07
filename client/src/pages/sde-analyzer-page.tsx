@@ -403,6 +403,17 @@ export default function SDEAnalyzerPage() {
 
       <div className="container mx-auto px-4 md:px-8 lg:px-12 max-w-7xl pt-12 pb-12 space-y-8">
 
+      {/* Beta Notice */}
+      <div className="flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+        <Info className="h-4 w-4 flex-shrink-0" />
+        <p>
+          <span className="font-medium">Beta Feature:</span> This tool is in early development. For more robust AI-powered SDE analysis, visit{' '}
+          <a href="https://sdesheet.com" target="_blank" rel="noopener noreferrer" className="font-medium underline hover:text-amber-900">
+            sdesheet.com
+          </a>
+        </p>
+      </div>
+
       {/* Usage Stats */}
       {usage && (
         <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 shadow-md border-2 border-blue-200 hover:shadow-lg transition-shadow duration-200 rounded-lg">

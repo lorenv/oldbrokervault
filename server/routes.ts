@@ -973,6 +973,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // PERFORMANCE OPTIMIZATION 2: Async view tracking (non-blocking)
       console.log("Starting async view tracking for document:", cimDoc.id);
 
+      // Generate a unique session ID for time tracking
+      const viewSessionId = `view_${cimDoc.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      let viewerEmail: string | null = null;
+
       const viewTrackingPromise = (async () => {
         try {
           const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
@@ -986,11 +990,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Track NDA signer view when accessing CIM content with token
             const accessToken = await storage.getNdaAccessToken(token as string);
             if (accessToken && accessToken.isActive) {
+              viewerEmail = accessToken.signerEmail;
               await Promise.all([
                 storage.trackDocumentView(cimDoc.id, 'nda_signer', {
                   viewerIdentifier: accessToken.signerEmail,
                   ipAddress: clientIp,
-                  userAgent: userAgent
+                  userAgent: userAgent,
+                  sessionId: viewSessionId
                 }),
                 storage.incrementShareViewCount(cimDoc.id)
               ]);
@@ -1000,7 +1006,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             await Promise.all([
               storage.trackDocumentView(cimDoc.id, 'anonymous', {
                 ipAddress: clientIp,
-                userAgent: userAgent
+                userAgent: userAgent,
+                sessionId: viewSessionId
               }),
               storage.incrementShareViewCount(cimDoc.id)
             ]);
@@ -1192,7 +1199,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isOwner: isOwner,
         isCollaborator: isCollaborator,
         bypassedNda: (isOwner || isCollaborator) && Boolean(cimDoc.ndaProtected), // Let frontend know NDA was bypassed
-        currentUserId: req.user?.id || null
+        currentUserId: req.user?.id || null,
+        // Analytics tracking info for frontend heartbeats
+        viewSessionId: isOwner ? null : viewSessionId,
+        viewerEmail: viewerEmail
       };
 
       // PERFORMANCE OPTIMIZATION 7: Cache successful responses (except when using tokens)
@@ -4864,11 +4874,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json([]);
       }
 
-      // Get view counts for each document
+      // Get view counts and time spent for each document
       const viewCounts = await db
         .select({
           cimDocumentId: documentViews.cimDocumentId,
           count: sql<number>`COUNT(*)::int`,
+          totalTimeSpent: sql<number>`COALESCE(SUM(${documentViews.timeSpentSeconds}), 0)::int`,
           lastViewedAt: sql<Date>`MAX(${documentViews.viewedAt})`
         })
         .from(documentViews)
@@ -4886,26 +4897,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(inArray(ndaSignatures.cimDocumentId, userDocs.map(d => d.id)))
         .groupBy(ndaSignatures.cimDocumentId);
 
+      // Get download counts for each document
+      const downloadCounts = await db
+        .select({
+          cimDocumentId: documentDownloads.cimDocumentId,
+          count: sql<number>`COUNT(*)::int`
+        })
+        .from(documentDownloads)
+        .where(inArray(documentDownloads.cimDocumentId, userDocs.map(d => d.id)))
+        .groupBy(documentDownloads.cimDocumentId);
+
       // Create maps for quick lookup
       const viewsMap = new Map(viewCounts.map(v => [v.cimDocumentId, {
         count: Number(v.count),
+        totalTimeSpent: Number(v.totalTimeSpent),
         lastViewedAt: v.lastViewedAt
       }]));
-      
+
       const signaturesMap = new Map(signatureCounts.map(s => [s.cimDocumentId, {
         count: Number(s.count),
         lastSignedAt: s.lastSignedAt
       }]));
 
+      const downloadsMap = new Map(downloadCounts.map(d => [d.cimDocumentId, Number(d.count)]));
+
       // Build document analytics array
       const documentAnalytics = userDocs.map(doc => {
         const views = viewsMap.get(doc.id);
         const signatures = signaturesMap.get(doc.id);
-        
+        const downloads = downloadsMap.get(doc.id) || 0;
+
         // Determine last activity (most recent of view or signature)
         const lastViewDate = views?.lastViewedAt ? new Date(views.lastViewedAt) : null;
         const lastSignDate = signatures?.lastSignedAt ? new Date(signatures.lastSignedAt) : null;
-        
+
         let lastActivity: string | null = null;
         if (lastViewDate && lastSignDate) {
           lastActivity = (lastViewDate > lastSignDate ? lastViewDate : lastSignDate).toISOString();
@@ -4915,11 +4940,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           lastActivity = lastSignDate.toISOString();
         }
 
+        // Calculate average time per view
+        const avgTimePerView = views?.count ? Math.round((views.totalTimeSpent || 0) / views.count) : 0;
+
         return {
           id: doc.id,
           title: doc.title,
           views: views?.count || 0,
           signatures: signatures?.count || 0,
+          downloads,
+          totalTimeSpent: views?.totalTimeSpent || 0,
+          avgTimePerView,
           shareEnabled: doc.shareEnabled,
           lastActivity
         };
@@ -5066,12 +5097,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // View tracking heartbeat - updates time spent for a viewing session
+  app.post("/api/track/heartbeat", async (req, res) => {
+    try {
+      const { sessionId, additionalSeconds } = req.body;
+
+      if (!sessionId || typeof additionalSeconds !== 'number') {
+        return res.status(400).json({ error: "Missing sessionId or additionalSeconds" });
+      }
+
+      await storage.updateViewHeartbeat(sessionId, additionalSeconds);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error updating heartbeat:', error);
+      res.status(500).json({ error: "Failed to update heartbeat" });
+    }
+  });
+
+  // Track document download
+  app.post("/api/track/download", async (req, res) => {
+    try {
+      const { documentId, downloadType, viewerEmail, sessionId } = req.body;
+
+      if (!documentId || !downloadType) {
+        return res.status(400).json({ error: "Missing documentId or downloadType" });
+      }
+
+      const clientIp = req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || '';
+
+      await storage.trackDocumentDownload(documentId, downloadType, {
+        viewerEmail,
+        viewerIdentifier: sessionId,
+        ipAddress: clientIp,
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error tracking download:', error);
+      res.status(500).json({ error: "Failed to track download" });
+    }
+  });
+
+  // Get signer analytics for a specific document and signer
+  app.get("/api/cim/:docId/signer-analytics/:signerEmail", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const docId = parseInt(req.params.docId);
+      const signerEmail = decodeURIComponent(req.params.signerEmail);
+
+      // Verify user owns the document
+      const doc = await storage.getCimDocument(docId);
+      if (!doc || doc.userId !== req.user.id) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const analytics = await storage.getSignerAnalytics(docId, signerEmail);
+      res.json(analytics);
+    } catch (error) {
+      console.error('Error fetching signer analytics:', error);
+      res.status(500).json({ error: "Failed to fetch signer analytics" });
+    }
+  });
+
+  // Get download stats for a document
+  app.get("/api/cim/:id/download-stats", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const docId = parseInt(req.params.id);
+
+      // Verify user owns the document
+      const doc = await storage.getCimDocument(docId);
+      if (!doc || doc.userId !== req.user.id) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const stats = await storage.getDocumentDownloadStats(docId);
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching download stats:', error);
+      res.status(500).json({ error: "Failed to fetch download stats" });
+    }
+  });
+
   // Custom sections routes
   app.get("/api/cim/:id/custom-sections", async (req, res) => {
     try {
       const cimId = parseInt(req.params.id);
       const cim = await storage.getCimDocument(cimId);
-      
+
       if (!cim) {
         return res.sendStatus(404);
       }
