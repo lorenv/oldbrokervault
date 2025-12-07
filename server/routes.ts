@@ -6753,7 +6753,9 @@ ${finalQuestion}
         businessName: user.businessName,
         businessLogo: user.businessLogo,
         profilePhoto: user.profilePhoto,
-        email: user.email
+        email: user.email,
+        brandColors: user.brandColors,
+        brandedPdfTemplate: user.brandedPdfTemplate
       };
       
       console.log("Profile data being returned:", profileData);

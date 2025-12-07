@@ -25,7 +25,7 @@ export function Navbar() {
   const { user, logoutMutation } = useAuth();
   const [isSupportOpen, setIsSupportOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const isHomePage = location === '/';
 
   // Fetch profile data for profile picture
@@ -294,11 +294,9 @@ export function Navbar() {
                   </Link>
                 </DropdownMenuItem>
                 {user.isAdmin && (
-                  <DropdownMenuItem asChild>
-                    <Link href="/admin" className="flex items-center cursor-pointer w-full">
-                      <User className="h-4 w-4 mr-2" />
-                      Admin Panel
-                    </Link>
+                  <DropdownMenuItem onClick={() => setLocation("/admin")} className="cursor-pointer">
+                    <User className="h-4 w-4 mr-2" />
+                    Admin Panel
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem onClick={() => setIsSupportOpen(true)}>
@@ -327,8 +325,8 @@ export function Navbar() {
                     <Menu className="h-5 w-5" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="right" className="w-[280px] sm:w-[350px]">
-                  <SheetHeader className="border-b pb-4">
+                <SheetContent side="right" className="w-[280px] sm:w-[350px] flex flex-col h-full">
+                  <SheetHeader className="border-b pb-4 flex-shrink-0">
                     <div className="flex items-center gap-3">
                       {(profile as any)?.profilePhoto ? (
                         <img
@@ -347,7 +345,7 @@ export function Navbar() {
                     </div>
                   </SheetHeader>
 
-                  <div className="flex flex-col gap-2 py-6">
+                  <div className="flex flex-col gap-2 py-6 overflow-y-auto flex-1">
                     <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-2 mb-2">
                       Main
                     </div>
@@ -438,12 +436,17 @@ export function Navbar() {
                       </Button>
                     </Link>
                     {user.isAdmin && (
-                      <Link href="/admin" onClick={() => setIsMobileMenuOpen(false)}>
-                        <Button variant="ghost" className="w-full justify-start text-left h-12 text-base">
-                          <User className="mr-3 h-5 w-5" />
-                          Admin Panel
-                        </Button>
-                      </Link>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start text-left h-12 text-base"
+                        onClick={() => {
+                          setIsMobileMenuOpen(false);
+                          setLocation("/admin");
+                        }}
+                      >
+                        <User className="mr-3 h-5 w-5" />
+                        Admin Panel
+                      </Button>
                     )}
                     <Button
                       variant="ghost"
@@ -456,20 +459,17 @@ export function Navbar() {
                       <HelpCircle className="mr-3 h-5 w-5" />
                       Support
                     </Button>
-
-                    <div className="border-t mt-6 pt-6">
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start text-left h-12 text-base text-red-600 hover:text-red-700 hover:bg-red-50"
-                        onClick={() => {
-                          logoutMutation.mutate();
-                          setIsMobileMenuOpen(false);
-                        }}
-                      >
-                        <LogOut className="mr-3 h-5 w-5" />
-                        Sign Out
-                      </Button>
-                    </div>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-left h-12 text-base text-red-600 hover:text-red-700 hover:bg-red-50"
+                      onClick={() => {
+                        logoutMutation.mutate();
+                        setIsMobileMenuOpen(false);
+                      }}
+                    >
+                      <LogOut className="mr-3 h-5 w-5" />
+                      Sign Out
+                    </Button>
                   </div>
                 </SheetContent>
               </Sheet>
