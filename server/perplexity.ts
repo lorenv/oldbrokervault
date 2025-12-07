@@ -2,6 +2,9 @@
 // Updated models: sonar, sonar-pro (2025)
 export const PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions";
 
+// Anthropic client for Claude-based CIM generation
+import Anthropic from '@anthropic-ai/sdk';
+
 // Standardized anti-hallucination rules for all AI-generated content
 const ANTI_HALLUCINATION_RULES = `
 ⚠️ CRITICAL ANTI-HALLUCINATION RULES - STRICT COMPLIANCE REQUIRED:
@@ -445,45 +448,74 @@ WRITING STYLE EXAMPLE (do NOT use these specific numbers - they are illustrative
 
 CRITICAL: Never reference "the transcript" or "business owner's notes" in the output - just write naturally about the business.`;
 
-  // Use OpenAI for CIM generation - it's a generation task, not a search task
-  // Perplexity's sonar-pro is a search model that refuses to generate content without web sources
-  // Using gpt-4o for higher quality, more elaborate content generation
-  const useOpenAI = !!process.env.OPENAI_API_KEY;
-  const apiUrl = useOpenAI ? "https://api.openai.com/v1/chat/completions" : PERPLEXITY_API_URL;
-  const apiKey = useOpenAI ? process.env.OPENAI_API_KEY : process.env.PERPLEXITY_API_KEY;
-  const model = useOpenAI ? "gpt-4o" : "sonar-pro";
+  // Use Claude Sonnet 3.5 for CIM generation - better quality business writing
+  // Fallback to OpenAI GPT-4o if Anthropic key not available, then Perplexity
+  const useAnthropic = !!process.env.ANTHROPIC_API_KEY2;
+  const useOpenAI = !useAnthropic && !!process.env.OPENAI_API_KEY;
 
-  console.log(`Using ${useOpenAI ? 'OpenAI' : 'Perplexity'} for CIM generation with model: ${model}`);
+  let content: string;
 
-  const response = await fetch(apiUrl, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model,
+  if (useAnthropic) {
+    // Use Claude Sonnet 3.5 for high-quality CIM writing
+    const anthropic = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY2,
+    });
+
+    console.log(`Using Anthropic Claude Sonnet 3.5 for CIM generation`);
+
+    const response = await anthropic.messages.create({
+      model: 'claude-3-5-sonnet-20241022',
+      max_tokens: 8000,
+      system: systemPrompt,
       messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
+        { role: 'user', content: userPrompt }
       ],
-      max_tokens: 8000, // Increased for richer, more elaborate content
-      temperature: FACTUAL_TEMPERATURE,
-      response_format: useOpenAI ? { type: "json_object" } : undefined
-    })
-  });
+    });
 
-  if (!response.ok) {
-    const text = await response.text();
-    console.error("API error:", { status: response.status, body: text });
-    throw new Error(`API error (${response.status}): ${text}`);
+    // Extract text content from Claude response
+    const textContent = response.content.find(c => c.type === 'text');
+    if (!textContent || textContent.type !== 'text') {
+      throw new Error('No text response from Claude');
+    }
+    content = textContent.text;
+  } else {
+    // Fallback to OpenAI or Perplexity
+    const apiUrl = useOpenAI ? "https://api.openai.com/v1/chat/completions" : PERPLEXITY_API_URL;
+    const apiKey = useOpenAI ? process.env.OPENAI_API_KEY : process.env.PERPLEXITY_API_KEY;
+    const model = useOpenAI ? "gpt-4o" : "sonar-pro";
+
+    console.log(`Using ${useOpenAI ? 'OpenAI' : 'Perplexity'} for CIM generation with model: ${model}`);
+
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        max_tokens: 8000,
+        temperature: FACTUAL_TEMPERATURE,
+        response_format: useOpenAI ? { type: "json_object" } : undefined
+      })
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.error("API error:", { status: response.status, body: text });
+      throw new Error(`API error (${response.status}): ${text}`);
+    }
+
+    const data = await response.json();
+    content = data.choices[0]?.message?.content;
   }
 
-  const data = await response.json();
-  const content = data.choices[0]?.message?.content;
-
   if (!content) {
-    console.error("No content in API response:", JSON.stringify(data).substring(0, 500));
+    console.error("No content in API response");
     throw new Error("API returned empty response");
   }
 

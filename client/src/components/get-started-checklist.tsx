@@ -65,27 +65,46 @@ export function GetStartedChecklist() {
   // Check if this is a new user by looking for the checklist state flags
   useEffect(() => {
     if (!user) return; // Wait for user data
-    
+
     const userId = user.id;
     const hasSeenChecklist = localStorage.getItem(`get-started-checklist-seen-${userId}`);
     const hasDismissedChecklist = localStorage.getItem(`get-started-checklist-dismissed-${userId}`);
-    
+
     // If user has dismissed it, never show it again
     if (hasDismissedChecklist) {
       setIsVisible(false);
       return;
     }
-    
-    // If user has never seen it before (first time after registration), show it
+
+    // If user has never seen it before, check if they're actually a new user
+    // by looking at their account creation date (if available) or just mark as seen
     if (!hasSeenChecklist) {
-      // Mark as seen immediately to prevent showing again on page refresh
-      localStorage.setItem(`get-started-checklist-seen-${userId}`, 'true');
-      
-      const timer = setTimeout(() => {
-        setIsVisible(true);
-      }, 2000); // Show after 2 seconds
-      
-      return () => clearTimeout(timer);
+      // Check if user was created recently (within last 5 minutes) to determine if truly new
+      // This prevents showing the checklist to existing users who never had the flag set
+      const userCreatedAt = (user as any).createdAt;
+      const isRecentlyCreated = userCreatedAt &&
+        (Date.now() - new Date(userCreatedAt).getTime()) < 5 * 60 * 1000; // 5 minutes
+
+      // Also check for the registration flag that gets set during signup
+      const showChecklistFlag = localStorage.getItem('show-get-started-checklist');
+
+      // Only show to genuinely new users (recently created OR has the registration flag)
+      if (isRecentlyCreated || showChecklistFlag === 'true') {
+        // Mark as seen immediately to prevent showing again on page refresh
+        localStorage.setItem(`get-started-checklist-seen-${userId}`, 'true');
+        // Clear the registration flag
+        localStorage.removeItem('show-get-started-checklist');
+
+        const timer = setTimeout(() => {
+          setIsVisible(true);
+        }, 2000); // Show after 2 seconds
+
+        return () => clearTimeout(timer);
+      } else {
+        // Existing user without the flag - mark as seen so we don't check again
+        localStorage.setItem(`get-started-checklist-seen-${userId}`, 'true');
+        setIsVisible(false);
+      }
     } else {
       // User has seen it before but hasn't dismissed it - don't show automatically
       setIsVisible(false);

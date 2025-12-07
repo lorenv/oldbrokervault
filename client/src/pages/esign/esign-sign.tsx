@@ -171,7 +171,7 @@ export default function EsignSign() {
     ctx.lineJoin = 'round';
   }, [showSignatureModal]);
 
-  // Canvas drawing handlers
+  // Canvas drawing handlers - Mouse events
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -201,6 +201,43 @@ export default function EsignSign() {
   };
 
   const stopDrawing = () => {
+    setIsDrawing(false);
+  };
+
+  // Canvas drawing handlers - Touch events for mobile
+  const startDrawingTouch = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault(); // Prevent scrolling while drawing
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    ctx.beginPath();
+    ctx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top);
+    setIsDrawing(true);
+  };
+
+  const drawTouch = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault(); // Prevent scrolling while drawing
+    if (!isDrawing) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    ctx.lineTo(touch.clientX - rect.left, touch.clientY - rect.top);
+    ctx.stroke();
+    setHasDrawn(true);
+  };
+
+  const stopDrawingTouch = () => {
     setIsDrawing(false);
   };
 
@@ -1048,10 +1085,14 @@ export default function EsignSign() {
                   width={350}
                   height={150}
                   className="w-full cursor-crosshair"
+                  style={{ touchAction: 'none' }}
                   onMouseDown={startDrawing}
                   onMouseMove={draw}
                   onMouseUp={stopDrawing}
                   onMouseLeave={stopDrawing}
+                  onTouchStart={startDrawingTouch}
+                  onTouchMove={drawTouch}
+                  onTouchEnd={stopDrawingTouch}
                 />
               </div>
               <Button variant="ghost" size="sm" className="mt-2" onClick={clearCanvas}>
