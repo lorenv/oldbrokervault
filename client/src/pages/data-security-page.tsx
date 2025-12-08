@@ -66,11 +66,18 @@ export default function DataSecurityPage() {
           </CardHeader>
           <CardContent>
             <div className="bg-slate-50 rounded-lg p-4 overflow-auto">
-              <img
-                src="/cim-share-data-flow.png"
-                alt="CIM Share Data Flow Diagram"
-                className="w-full max-w-5xl mx-auto"
-              />
+              <a
+                href="/cim-share-data-flow.png"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block cursor-zoom-in"
+              >
+                <img
+                  src="/cim-share-data-flow.png"
+                  alt="CIM Share Data Flow Diagram"
+                  className="w-full max-w-5xl mx-auto hover:opacity-90 transition-opacity"
+                />
+              </a>
             </div>
             <p className="text-sm text-muted-foreground mt-4 text-center">
               Click to enlarge. All connections use TLS 1.2+ encryption.

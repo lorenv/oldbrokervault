@@ -3,8 +3,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "@/hooks/use-toast";
-import { Check, FileImage, Palette, Image, FileText, Layers, Sparkles } from "lucide-react";
+import { Check, FileImage, Palette, Image, FileText, Layers, Sparkles, ChevronDown, RotateCcw } from "lucide-react";
 
 interface PdfTemplate {
   id: string;
@@ -17,6 +21,10 @@ interface PdfTemplate {
 
 export function UnifiedPdfTemplateSelector() {
   const [selectedTemplate, setSelectedTemplate] = useState<string>('none');
+  const [primaryColor, setPrimaryColor] = useState<string>('');
+  const [secondaryColor, setSecondaryColor] = useState<string>('');
+  const [primaryColorInput, setPrimaryColorInput] = useState<string>('');
+  const [secondaryColorInput, setSecondaryColorInput] = useState<string>('');
   const queryClient = useQueryClient();
 
   // Fetch available background templates
@@ -54,6 +62,16 @@ export function UnifiedPdfTemplateSelector() {
       } else {
         setSelectedTemplate('none');
       }
+
+      // Load saved PDF branding colors (or use extracted brand colors as defaults)
+      const extractedColors: string[] = userData.brandColors || [];
+      const savedPrimary = userData.pdfPrimaryColor || extractedColors[0] || '#3b82f6';
+      const savedSecondary = userData.pdfSecondaryColor || extractedColors[1] || '#e5e7eb';
+
+      setPrimaryColor(savedPrimary);
+      setSecondaryColor(savedSecondary);
+      setPrimaryColorInput(savedPrimary);
+      setSecondaryColorInput(savedSecondary);
     }
   }, [userData]);
 
@@ -120,15 +138,89 @@ export function UnifiedPdfTemplateSelector() {
     updateTemplateMutation.mutate(templateId);
   };
 
+  // Mutation to update PDF branding colors
+  const updateColorsMutation = useMutation({
+    mutationFn: async ({ pdfPrimaryColor, pdfSecondaryColor }: { pdfPrimaryColor?: string; pdfSecondaryColor?: string }) => {
+      const response = await fetch('/api/user/pdf-branding-colors', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ pdfPrimaryColor, pdfSecondaryColor })
+      });
+      if (!response.ok) throw new Error('Failed to update colors');
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Colors Updated",
+        description: "Your PDF branding colors have been saved."
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+    },
+    onError: () => {
+      toast({
+        title: "Update Failed",
+        description: "Failed to update PDF branding colors.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handlePrimaryColorChange = (color: string) => {
+    setPrimaryColor(color);
+    setPrimaryColorInput(color);
+    updateColorsMutation.mutate({ pdfPrimaryColor: color });
+  };
+
+  const handleSecondaryColorChange = (color: string) => {
+    setSecondaryColor(color);
+    setSecondaryColorInput(color);
+    updateColorsMutation.mutate({ pdfSecondaryColor: color });
+  };
+
+  const handlePrimaryInputBlur = () => {
+    const hexRegex = /^#[0-9A-Fa-f]{6}$/;
+    if (hexRegex.test(primaryColorInput)) {
+      handlePrimaryColorChange(primaryColorInput);
+    } else {
+      setPrimaryColorInput(primaryColor); // Reset to valid value
+    }
+  };
+
+  const handleSecondaryInputBlur = () => {
+    const hexRegex = /^#[0-9A-Fa-f]{6}$/;
+    if (hexRegex.test(secondaryColorInput)) {
+      handleSecondaryColorChange(secondaryColorInput);
+    } else {
+      setSecondaryColorInput(secondaryColor); // Reset to valid value
+    }
+  };
+
+  const resetToExtractedColors = () => {
+    const extractedColors: string[] = userData?.brandColors || [];
+    const defaultPrimary = extractedColors[0] || '#3b82f6';
+    const defaultSecondary = extractedColors[1] || '#e5e7eb';
+
+    setPrimaryColor(defaultPrimary);
+    setSecondaryColor(defaultSecondary);
+    setPrimaryColorInput(defaultPrimary);
+    setSecondaryColorInput(defaultSecondary);
+
+    // Update both colors at once
+    updateColorsMutation.mutate({
+      pdfPrimaryColor: defaultPrimary,
+      pdfSecondaryColor: defaultSecondary
+    });
+  };
+
   const brandColors: string[] = userData?.brandColors || [];
   const hasLogo = !!userData?.businessLogo;
   const hasBrandColors = brandColors.length > 0;
   const canUseBranded = hasLogo || hasBrandColors;
 
-  // Generate preview with brand colors for branded templates
+  // Generate preview with user-selected colors for branded templates
   const renderBrandedPreview = (templateId: string) => {
-    const primaryColor = brandColors[0] || '#3b82f6';
-    const secondaryColor = brandColors[1] || '#e5e7eb';
+    // Use user-selected colors (from state) instead of just extracted colors
 
     return (
       <div className="w-32 h-40 bg-white border border-gray-200 rounded shadow-sm relative overflow-hidden">
@@ -313,27 +405,160 @@ export function UnifiedPdfTemplateSelector() {
       </CardHeader>
 
       <CardContent className="space-y-6 pt-5 px-5 pb-5">
-        {/* Brand Colors Display */}
-        {hasBrandColors && (
-          <div className="mb-2">
-            <p className="text-sm font-medium text-gray-700 mb-2">Your Brand Colors</p>
-            <div className="flex gap-2 flex-wrap">
-              {brandColors.map((color, idx) => (
-                <div key={idx} className="flex items-center gap-1.5">
-                  <div
-                    className="w-5 h-5 rounded-full border border-gray-200 shadow-sm"
-                    style={{ backgroundColor: color }}
-                    title={color}
-                  />
-                  <span className="text-xs text-gray-500 font-mono">{color}</span>
-                  {idx === 0 && (
-                    <span className="text-xs text-purple-600 font-medium">(Primary)</span>
-                  )}
-                </div>
-              ))}
+        {/* PDF Branding Color Picker */}
+        {canUseBranded && (
+          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Palette className="h-4 w-4 text-purple-600" />
+                <p className="text-sm font-medium text-gray-700">PDF Branding Colors</p>
+              </div>
+              {hasBrandColors && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={resetToExtractedColors}
+                  className="text-xs h-7 px-2 text-gray-500 hover:text-gray-700"
+                >
+                  <RotateCcw className="h-3 w-3 mr-1" />
+                  Reset to Logo Colors
+                </Button>
+              )}
             </div>
-            <p className="text-xs text-gray-500 mt-1">
-              Primary color synced to e-signature settings
+
+            <div className="grid grid-cols-2 gap-4">
+              {/* Primary Color Picker */}
+              <div>
+                <Label className="text-xs text-gray-600 mb-1.5 block">Primary Color</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-between h-9 px-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-5 h-5 rounded border border-gray-300"
+                          style={{ backgroundColor: primaryColor }}
+                        />
+                        <span className="text-xs font-mono text-gray-600">{primaryColor}</span>
+                      </div>
+                      <ChevronDown className="h-3 w-3 text-gray-400" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-56 p-3" align="start">
+                    <div className="space-y-3">
+                      {hasBrandColors && (
+                        <div>
+                          <p className="text-xs font-medium text-gray-600 mb-2">From Logo</p>
+                          <div className="flex gap-2 flex-wrap">
+                            {brandColors.map((color, idx) => (
+                              <button
+                                key={idx}
+                                className={`w-7 h-7 rounded border-2 transition-all ${
+                                  primaryColor === color
+                                    ? 'border-purple-500 ring-2 ring-purple-200'
+                                    : 'border-gray-200 hover:border-gray-400'
+                                }`}
+                                style={{ backgroundColor: color }}
+                                onClick={() => handlePrimaryColorChange(color)}
+                                title={color}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-xs font-medium text-gray-600 mb-2">Custom Color</p>
+                        <div className="flex gap-2">
+                          <input
+                            type="color"
+                            value={primaryColor}
+                            onChange={(e) => handlePrimaryColorChange(e.target.value)}
+                            className="w-9 h-9 rounded cursor-pointer border border-gray-200"
+                          />
+                          <Input
+                            value={primaryColorInput}
+                            onChange={(e) => setPrimaryColorInput(e.target.value)}
+                            onBlur={handlePrimaryInputBlur}
+                            onKeyDown={(e) => e.key === 'Enter' && handlePrimaryInputBlur()}
+                            placeholder="#000000"
+                            className="flex-1 h-9 text-xs font-mono"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Secondary Color Picker */}
+              <div>
+                <Label className="text-xs text-gray-600 mb-1.5 block">Secondary Color</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-between h-9 px-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-5 h-5 rounded border border-gray-300"
+                          style={{ backgroundColor: secondaryColor }}
+                        />
+                        <span className="text-xs font-mono text-gray-600">{secondaryColor}</span>
+                      </div>
+                      <ChevronDown className="h-3 w-3 text-gray-400" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-56 p-3" align="start">
+                    <div className="space-y-3">
+                      {hasBrandColors && (
+                        <div>
+                          <p className="text-xs font-medium text-gray-600 mb-2">From Logo</p>
+                          <div className="flex gap-2 flex-wrap">
+                            {brandColors.map((color, idx) => (
+                              <button
+                                key={idx}
+                                className={`w-7 h-7 rounded border-2 transition-all ${
+                                  secondaryColor === color
+                                    ? 'border-purple-500 ring-2 ring-purple-200'
+                                    : 'border-gray-200 hover:border-gray-400'
+                                }`}
+                                style={{ backgroundColor: color }}
+                                onClick={() => handleSecondaryColorChange(color)}
+                                title={color}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-xs font-medium text-gray-600 mb-2">Custom Color</p>
+                        <div className="flex gap-2">
+                          <input
+                            type="color"
+                            value={secondaryColor}
+                            onChange={(e) => handleSecondaryColorChange(e.target.value)}
+                            className="w-9 h-9 rounded cursor-pointer border border-gray-200"
+                          />
+                          <Input
+                            value={secondaryColorInput}
+                            onChange={(e) => setSecondaryColorInput(e.target.value)}
+                            onBlur={handleSecondaryInputBlur}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSecondaryInputBlur()}
+                            placeholder="#000000"
+                            className="flex-1 h-9 text-xs font-mono"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Used for header bars, footer accents, and other PDF branding elements
             </p>
           </div>
         )}
