@@ -852,6 +852,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isCollaborator = !!collaboration;
       }
 
+      // Fetch owner's business logo for branding on password/NDA screens
+      let ownerBusinessLogo = null;
+      try {
+        const ownerProfile = await storage.getUserProfile(cimDoc.userId);
+        if (ownerProfile?.businessLogo) {
+          ownerBusinessLogo = ownerProfile.businessLogo;
+        }
+      } catch (e) {
+        // Ignore errors fetching owner profile
+      }
+
       const result = {
         requiresNda: Boolean(cimDoc.ndaProtected) && !isOwner && !isCollaborator, // Bypass NDA for owner and collaborators
         requiresApproval: Boolean(cimDoc.ndaApprovalRequired),
@@ -860,7 +871,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isOwner: isOwner,
         isCollaborator: isCollaborator,
         bypassedNda: (isOwner || isCollaborator) && Boolean(cimDoc.ndaProtected), // Let frontend know NDA was bypassed
-        currentUserId: req.user?.id || null
+        currentUserId: req.user?.id || null,
+        ownerBusinessLogo: ownerBusinessLogo
       };
 
       // Skip caching to avoid import issues
@@ -1419,9 +1431,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // PERFORMANCE OPTIMIZATION: Direct PDF generation with cached data
       const pdfGenStart = Date.now();
+
+      // Get branded PDF template settings from user profile
+      const brandedPdfTemplate = userProfile.brandedPdfTemplate || 'none';
+      const brandColors = userProfile.brandColors || null;
+
+      console.log("=== BRANDED PDF TEMPLATE DEBUG ===");
+      console.log("brandedPdfTemplate:", brandedPdfTemplate);
+      console.log("brandColors:", brandColors);
+      console.log("businessLogo (processed):", processedUserProfile.businessLogo);
+      console.log("==================================");
+
       const pdfBuffer = await generatePDF(
         cimDoc.analysis, // Use cached analysis - no regeneration
-        processedLogoUrl, // Use processed logo URL with proper base URL  
+        processedLogoUrl, // Use processed logo URL with proper base URL
         cimDoc.websiteUrl || undefined,
         processedSelectedImages, // Use processed images with proper base URLs
         processedUserProfile, // Use processed user profile with correct image URLs
@@ -1434,7 +1457,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cimDoc.coverImagePosition,
         cimDoc.id,
         pdfTemplate, // Pass user's template preference
-        shareSlug // Pass shareSlug to PDF generator for shared links
+        shareSlug, // Pass shareSlug to PDF generator for shared links
+        brandedPdfTemplate, // Pass branded template preference (accent-bar, etc.)
+        brandColors, // Pass user's brand colors
+        processedUserProfile.businessLogo // Pass processed business logo URL
       );
       
       console.log("PDF generation time:", Date.now() - pdfGenStart + "ms");
@@ -5657,8 +5683,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         baseUrl = `${protocol}://${host}`;
       }
       
-      // Get user's PDF template preference
+      // Get user's PDF template preferences
       const pdfTemplate = userProfile.pdfBackgroundTemplate || 'classic';
+      const brandedPdfTemplate = userProfile.brandedPdfTemplate || 'none';
+      const brandColors = userProfile.brandColors || null;
+      const processedBusinessLogo = userProfile.businessLogo ?
+        (userProfile.businessLogo.startsWith('http') || userProfile.businessLogo.startsWith('data:')
+          ? userProfile.businessLogo
+          : `${baseUrl}${userProfile.businessLogo.startsWith('/') ? '' : '/'}${userProfile.businessLogo}`)
+        : null;
       
       // Process image URLs for PDF export using the same logic as share route
       const processImageUrl = (url: string | null) => {
@@ -5698,7 +5731,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("===============================================");
       
       // Pass all document data to the PDF generator
-      const buffer = await generatePDF(doc.analysis, processedLogoUrl, doc.websiteUrl || undefined, processedSelectedImages, userProfile, financialData, documentFinancialFiles, baseUrl, doc.title, customSections, processedCoverImageUrl, doc.coverImagePosition, doc.id, pdfTemplate);
+      console.log("=== BRANDED PDF TEMPLATE DEBUG (REGULAR EXPORT) ===");
+      console.log("brandedPdfTemplate:", brandedPdfTemplate);
+      console.log("brandColors:", brandColors);
+      console.log("processedBusinessLogo:", processedBusinessLogo);
+      console.log("===================================================");
+
+      const buffer = await generatePDF(
+        doc.analysis,
+        processedLogoUrl,
+        doc.websiteUrl || undefined,
+        processedSelectedImages,
+        userProfile,
+        financialData,
+        documentFinancialFiles,
+        baseUrl,
+        doc.title,
+        customSections,
+        processedCoverImageUrl,
+        doc.coverImagePosition,
+        doc.id,
+        pdfTemplate,
+        undefined, // shareSlug - not applicable for regular export
+        brandedPdfTemplate, // Pass branded template preference
+        brandColors, // Pass user's brand colors
+        processedBusinessLogo // Pass processed business logo URL
+      );
       console.log(`PDF document generated, size: ${buffer.length} bytes`);
       
       res.setHeader("Content-Type", "application/pdf");
@@ -6654,34 +6712,55 @@ ${finalQuestion}
     try {
       const docId = parseInt(req.params.id);
       const { shareEnabled, shareSlug, customSlug, sharePassword, shareExpiresAt, ndaProtected, ndaTemplateId } = req.body;
-      
+
 
       const doc = await storage.getCimDocument(docId);
       if (!doc) {
         console.log("Document not found:", docId);
         return res.status(404).json({ error: "Document not found" });
       }
-      
+
       if (doc.userId !== req.user!.id) {
         console.log("Document access denied:", { docUserId: doc.userId, requestUserId: req.user!.id });
         return res.status(403).json({ error: "Access denied" });
       }
 
+      // Validate custom slug if provided
+      let validatedCustomSlug = customSlug;
+      if (customSlug && customSlug.trim()) {
+        // Basic validation for custom slug - only allow lowercase letters, numbers, and hyphens
+        const slugRegex = /^[a-z0-9-]+$/;
+        const trimmedSlug = customSlug.trim().toLowerCase();
+        if (!slugRegex.test(trimmedSlug)) {
+          return res.status(400).json({ error: "Custom URL can only contain lowercase letters, numbers, and hyphens" });
+        }
+        validatedCustomSlug = trimmedSlug;
+
+        // Check if custom slug is already taken by another document
+        const existingDoc = await storage.getCimByShareSlug(validatedCustomSlug);
+        if (existingDoc && existingDoc.id !== docId) {
+          return res.status(400).json({ error: "This custom URL is already taken. Please choose a different one." });
+        }
+      } else {
+        validatedCustomSlug = null;
+      }
+
       const updatedDoc = await storage.updateCimShareSettings(docId, {
         shareEnabled,
         shareSlug,
-        customSlug,
+        customSlug: validatedCustomSlug,
         sharePassword,
         shareExpiresAt,
         ndaProtected,
         ndaTemplateId
       });
 
-      console.log("Share settings updated successfully:", updatedDoc.shareSlug);
+      console.log("Share settings updated successfully:", updatedDoc.shareSlug, "customSlug:", updatedDoc.customSlug);
 
       res.json({
         shareEnabled: updatedDoc.shareEnabled,
         shareSlug: updatedDoc.shareSlug,
+        customSlug: updatedDoc.customSlug,
         viewCount: updatedDoc.shareViewCount,
         ndaProtected: updatedDoc.ndaProtected,
         ndaTemplateId: updatedDoc.ndaTemplateId,
@@ -6689,6 +6768,14 @@ ${finalQuestion}
       });
     } catch (error: any) {
       console.error("Error updating share settings:", error);
+
+      // Handle duplicate key constraint violation
+      if (error.message && error.message.includes('duplicate key value violates unique constraint')) {
+        if (error.message.includes('cim_documents_custom_slug_key')) {
+          return res.status(400).json({ error: "This custom URL is already taken. Please choose a different one." });
+        }
+      }
+
       res.status(500).json({ error: `Failed to update share settings: ${error.message}` });
     }
   });
@@ -6874,7 +6961,8 @@ ${finalQuestion}
         profilePhoto: user.profilePhoto,
         email: user.email,
         brandColors: user.brandColors,
-        brandedPdfTemplate: user.brandedPdfTemplate
+        brandedPdfTemplate: user.brandedPdfTemplate,
+        customSubdomain: user.customSubdomain
       };
       
       console.log("Profile data being returned:", profileData);

@@ -9,6 +9,7 @@ import { useCimDocument, useFinancialFiles, useCustomSections, useNdaSignatures 
 import { DocumentSkeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { getBaseUrlWithSubdomain } from "@/lib/url-utils";
 import { CimDisplay } from "@/components/cim-display";
 import { DocumentExport } from "@/components/document-export";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -207,7 +208,7 @@ export function DocumentDetailPage() {
   const [copyButtonState, setCopyButtonState] = useState<'idle' | 'copied' | 'error' | 'hidden'>('idle');
 
   const generateShareUrl = () => {
-    const baseUrl = window.location.hostname === 'localhost' ? window.location.origin : 'https://cimshare.com';
+    const baseUrl = getBaseUrlWithSubdomain(user?.customSubdomain);
     return `${baseUrl}/share/${cimDocument?.shareSlug || 'not-shared'}`;
   };
 

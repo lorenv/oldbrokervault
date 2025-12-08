@@ -25,6 +25,7 @@ import EulaPage from "@/pages/eula-page";
 import PrivacyPolicyPage from "@/pages/privacy-policy-page";
 import TermsOfServicePage from "@/pages/terms-of-service-page";
 import CookiePolicyPage from "@/pages/cookie-policy-page";
+import DataSecurityPage from "@/pages/data-security-page";
 import { SharePage } from "@/pages/share-page";
 import { NdaRedirectPage } from "@/pages/nda-redirect-page";
 import { UnsubscribePage } from "@/pages/unsubscribe-page";
@@ -106,6 +107,7 @@ function Router() {
             <Route path="/privacy-policy" component={PrivacyPolicyPage} />
             <Route path="/terms-of-service" component={TermsOfServicePage} />
             <Route path="/cookie-policy" component={CookiePolicyPage} />
+            <Route path="/data-security" component={DataSecurityPage} />
             <ProtectedRoute path="/admin" component={AdminPage} requireAdmin={true} />
             <Route path="/login" component={LoginPage} />
             <Route path="/auth" component={LoginPage} />

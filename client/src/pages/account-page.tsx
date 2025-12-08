@@ -146,6 +146,8 @@ export default function AccountPage() {
         description: "Your profile information has been updated successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
+      // Also invalidate user query so useAuth() gets the updated customSubdomain
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
     },
     onError: (error: Error) => {
       toast({
@@ -827,6 +829,17 @@ export default function AccountPage() {
                     maxLength={32}
                   />
                   <span className="text-sm text-muted-foreground whitespace-nowrap">.cimshare.com</span>
+                  {profileForm.customSubdomain && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleInputChange("customSubdomain", "")}
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2"
+                    >
+                      Clear
+                    </Button>
+                  )}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {profileForm.customSubdomain ? (
