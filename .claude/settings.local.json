@@ -31,7 +31,9 @@
       "Bash(apt-cache search:*)",
       "Bash(ls:*)",
       "Bash(grep:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(printf:*)",
+      "Bash(yes:*)"
     ],
     "deny": [],
     "ask": [],

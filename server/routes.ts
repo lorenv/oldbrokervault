@@ -1239,9 +1239,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Shared document export endpoints - PDF (OPTIMIZED)
   app.post("/api/share/:shareSlug/export/pdf", async (req, res) => {
     const startTime = Date.now();
+    console.log("🔴🔴🔴 SHARE PDF EXPORT ENDPOINT HIT 🔴🔴🔴");
+    const fsDebug = await import('fs');
+    fsDebug.appendFileSync('/tmp/pdf-debug.log', `\n\n=== PDF EXPORT ${new Date().toISOString()} ===\n`);
     try {
       const { shareSlug } = req.params;
       console.log("Shared PDF export request for slug:", shareSlug);
+      fsDebug.appendFileSync('/tmp/pdf-debug.log', `shareSlug: ${shareSlug}\n`);
       
       // PERFORMANCE OPTIMIZATION: Direct database query for shared PDF export
       const cimDoc = await storage.getCimByShareSlug(shareSlug);
@@ -1434,13 +1438,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get branded PDF template settings from user profile
       const brandedPdfTemplate = userProfile.brandedPdfTemplate || 'none';
-      const brandColors = userProfile.brandColors || null;
+
+      // Build effective brand colors: use user-selected colors if set, otherwise fall back to extracted colors
+      const extractedColors = userProfile.brandColors || [];
+      const effectivePrimaryColor = userProfile.pdfPrimaryColor || (extractedColors[0] as string) || '#3b82f6';
+      const effectiveSecondaryColor = userProfile.pdfSecondaryColor || (extractedColors[1] as string) || '#e5e7eb';
+      const brandColors = [effectivePrimaryColor, effectiveSecondaryColor];
 
       console.log("=== BRANDED PDF TEMPLATE DEBUG ===");
       console.log("brandedPdfTemplate:", brandedPdfTemplate);
-      console.log("brandColors:", brandColors);
+      console.log("extractedColors:", extractedColors);
+      console.log("effectivePrimaryColor:", effectivePrimaryColor);
+      console.log("effectiveSecondaryColor:", effectiveSecondaryColor);
+      console.log("brandColors (final):", brandColors);
       console.log("businessLogo (processed):", processedUserProfile.businessLogo);
       console.log("==================================");
+
+      // Write to debug file
+      fsDebug.appendFileSync('/tmp/pdf-debug.log', `brandedPdfTemplate: ${brandedPdfTemplate}\n`);
+      fsDebug.appendFileSync('/tmp/pdf-debug.log', `brandColors: ${JSON.stringify(brandColors)}\n`);
+      fsDebug.appendFileSync('/tmp/pdf-debug.log', `businessLogo: ${processedUserProfile.businessLogo}\n`);
 
       const pdfBuffer = await generatePDF(
         cimDoc.analysis, // Use cached analysis - no regeneration
@@ -5686,7 +5703,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get user's PDF template preferences
       const pdfTemplate = userProfile.pdfBackgroundTemplate || 'classic';
       const brandedPdfTemplate = userProfile.brandedPdfTemplate || 'none';
-      const brandColors = userProfile.brandColors || null;
+
+      // Build effective brand colors: use user-selected colors if set, otherwise fall back to extracted colors
+      const extractedColors = userProfile.brandColors || [];
+      const effectivePrimaryColor = userProfile.pdfPrimaryColor || (extractedColors[0] as string) || '#3b82f6';
+      const effectiveSecondaryColor = userProfile.pdfSecondaryColor || (extractedColors[1] as string) || '#e5e7eb';
+      const brandColors = [effectivePrimaryColor, effectiveSecondaryColor];
+
       const processedBusinessLogo = userProfile.businessLogo ?
         (userProfile.businessLogo.startsWith('http') || userProfile.businessLogo.startsWith('data:')
           ? userProfile.businessLogo
@@ -7278,6 +7301,65 @@ ${finalQuestion}
       console.error('Branded PDF template update error:', error);
       res.status(500).json({
         error: "Failed to update template preference",
+        message: "Please try again later"
+      });
+    }
+  });
+
+  // PDF branding colors endpoint
+  app.put("/api/user/pdf-branding-colors", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const { pdfPrimaryColor, pdfSecondaryColor } = req.body;
+
+      // Validate hex color format
+      const hexColorRegex = /^#[0-9A-Fa-f]{6}$/;
+
+      const updates: any = {};
+
+      if (pdfPrimaryColor !== undefined) {
+        if (pdfPrimaryColor === null || pdfPrimaryColor === '') {
+          updates.pdfPrimaryColor = null;
+        } else if (hexColorRegex.test(pdfPrimaryColor)) {
+          updates.pdfPrimaryColor = pdfPrimaryColor;
+        } else {
+          return res.status(400).json({
+            error: "Invalid primary color",
+            message: "Primary color must be a valid hex color (e.g., #FF5733)"
+          });
+        }
+      }
+
+      if (pdfSecondaryColor !== undefined) {
+        if (pdfSecondaryColor === null || pdfSecondaryColor === '') {
+          updates.pdfSecondaryColor = null;
+        } else if (hexColorRegex.test(pdfSecondaryColor)) {
+          updates.pdfSecondaryColor = pdfSecondaryColor;
+        } else {
+          return res.status(400).json({
+            error: "Invalid secondary color",
+            message: "Secondary color must be a valid hex color (e.g., #FF5733)"
+          });
+        }
+      }
+
+      // Update user's PDF branding colors
+      const updatedUser = await storage.updateUserProfile(req.user!.id, updates);
+
+      // Invalidate user cache
+      const { invalidateUserCache } = await import("./auth");
+      invalidateUserCache(req.user!.id);
+
+      res.json({
+        pdfPrimaryColor: updatedUser.pdfPrimaryColor,
+        pdfSecondaryColor: updatedUser.pdfSecondaryColor,
+        message: "PDF branding colors updated successfully"
+      });
+    } catch (error) {
+      console.error('PDF branding colors update error:', error);
+      res.status(500).json({
+        error: "Failed to update branding colors",
         message: "Please try again later"
       });
     }

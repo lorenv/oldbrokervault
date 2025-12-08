@@ -115,6 +115,10 @@ export const users = pgTable("users", {
   customSubdomain: text("custom_subdomain"),
   // Brand colors extracted from logo (array of hex colors, e.g., ["#1a365d", "#e53e3e"])
   brandColors: jsonb("brand_colors"),
+  // User-selected primary color for PDF branding (defaults to first extracted color if not set)
+  pdfPrimaryColor: text("pdf_primary_color"),
+  // User-selected secondary color for PDF branding (defaults to second extracted color if not set)
+  pdfSecondaryColor: text("pdf_secondary_color"),
   // Branded PDF template selection: "none", "watermark", "footer", "accent", "full"
   brandedPdfTemplate: text("branded_pdf_template").default("none"),
   // Email preferences
