@@ -8,6 +8,7 @@ import {
 import { Copy, FileText, File, Globe, FileDown, Link, Share2, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { getBaseUrlWithSubdomain } from "@/lib/url-utils";
 import { useCimDocument, useNdaSignatures } from "@/hooks/use-cim-document";
 import { EmailShareDialog } from "./email-share-dialog";
 import {
@@ -1208,12 +1209,12 @@ export function DocumentExport({
                 <div className="space-y-2">
                   <Label htmlFor="custom-slug">Custom URL (optional)</Label>
                   <div className="flex items-center space-x-2">
-                    <span className="text-sm text-muted-foreground">cimshare.com/share/</span>
+                    <span className="text-sm text-muted-foreground">{user?.customSubdomain ? `${user.customSubdomain}.cimshare.com/share/` : 'cimshare.com/share/'}</span>
                     <Input
                       id="custom-slug"
                       placeholder="my-business-name"
                       value={shareSettings.customSlug}
-                      onChange={(e) => 
+                      onChange={(e) =>
                         setShareSettings(prev => ({ ...prev, customSlug: e.target.value }))
                       }
                     />
@@ -1769,7 +1770,7 @@ export function DocumentExport({
       <EmailShareDialog
         open={emailShareDialog.open}
         onOpenChange={(open) => setEmailShareDialog({ open })}
-        shareUrl={emailShareDialog.shareToken ? `${window.location.hostname === 'localhost' ? window.location.origin : 'https://cimshare.com'}/share/${emailShareDialog.shareToken}` : shareUrl}
+        shareUrl={emailShareDialog.shareToken ? `${getBaseUrlWithSubdomain(user?.customSubdomain)}/share/${emailShareDialog.shareToken}` : shareUrl}
         documentTitle={emailShareDialog.documentTitle || `CIM Document #${docId}`}
         senderName={user?.name}
       />

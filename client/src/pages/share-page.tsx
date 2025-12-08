@@ -10,7 +10,9 @@ import { NdaDialog } from "@/components/nda-dialog";
 import { UploadedFileViewer } from "@/components/uploaded-file-viewer";
 import { FinancialDocumentsDisplay } from "@/components/financial-documents-display";
 import { ShareStickySidebar } from "@/components/share-sticky-sidebar";
-import { Shield, FileText, AlertCircle, Download, Package, DollarSign, TrendingUp, BarChart3, Loader2, Globe, ExternalLink, Clock, Phone } from "lucide-react";
+import { Shield, FileText, AlertCircle, Download, Package, DollarSign, TrendingUp, BarChart3, Loader2, Globe, ExternalLink, Clock, Phone, Lock } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { OwnerToolbar } from "@/components/owner-toolbar";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -28,6 +30,13 @@ export function SharePage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [hasShownBypassNotification, setHasShownBypassNotification] = useState(false);
+
+  // Password protection state
+  const [requiresPassword, setRequiresPassword] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [enteredPassword, setEnteredPassword] = useState<string | null>(null);
+  const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
 
   // Parallax effect state
   const [scrollY, setScrollY] = useState(0);
@@ -103,9 +112,14 @@ export function SharePage() {
   const shouldLoadFullData = Boolean(ndaCheck && (!ndaCheck.requiresNda || hasSignedNda || accessToken || ndaCheck.isOwner) && !ndaCheckError);
 
   const { data: shareData, isLoading, error } = useQuery({
-    queryKey: ['/api/share', shareSlug, accessToken],
+    queryKey: ['/api/share', shareSlug, accessToken, enteredPassword],
     queryFn: async () => {
-      const url = accessToken ? `/api/share/${shareSlug}?token=${accessToken}` : `/api/share/${shareSlug}`;
+      let url = `/api/share/${shareSlug}`;
+      const params = new URLSearchParams();
+      if (accessToken) params.append('token', accessToken);
+      if (enteredPassword) params.append('password', enteredPassword);
+      if (params.toString()) url += `?${params.toString()}`;
+
       const response = await fetch(url, {
         method: 'GET',
         headers: {
@@ -115,15 +129,30 @@ export function SharePage() {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
+        const errorData = await response.json().catch(() => ({}));
+
+        // Handle password required response
+        if (response.status === 401 && errorData.requiresPassword) {
+          setRequiresPassword(true);
+          if (enteredPassword) {
+            setPasswordError('Incorrect password. Please try again.');
+          }
+          throw new Error('PASSWORD_REQUIRED');
+        }
+
         throw new Error(`Failed to fetch shared CIM: ${response.status}`);
       }
+
+      // Password accepted - clear any error state
+      setRequiresPassword(false);
+      setPasswordError('');
 
       const data = await response.json();
       return data;
     },
     enabled: Boolean(shouldLoadFullData),
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    retry: false // Don't auto-retry on password errors
   });
 
   // Don't redirect - show NDA dialog instead when needed
@@ -226,7 +255,94 @@ export function SharePage() {
     );
   }
 
-  if (error || tokenError || ndaCheckError) {
+  // Password entry handler
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!passwordInput.trim()) {
+      setPasswordError('Please enter a password');
+      return;
+    }
+    setPasswordError('');
+    setIsSubmittingPassword(true);
+    setEnteredPassword(passwordInput);
+    // The query will auto-refetch when enteredPassword changes
+    setTimeout(() => setIsSubmittingPassword(false), 500);
+  };
+
+  // Show password entry form if document requires password
+  if (requiresPassword && !shareData) {
+    const ownerLogo = ndaCheck?.ownerBusinessLogo;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/40 p-4">
+        <div className="flex justify-center items-center min-h-[50vh]">
+          <Card className="max-w-md w-full">
+            <CardHeader className="text-center">
+              {ownerLogo ? (
+                <div className="mx-auto mb-4 max-w-[180px] max-h-[80px] flex items-center justify-center">
+                  <img
+                    src={ownerLogo}
+                    alt="Business logo"
+                    className="max-w-full max-h-[80px] object-contain"
+                  />
+                </div>
+              ) : (
+                <div className="mx-auto mb-4 w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                  <Lock className="h-6 w-6 text-blue-600" />
+                </div>
+              )}
+              <CardTitle>Password Protected</CardTitle>
+              <CardDescription>
+                This document requires a password to view.
+                {ndaCheck?.title && (
+                  <span className="block mt-2 font-medium text-foreground">
+                    "{ndaCheck.title}"
+                  </span>
+                )}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="share-password">Password</Label>
+                  <Input
+                    id="share-password"
+                    type="password"
+                    placeholder="Enter password"
+                    value={passwordInput}
+                    onChange={(e) => {
+                      setPasswordInput(e.target.value);
+                      setPasswordError('');
+                    }}
+                    autoFocus
+                  />
+                  {passwordError && (
+                    <p className="text-sm text-red-500">{passwordError}</p>
+                  )}
+                </div>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isSubmittingPassword}
+                >
+                  {isSubmittingPassword ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Verifying...
+                    </>
+                  ) : (
+                    'Access Document'
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Show generic error for non-password related errors
+  if ((error && error.message !== 'PASSWORD_REQUIRED') || tokenError || ndaCheckError) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/40 p-4">
         <div className="flex justify-center items-center min-h-[50vh]">
@@ -441,7 +557,8 @@ export function SharePage() {
                       try {
                         const response = await fetch(`/api/share/${shareSlug}/export/pdf`, {
                           method: 'POST',
-                          headers: { 'Content-Type': 'application/json' }
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ password: enteredPassword })
                         });
 
                         if (response.ok) {
@@ -468,8 +585,20 @@ export function SharePage() {
                               })
                             }).catch(console.error);
                           }
+                        } else {
+                          const errorData = await response.json().catch(() => ({}));
+                          toast({
+                            title: "PDF Export Failed",
+                            description: errorData.error || "Failed to generate PDF",
+                            variant: "destructive"
+                          });
                         }
                       } catch (error) {
+                        toast({
+                          title: "PDF Export Failed",
+                          description: "An error occurred while generating the PDF",
+                          variant: "destructive"
+                        });
                       } finally {
                         setIsExportingPdf(false);
                       }
@@ -542,7 +671,8 @@ export function SharePage() {
                       try {
                         const response = await fetch(`/api/share/${shareSlug}/export/pdf`, {
                           method: 'POST',
-                          headers: { 'Content-Type': 'application/json' }
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ password: enteredPassword })
                         });
 
                         if (response.ok) {
@@ -569,8 +699,20 @@ export function SharePage() {
                               })
                             }).catch(console.error);
                           }
+                        } else {
+                          const errorData = await response.json().catch(() => ({}));
+                          toast({
+                            title: "PDF Export Failed",
+                            description: errorData.error || "Failed to generate PDF",
+                            variant: "destructive"
+                          });
                         }
                       } catch (error) {
+                        toast({
+                          title: "PDF Export Failed",
+                          description: "An error occurred while generating the PDF",
+                          variant: "destructive"
+                        });
                       } finally {
                         setIsExportingPdf(false);
                       }

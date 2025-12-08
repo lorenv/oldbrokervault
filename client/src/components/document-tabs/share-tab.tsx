@@ -30,12 +30,14 @@ import {
   ChevronsUp,
   Send,
   Loader2,
-  Users
+  Users,
+  Check
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { DocumentExport } from "@/components/document-export";
 import { CollaboratorsSection } from "@/components/document-tabs/collaborators-section";
+import { getBaseUrlWithSubdomain } from "@/lib/url-utils";
 
 interface DocumentShareTabProps {
   cimDocument: any;
@@ -54,7 +56,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
     shareSlug: cimDocument.shareSlug || '',
     sharePassword: cimDocument.sharePassword || '',
     shareExpiresAt: cimDocument.shareExpiresAt || '',
-    customSlug: cimDocument.shareSlug || '',
+    customSlug: cimDocument.customSlug || '',
     ndaProtected: cimDocument.ndaProtected || false,
     ndaTemplateId: cimDocument.ndaTemplateId || null
   });
@@ -78,16 +80,20 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
   // Document export state
   const [isPdfLoading, setIsPdfLoading] = useState(false);
 
-  // Initialize share URL on component mount
+  // Copy button state
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  // Initialize share URL on component mount - use customSlug if set, otherwise shareSlug
   useEffect(() => {
-    if (shareSettings.shareEnabled && shareSettings.shareSlug) {
-      const baseUrl = window.location.hostname === 'localhost' ? window.location.origin : 'https://cimshare.com';
-      const url = `${baseUrl}/share/${shareSettings.shareSlug}`;
+    if (shareSettings.shareEnabled && (shareSettings.customSlug || shareSettings.shareSlug)) {
+      const baseUrl = getBaseUrlWithSubdomain(user?.customSubdomain);
+      const effectiveSlug = shareSettings.customSlug || shareSettings.shareSlug;
+      const url = `${baseUrl}/share/${effectiveSlug}`;
       setShareUrl(url);
     } else {
       setShareUrl('');
     }
-  }, [shareSettings.shareEnabled, shareSettings.shareSlug]);
+  }, [shareSettings.shareEnabled, shareSettings.shareSlug, shareSettings.customSlug, user?.customSubdomain]);
 
   // Generate share slug
   const generateShareSlug = () => {
@@ -114,13 +120,14 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
 
     setIsUpdatingShare(true);
     try {
-      const slug = shareSettings.shareEnabled ? (shareSettings.shareSlug || generateShareSlug()) : null;
+      // Use customSlug if provided, otherwise fall back to existing shareSlug or generate new one
+      const effectiveSlug = shareSettings.customSlug || shareSettings.shareSlug || generateShareSlug();
       const expiresAt = shareSettings.shareExpiresAt ? new Date(shareSettings.shareExpiresAt) : null;
 
       const payload = {
         shareEnabled: shareSettings.shareEnabled,
-        shareSlug: slug,
-        customSlug: shareSettings.customSlug || null,
+        shareSlug: shareSettings.shareSlug || generateShareSlug(), // Keep a shareSlug as fallback
+        customSlug: shareSettings.customSlug || null, // This is what the user typed
         sharePassword: shareSettings.sharePassword || null,
         shareExpiresAt: expiresAt,
         ndaProtected: shareSettings.ndaProtected,
@@ -132,9 +139,11 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
       if (response.ok) {
         const result = await response.json();
 
-        if (result.shareSlug) {
-          const baseUrl = window.location.hostname === 'localhost' ? window.location.origin : 'https://cimshare.com';
-          const url = `${baseUrl}/share/${result.shareSlug}`;
+        // Use customSlug for the URL if it was set, otherwise use shareSlug
+        const urlSlug = shareSettings.customSlug || result.shareSlug;
+        if (urlSlug) {
+          const baseUrl = getBaseUrlWithSubdomain(user?.customSubdomain);
+          const url = `${baseUrl}/share/${urlSlug}`;
           setShareUrl(url);
           setShareSettings(prev => ({ ...prev, shareSlug: result.shareSlug }));
         }
@@ -143,13 +152,14 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
           description: shareSettings.shareEnabled ? "Your CIM is now shareable!" : "Sharing has been disabled",
         });
       } else {
-        const errorText = await response.text();
-        throw new Error(`Failed to update settings: ${response.status} - ${errorText}`);
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `Failed to update settings: ${response.status}`);
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       toast({
         title: "Error updating share settings",
-        description: `Failed to save settings: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -161,6 +171,8 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
   const copyShareUrl = async () => {
     if (shareSettings.shareEnabled && shareUrl) {
       navigator.clipboard.writeText(shareUrl);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
       toast({
         title: "Share link copied!",
         description: "The link has been copied to your clipboard",
@@ -447,22 +459,32 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
               {shareSettings.shareEnabled && shareUrl && (
                 <div className="space-y-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
                   <Label className="text-sm font-medium text-blue-900">Your Share Link</Label>
-                  <div className="flex items-center gap-3">
-                    <Button
-                      variant="outline"
-                      onClick={copyShareUrl}
-                      className="bg-white hover:bg-blue-100"
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
+                  <div className="flex items-center gap-2">
                     <Input
                       value={shareUrl}
                       readOnly
                       className="flex-1 font-mono text-sm bg-white"
                     />
+                    <Button
+                      variant={copiedLink ? "default" : "outline"}
+                      onClick={copyShareUrl}
+                      className={copiedLink ? "bg-green-600 hover:bg-green-700 text-white" : "bg-white hover:bg-blue-100"}
+                    >
+                      {copiedLink ? (
+                        <>
+                          <Check className="h-4 w-4 mr-1" />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-4 w-4 mr-1" />
+                          Copy
+                        </>
+                      )}
+                    </Button>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     {shareSettings.sharePassword && (
                       <Badge variant="outline" className="bg-white">
                         <Lock className="h-3 w-3 mr-1" />
@@ -519,7 +541,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
                   autoComplete="off"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Customize the end of your share link. Example: https://cimshare.com/share/customexample
+                  Customize the end of your share link.{user?.customSubdomain ? ` Your subdomain "${user.customSubdomain}" will be used.` : ''}
                 </p>
               </div>
 

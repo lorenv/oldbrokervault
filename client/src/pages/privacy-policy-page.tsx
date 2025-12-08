@@ -1,3 +1,5 @@
+import { Link } from "wouter";
+
 export default function PrivacyPolicyPage() {
   return (
     <div className="min-h-screen bg-background">
@@ -6,7 +8,7 @@ export default function PrivacyPolicyPage() {
         
         <div className="prose max-w-none space-y-6">
           <p className="text-sm text-gray-600 mb-8">
-            <strong>Last Updated:</strong> January 2024
+            <strong>Last Updated:</strong> December 2025
           </p>
 
           <section>
@@ -77,10 +79,80 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-3">4. AI Processing and Data Usage</h2>
+            <h2 className="text-xl font-semibold mb-3">4. AI Processing and Data Privacy</h2>
+
+            <h3 className="text-lg font-medium mb-2">Third-Party AI Services</h3>
+            <p>To generate and analyze CIM documents, we transmit your business content to the following AI service providers:</p>
+            <ul className="list-disc pl-6 space-y-2 mt-2">
+              <li>
+                <strong>OpenAI (GPT-4)</strong> - Used for document generation, content analysis, and text processing.
+                <br /><span className="text-sm text-gray-600">Data Processing Agreement: Enterprise API terms with zero training commitment</span>
+              </li>
+              <li>
+                <strong>Anthropic (Claude)</strong> - Used for document analysis and image/vision processing.
+                <br /><span className="text-sm text-gray-600">Data Processing Agreement: API terms with explicit no-training policy</span>
+              </li>
+              <li>
+                <strong>Perplexity AI</strong> - Used for market research and competitive analysis features.
+                <br /><span className="text-sm text-gray-600">Data Processing Agreement: API terms for business use</span>
+              </li>
+            </ul>
+
+            <h3 className="text-lg font-medium mb-2 mt-4">Your Data Is NOT Used for AI Training</h3>
             <p>
-              Your business content is processed through artificial intelligence systems to analyze and structure information for CIM generation. We use secure third-party AI services including OpenAI and Perplexity AI. Your specific confidential business information is never used to train AI models. We may use aggregated, anonymized usage patterns to improve our AI analysis capabilities.
+              <strong>We want to be absolutely clear:</strong> Your confidential business information is NEVER used to train AI models. All AI providers we use have contractual commitments that API data is not used for model training. This means:
             </p>
+            <ul className="list-disc pl-6 space-y-1 mt-2">
+              <li>Your financial data, business metrics, and trade secrets remain confidential</li>
+              <li>Your documents cannot influence or appear in AI responses to other users</li>
+              <li>Your competitive information is not learned by the AI systems</li>
+            </ul>
+
+            <h3 className="text-lg font-medium mb-2 mt-4">Data Transmission Security</h3>
+            <p>When your data is sent to AI providers:</p>
+            <ul className="list-disc pl-6 space-y-1 mt-2">
+              <li><strong>Encryption in Transit:</strong> All data is transmitted over TLS 1.2+ encrypted connections</li>
+              <li><strong>No Persistent Storage:</strong> AI providers process your data in real-time and do not permanently store it</li>
+              <li><strong>Temporary Retention:</strong> Providers may retain data for up to 30 days for abuse monitoring, then it is deleted</li>
+              <li><strong>Access Controls:</strong> Only authorized API endpoints can process your data</li>
+            </ul>
+
+            <h3 className="text-lg font-medium mb-2 mt-4">AI Provider Certifications</h3>
+            <p>Our AI providers maintain the following security certifications and compliance:</p>
+            <ul className="list-disc pl-6 space-y-1 mt-2">
+              <li>SOC 2 Type II compliance</li>
+              <li>GDPR compliance for EU data subjects</li>
+              <li>CCPA compliance for California residents</li>
+              <li>Enterprise-grade security infrastructure</li>
+            </ul>
+
+            <h3 className="text-lg font-medium mb-2 mt-4">What Data Is Sent to AI Services</h3>
+            <p>The following types of data may be transmitted to AI providers for processing:</p>
+            <ul className="list-disc pl-6 space-y-1 mt-2">
+              <li>Meeting transcripts and business descriptions you upload</li>
+              <li>Financial information included in your documents</li>
+              <li>Company descriptions and market positioning</li>
+              <li>Uploaded images for analysis (logos, charts, screenshots)</li>
+              <li>Website content for competitive analysis (when you use this feature)</li>
+            </ul>
+            <p className="mt-2 text-sm text-gray-600">
+              <strong>Note:</strong> We do NOT send your account credentials, payment information, or personal contact details to AI providers.
+            </p>
+
+            <h3 className="text-lg font-medium mb-2 mt-4">Your Control Over AI Processing</h3>
+            <p>
+              AI processing is essential to our core service of generating CIM documents. If you have specific concerns about AI processing of your data, please contact us at privacy@cimshare.com to discuss your requirements.
+            </p>
+
+            <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm">
+                <strong>Want more details?</strong> View our complete{" "}
+                <Link href="/data-security" className="text-blue-600 hover:underline font-medium">
+                  Data Security & Privacy page
+                </Link>
+                {" "}for a visual data flow diagram and full list of third-party service certifications.
+              </p>
+            </div>
           </section>
 
           <section>

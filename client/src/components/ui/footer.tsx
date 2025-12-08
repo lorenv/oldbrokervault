@@ -91,6 +91,11 @@ export function Footer() {
                   Cookie Policy
                 </Link>
               </li>
+              <li>
+                <Link href="/data-security" className="text-gray-400 hover:text-white transition-colors">
+                  Data Security
+                </Link>
+              </li>
             </ul>
           </div>
         </div>

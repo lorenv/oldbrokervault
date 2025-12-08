@@ -557,16 +557,15 @@ async function sendApprovalEmail(
 ): Promise<boolean> {
   const { signerEmail, signerName, accessToken } = signature;
   const { title, shareSlug, userId, copyMeOnEmails } = cimDoc;
-  
-  // Create direct share URL with access token
-  const shareUrl = `https://cimshare.com/share/${shareSlug}?token=${accessToken}`;
-  
-  // Fetch owner profile if not provided
+
+  // Fetch owner profile if not provided (we need it for the subdomain)
   let profile = ownerProfile;
+  let customSubdomain: string | null = null;
   if (!profile && userId) {
     try {
       const owner = await db.select().from(users).where(eq(users.id, userId)).limit(1);
       if (owner[0]) {
+        customSubdomain = owner[0].customSubdomain;
         profile = {
           name: owner[0].name || `${owner[0].firstName || ''} ${owner[0].lastName || ''}`.trim(),
           email: owner[0].email,
@@ -581,6 +580,12 @@ async function sendApprovalEmail(
       console.error('Error fetching owner profile for approval email:', error);
     }
   }
+
+  // Create direct share URL with access token, using custom subdomain if available
+  const baseUrl = customSubdomain
+    ? `https://${customSubdomain}.cimshare.com`
+    : 'https://cimshare.com';
+  const shareUrl = `${baseUrl}/share/${shareSlug}?token=${accessToken}`;
   
   // Use the new CIM link email function if owner profile is available
   if (profile) {

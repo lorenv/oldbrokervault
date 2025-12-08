@@ -14,6 +14,7 @@ import { CimDisplay } from "@/components/cim-display";
 import { DocumentSkeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { apiRequest } from "@/lib/queryClient";
+import { getBaseUrlWithSubdomain } from "@/lib/url-utils";
 import { EmailShareDialog } from "@/components/email-share-dialog";
 import {
   DropdownMenu,
@@ -712,7 +713,7 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={async () => {
                         if (selectedDoc.shareSlug) {
-                          const shareUrl = `${window.location.hostname === "localhost" ? window.location.origin : "https://cimshare.com"}/share/${selectedDoc.shareSlug}`;
+                          const shareUrl = `${getBaseUrlWithSubdomain(user?.customSubdomain)}/share/${selectedDoc.shareSlug}`;
                           await navigator.clipboard.writeText(shareUrl);
                           toast({
                             title: "Share Link Copied",
@@ -755,12 +756,12 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                   </DropdownMenu>
 
                   {/* View Share Link Button */}
-                  <Button 
-                    variant="default" 
-                    size="sm" 
+                  <Button
+                    variant="default"
+                    size="sm"
                     onClick={() => {
                       if (selectedDoc.shareSlug) {
-                        const shareUrl = `${window.location.hostname === "localhost" ? window.location.origin : "https://cimshare.com"}/share/${selectedDoc.shareSlug}`;
+                        const shareUrl = `${getBaseUrlWithSubdomain(user?.customSubdomain)}/share/${selectedDoc.shareSlug}`;
                         window.open(shareUrl, '_blank');
                       } else {
                         toast({
@@ -797,7 +798,7 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
       <EmailShareDialog
         open={emailShareDialog.open}
         onOpenChange={(open) => setEmailShareDialog({ open })}
-        shareUrl={emailShareDialog.shareToken ? `${window.location.hostname === "localhost" ? window.location.origin : "https://cimshare.com"}/share/${emailShareDialog.shareToken}` : ''}
+        shareUrl={emailShareDialog.shareToken ? `${getBaseUrlWithSubdomain(user?.customSubdomain)}/share/${emailShareDialog.shareToken}` : ''}
         documentTitle={emailShareDialog.documentTitle || ''}
         senderName={user?.name}
       />

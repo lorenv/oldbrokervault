@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { apiRequest } from "@/lib/queryClient";
+import { getBaseUrlWithSubdomain } from "@/lib/url-utils";
 import { EmailShareDialog } from "@/components/email-share-dialog";
 import {
   DropdownMenu,
@@ -1110,7 +1111,7 @@ export default function DocumentsPage() {
         open={emailShareDialog.open}
         onOpenChange={(open) => setEmailShareDialog(prev => ({ ...prev, open }))}
         documentTitle={emailShareDialog.documentTitle || ''}
-        shareUrl={emailShareDialog.shareToken ? `${window.location.hostname === "localhost" ? window.location.origin : "https://cimshare.com"}/share/${emailShareDialog.shareToken}` : ''}
+        shareUrl={emailShareDialog.shareToken ? `${getBaseUrlWithSubdomain(user?.customSubdomain)}/share/${emailShareDialog.shareToken}` : ''}
         senderName={user?.name || undefined}
       />
     </div>
