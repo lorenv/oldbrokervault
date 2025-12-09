@@ -119,6 +119,10 @@ export default function EsignSign() {
   const [showSuccessState, setShowSuccessState] = useState(false);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [showFieldsModal, setShowFieldsModal] = useState(false);
+
+  // Cached signatures for quick reuse (DocuSign-style)
+  const [cachedSignature, setCachedSignature] = useState<string | null>(null);
+  const [cachedInitials, setCachedInitials] = useState<string | null>(null);
   const [summaryData, setSummaryData] = useState<{
     summary: string;
     keyPoints: string[];
@@ -256,6 +260,9 @@ export default function EsignSign() {
   const applySignature = () => {
     if (!selectedFieldId) return;
 
+    const selectedField = fields.find(f => f.id === selectedFieldId);
+    const isInitials = selectedField?.type === 'initials';
+
     let signatureValue = '';
 
     if (signatureTab === 'draw') {
@@ -267,6 +274,13 @@ export default function EsignSign() {
       signatureValue = typedSignature;
     }
 
+    // Cache the signature/initials for quick reuse
+    if (isInitials) {
+      setCachedInitials(signatureValue);
+    } else {
+      setCachedSignature(signatureValue);
+    }
+
     setFields(fields.map(f =>
       f.id === selectedFieldId ? { ...f, value: signatureValue } : f
     ));
@@ -275,6 +289,16 @@ export default function EsignSign() {
     setSelectedFieldId(null);
     clearCanvas();
     setTypedSignature("");
+  };
+
+  // Quick apply cached signature/initials with one click
+  const applyCachedSignature = (fieldId: string, isInitials: boolean) => {
+    const cachedValue = isInitials ? cachedInitials : cachedSignature;
+    if (!cachedValue) return;
+
+    setFields(fields.map(f =>
+      f.id === fieldId ? { ...f, value: cachedValue } : f
+    ));
   };
 
   // Update text field value
@@ -744,10 +768,51 @@ export default function EsignSign() {
                                         </div>
                                       </div>
                                     ) : (
-                                      <div className="w-full h-full flex items-center justify-center text-xs font-medium" style={{ color: data.recipient.color }}>
-                                        <Pen className="h-3 w-3 mr-1" />
-                                        {field.type === 'signature' ? 'Sign Here' : 'Initial Here'}
-                                      </div>
+                                      // Empty signature/initials field - show one-click option if cached, otherwise show prompt
+                                      (() => {
+                                        const isInitials = field.type === 'initials';
+                                        const hasCached = isInitials ? !!cachedInitials : !!cachedSignature;
+
+                                        return hasCached ? (
+                                          // One-click apply cached signature
+                                          <div
+                                            className="w-full h-full flex flex-col items-center justify-center gap-0.5 group"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              applyCachedSignature(field.id, isInitials);
+                                            }}
+                                          >
+                                            <div className="flex items-center gap-1 text-xs font-medium transition-colors group-hover:scale-105" style={{ color: data.recipient.color }}>
+                                              <CheckCircle2 className="h-3 w-3" />
+                                              <span>Click to apply</span>
+                                            </div>
+                                            {/* Show preview of cached signature/initials */}
+                                            <div className="max-w-[80%] max-h-[60%] overflow-hidden opacity-60">
+                                              {(isInitials ? cachedInitials : cachedSignature)?.startsWith('data:') ? (
+                                                <img
+                                                  src={isInitials ? cachedInitials! : cachedSignature!}
+                                                  alt="Saved signature"
+                                                  className="max-w-full max-h-full object-contain"
+                                                  style={{ maxHeight: '20px' }}
+                                                />
+                                              ) : (
+                                                <span
+                                                  className="text-xs truncate"
+                                                  style={{ fontFamily: 'cursive', color: '#0d0d4d' }}
+                                                >
+                                                  {isInitials ? cachedInitials : cachedSignature}
+                                                </span>
+                                              )}
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          // No cached signature - show prompt to draw/type
+                                          <div className="w-full h-full flex items-center justify-center text-xs font-medium" style={{ color: data.recipient.color }}>
+                                            <Pen className="h-3 w-3 mr-1" />
+                                            {field.type === 'signature' ? 'Sign Here' : 'Initial Here'}
+                                          </div>
+                                        );
+                                      })()
                                     )
                                   ) : (
                                     // Text fields (name, email, date, text) - always show input for editing
@@ -1057,78 +1122,139 @@ export default function EsignSign() {
       {/* Signature Modal */}
       <Dialog open={showSignatureModal} onOpenChange={setShowSignatureModal}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {fields.find(f => f.id === selectedFieldId)?.type === 'initials' ? 'Add Your Initials' : 'Add Your Signature'}
-            </DialogTitle>
-            <DialogDescription>
-              Draw or type your signature below
-            </DialogDescription>
-          </DialogHeader>
+          {(() => {
+            const isInitials = fields.find(f => f.id === selectedFieldId)?.type === 'initials';
+            const hasCachedValue = isInitials ? !!cachedInitials : !!cachedSignature;
+            const cachedValue = isInitials ? cachedInitials : cachedSignature;
 
-          <Tabs value={signatureTab} onValueChange={(v) => setSignatureTab(v as 'draw' | 'type')}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="draw">
-                <Pen className="h-4 w-4 mr-2" />
-                Draw
-              </TabsTrigger>
-              <TabsTrigger value="type">
-                <Type className="h-4 w-4 mr-2" />
-                Type
-              </TabsTrigger>
-            </TabsList>
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle>
+                    {isInitials ? 'Add Your Initials' : 'Add Your Signature'}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {hasCachedValue
+                      ? `Use your saved ${isInitials ? 'initials' : 'signature'} or create a new one`
+                      : `Draw or type your ${isInitials ? 'initials' : 'signature'} below`
+                    }
+                  </DialogDescription>
+                </DialogHeader>
 
-            <TabsContent value="draw" className="mt-4">
-              <div className="border rounded-lg bg-white">
-                <canvas
-                  ref={canvasRef}
-                  width={350}
-                  height={150}
-                  className="w-full cursor-crosshair"
-                  style={{ touchAction: 'none' }}
-                  onMouseDown={startDrawing}
-                  onMouseMove={draw}
-                  onMouseUp={stopDrawing}
-                  onMouseLeave={stopDrawing}
-                  onTouchStart={startDrawingTouch}
-                  onTouchMove={drawTouch}
-                  onTouchEnd={stopDrawingTouch}
-                />
-              </div>
-              <Button variant="ghost" size="sm" className="mt-2" onClick={clearCanvas}>
-                Clear
-              </Button>
-            </TabsContent>
+                {/* Show saved signature option if available */}
+                {hasCachedValue && (
+                  <div className="mb-4 p-4 border-2 border-dashed border-green-300 rounded-lg bg-green-50">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-green-800 mb-2">
+                          Use your saved {isInitials ? 'initials' : 'signature'}:
+                        </p>
+                        <div className="p-3 bg-white rounded border flex items-center justify-center min-h-[60px]">
+                          {cachedValue?.startsWith('data:') ? (
+                            <img
+                              src={cachedValue}
+                              alt={isInitials ? "Saved initials" : "Saved signature"}
+                              className="max-w-full max-h-[50px] object-contain"
+                            />
+                          ) : (
+                            <span
+                              className="text-2xl"
+                              style={{ fontFamily: 'cursive', color: '#0d0d4d' }}
+                            >
+                              {cachedValue}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <Button
+                        className="ml-4"
+                        style={{ backgroundColor: brandingColor }}
+                        onClick={() => {
+                          if (selectedFieldId && cachedValue) {
+                            applyCachedSignature(selectedFieldId, !!isInitials);
+                            setShowSignatureModal(false);
+                            setSelectedFieldId(null);
+                          }
+                        }}
+                      >
+                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                        Apply
+                      </Button>
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-green-200">
+                      <p className="text-xs text-green-700 text-center">
+                        Or create a new {isInitials ? 'initials' : 'signature'} below
+                      </p>
+                    </div>
+                  </div>
+                )}
 
-            <TabsContent value="type" className="mt-4">
-              <Input
-                value={typedSignature}
-                onChange={(e) => setTypedSignature(e.target.value)}
-                placeholder="Type your name"
-                className="text-2xl h-14"
-                style={{ fontFamily: 'cursive' }}
-              />
-              <div
-                className="mt-4 p-4 border rounded-lg bg-white text-center"
-                style={{ fontFamily: 'cursive' }}
-              >
-                <span className="text-3xl">{typedSignature || 'Preview'}</span>
-              </div>
-            </TabsContent>
-          </Tabs>
+                <Tabs value={signatureTab} onValueChange={(v) => setSignatureTab(v as 'draw' | 'type')}>
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="draw">
+                      <Pen className="h-4 w-4 mr-2" />
+                      Draw
+                    </TabsTrigger>
+                    <TabsTrigger value="type">
+                      <Type className="h-4 w-4 mr-2" />
+                      Type
+                    </TabsTrigger>
+                  </TabsList>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSignatureModal(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={applySignature}
-              disabled={(signatureTab === 'draw' && !hasDrawn) || (signatureTab === 'type' && !typedSignature.trim())}
-              style={{ backgroundColor: brandingColor }}
-            >
-              Apply
-            </Button>
-          </DialogFooter>
+                  <TabsContent value="draw" className="mt-4">
+                    <div className="border rounded-lg bg-white">
+                      <canvas
+                        ref={canvasRef}
+                        width={350}
+                        height={150}
+                        className="w-full cursor-crosshair"
+                        style={{ touchAction: 'none' }}
+                        onMouseDown={startDrawing}
+                        onMouseMove={draw}
+                        onMouseUp={stopDrawing}
+                        onMouseLeave={stopDrawing}
+                        onTouchStart={startDrawingTouch}
+                        onTouchMove={drawTouch}
+                        onTouchEnd={stopDrawingTouch}
+                      />
+                    </div>
+                    <Button variant="ghost" size="sm" className="mt-2" onClick={clearCanvas}>
+                      Clear
+                    </Button>
+                  </TabsContent>
+
+                  <TabsContent value="type" className="mt-4">
+                    <Input
+                      value={typedSignature}
+                      onChange={(e) => setTypedSignature(e.target.value)}
+                      placeholder="Type your name"
+                      className="text-2xl h-14"
+                      style={{ fontFamily: 'cursive' }}
+                    />
+                    <div
+                      className="mt-4 p-4 border rounded-lg bg-white text-center"
+                      style={{ fontFamily: 'cursive' }}
+                    >
+                      <span className="text-3xl">{typedSignature || 'Preview'}</span>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setShowSignatureModal(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={applySignature}
+                    disabled={(signatureTab === 'draw' && !hasDrawn) || (signatureTab === 'type' && !typedSignature.trim())}
+                    style={{ backgroundColor: brandingColor }}
+                  >
+                    {hasCachedValue ? 'Apply New' : 'Apply'}
+                  </Button>
+                </DialogFooter>
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
 

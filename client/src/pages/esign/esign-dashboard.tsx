@@ -24,6 +24,8 @@ import {
   Download,
   Trash2,
   Palette,
+  Edit,
+  Mail,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -93,6 +95,36 @@ export default function EsignDashboard() {
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to delete envelope.", variant: "destructive" });
+    },
+  });
+
+  // Void envelope mutation
+  const voidMutation = useMutation({
+    mutationFn: async (envelopeId: number) => {
+      return apiRequest("POST", `/api/esign/envelopes/${envelopeId}/void`, {
+        body: { reason: "Voided by sender" },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/esign/envelopes"] });
+      toast({ title: "Voided", description: "Envelope has been voided and recipients notified." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to void envelope.", variant: "destructive" });
+    },
+  });
+
+  // Remind all pending signers mutation
+  const remindMutation = useMutation({
+    mutationFn: async (envelopeId: number) => {
+      return apiRequest("POST", `/api/esign/envelopes/${envelopeId}/remind`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/esign/envelopes"] });
+      toast({ title: "Reminders sent", description: "Reminder emails sent to pending signers." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to send reminders.", variant: "destructive" });
     },
   });
 
@@ -374,6 +406,15 @@ export default function EsignDashboard() {
                                   <Eye className="h-4 w-4 mr-2" />
                                   View Details
                                 </DropdownMenuItem>
+                                {(envelope.status === 'draft' || envelope.status === 'sent') && (
+                                  <DropdownMenuItem onClick={(e) => {
+                                    e.stopPropagation();
+                                    setLocation(`/esign/correct/${envelope.envelopeId}`);
+                                  }}>
+                                    <Edit className="h-4 w-4 mr-2" />
+                                    Correct
+                                  </DropdownMenuItem>
+                                )}
                                 {envelope.status === 'draft' && (
                                   <DropdownMenuItem onClick={(e) => {
                                     e.stopPropagation();
@@ -383,6 +424,15 @@ export default function EsignDashboard() {
                                     Send
                                   </DropdownMenuItem>
                                 )}
+                                {envelope.status === 'sent' && (
+                                  <DropdownMenuItem onClick={(e) => {
+                                    e.stopPropagation();
+                                    remindMutation.mutate(envelope.id);
+                                  }}>
+                                    <Mail className="h-4 w-4 mr-2" />
+                                    Send Reminder
+                                  </DropdownMenuItem>
+                                )}
                                 {envelope.status === 'completed' && (
                                   <DropdownMenuItem onClick={(e) => {
                                     e.stopPropagation();
@@ -390,6 +440,20 @@ export default function EsignDashboard() {
                                   }}>
                                     <Download className="h-4 w-4 mr-2" />
                                     Download
+                                  </DropdownMenuItem>
+                                )}
+                                {envelope.status === 'sent' && (
+                                  <DropdownMenuItem
+                                    className="text-red-600"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (confirm("Void this envelope? All recipients will be notified.")) {
+                                        voidMutation.mutate(envelope.id);
+                                      }
+                                    }}
+                                  >
+                                    <Ban className="h-4 w-4 mr-2" />
+                                    Void
                                   </DropdownMenuItem>
                                 )}
                                 {envelope.status === 'draft' && (

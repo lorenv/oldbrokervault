@@ -7,6 +7,7 @@ import {
   esignRecipients,
   esignFields,
   esignAuditLog,
+  esignRecentRecipients,
   users,
   getFullName,
   insertUserBrandingSchema,
@@ -15,7 +16,7 @@ import {
   ESIGN_RECIPIENT_COLORS,
   ESIGN_CC_COLOR
 } from '@shared/schema';
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { eq, and, desc, sql, ilike, or } from 'drizzle-orm';
 import { z } from 'zod';
 import multer from 'multer';
 import { processPDFToImages, processDocumentToImages } from '../services/pdf-processor';
@@ -558,6 +559,83 @@ router.get('/templates', async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to fetch templates' });
   }
 });
+
+// ============================================================================
+// RECENT RECIPIENTS - Autocomplete support for e-signature recipients
+// ============================================================================
+
+// Get recent recipients for autocomplete
+router.get('/recent-recipients', async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const query = (req.query.q as string || '').trim().toLowerCase();
+    const limit = Math.min(parseInt(req.query.limit as string) || 10, 50);
+
+    let recipients;
+
+    if (query) {
+      // Search by name or email
+      recipients = await db
+        .select()
+        .from(esignRecentRecipients)
+        .where(and(
+          eq(esignRecentRecipients.userId, req.user.id),
+          or(
+            ilike(esignRecentRecipients.name, `%${query}%`),
+            ilike(esignRecentRecipients.email, `%${query}%`)
+          )
+        ))
+        .orderBy(desc(esignRecentRecipients.lastUsedAt))
+        .limit(limit);
+    } else {
+      // Return most recent recipients
+      recipients = await db
+        .select()
+        .from(esignRecentRecipients)
+        .where(eq(esignRecentRecipients.userId, req.user.id))
+        .orderBy(desc(esignRecentRecipients.lastUsedAt))
+        .limit(limit);
+    }
+
+    res.json(recipients);
+  } catch (error) {
+    console.error('[ESIGN] Error fetching recent recipients:', error);
+    res.status(500).json({ error: 'Failed to fetch recent recipients' });
+  }
+});
+
+// Delete a recent recipient
+router.delete('/recent-recipients/:id', async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const recipientId = parseInt(req.params.id);
+    if (isNaN(recipientId)) {
+      return res.status(400).json({ error: 'Invalid recipient ID' });
+    }
+
+    await db
+      .delete(esignRecentRecipients)
+      .where(and(
+        eq(esignRecentRecipients.id, recipientId),
+        eq(esignRecentRecipients.userId, req.user.id)
+      ));
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[ESIGN] Error deleting recent recipient:', error);
+    res.status(500).json({ error: 'Failed to delete recent recipient' });
+  }
+});
+
+// ============================================================================
+// TEMPLATES
+// ============================================================================
 
 // Get single template
 router.get('/templates/:id', async (req: Request, res: Response) => {
@@ -1406,6 +1484,48 @@ router.post('/envelopes/:id/send', async (req: Request, res: Response) => {
       recipientCount: recipientsToNotify.length,
     }, req);
 
+    // Save recipients to recent recipients for future autocomplete
+    // (upsert: update if exists, insert if not)
+    for (const recipient of recipients) {
+      try {
+        // Check if this recipient already exists
+        const [existing] = await db
+          .select()
+          .from(esignRecentRecipients)
+          .where(and(
+            eq(esignRecentRecipients.userId, req.user!.id),
+            eq(esignRecentRecipients.email, recipient.email.toLowerCase())
+          ))
+          .limit(1);
+
+        if (existing) {
+          // Update existing: increment use count and update name if different
+          await db
+            .update(esignRecentRecipients)
+            .set({
+              name: recipient.name, // Use most recent name
+              useCount: existing.useCount + 1,
+              lastUsedAt: now,
+            })
+            .where(eq(esignRecentRecipients.id, existing.id));
+        } else {
+          // Insert new
+          await db
+            .insert(esignRecentRecipients)
+            .values({
+              userId: req.user!.id,
+              email: recipient.email.toLowerCase(),
+              name: recipient.name,
+              useCount: 1,
+              lastUsedAt: now,
+            });
+        }
+      } catch (recentError) {
+        // Don't fail the send if recent recipients save fails
+        console.error('[ESIGN] Error saving recent recipient:', recentError);
+      }
+    }
+
     res.json({
       success: true,
       sentTo: recipientsToNotify.map(r => r.email),
@@ -1527,8 +1647,403 @@ router.delete('/envelopes/:id', async (req: Request, res: Response) => {
   }
 });
 
-// Send reminder
+// Check if envelope can be corrected
+router.get('/envelopes/:id/can-correct', async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const envelope = await findEnvelopeById(req.params.id, req.user.id);
+    if (!envelope) {
+      return res.status(404).json({ error: 'Envelope not found' });
+    }
+
+    // Can only correct envelopes that are draft or sent but no signatures yet
+    if (envelope.status === 'completed' || envelope.status === 'voided' || envelope.status === 'declined') {
+      return res.json({
+        canCorrect: false,
+        reason: `Cannot correct ${envelope.status} envelopes`,
+      });
+    }
+
+    // Check if any signatures have been collected
+    const signedFields = await db
+      .select()
+      .from(esignFields)
+      .where(and(
+        eq(esignFields.envelopeId, envelope.id),
+        sql`${esignFields.value} IS NOT NULL`
+      ));
+
+    if (signedFields.length > 0) {
+      return res.json({
+        canCorrect: false,
+        reason: 'Cannot correct after signatures have been collected',
+      });
+    }
+
+    // Check if any recipient has signed
+    const signedRecipients = await db
+      .select()
+      .from(esignRecipients)
+      .where(and(
+        eq(esignRecipients.envelopeId, envelope.id),
+        eq(esignRecipients.status, 'signed')
+      ));
+
+    if (signedRecipients.length > 0) {
+      return res.json({
+        canCorrect: false,
+        reason: 'Cannot correct after a recipient has signed',
+      });
+    }
+
+    res.json({
+      canCorrect: true,
+      envelope: {
+        id: envelope.id,
+        envelopeId: envelope.envelopeId,
+        title: envelope.title,
+        status: envelope.status,
+      },
+    });
+  } catch (error) {
+    console.error('[ESIGN] Error checking if envelope can be corrected:', error);
+    res.status(500).json({ error: 'Failed to check correction eligibility' });
+  }
+});
+
+// Get envelope data for correction (includes all details needed for editing)
+router.get('/envelopes/:id/correct', async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const envelope = await findEnvelopeById(req.params.id, req.user.id);
+    if (!envelope) {
+      return res.status(404).json({ error: 'Envelope not found' });
+    }
+
+    // Verify envelope can be corrected
+    if (envelope.status === 'completed' || envelope.status === 'voided' || envelope.status === 'declined') {
+      return res.status(400).json({ error: `Cannot correct ${envelope.status} envelopes` });
+    }
+
+    // Check for any signatures
+    const signedFields = await db
+      .select()
+      .from(esignFields)
+      .where(and(
+        eq(esignFields.envelopeId, envelope.id),
+        sql`${esignFields.value} IS NOT NULL`
+      ));
+
+    if (signedFields.length > 0) {
+      return res.status(400).json({ error: 'Cannot correct after signatures have been collected' });
+    }
+
+    // Get recipients
+    const recipients = await db
+      .select()
+      .from(esignRecipients)
+      .where(eq(esignRecipients.envelopeId, envelope.id))
+      .orderBy(esignRecipients.signingOrder);
+
+    // Check if any has signed
+    if (recipients.some(r => r.status === 'signed')) {
+      return res.status(400).json({ error: 'Cannot correct after a recipient has signed' });
+    }
+
+    // Get fields
+    const fields = await db
+      .select()
+      .from(esignFields)
+      .where(eq(esignFields.envelopeId, envelope.id));
+
+    res.json({
+      envelope: {
+        id: envelope.id,
+        envelopeId: envelope.envelopeId,
+        title: envelope.title,
+        message: envelope.message,
+        status: envelope.status,
+        signingOrder: envelope.signingOrder,
+        documentUrl: envelope.documentUrl,
+        pageImages: envelope.pageImages,
+        totalPages: envelope.totalPages,
+      },
+      recipients: recipients.map(r => ({
+        id: r.id,
+        name: r.name,
+        email: r.email,
+        role: r.role,
+        color: r.color,
+        signingOrder: r.signingOrder,
+        status: r.status,
+      })),
+      fields: fields.map(f => ({
+        id: f.id,
+        recipientId: f.recipientId,
+        type: f.type,
+        x: f.x,
+        y: f.y,
+        width: f.width,
+        height: f.height,
+        page: f.page,
+        required: f.required,
+      })),
+    });
+  } catch (error) {
+    console.error('[ESIGN] Error fetching envelope for correction:', error);
+    res.status(500).json({ error: 'Failed to fetch envelope data' });
+  }
+});
+
+// Update envelope (correction)
+router.put('/envelopes/:id/correct', async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const envelope = await findEnvelopeById(req.params.id, req.user.id);
+    if (!envelope) {
+      return res.status(404).json({ error: 'Envelope not found' });
+    }
+
+    // Verify envelope can be corrected
+    if (envelope.status === 'completed' || envelope.status === 'voided' || envelope.status === 'declined') {
+      return res.status(400).json({ error: `Cannot correct ${envelope.status} envelopes` });
+    }
+
+    // Check for any signatures
+    const signedFields = await db
+      .select()
+      .from(esignFields)
+      .where(and(
+        eq(esignFields.envelopeId, envelope.id),
+        sql`${esignFields.value} IS NOT NULL`
+      ));
+
+    if (signedFields.length > 0) {
+      return res.status(400).json({ error: 'Cannot correct after signatures have been collected' });
+    }
+
+    // Check if any recipient has signed
+    const existingRecipients = await db
+      .select()
+      .from(esignRecipients)
+      .where(eq(esignRecipients.envelopeId, envelope.id));
+
+    if (existingRecipients.some(r => r.status === 'signed')) {
+      return res.status(400).json({ error: 'Cannot correct after a recipient has signed' });
+    }
+
+    const { title, message, signingOrder, recipients, fields } = req.body;
+
+    // Start transaction-like operations
+    const wasSent = envelope.status === 'sent';
+
+    // Update envelope metadata
+    await db
+      .update(esignEnvelopes)
+      .set({
+        title: title || envelope.title,
+        message: message !== undefined ? message : envelope.message,
+        signingOrder: signingOrder || envelope.signingOrder,
+        updatedAt: new Date(),
+      })
+      .where(eq(esignEnvelopes.id, envelope.id));
+
+    // Track changes for audit log
+    const changes: string[] = [];
+
+    // Update recipients if provided
+    if (recipients && Array.isArray(recipients)) {
+      // Get existing recipient IDs
+      const existingRecipientIds = new Set(existingRecipients.map(r => r.id));
+      const newRecipientIds = new Set(recipients.filter((r: any) => r.id).map((r: any) => r.id));
+
+      // Delete removed recipients (and their fields)
+      const removedRecipientIds = [...existingRecipientIds].filter(id => !newRecipientIds.has(id));
+      if (removedRecipientIds.length > 0) {
+        // Delete fields for removed recipients
+        for (const recipientId of removedRecipientIds) {
+          await db.delete(esignFields).where(and(
+            eq(esignFields.envelopeId, envelope.id),
+            eq(esignFields.recipientId, recipientId)
+          ));
+        }
+        // Delete the recipients
+        for (const recipientId of removedRecipientIds) {
+          await db.delete(esignRecipients).where(eq(esignRecipients.id, recipientId));
+        }
+        changes.push(`Removed ${removedRecipientIds.length} recipient(s)`);
+      }
+
+      // Update existing and add new recipients
+      let colorIndex = 0;
+      for (let i = 0; i < recipients.length; i++) {
+        const r = recipients[i];
+        const recipientColor = r.role === 'cc' ? ESIGN_CC_COLOR : ESIGN_RECIPIENT_COLORS[colorIndex % ESIGN_RECIPIENT_COLORS.length];
+        if (r.role !== 'cc') colorIndex++;
+
+        if (r.id && existingRecipientIds.has(r.id)) {
+          // Update existing recipient
+          await db
+            .update(esignRecipients)
+            .set({
+              name: r.name,
+              email: r.email,
+              role: r.role || 'signer',
+              color: recipientColor,
+              signingOrder: i + 1,
+            })
+            .where(eq(esignRecipients.id, r.id));
+        } else {
+          // Add new recipient
+          const accessToken = generateSecureToken();
+          await db.insert(esignRecipients).values({
+            envelopeId: envelope.id,
+            name: r.name,
+            email: r.email,
+            role: r.role || 'signer',
+            color: recipientColor,
+            signingOrder: i + 1,
+            status: 'pending',
+            accessToken,
+          });
+          changes.push(`Added new recipient: ${r.name} (${r.email})`);
+        }
+      }
+    }
+
+    // Update fields if provided
+    if (fields && Array.isArray(fields)) {
+      // Get current recipients for mapping
+      const currentRecipients = await db
+        .select()
+        .from(esignRecipients)
+        .where(eq(esignRecipients.envelopeId, envelope.id))
+        .orderBy(esignRecipients.signingOrder);
+
+      // Delete all existing fields and recreate
+      await db.delete(esignFields).where(eq(esignFields.envelopeId, envelope.id));
+
+      // Insert new fields
+      for (const field of fields) {
+        // Map recipientIndex to actual recipient ID
+        const recipientIndex = field.recipientIndex ?? 0;
+        const recipient = currentRecipients[recipientIndex];
+
+        if (recipient) {
+          await db.insert(esignFields).values({
+            envelopeId: envelope.id,
+            recipientId: recipient.id,
+            type: field.type,
+            x: String(field.x),
+            y: String(field.y),
+            width: String(field.width),
+            height: String(field.height),
+            page: field.page,
+            required: field.required !== false,
+          });
+        }
+      }
+      changes.push(`Updated ${fields.length} field(s)`);
+    }
+
+    // Log the correction
+    await logAuditEvent(envelope.id, 'envelope_corrected', {
+      changes,
+      wasSent,
+    }, req);
+
+    // If envelope was already sent, we may need to notify recipients of the correction
+    if (wasSent) {
+      // Get updated recipients to potentially resend
+      const updatedRecipients = await db
+        .select()
+        .from(esignRecipients)
+        .where(eq(esignRecipients.envelopeId, envelope.id));
+
+      // For now, we'll reset their status to pending and they'll need to be resent
+      // Or optionally auto-resend (configurable)
+      const { resendToRecipients } = req.body;
+
+      if (resendToRecipients) {
+        const [sender] = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, req.user.id))
+          .limit(1);
+
+        const [branding] = await db
+          .select()
+          .from(userBranding)
+          .where(eq(userBranding.userId, req.user.id))
+          .limit(1);
+
+        const senderName = sender ? getFullName(sender) || sender.email : 'Document Owner';
+        const senderEmail = sender?.email || '';
+        const protocol = req.headers['x-forwarded-proto'] || 'https';
+        const host = req.headers['host'] || '';
+        const baseUrl = `${protocol}://${host}`;
+
+        for (const recipient of updatedRecipients.filter(r => r.role === 'signer')) {
+          try {
+            const signingUrl = `${baseUrl}/esign/sign/${recipient.accessToken}`;
+            await sendEsignInvitationEmail({
+              recipientEmail: recipient.email,
+              recipientName: recipient.name,
+              senderName,
+              senderEmail,
+              documentTitle: title || envelope.title,
+              message: `This document has been corrected. ${message || envelope.message || ''}`,
+              signingUrl,
+              branding: branding ? {
+                companyName: branding.companyName || undefined,
+                logoUrl: branding.logoUrl || undefined,
+                primaryColor: branding.primaryColor || undefined,
+              } : undefined,
+            });
+            console.log(`[ESIGN] Sent correction notification to ${recipient.email}`);
+          } catch (emailError) {
+            console.error(`[ESIGN] Failed to send correction notification to ${recipient.email}:`, emailError);
+          }
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      envelopeId: envelope.envelopeId,
+      changes,
+    });
+  } catch (error: any) {
+    console.error('[ESIGN] Error correcting envelope:', error);
+    console.error('[ESIGN] Error stack:', error?.stack);
+    console.error('[ESIGN] Request body:', JSON.stringify(req.body, null, 2));
+    res.status(500).json({ error: 'Failed to correct envelope', details: error?.message || String(error) });
+  }
+});
+
+// Send reminder (with recipientId in URL)
+router.post('/envelopes/:id/remind/:recipientId', async (req: Request, res: Response) => {
+  // Forward to main remind handler with recipientId in body
+  req.body.recipientId = parseInt(req.params.recipientId);
+  return reminderHandler(req, res);
+});
+
+// Send reminder (with recipientId in body or no recipientId to remind all)
 router.post('/envelopes/:id/remind', async (req: Request, res: Response) => {
+  return reminderHandler(req, res);
+});
+
+// Shared reminder handler
+async function reminderHandler(req: Request, res: Response) {
   try {
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
@@ -1646,7 +2161,7 @@ router.post('/envelopes/:id/remind', async (req: Request, res: Response) => {
     console.error('[ESIGN] Error sending reminders:', error);
     res.status(500).json({ error: 'Failed to send reminders' });
   }
-});
+}
 
 // Get envelope audit log
 router.get('/envelopes/:id/audit', async (req: Request, res: Response) => {

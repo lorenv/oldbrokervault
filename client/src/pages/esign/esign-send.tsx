@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import {
   FileSignature,
@@ -42,6 +42,8 @@ import {
   RotateCcw,
   File,
   Pointer,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -612,6 +614,105 @@ interface Recipient {
   placeholderRecipientId?: string; // Maps to template placeholder
 }
 
+interface RecentRecipient {
+  id: number;
+  email: string;
+  name: string;
+  useCount: number;
+  lastUsedAt: string;
+}
+
+// Autocomplete input component for recipient fields
+function RecipientAutocompleteInput({
+  value,
+  onChange,
+  onSelectRecipient,
+  placeholder,
+  type = 'text',
+  className,
+  recentRecipients,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  onSelectRecipient: (recipient: RecentRecipient) => void;
+  placeholder?: string;
+  type?: 'text' | 'email';
+  className?: string;
+  recentRecipients: RecentRecipient[];
+}) {
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [filteredSuggestions, setFilteredSuggestions] = useState<RecentRecipient[]>([]);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Filter suggestions based on input
+  useEffect(() => {
+    if (!value.trim()) {
+      setFilteredSuggestions(recentRecipients.slice(0, 5));
+    } else {
+      const query = value.toLowerCase();
+      const filtered = recentRecipients.filter(
+        r => r.name.toLowerCase().includes(query) || r.email.toLowerCase().includes(query)
+      ).slice(0, 5);
+      setFilteredSuggestions(filtered);
+    }
+  }, [value, recentRecipients]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node) &&
+        inputRef.current &&
+        !inputRef.current.contains(e.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div className="relative">
+      <Input
+        ref={inputRef}
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onFocus={() => setShowSuggestions(true)}
+        placeholder={placeholder}
+        className={className}
+        autoComplete="off"
+      />
+      {showSuggestions && filteredSuggestions.length > 0 && (
+        <div
+          ref={dropdownRef}
+          className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto"
+        >
+          {filteredSuggestions.map((recipient) => (
+            <button
+              key={recipient.id}
+              type="button"
+              className="w-full px-3 py-2 text-left hover:bg-gray-50 focus:bg-gray-50 focus:outline-none border-b border-gray-100 last:border-b-0"
+              onClick={() => {
+                onSelectRecipient(recipient);
+                setShowSuggestions(false);
+              }}
+            >
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-gray-900">{recipient.name}</span>
+                <span className="text-xs text-gray-500">{recipient.email}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function EsignSend() {
   const [, setLocation] = useLocation();
   const searchParams = useSearch();
@@ -660,6 +761,18 @@ export default function EsignSend() {
   // Fetch templates
   const { data: templates = [], isLoading: isLoadingTemplates } = useQuery<EsignTemplate[]>({
     queryKey: ["/api/esign/templates"],
+  });
+
+  // Fetch recent recipients for autocomplete
+  const { data: recentRecipients = [] } = useQuery<RecentRecipient[]>({
+    queryKey: ["/api/esign/recent-recipients"],
+    queryFn: async () => {
+      const res = await fetch('/api/esign/recent-recipients?limit=20', {
+        credentials: 'include',
+      });
+      if (!res.ok) return [];
+      return res.json();
+    },
   });
 
   // Fetch selected template details
@@ -1324,42 +1437,17 @@ export default function EsignSend() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Signing Order */}
-                <div>
-                  <Label className="mb-3 block">Signing Order</Label>
-                  <RadioGroup
-                    value={signingOrder}
-                    onValueChange={(v) => setSigningOrder(v as 'sequential' | 'parallel')}
-                    className="flex gap-4"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="parallel" id="parallel" />
-                      <Label htmlFor="parallel" className="cursor-pointer">
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4 text-gray-500" />
-                          Parallel
-                        </div>
-                        <p className="text-xs text-gray-500 font-normal">
-                          All recipients can sign at the same time
-                        </p>
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="sequential" id="sequential" />
-                      <Label htmlFor="sequential" className="cursor-pointer">
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-gray-500" />
-                          Sequential
-                        </div>
-                        <p className="text-xs text-gray-500 font-normal">
-                          Recipients sign one at a time in order
-                        </p>
-                      </Label>
-                    </div>
-                  </RadioGroup>
+                {/* Signing Order Checkbox - at top */}
+                <div className="flex items-center space-x-3 pb-2">
+                  <Checkbox
+                    id="signing-order"
+                    checked={signingOrder === 'sequential'}
+                    onCheckedChange={(checked) => setSigningOrder(checked ? 'sequential' : 'parallel')}
+                  />
+                  <Label htmlFor="signing-order" className="cursor-pointer text-sm font-medium">
+                    Set signing order
+                  </Label>
                 </div>
-
-                <Separator />
 
                 {/* Recipients List */}
                 <div className="space-y-3">
@@ -1372,73 +1460,100 @@ export default function EsignSend() {
                         key={recipient.id}
                         className="p-4 rounded-lg border bg-gray-50"
                       >
-                        <div className="flex items-center gap-2 mb-3">
-                          <div
-                            className="w-4 h-4 rounded-full"
-                            style={{ backgroundColor: color }}
-                          />
-                          {placeholderLabel && (
-                            <Badge variant="secondary" className="text-xs">
-                              {placeholderLabel}
-                            </Badge>
+                        <div className="flex items-start gap-3 mb-3">
+                          {/* Move controls - prominent on the left when signing order is enabled */}
+                          {signingOrder === 'sequential' && (
+                            <div className="flex flex-col gap-0.5 -ml-1">
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                className="h-6 w-6 border-gray-300 bg-white hover:bg-gray-100"
+                                onClick={() => moveRecipient(recipient.id, 'up')}
+                                disabled={index === 0}
+                              >
+                                <ChevronUp className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                className="h-6 w-6 border-gray-300 bg-white hover:bg-gray-100"
+                                onClick={() => moveRecipient(recipient.id, 'down')}
+                                disabled={index === recipients.length - 1}
+                              >
+                                <ChevronDown className="h-4 w-4" />
+                              </Button>
+                            </div>
                           )}
-                          <Badge
-                            variant={recipient.role === 'signer' ? 'default' : 'outline'}
-                            className="text-xs"
-                          >
-                            {recipient.role === 'signer' ? 'Signer' : 'CC'}
-                          </Badge>
-                          <span className="text-xs text-gray-500 ml-auto">
-                            #{recipient.order}
-                          </span>
+                          <div className="flex items-center gap-2 flex-wrap flex-1">
+                            {/* Order number - only show when signing order is enabled */}
+                            {signingOrder === 'sequential' && (
+                              <div
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold text-white flex-shrink-0"
+                                style={{ backgroundColor: color }}
+                              >
+                                {recipient.order}
+                              </div>
+                            )}
+                            {/* Color dot - only show when signing order is disabled */}
+                            {signingOrder !== 'sequential' && (
+                              <div
+                                className="w-4 h-4 rounded-full"
+                                style={{ backgroundColor: color }}
+                              />
+                            )}
+                            {placeholderLabel && (
+                              <Badge variant="secondary" className="text-xs">
+                                {placeholderLabel}
+                              </Badge>
+                            )}
+                            <Badge
+                              variant={recipient.role === 'signer' ? 'default' : 'outline'}
+                              className="text-xs"
+                            >
+                              {recipient.role === 'signer' ? 'Signer' : 'CC'}
+                            </Badge>
+                          </div>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
                             <Label className="text-xs">Full Name</Label>
-                            <Input
+                            <RecipientAutocompleteInput
                               value={recipient.name}
-                              onChange={(e) => updateRecipient(recipient.id, { name: e.target.value })}
+                              onChange={(value) => updateRecipient(recipient.id, { name: value })}
+                              onSelectRecipient={(selected) => {
+                                updateRecipient(recipient.id, {
+                                  name: selected.name,
+                                  email: selected.email,
+                                });
+                              }}
                               placeholder="John Smith"
                               className="mt-1"
+                              recentRecipients={recentRecipients}
                             />
                           </div>
                           <div>
                             <Label className="text-xs">Email Address</Label>
-                            <Input
+                            <RecipientAutocompleteInput
                               type="email"
                               value={recipient.email}
-                              onChange={(e) => updateRecipient(recipient.id, { email: e.target.value })}
+                              onChange={(value) => updateRecipient(recipient.id, { email: value })}
+                              onSelectRecipient={(selected) => {
+                                updateRecipient(recipient.id, {
+                                  name: selected.name,
+                                  email: selected.email,
+                                });
+                              }}
                               placeholder="john@example.com"
                               className="mt-1"
+                              recentRecipients={recentRecipients}
                             />
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between mt-3">
-                          <div className="flex gap-1">
-                            {signingOrder === 'sequential' && (
-                              <>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => moveRecipient(recipient.id, 'up')}
-                                  disabled={index === 0}
-                                >
-                                  Up
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => moveRecipient(recipient.id, 'down')}
-                                  disabled={index === recipients.length - 1}
-                                >
-                                  Down
-                                </Button>
-                              </>
-                            )}
-                          </div>
-                          {!recipient.placeholderRecipientId && (
+                        {/* Delete button - now on its own row */}
+                        {!recipient.placeholderRecipientId && (
+                          <div className="flex justify-end mt-3">
                             <Button
                               size="sm"
                               variant="ghost"
@@ -1448,8 +1563,8 @@ export default function EsignSend() {
                               <Trash2 className="h-4 w-4 mr-1" />
                               Remove
                             </Button>
-                          )}
-                        </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })}

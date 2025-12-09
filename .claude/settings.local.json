@@ -33,7 +33,8 @@
       "Bash(grep:*)",
       "Bash(git checkout:*)",
       "Bash(printf:*)",
-      "Bash(yes:*)"
+      "Bash(yes:*)",
+      "Bash(wc:*)"
     ],
     "deny": [],
     "ask": [],
