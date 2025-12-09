@@ -54,6 +54,7 @@ import EsignTemplates from "@/pages/esign/esign-templates";
 import EsignTemplateEditor from "@/pages/esign/esign-template-editor";
 import EsignSend from "@/pages/esign/esign-send";
 import EsignEnvelopeDetail from "@/pages/esign/esign-envelope-detail";
+import EsignCorrect from "@/pages/esign/esign-correct";
 import EsignSign from "@/pages/esign/esign-sign";
 import EsignVerify from "@/pages/esign/esign-verify";
 import EsignSettings from "@/pages/esign/esign-settings";
@@ -96,6 +97,7 @@ function Router() {
             <ProtectedRoute path="/esign/templates/:id/edit" component={EsignTemplateEditor} />
             <ProtectedRoute path="/esign/send" component={EsignSend} />
             <ProtectedRoute path="/esign/envelope/:id" component={EsignEnvelopeDetail} />
+            <ProtectedRoute path="/esign/correct/:id" component={EsignCorrect} />
             <ProtectedRoute path="/esign/settings" component={EsignSettings} />
             <ProtectedRoute path="/account" component={AccountPage} />
             <ProtectedRoute path="/profile" component={AccountPage} />

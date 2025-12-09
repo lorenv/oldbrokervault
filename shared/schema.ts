@@ -1410,3 +1410,27 @@ export type EsignAuditLog = typeof esignAuditLog.$inferSelect;
 export type InsertEsignAuditLog = z.infer<typeof insertEsignAuditLogSchema>;
 export type EsignPlaceholderRecipient = z.infer<typeof esignPlaceholderRecipientSchema>;
 export type EsignTemplateField = z.infer<typeof esignTemplateFieldSchema>;
+
+// E-signature recent recipients - auto-saved from sent envelopes for autocomplete
+export const esignRecentRecipients = pgTable("esign_recent_recipients", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  email: text("email").notNull(),
+  name: text("name").notNull(),
+  useCount: integer("use_count").default(1).notNull(), // Number of times this recipient has been used
+  lastUsedAt: timestamp("last_used_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
+export const insertEsignRecentRecipientSchema = createInsertSchema(esignRecentRecipients).pick({
+  userId: true,
+  email: true,
+  name: true
+}).extend({
+  userId: z.number().min(1),
+  email: z.string().email(),
+  name: z.string().min(1)
+});
+
+export type EsignRecentRecipient = typeof esignRecentRecipients.$inferSelect;
+export type InsertEsignRecentRecipient = z.infer<typeof insertEsignRecentRecipientSchema>;

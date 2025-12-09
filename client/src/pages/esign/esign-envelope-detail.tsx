@@ -33,6 +33,7 @@ import {
   ExternalLink,
   Copy,
   Eye,
+  Edit,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -108,6 +109,7 @@ const actionLabels: Record<string, string> = {
   envelope_completed: 'Envelope completed',
   envelope_declined: 'Envelope declined',
   envelope_voided: 'Envelope voided',
+  envelope_corrected: 'Envelope corrected',
   reminder_sent: 'Reminder sent',
 };
 
@@ -144,6 +146,20 @@ export default function EsignEnvelopeDetail() {
     recipients: envelopeData.recipients || [],
     auditLog: envelopeData.auditLog || [],
   } : undefined;
+
+  // Check if envelope can be corrected
+  const { data: canCorrectData } = useQuery<{ canCorrect: boolean; reason?: string }>({
+    queryKey: ["/api/esign/envelopes", envelopeId, "can-correct"],
+    queryFn: async () => {
+      if (!envelopeId) throw new Error('No envelope ID');
+      const res = await fetch(`/api/esign/envelopes/${envelopeId}/can-correct`, {
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to check correction eligibility');
+      return res.json();
+    },
+    enabled: !!envelopeId && !!envelope && envelope.status !== 'completed' && envelope.status !== 'voided',
+  });
 
   // Void envelope mutation
   const voidMutation = useMutation({
@@ -539,12 +555,23 @@ export default function EsignEnvelopeDetail() {
                   <p className="text-sm text-gray-500 text-center">No document available</p>
                 )}
 
-                {/* Actions for sent envelopes */}
-                {envelope.status === 'sent' && (
+                {/* Actions for draft or sent envelopes */}
+                {(envelope.status === 'draft' || envelope.status === 'sent') && (
                   <>
                     <Separator />
-                    {/* Remind all pending signers */}
-                    {signers.some(r => r.status !== 'signed' && r.status !== 'declined') && (
+                    {/* Correct envelope - available when no signatures collected */}
+                    {canCorrectData?.canCorrect && (
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => setLocation(`/esign/correct/${envelopeId}`)}
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Correct
+                      </Button>
+                    )}
+                    {/* Remind all pending signers - only for sent envelopes */}
+                    {envelope.status === 'sent' && signers.some(r => r.status !== 'signed' && r.status !== 'declined') && (
                       <Button
                         variant="outline"
                         className="w-full"
