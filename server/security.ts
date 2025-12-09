@@ -249,6 +249,8 @@ export const cspDirectives = {
     "https://www.googletagmanager.com",
     "https://analytics.google.com",
     "https://*.google-analytics.com",
+    "https://region1.google-analytics.com",
+    "https://*.googletagmanager.com",
     "https://www.google.com",
     "https://px.ads.linkedin.com",
     "https://snap.licdn.com",
