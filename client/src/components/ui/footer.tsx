@@ -90,11 +90,6 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <a href="/knowledge-base/" className="text-gray-400 hover:text-white transition-colors">
-                  Knowledge Base
-                </a>
-              </li>
-              <li>
                 <a href="https://cimshare.documentationai.com/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
                   Documentation
                 </a>
