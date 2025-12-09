@@ -2,11 +2,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
-import { 
-  Shield, 
-  Lock, 
-  FileCheck, 
-  Users, 
+import {
+  Shield,
+  Lock,
+  FileCheck,
+  Users,
   CheckCircle,
   ArrowRight,
   FileSignature,
@@ -22,6 +22,7 @@ import {
   Key
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { SEOHead } from "@/components/seo-head";
 
 export default function NdaProtectionPage() {
   const [visibleElements, setVisibleElements] = useState<Set<string>>(new Set());
@@ -49,6 +50,11 @@ export default function NdaProtectionPage() {
 
   return (
     <div className="min-h-screen bg-white">
+      <SEOHead
+        title="NDA Protection - Secure Document Sharing with Built-in NDAs"
+        description="Protect your confidential business information with built-in NDA management. Require signed NDAs before document access, track viewer activity, and maintain full control over your sensitive deal documents."
+        canonicalUrl="https://cimshare.com/features/nda-protection"
+      />
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-16 lg:py-24">
         <div className="max-w-4xl mx-auto text-center">
@@ -75,12 +81,34 @@ export default function NdaProtectionPage() {
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
-              <Link href="/contact">
+              <a href="https://meetings-na2.hubspot.com/rob-kale" target="_blank" rel="noopener noreferrer">
                 <Button size="lg" variant="outline" className="border-slate-300 hover:bg-slate-50 hover:scale-105 transition-all duration-300">
-                  See Security Demo
+                  Book a Demo
                 </Button>
-              </Link>
+              </a>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Video Demo Section */}
+      <section className="container mx-auto px-4 py-16">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-slate-900 mb-4">See It In Action</h2>
+            <p className="text-lg text-slate-600">Watch how NDA protection keeps your documents secure</p>
+          </div>
+          <div className="rounded-2xl overflow-hidden shadow-2xl border border-slate-200">
+            <video
+              className="w-full"
+              autoPlay
+              muted
+              loop
+              playsInline
+            >
+              <source src="/ndamanagement.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
           </div>
         </div>
       </section>

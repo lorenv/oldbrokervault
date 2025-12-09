@@ -1,24 +1,26 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "wouter";
-import { 
-  Briefcase, 
-  TrendingUp, 
-  Users, 
-  FileText, 
+import {
+  Briefcase,
+  TrendingUp,
+  Users,
+  FileText,
   CheckCircle,
   ArrowRight,
   Clock,
-  DollarSign,
-  Shield,
-  BarChart3,
-  Zap,
-  Award
+  Shield
 } from "lucide-react";
+import { SEOHead } from "@/components/seo-head";
 
 export default function BusinessBrokersPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+      <SEOHead
+        title="CIM Share for M&A Advisors - Professional CIM Creation Platform"
+        description="CIM Share helps M&A advisors and business brokers create professional CIMs quickly with AI assistance, secure document sharing, and NDA protection. Streamline your deal flow today."
+        canonicalUrl="https://cimshare.com/solutions/business-brokers"
+      />
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-16 lg:py-24">
         <div className="max-w-4xl mx-auto text-center">
@@ -42,11 +44,11 @@ export default function BusinessBrokersPage() {
                 Start Free Trial <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
-            <Link href="/contact">
+            <a href="https://meetings-na2.hubspot.com/rob-kale" target="_blank" rel="noopener noreferrer">
               <Button size="lg" variant="outline">
                 Book a Demo
               </Button>
-            </Link>
+            </a>
           </div>
         </div>
       </section>
@@ -308,110 +310,6 @@ export default function BusinessBrokersPage() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <DollarSign className="h-6 w-6 text-primary" />
-                  <CardTitle>Closing Support</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div>
-                    <p className="font-medium mb-2">Export Options</p>
-                    <p className="text-sm text-muted-foreground">
-                      Export to PDF or Word format for offline use
-                    </p>
-                  </div>
-                  <div>
-                    <p className="font-medium mb-2">Website Integration</p>
-                    <p className="text-sm text-muted-foreground">
-                      Extract company logos and images from websites automatically
-                    </p>
-                  </div>
-                  <div>
-                    <p className="font-medium mb-2">Professional Results</p>
-                    <p className="text-sm text-muted-foreground">
-                      Create investment-grade documentation for your clients
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* Success Stories */}
-      <section className="container mx-auto px-4 py-16 bg-muted/30">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">
-            What Our Users Say
-          </h2>
-          
-          <div className="grid lg:grid-cols-3 gap-6">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2 mb-4">
-                  <Award className="h-5 w-5 text-yellow-500" />
-                  <div className="flex gap-1">
-                    {[...Array(5)].map((_, i) => (
-                      <span key={i} className="text-yellow-500">★</span>
-                    ))}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm mb-4 italic">
-                  "CIM Share streamlined our document creation process. The AI assistance and 
-                  professional formatting save us significant time."
-                </p>
-                <p className="text-sm font-medium">Michael Thompson</p>
-                <p className="text-xs text-muted-foreground">Thompson Business Advisors</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2 mb-4">
-                  <Award className="h-5 w-5 text-yellow-500" />
-                  <div className="flex gap-1">
-                    {[...Array(5)].map((_, i) => (
-                      <span key={i} className="text-yellow-500">★</span>
-                    ))}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm mb-4 italic">
-                  "The NDA protection and secure sharing features give us confidence when 
-                  distributing confidential information."
-                </p>
-                <p className="text-sm font-medium">Sarah Chen</p>
-                <p className="text-xs text-muted-foreground">Meridian M&A Partners</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2 mb-4">
-                  <Award className="h-5 w-5 text-yellow-500" />
-                  <div className="flex gap-1">
-                    {[...Array(5)].map((_, i) => (
-                      <span key={i} className="text-yellow-500">★</span>
-                    ))}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm mb-4 italic">
-                  "The platform helps us create professional-looking CIMs that impress 
-                  our clients and potential buyers."
-                </p>
-                <p className="text-sm font-medium">Robert Martinez</p>
-                <p className="text-xs text-muted-foreground">Premier Business Brokers</p>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </section>
@@ -497,11 +395,11 @@ export default function BusinessBrokersPage() {
                   Start Free Trial <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
-              <Link href="/contact">
+              <a href="https://meetings-na2.hubspot.com/rob-kale" target="_blank" rel="noopener noreferrer">
                 <Button size="lg" variant="outline">
                   Schedule Demo
                 </Button>
-              </Link>
+              </a>
             </div>
             <p className="text-sm text-muted-foreground mt-4">
               Free trial • No credit card required • Full platform access

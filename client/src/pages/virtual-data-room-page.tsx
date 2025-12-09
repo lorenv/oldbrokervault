@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import vvLogoBlue from "@/assets/vv-logo-blue_1758929244400.png";
 import heroVideo from "@/assets/hero-video_1758929337474.mp4";
+import { SEOHead } from "@/components/seo-head";
 
 export default function VirtualDataRoomPage() {
   const features = [
@@ -69,6 +70,11 @@ export default function VirtualDataRoomPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead
+        title="Virtual Data Room - VettingVault by CIM Share"
+        description="Modern virtual data room powered by AI. Guided document upload, unlimited team access, and secure collaboration for M&A transactions. Use your CIM Share login to access VettingVault."
+        canonicalUrl="https://cimshare.com/virtual-data-room"
+      />
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-20">
         <div className="container mx-auto px-4">
@@ -85,22 +91,28 @@ export default function VirtualDataRoomPage() {
             <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Modern Virtual Data Room
             </h1>
-            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+            <p className="text-xl text-gray-600 mb-4 max-w-3xl mx-auto">
               Stop drowning in spreadsheet chaos. Get the AI-powered platform where only the deal creators need a subscription.
               Invite unlimited team members from both sides of the transaction - they can view, upload, and collaborate at no additional cost.
             </p>
-            <div className="flex justify-center mb-12">
+            <p className="text-sm text-gray-500 mb-8 max-w-2xl mx-auto">
+              VettingVault is a separate product from the same company as CIM Share. Use your CIM Share login to access it.
+            </p>
+            <div className="flex flex-col items-center gap-3 mb-12">
               <a
-                href="vettingvault.com"
+                href="https://vettingvault.com"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-block"
               >
                 <Button size="lg" className="text-lg px-8 py-3">
-                  Try VettingVault Free
+                  Try VettingVault Today
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
               </a>
+              <p className="text-sm text-gray-600">
+                Use promo code <span className="font-semibold bg-blue-100 text-blue-700 px-2 py-1 rounded">cimshare</span> for 25% off
+              </p>
             </div>
           </div>
 
@@ -251,18 +263,21 @@ export default function VirtualDataRoomPage() {
           <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
             Join the modern approach to virtual data rooms. Free to try, unlimited team access, and built for deal success.
           </p>
-          <div className="flex justify-center">
+          <div className="flex flex-col items-center gap-3">
             <a
-              href="vettingvault.com"
+              href="https://vettingvault.com"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-block"
             >
               <Button size="lg" variant="secondary" className="text-lg px-8 py-3">
-                Start Your Free Trial
+                Try VettingVault Today
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </a>
+            <p className="text-sm text-white/80">
+              Use promo code <span className="font-semibold bg-white/20 px-2 py-1 rounded">cimshare</span> for 25% off
+            </p>
           </div>
         </div>
       </section>

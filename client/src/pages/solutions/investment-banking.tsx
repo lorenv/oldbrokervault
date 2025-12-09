@@ -1,11 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "wouter";
-import { 
-  Building, 
-  TrendingUp, 
-  Globe, 
-  FileText, 
+import {
+  Building,
+  TrendingUp,
+  Globe,
+  FileText,
   CheckCircle,
   ArrowRight,
   Shield,
@@ -15,10 +15,16 @@ import {
   Lock,
   Zap
 } from "lucide-react";
+import { SEOHead } from "@/components/seo-head";
 
 export default function InvestmentBankingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+      <SEOHead
+        title="CIM Share for Investment Banks - Enterprise Document Solutions"
+        description="Enterprise-grade CIM creation and secure document sharing for investment banks. Professional documentation with enhanced security, collaboration features, and institutional-level compliance."
+        canonicalUrl="https://cimshare.com/solutions/investment-banking"
+      />
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-16 lg:py-24">
         <div className="max-w-4xl mx-auto text-center">
@@ -37,11 +43,11 @@ export default function InvestmentBankingPage() {
           </p>
           
           <div className="flex gap-4 justify-center">
-            <Link href="/contact">
+            <a href="https://meetings-na2.hubspot.com/rob-kale" target="_blank" rel="noopener noreferrer">
               <Button size="lg" className="gap-2">
-                Request Enterprise Demo <ArrowRight className="h-4 w-4" />
+                Book a Demo <ArrowRight className="h-4 w-4" />
               </Button>
-            </Link>
+            </a>
             <Link href="/pricing">
               <Button size="lg" variant="outline">
                 View Enterprise Plans
@@ -613,11 +619,11 @@ export default function InvestmentBankingPage() {
               Professional CIM creation and secure document sharing for institutions
             </p>
             <div className="flex gap-4 justify-center">
-              <Link href="/contact">
+              <a href="https://meetings-na2.hubspot.com/rob-kale" target="_blank" rel="noopener noreferrer">
                 <Button size="lg" className="gap-2">
-                  Schedule Enterprise Demo <ArrowRight className="h-4 w-4" />
+                  Book a Demo <ArrowRight className="h-4 w-4" />
                 </Button>
-              </Link>
+              </a>
               <Button size="lg" variant="outline" asChild>
                 <a href="mailto:enterprise@cimshare.com">
                   Contact Sales Team

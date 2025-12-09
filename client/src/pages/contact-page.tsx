@@ -9,6 +9,7 @@ import { z } from "zod";
 import { Mail, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { SEOHead } from "@/components/seo-head";
 
 const contactSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -59,6 +60,11 @@ export default function ContactPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead
+        title="Contact Us - Get in Touch with CIM Share"
+        description="Have questions about CIM Share? Contact our team for support, sales inquiries, or partnership opportunities. We're here to help you create professional CIMs."
+        canonicalUrl="https://cimshare.com/contact"
+      />
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-20">
         <div className="container mx-auto px-4 text-center">

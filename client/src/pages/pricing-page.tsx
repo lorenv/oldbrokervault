@@ -23,6 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { SEOHead } from "@/components/seo-head";
 
 export default function PricingPage() {
   const { toast } = useToast();
@@ -227,6 +228,11 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      <SEOHead
+        title="Pricing - CIM Share Plans & Pricing"
+        description="Choose the perfect CIM Share plan for your business. Free trial available. Create professional CIMs with AI, NDA protection, investor CRM, and e-signatures. Plans starting at $59/month."
+        canonicalUrl="https://cimshare.com/pricing"
+      />
       <div className="container mx-auto px-4 py-16">
         {/* Header Section */}
         <div className="text-center mb-16">

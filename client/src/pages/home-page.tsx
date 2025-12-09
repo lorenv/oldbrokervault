@@ -46,6 +46,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { SEOHead } from "@/components/seo-head";
 
 export default function HomePage() {
   const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
@@ -137,7 +138,7 @@ export default function HomePage() {
       description:
         "Upload financial documents and let AI automatically summarize annual revenues and identify addbacks—saving hours of manual work.",
       color: "text-blue-500",
-      link: "/sde-analyzer",
+      link: "/features/sde-analyzer",
       size: "medium",
     },
     {
@@ -169,6 +170,11 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead
+        title="CIM Share - Create Professional CIMs in Minutes with AI"
+        description="Create professional Confidential Information Memorandums (CIMs) in minutes with AI. Features NDA protection, SDE analyzer, investor CRM, and e-signatures for M&A advisors and business brokers."
+        canonicalUrl="https://cimshare.com"
+      />
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-cyan-400 via-blue-500 via-purple-500 via-pink-500 to-orange-400 pt-32 pb-20 relative overflow-hidden">
         <div className="container mx-auto px-4 relative z-10">

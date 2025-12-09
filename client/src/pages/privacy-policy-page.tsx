@@ -1,8 +1,14 @@
 import { Link } from "wouter";
+import { SEOHead } from "@/components/seo-head";
 
 export default function PrivacyPolicyPage() {
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead
+        title="Privacy Policy - CIM Share"
+        description="CIM Share privacy policy. Learn how we collect, use, and protect your personal information when using our CIM creation and document sharing platform."
+        canonicalUrl="https://cimshare.com/privacy-policy"
+      />
       <div className="container mx-auto px-4 py-12 max-w-4xl">
         <h1 className="text-3xl font-bold mb-8">Privacy Policy</h1>
         

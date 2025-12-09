@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
 import {
-  Sparkles,
-  FileText,
+  WandSparkles,
+  FileSpreadsheet,
   Zap,
   Brain,
   CheckCircle,
@@ -12,20 +12,20 @@ import {
   TrendingUp,
   Clock,
   Target,
-  Mic,
+  Upload,
   BarChart3,
   AlertCircle,
-  Globe,
-  Image,
-  Download,
-  Edit3,
-  Users,
+  Calculator,
+  DollarSign,
+  FileText,
+  PieChart,
+  Sparkles,
   Shield
 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { SEOHead } from "@/components/seo-head";
 
-export default function AiPoweredCimPage() {
+export default function SdeAnalyzerPage() {
   const [visibleElements, setVisibleElements] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -52,32 +52,32 @@ export default function AiPoweredCimPage() {
   return (
     <div className="min-h-screen bg-white">
       <SEOHead
-        title="AI-Powered CIM Generator - Create Professional CIMs in Minutes"
-        description="Create professional Confidential Information Memorandums (CIMs) in minutes with AI. Transform meeting transcripts and website data into investment-grade documents automatically."
-        canonicalUrl="https://cimshare.com/features/ai-powered-cim"
+        title="AI-Powered SDE Analyzer - Calculate Seller's Discretionary Earnings"
+        description="Calculate SDE in minutes with AI. Upload financial documents and let AI automatically identify revenue patterns, extract addbacks, and calculate Seller's Discretionary Earnings for accurate business valuations."
+        canonicalUrl="https://cimshare.com/features/sde-analyzer"
       />
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-16 lg:py-24">
         <div className="max-w-4xl mx-auto text-center">
           <div className="animate-fade-in-up">
-            <Badge className="mb-6 bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200 transition-colors duration-300">
-              <Sparkles className="h-4 w-4 mr-2" />
-              AI-Powered Document Generation
+            <Badge className="mb-6 bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200 transition-colors duration-300">
+              <WandSparkles className="h-4 w-4 mr-2" />
+              AI-Powered Financial Analysis
             </Badge>
-            
+
             <h1 className="text-5xl lg:text-6xl font-bold mb-6 text-slate-900 leading-tight animate-text-gradient">
-              Create Professional CIMs in Minutes
+              Calculate SDE in Minutes, Not Hours
             </h1>
-            
+
             <p className="text-xl text-slate-600 mb-8 leading-relaxed max-w-2xl mx-auto">
-              Transform business meeting transcripts, website data, and company information into professional Confidential Information Memorandums using advanced AI technology.
+              Upload financial documents and let AI automatically identify revenue patterns, extract addbacks, and calculate Seller's Discretionary Earnings with professional accuracy.
             </p>
-            
+
             <div className="flex flex-wrap gap-4 justify-center">
               <Link href="/login">
                 <Button size="lg" className="bg-slate-900 hover:bg-slate-800 text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300">
                   <Zap className="mr-2 h-5 w-5" />
-                  Try AI CIM Generator
+                  Try SDE Analyzer Free
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
@@ -87,26 +87,6 @@ export default function AiPoweredCimPage() {
                 </Button>
               </a>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Video Walkthrough Section */}
-      <section className="container mx-auto px-4 py-16">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-slate-900 mb-4">See It In Action</h2>
-            <p className="text-lg text-slate-600">Watch how easy it is to create a professional CIM with AI assistance</p>
-          </div>
-          <div className="rounded-2xl overflow-hidden shadow-2xl border border-slate-200">
-            <video
-              className="w-full"
-              controls
-              poster="/cim-share-logo.png"
-            >
-              <source src="/cim-creation-walkthrough.mp4" type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
           </div>
         </div>
       </section>
@@ -126,10 +106,10 @@ export default function AiPoweredCimPage() {
                   <div className="w-16 h-16 bg-slate-900 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
                     <Clock className="h-8 w-8 text-white" />
                   </div>
-                  <CardTitle className="text-2xl text-slate-900 group-hover:text-blue-600 transition-colors duration-300">10x Faster</CardTitle>
+                  <CardTitle className="text-2xl text-slate-900 group-hover:text-blue-600 transition-colors duration-300">Save Hours</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-slate-600">Generate professional CIMs in minutes instead of hours or days</p>
+                  <p className="text-slate-600">Reduce SDE analysis from hours of manual work to minutes with AI automation</p>
                 </CardContent>
               </Card>
             </div>
@@ -145,10 +125,10 @@ export default function AiPoweredCimPage() {
                   <div className="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
                     <Brain className="h-8 w-8 text-white" />
                   </div>
-                  <CardTitle className="text-2xl text-slate-900 group-hover:text-blue-600 transition-colors duration-300">AI-Enhanced</CardTitle>
+                  <CardTitle className="text-2xl text-slate-900 group-hover:text-blue-600 transition-colors duration-300">AI-Powered</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-slate-600">Advanced AI structures and formats your business information intelligently</p>
+                  <p className="text-slate-600">Advanced AI automatically identifies addbacks and normalizes financial statements</p>
                 </CardContent>
               </Card>
             </div>
@@ -164,10 +144,10 @@ export default function AiPoweredCimPage() {
                   <div className="w-16 h-16 bg-slate-700 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
                     <Target className="h-8 w-8 text-white" />
                   </div>
-                  <CardTitle className="text-2xl text-slate-900 group-hover:text-blue-600 transition-colors duration-300">Professional Quality</CardTitle>
+                  <CardTitle className="text-2xl text-slate-900 group-hover:text-blue-600 transition-colors duration-300">Accurate Results</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-slate-600">Investment-grade documents that impress stakeholders and close deals</p>
+                  <p className="text-slate-600">Consistent, professional-grade SDE calculations you can trust for valuations</p>
                 </CardContent>
               </Card>
             </div>
@@ -175,81 +155,89 @@ export default function AiPoweredCimPage() {
         </div>
       </section>
 
-      {/* Website Integration Feature */}
+      {/* What is SDE Section */}
       <section className="container mx-auto px-4 py-16">
         <div className="max-w-6xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
-              <Badge className="bg-blue-100 text-blue-700 border border-blue-200">
-                <Globe className="h-4 w-4 mr-2" />
-                Website Intelligence
+              <Badge className="bg-slate-100 text-slate-700 border border-slate-200">
+                <Calculator className="h-4 w-4 mr-2" />
+                Understanding SDE
               </Badge>
-              
+
               <h2 className="text-4xl font-bold mb-6 text-slate-900">
-                Automatic Website Data Extraction
+                What is Seller's Discretionary Earnings?
               </h2>
-              
+
               <p className="text-lg text-slate-600 leading-relaxed">
-                Simply provide a company's website URL and our AI automatically extracts key business information, 
-                company logos, images, and relevant data to enhance your CIM's written material. No manual research required.
+                Seller's Discretionary Earnings (SDE) is a key metric used to value small to mid-sized businesses.
+                It represents the total financial benefit a single owner-operator would receive from owning and running the business.
               </p>
-              
+
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mt-1">
-                    <Globe className="h-4 w-4 text-white" />
+                    <DollarSign className="h-4 w-4 text-white" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-slate-900 mb-1">Company Information</h4>
-                    <p className="text-slate-600 text-sm">Automatically extracts business descriptions, services, and key information from company websites</p>
+                    <h4 className="font-semibold text-slate-900 mb-1">Net Profit Base</h4>
+                    <p className="text-slate-600 text-sm">Starts with reported net income from financial statements</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center mt-1">
-                    <Image className="h-4 w-4 text-white" />
+                    <TrendingUp className="h-4 w-4 text-white" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-slate-900 mb-1">Logo & Branding</h4>
-                    <p className="text-slate-600 text-sm">Pulls company logos and branding elements to maintain professional presentation</p>
+                    <h4 className="font-semibold text-slate-900 mb-1">Owner Compensation</h4>
+                    <p className="text-slate-600 text-sm">Adds back owner salary, benefits, and perks to show true earning potential</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 bg-blue-700 rounded-lg flex items-center justify-center mt-1">
-                    <BarChart3 className="h-4 w-4 text-white" />
+                    <PieChart className="h-4 w-4 text-white" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-slate-900 mb-1">Business Intelligence</h4>
-                    <p className="text-slate-600 text-sm">Analyzes website content to understand business model, market position, and key differentiators</p>
+                    <h4 className="font-semibold text-slate-900 mb-1">Discretionary Expenses</h4>
+                    <p className="text-slate-600 text-sm">Identifies personal expenses run through the business that a new owner wouldn't have</p>
                   </div>
                 </div>
               </div>
             </div>
-            
+
             <div className="relative">
               <div className="bg-slate-50 rounded-2xl p-8 shadow-lg border border-slate-200">
                 <div className="bg-white rounded-lg p-6 shadow-sm border border-slate-100">
                   <div className="flex items-center gap-3 mb-4">
-                    <Globe className="h-6 w-6 text-blue-600" />
-                    <span className="font-medium">Website Analysis</span>
+                    <Calculator className="h-6 w-6 text-blue-600" />
+                    <span className="font-medium">SDE Calculation Example</span>
                   </div>
-                  <div className="space-y-3 text-sm">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                      <span>Company logo extracted</span>
+                  <div className="space-y-3 text-sm font-mono">
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">Net Profit</span>
+                      <span className="text-slate-900">$150,000</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                      <span>Business description analyzed</span>
+                    <div className="flex justify-between text-green-600">
+                      <span>+ Owner Salary</span>
+                      <span>$120,000</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                      <span>Key services identified</span>
+                    <div className="flex justify-between text-green-600">
+                      <span>+ Owner Benefits</span>
+                      <span>$25,000</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                      <span>Market positioning extracted</span>
+                    <div className="flex justify-between text-green-600">
+                      <span>+ Depreciation</span>
+                      <span>$15,000</span>
+                    </div>
+                    <div className="flex justify-between text-green-600">
+                      <span>+ One-Time Expenses</span>
+                      <span>$10,000</span>
+                    </div>
+                    <div className="border-t pt-3 flex justify-between font-bold text-lg">
+                      <span className="text-slate-900">SDE Total</span>
+                      <span className="text-blue-600">$320,000</span>
                     </div>
                   </div>
                 </div>
@@ -265,24 +253,24 @@ export default function AiPoweredCimPage() {
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-slate-100 text-slate-700 border border-slate-200">
               <Zap className="h-4 w-4 mr-2" />
-              AI Workflow
+              Simple Process
             </Badge>
-            <h2 className="text-4xl font-bold mb-4 text-slate-900">How AI Powers Your CIM Creation</h2>
+            <h2 className="text-4xl font-bold mb-4 text-slate-900">How the SDE Analyzer Works</h2>
             <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-              Our intelligent system transforms raw business data into professional documentation
+              Three simple steps to get professional SDE calculations
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300">
               <CardHeader className="text-center">
                 <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center mx-auto mb-3">
-                  <span className="text-white font-bold">1</span>
+                  <Upload className="h-6 w-6 text-white" />
                 </div>
-                <CardTitle className="text-lg">Input Data</CardTitle>
+                <CardTitle className="text-lg">1. Upload Documents</CardTitle>
               </CardHeader>
               <CardContent className="text-center">
-                <p className="text-sm text-slate-600">Upload transcripts, website URLs, or business information</p>
+                <p className="text-sm text-slate-600">Upload P&L statements, tax returns, or financial spreadsheets in PDF or Excel format</p>
               </CardContent>
             </Card>
 
@@ -291,34 +279,22 @@ export default function AiPoweredCimPage() {
                 <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-3">
                   <Brain className="h-6 w-6 text-white" />
                 </div>
-                <CardTitle className="text-lg">AI Analysis</CardTitle>
+                <CardTitle className="text-lg">2. AI Analysis</CardTitle>
               </CardHeader>
               <CardContent className="text-center">
-                <p className="text-sm text-slate-600">AI processes and structures your business information intelligently</p>
+                <p className="text-sm text-slate-600">Our AI scans documents to identify revenue, expenses, and potential addbacks automatically</p>
               </CardContent>
             </Card>
 
             <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300">
               <CardHeader className="text-center">
                 <div className="w-12 h-12 bg-slate-700 rounded-xl flex items-center justify-center mx-auto mb-3">
-                  <Edit3 className="h-6 w-6 text-white" />
+                  <BarChart3 className="h-6 w-6 text-white" />
                 </div>
-                <CardTitle className="text-lg">Format & Structure</CardTitle>
+                <CardTitle className="text-lg">3. Get Results</CardTitle>
               </CardHeader>
               <CardContent className="text-center">
-                <p className="text-sm text-slate-600">Professional formatting with industry-standard CIM sections</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-              <CardHeader className="text-center">
-                <div className="w-12 h-12 bg-blue-700 rounded-xl flex items-center justify-center mx-auto mb-3">
-                  <FileText className="h-6 w-6 text-white" />
-                </div>
-                <CardTitle className="text-lg">Professional Output</CardTitle>
-              </CardHeader>
-              <CardContent className="text-center">
-                <p className="text-sm text-slate-600">Investment-grade CIM ready for customization and sharing</p>
+                <p className="text-sm text-slate-600">Receive a detailed SDE breakdown with identified addbacks and annual revenue summary</p>
               </CardContent>
             </Card>
           </div>
@@ -329,9 +305,9 @@ export default function AiPoweredCimPage() {
       <section className="container mx-auto px-4 py-16">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4 text-slate-900">Advanced AI Capabilities</h2>
+            <h2 className="text-4xl font-bold mb-4 text-slate-900">What Our AI Identifies</h2>
             <p className="text-xl text-slate-600">
-              Sophisticated technology that understands business documentation
+              Comprehensive analysis of financial documents for accurate SDE calculations
             </p>
           </div>
 
@@ -340,20 +316,20 @@ export default function AiPoweredCimPage() {
               <CardHeader>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                    <Mic className="h-5 w-5 text-white" />
+                    <DollarSign className="h-5 w-5 text-white" />
                   </div>
-                  <CardTitle className="text-xl">Meeting Transcript Analysis</CardTitle>
+                  <CardTitle className="text-xl">Revenue Recognition</CardTitle>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-slate-600">
-                  Upload meeting recordings or transcripts and our AI extracts key business information, 
-                  financial data, and strategic insights to create comprehensive CIM sections.
+                  AI extracts and summarizes annual revenue figures from financial documents,
+                  identifying trends and patterns across multiple years.
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant="secondary" className="bg-slate-100 text-slate-700">Revenue Recognition</Badge>
-                  <Badge variant="secondary" className="bg-blue-100 text-blue-700">Market Analysis</Badge>
-                  <Badge variant="secondary" className="bg-slate-200 text-slate-700">Growth Strategy</Badge>
+                  <Badge variant="secondary" className="bg-slate-100 text-slate-700">Gross Revenue</Badge>
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-700">Net Revenue</Badge>
+                  <Badge variant="secondary" className="bg-slate-200 text-slate-700">YoY Trends</Badge>
                 </div>
               </CardContent>
             </Card>
@@ -362,20 +338,20 @@ export default function AiPoweredCimPage() {
               <CardHeader>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-slate-700 rounded-lg flex items-center justify-center">
-                    <Globe className="h-5 w-5 text-white" />
+                    <TrendingUp className="h-5 w-5 text-white" />
                   </div>
-                  <CardTitle className="text-xl">Website Intelligence</CardTitle>
+                  <CardTitle className="text-xl">Owner Addbacks</CardTitle>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-slate-600">
-                  Simply provide a company website URL and our AI automatically extracts business descriptions, 
-                  company logos, service offerings, and market positioning to enhance your CIM's content.
+                  Automatically identifies owner-related expenses that should be added back to
+                  calculate true discretionary earnings for a buyer.
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant="secondary" className="bg-blue-100 text-blue-700">Logo Extraction</Badge>
-                  <Badge variant="secondary" className="bg-slate-100 text-slate-700">Business Info</Badge>
-                  <Badge variant="secondary" className="bg-slate-200 text-slate-700">Auto-Enhancement</Badge>
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-700">Owner Salary</Badge>
+                  <Badge variant="secondary" className="bg-slate-100 text-slate-700">Health Insurance</Badge>
+                  <Badge variant="secondary" className="bg-slate-200 text-slate-700">Auto Expenses</Badge>
                 </div>
               </CardContent>
             </Card>
@@ -384,20 +360,20 @@ export default function AiPoweredCimPage() {
               <CardHeader>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-blue-700 rounded-lg flex items-center justify-center">
-                    <BarChart3 className="h-5 w-5 text-white" />
+                    <PieChart className="h-5 w-5 text-white" />
                   </div>
-                  <CardTitle className="text-xl">Financial Data Processing</CardTitle>
+                  <CardTitle className="text-xl">Discretionary Expenses</CardTitle>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-slate-600">
-                  AI identifies and structures financial information into professional formats with 
-                  proper categorization, trend analysis, and investor-ready presentation.
+                  Identifies personal or non-essential business expenses that a new owner
+                  may not incur, increasing the effective earnings.
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant="secondary" className="bg-blue-100 text-blue-700">Revenue Analysis</Badge>
-                  <Badge variant="secondary" className="bg-slate-100 text-slate-700">Growth Metrics</Badge>
-                  <Badge variant="secondary" className="bg-slate-200 text-slate-700">Projections</Badge>
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-700">Travel & Entertainment</Badge>
+                  <Badge variant="secondary" className="bg-slate-100 text-slate-700">Personal Expenses</Badge>
+                  <Badge variant="secondary" className="bg-slate-200 text-slate-700">Family Wages</Badge>
                 </div>
               </CardContent>
             </Card>
@@ -408,18 +384,18 @@ export default function AiPoweredCimPage() {
                   <div className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center">
                     <FileText className="h-5 w-5 text-white" />
                   </div>
-                  <CardTitle className="text-xl">Document Structuring</CardTitle>
+                  <CardTitle className="text-xl">Non-Cash & One-Time Items</CardTitle>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-slate-600">
-                  Automatically organizes information into standard CIM sections including executive summary, 
-                  business overview, financials, and investment highlights with professional formatting.
+                  Recognizes depreciation, amortization, and non-recurring expenses that
+                  should be normalized for accurate valuation purposes.
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant="secondary" className="bg-slate-100 text-slate-700">Auto-Sections</Badge>
-                  <Badge variant="secondary" className="bg-blue-100 text-blue-700">Smart Format</Badge>
-                  <Badge variant="secondary" className="bg-slate-200 text-slate-700">Pro Layout</Badge>
+                  <Badge variant="secondary" className="bg-slate-100 text-slate-700">Depreciation</Badge>
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-700">Amortization</Badge>
+                  <Badge variant="secondary" className="bg-slate-200 text-slate-700">One-Time Costs</Badge>
                 </div>
               </CardContent>
             </Card>
@@ -431,8 +407,8 @@ export default function AiPoweredCimPage() {
       <section className="container mx-auto px-4 py-16 bg-slate-50">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4 text-slate-900">Traditional vs AI-Powered CIM Creation</h2>
-            <p className="text-xl text-slate-600">See the difference AI makes in speed and quality</p>
+            <h2 className="text-4xl font-bold mb-4 text-slate-900">Manual vs AI-Powered SDE Analysis</h2>
+            <p className="text-xl text-slate-600">See how automation transforms your workflow</p>
           </div>
 
           <div className="grid lg:grid-cols-2 gap-12">
@@ -443,26 +419,26 @@ export default function AiPoweredCimPage() {
                   <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center">
                     <AlertCircle className="h-5 w-5 text-white" />
                   </div>
-                  <CardTitle className="text-xl text-red-700">Traditional Method</CardTitle>
+                  <CardTitle className="text-xl text-red-700">Manual Analysis</CardTitle>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
                     <Clock className="h-4 w-4 text-red-600" />
-                    <span className="text-slate-700">5-10 hours of manual work</span>
+                    <span className="text-slate-700">2-4 hours per financial statement</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Users className="h-4 w-4 text-red-600" />
-                    <span className="text-slate-700">Requires formatting expertise</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <TrendingUp className="h-4 w-4 text-red-600" />
-                    <span className="text-slate-700">Inconsistent quality</span>
+                    <FileSpreadsheet className="h-4 w-4 text-red-600" />
+                    <span className="text-slate-700">Manual data entry into spreadsheets</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <Target className="h-4 w-4 text-red-600" />
-                    <span className="text-slate-700">Manual research required</span>
+                    <span className="text-slate-700">Easy to miss addbacks</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Calculator className="h-4 w-4 text-red-600" />
+                    <span className="text-slate-700">Inconsistent methodologies</span>
                   </div>
                 </div>
               </CardContent>
@@ -473,28 +449,28 @@ export default function AiPoweredCimPage() {
               <CardHeader>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-                    <Sparkles className="h-5 w-5 text-white" />
+                    <WandSparkles className="h-5 w-5 text-white" />
                   </div>
-                  <CardTitle className="text-xl text-green-700">AI-Powered Method</CardTitle>
+                  <CardTitle className="text-xl text-green-700">AI-Powered Analysis</CardTitle>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
                     <Clock className="h-4 w-4 text-green-600" />
-                    <span className="text-slate-700">15-30 minutes total time</span>
+                    <span className="text-slate-700">Results in under 5 minutes</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Upload className="h-4 w-4 text-green-600" />
+                    <span className="text-slate-700">Simple drag-and-drop upload</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <Brain className="h-4 w-4 text-green-600" />
-                    <span className="text-slate-700">No formatting expertise needed</span>
+                    <span className="text-slate-700">AI catches hidden addbacks</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <TrendingUp className="h-4 w-4 text-green-600" />
-                    <span className="text-slate-700">Consistent professional quality</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Globe className="h-4 w-4 text-green-600" />
-                    <span className="text-slate-700">Automatic website data extraction</span>
+                    <Shield className="h-4 w-4 text-green-600" />
+                    <span className="text-slate-700">Consistent, reliable methodology</span>
                   </div>
                 </div>
               </CardContent>
@@ -503,84 +479,58 @@ export default function AiPoweredCimPage() {
         </div>
       </section>
 
-      {/* Features Deep Dive */}
+      {/* Use Cases Section */}
       <section className="container mx-auto px-4 py-16">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4 text-slate-900">Advanced AI Features</h2>
+            <h2 className="text-4xl font-bold mb-4 text-slate-900">Perfect For</h2>
             <p className="text-xl text-slate-600">
-              Cutting-edge technology designed for investment professionals
+              Professionals who need fast, accurate SDE calculations
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid md:grid-cols-3 gap-8">
             <div className="space-y-6">
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Brain className="h-6 w-6 text-white" />
+                  <BarChart3 className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold mb-2 text-slate-900">Natural Language Processing</h3>
+                  <h3 className="text-xl font-semibold mb-2 text-slate-900">Business Brokers</h3>
                   <p className="text-slate-600">
-                    Advanced NLP understands business context, extracts key metrics, and identifies 
-                    important investment highlights from unstructured text.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-slate-700 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Target className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold mb-2 text-slate-900">Intelligent Categorization</h3>
-                  <p className="text-slate-600">
-                    Automatically categorizes business information into appropriate CIM sections 
-                    based on investment banking standards and best practices.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-blue-700 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <TrendingUp className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold mb-2 text-slate-900">Market Analysis</h3>
-                  <p className="text-slate-600">
-                    AI analyzes market positioning, competitive advantages, and growth opportunities 
-                    to create compelling investment narratives.
+                    Quickly analyze multiple businesses to provide accurate valuations
+                    and prepare professional CIMs for your listings.
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-slate-50 rounded-2xl p-8 shadow-lg border border-slate-200">
-              <h3 className="text-2xl font-bold mb-6 text-center text-slate-900">What Our AI Extracts</h3>
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                  <span className="text-slate-700">Company overview and business model</span>
+            <div className="space-y-6">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-slate-700 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <DollarSign className="h-6 w-6 text-white" />
                 </div>
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                  <span className="text-slate-700">Financial performance and metrics</span>
+                <div>
+                  <h3 className="text-xl font-semibold mb-2 text-slate-900">M&A Advisors</h3>
+                  <p className="text-slate-600">
+                    Streamline due diligence and financial analysis for your
+                    merger and acquisition engagements.
+                  </p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                  <span className="text-slate-700">Market position and competitive advantages</span>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-blue-700 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <TrendingUp className="h-6 w-6 text-white" />
                 </div>
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                  <span className="text-slate-700">Growth opportunities and projections</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                  <span className="text-slate-700">Risk factors and mitigation strategies</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                  <span className="text-slate-700">Investment highlights and value proposition</span>
+                <div>
+                  <h3 className="text-xl font-semibold mb-2 text-slate-900">Business Owners</h3>
+                  <p className="text-slate-600">
+                    Understand your business's true earning potential before
+                    entering sale negotiations.
+                  </p>
                 </div>
               </div>
             </div>
@@ -593,22 +543,22 @@ export default function AiPoweredCimPage() {
         <Card className="max-w-4xl mx-auto bg-slate-900 border-0 text-white text-center">
           <CardContent className="p-12">
             <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Sparkles className="h-8 w-8 text-white" />
+              <WandSparkles className="h-8 w-8 text-white" />
             </div>
-            
+
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Ready to Experience AI-Powered CIM Creation?
+              Ready to Automate Your SDE Analysis?
             </h2>
-            
+
             <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
-              Join thousands of investment professionals who save hours every week with our AI technology.
+              Join business brokers and M&A advisors who save hours every week with AI-powered financial analysis.
             </p>
-            
+
             <div className="flex flex-wrap gap-4 justify-center">
               <Link href="/login">
                 <Button size="lg" variant="secondary" className="bg-white text-slate-900 hover:bg-slate-100">
                   <Zap className="mr-2 h-5 w-5" />
-                  Start Creating CIMs
+                  Start Analyzing Free
                 </Button>
               </Link>
               <Link href="/pricing">
@@ -617,7 +567,7 @@ export default function AiPoweredCimPage() {
                 </Button>
               </Link>
             </div>
-            
+
             <p className="text-slate-400 text-sm mt-6">
               No credit card required • Start with our free trial
             </p>
@@ -628,29 +578,29 @@ export default function AiPoweredCimPage() {
       {/* CSS Animations */}
       <style jsx>{`
         @keyframes fade-in-up {
-          from { 
+          from {
             opacity: 0;
             transform: translateY(30px);
           }
-          to { 
+          to {
             opacity: 1;
             transform: translateY(0);
           }
         }
-        
+
         @keyframes text-gradient {
-          0%, 100% { 
+          0%, 100% {
             background-position: 0% 50%;
           }
-          50% { 
+          50% {
             background-position: 100% 50%;
           }
         }
-        
+
         .animate-fade-in-up {
           animation: fade-in-up 1s ease-out;
         }
-        
+
         .animate-text-gradient {
           background: linear-gradient(-45deg, #1e293b, #3b82f6, #1e40af, #0f172a);
           background-size: 400% 400%;

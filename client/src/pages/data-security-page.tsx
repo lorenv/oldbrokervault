@@ -2,10 +2,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Shield, Lock, Server, Database, FileCheck, ExternalLink } from "lucide-react";
 import { Link } from "wouter";
+import { SEOHead } from "@/components/seo-head";
 
 export default function DataSecurityPage() {
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead
+        title="Data Security - CIM Share"
+        description="Learn about CIM Share's enterprise-grade security measures. We protect your confidential business data with encryption, secure infrastructure, and strict access controls."
+        canonicalUrl="https://cimshare.com/data-security"
+      />
       <div className="container mx-auto px-4 py-12 max-w-6xl">
         <div className="text-center mb-12">
           <h1 className="text-3xl font-bold mb-4">Data Security & Privacy</h1>

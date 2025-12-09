@@ -5,9 +5,9 @@ export function Footer() {
     <footer className="bg-gray-900 text-white">
       {/* Content */}
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-8">
           {/* Company Info */}
-          <div className="space-y-4">
+          <div className="col-span-2 space-y-4">
             <div className="flex items-center space-x-2">
               <img src="/cim-share-logo.png" alt="CIM Share" className="h-8 filter invert" />
             </div>
@@ -16,18 +16,38 @@ export function Footer() {
             </p>
           </div>
 
-          {/* Product */}
+          {/* Features */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Product</h3>
+            <h3 className="text-lg font-semibold">Features</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="/pricing" className="text-gray-400 hover:text-white transition-colors">
-                  Pricing
+                <Link href="/features/ai-powered-cim" className="text-gray-400 hover:text-white transition-colors">
+                  AI CIM Generator
                 </Link>
               </li>
               <li>
-                <Link href="/login" className="text-gray-400 hover:text-white transition-colors">
-                  Get Started
+                <Link href="/features/sde-analyzer" className="text-gray-400 hover:text-white transition-colors">
+                  SDE Analyzer
+                </Link>
+              </li>
+              <li>
+                <Link href="/features/nda-protection" className="text-gray-400 hover:text-white transition-colors">
+                  NDA Protection
+                </Link>
+              </li>
+              <li>
+                <Link href="/features/investor-database" className="text-gray-400 hover:text-white transition-colors">
+                  Investor CRM
+                </Link>
+              </li>
+              <li>
+                <Link href="/features/messages" className="text-gray-400 hover:text-white transition-colors">
+                  Message Center
+                </Link>
+              </li>
+              <li>
+                <Link href="/features/analytics" className="text-gray-400 hover:text-white transition-colors">
+                  Analytics Dashboard
                 </Link>
               </li>
               <li>
@@ -44,7 +64,7 @@ export function Footer() {
             <ul className="space-y-2 text-sm">
               <li>
                 <Link href="/solutions/business-brokers" className="text-gray-400 hover:text-white transition-colors">
-                  For Business Brokers
+                  For M&A Advisors
                 </Link>
               </li>
               <li>
@@ -55,10 +75,15 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Support */}
+          {/* Company */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Support</h3>
+            <h3 className="text-lg font-semibold">Company</h3>
             <ul className="space-y-2 text-sm">
+              <li>
+                <Link href="/pricing" className="text-gray-400 hover:text-white transition-colors">
+                  Pricing
+                </Link>
+              </li>
               <li>
                 <Link href="/contact" className="text-gray-400 hover:text-white transition-colors">
                   Contact Us
@@ -68,6 +93,16 @@ export function Footer() {
                 <a href="/knowledge-base/" className="text-gray-400 hover:text-white transition-colors">
                   Knowledge Base
                 </a>
+              </li>
+              <li>
+                <a href="https://cimshare.documentationai.com/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
+                  Documentation
+                </a>
+              </li>
+              <li>
+                <Link href="/login" className="text-gray-400 hover:text-white transition-colors">
+                  Get Started
+                </Link>
               </li>
             </ul>
           </div>

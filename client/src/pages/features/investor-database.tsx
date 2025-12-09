@@ -2,11 +2,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
-import { 
-  Database, 
-  Users, 
-  Search, 
-  Filter, 
+import {
+  Database,
+  Users,
+  Search,
+  Filter,
   CheckCircle,
   ArrowRight,
   Globe,
@@ -25,6 +25,7 @@ import {
   Settings
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { SEOHead } from "@/components/seo-head";
 
 export default function InvestorDatabasePage() {
   const [visibleElements, setVisibleElements] = useState<Set<string>>(new Set());
@@ -52,6 +53,11 @@ export default function InvestorDatabasePage() {
 
   return (
     <div className="min-h-screen bg-white">
+      <SEOHead
+        title="Investor CRM - Track Buyer Relationships and Deal Activity"
+        description="Never lose a lead with our investor CRM built for M&A. Track buyer relationships, monitor document views, manage NDA signatures, and close deals faster with comprehensive contact management."
+        canonicalUrl="https://cimshare.com/features/investor-database"
+      />
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-16 lg:py-24">
         <div className="max-w-4xl mx-auto text-center">
@@ -78,12 +84,34 @@ export default function InvestorDatabasePage() {
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
-              <Link href="/contact">
+              <a href="https://meetings-na2.hubspot.com/rob-kale" target="_blank" rel="noopener noreferrer">
                 <Button size="lg" variant="outline" className="border-slate-300 hover:bg-slate-50 hover:scale-105 transition-all duration-300">
-                  Schedule Demo
+                  Book a Demo
                 </Button>
-              </Link>
+              </a>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Video Demo Section */}
+      <section className="container mx-auto px-4 py-16">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-slate-900 mb-4">See It In Action</h2>
+            <p className="text-lg text-slate-600">Watch how the Investor CRM helps you manage contacts and track engagement</p>
+          </div>
+          <div className="rounded-2xl overflow-hidden shadow-2xl border border-slate-200">
+            <video
+              className="w-full"
+              autoPlay
+              muted
+              loop
+              playsInline
+            >
+              <source src="/crm.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
           </div>
         </div>
       </section>
