@@ -88,6 +88,17 @@ export default function SdeAnalyzerPage() {
               </a>
             </div>
           </div>
+
+          {/* Product Screenshot */}
+          <div className="mt-16 max-w-5xl mx-auto">
+            <div className="rounded-2xl overflow-hidden shadow-2xl border border-slate-200">
+              <img
+                src="/sde.png"
+                alt="SDE Analyzer Interface - AI-powered Seller's Discretionary Earnings calculation"
+                className="w-full h-auto"
+              />
+            </div>
+          </div>
         </div>
       </section>
 
