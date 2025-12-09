@@ -1,6 +1,13 @@
+import { SEOHead } from "@/components/seo-head";
+
 export default function EulaPage() {
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead
+        title="End User License Agreement (EULA) - CIM Share"
+        description="CIM Share End User License Agreement. Review the software license terms for using our CIM creation and document sharing platform."
+        canonicalUrl="https://cimshare.com/eula"
+      />
       <div className="container mx-auto px-4 py-12 max-w-4xl">
         <h1 className="text-3xl font-bold mb-8">End User License Agreement (EULA)</h1>
         

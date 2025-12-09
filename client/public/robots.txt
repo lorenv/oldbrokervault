@@ -1,0 +1,48 @@
+# robots.txt for CIM Share
+# https://cimshare.com
+
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://cimshare.com/sitemap.xml
+
+# Disallow protected/private areas
+Disallow: /dashboard
+Disallow: /documents
+Disallow: /analytics
+Disallow: /investor-database
+Disallow: /sde-analyzer
+Disallow: /esign
+Disallow: /nda-templates
+Disallow: /account
+Disallow: /profile
+Disallow: /admin
+Disallow: /messages
+Disallow: /template-editor
+Disallow: /premium
+
+# Disallow share pages (private CIM shares)
+Disallow: /share/
+Disallow: /cims/
+
+# Disallow authentication pages
+Disallow: /login
+Disallow: /auth
+Disallow: /reset-password
+
+# Disallow API endpoints
+Disallow: /api/
+
+# Allow search engines to crawl public pages
+Allow: /
+Allow: /pricing
+Allow: /contact
+Allow: /features/
+Allow: /solutions/
+Allow: /virtual-data-room
+Allow: /privacy-policy
+Allow: /terms-of-service
+Allow: /cookie-policy
+Allow: /data-security
+Allow: /eula

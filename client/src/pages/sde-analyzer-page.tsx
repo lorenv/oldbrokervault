@@ -546,7 +546,8 @@ export default function SDEAnalyzerPage() {
             <div className="space-y-3">
               {analysesData.analyses.map((analysis) => {
                 const daysLeft = analysis.expiresAt ? getDaysUntilExpiration(analysis.expiresAt) : null;
-                const isExpiringSoon = daysLeft !== null && daysLeft <= 7;
+                const isExpired = daysLeft !== null && daysLeft <= 0;
+                const isExpiringSoon = daysLeft !== null && daysLeft > 0 && daysLeft <= 7;
 
                 return (
                   <div
@@ -558,6 +559,12 @@ export default function SDEAnalyzerPage() {
                         <FileSpreadsheet className="h-5 w-5 text-blue-600 flex-shrink-0" />
                         <span className="font-semibold text-slate-800 truncate">{analysis.originalFilename}</span>
                         {getStatusBadge(analysis.status)}
+                        {isExpired && (
+                          <Badge variant="destructive" className="gap-1">
+                            <AlertTriangle className="h-3 w-3" />
+                            Expired
+                          </Badge>
+                        )}
                         {isExpiringSoon && (
                           <Badge variant="outline" className="gap-1">
                             <AlertTriangle className="h-3 w-3" />

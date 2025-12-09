@@ -63,6 +63,9 @@ import EsignSettings from "@/pages/esign/esign-settings";
 const NdaProtectionPage = lazy(() => import("@/pages/features/nda-protection"));
 const AiPoweredCimPage = lazy(() => import("@/pages/features/ai-powered-cim"));
 const InvestorDatabaseFeaturePage = lazy(() => import("@/pages/features/investor-database"));
+const SdeAnalyzerFeaturePage = lazy(() => import("@/pages/features/sde-analyzer"));
+const MessagesFeaturePage = lazy(() => import("@/pages/features/messages"));
+const AnalyticsFeaturePage = lazy(() => import("@/pages/features/analytics"));
 const BusinessBrokersPage = lazy(() => import("@/pages/solutions/business-brokers"));
 const InvestmentBankingPage = lazy(() => import("@/pages/solutions/investment-banking"));
 
@@ -149,6 +152,21 @@ function Router() {
             <Route path="/features/investor-database">
               <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
                 <InvestorDatabaseFeaturePage />
+              </Suspense>
+            </Route>
+            <Route path="/features/sde-analyzer">
+              <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+                <SdeAnalyzerFeaturePage />
+              </Suspense>
+            </Route>
+            <Route path="/features/messages">
+              <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+                <MessagesFeaturePage />
+              </Suspense>
+            </Route>
+            <Route path="/features/analytics">
+              <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+                <AnalyticsFeaturePage />
               </Suspense>
             </Route>
             {/* SEO Solution Pages */}

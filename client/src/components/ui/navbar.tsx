@@ -16,7 +16,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Settings, LogOut, User, HelpCircle, Plus, Menu, MessageCircle, BarChart3, WandSparkles, Signature, MoreHorizontal, FileCheck, ChevronDown, Users, FileText } from "lucide-react";
+import { Settings, LogOut, User, HelpCircle, Plus, Menu, MessageCircle, BarChart3, WandSparkles, Signature, MoreHorizontal, FileCheck, ChevronDown, Users, FileText, Zap, Shield, Database, PenTool, Briefcase, MessageSquare, TrendingUp } from "lucide-react";
 import { useState } from "react";
 import { SupportDialog } from "./support-dialog";
 import { useQuery } from "@tanstack/react-query";
@@ -185,12 +185,138 @@ export function Navbar() {
 
         {/* Navigation for non-logged-in users - right aligned */}
         {!user && (
-          <div className="hidden md:flex items-center space-x-6 mr-4">
+          <div className="hidden md:flex items-center space-x-1 mr-4">
+            {/* Features Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`${isHomePage ? "text-white hover:bg-white/10 hover:text-white" : "text-gray-700 hover:text-gray-900"} transition-colors`}
+                >
+                  Features
+                  <ChevronDown className="ml-1 h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                <DropdownMenuItem asChild>
+                  <Link href="/features/ai-powered-cim" className="flex items-center cursor-pointer w-full">
+                    <Zap className="h-4 w-4 mr-2 text-orange-500" />
+                    <div>
+                      <div className="font-medium">AI CIM Generator</div>
+                      <div className="text-xs text-muted-foreground">Create CIMs in minutes</div>
+                    </div>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/features/sde-analyzer" className="flex items-center cursor-pointer w-full">
+                    <WandSparkles className="h-4 w-4 mr-2 text-blue-500" />
+                    <div>
+                      <div className="font-medium">SDE Analyzer</div>
+                      <div className="text-xs text-muted-foreground">AI financial analysis</div>
+                    </div>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/features/nda-protection" className="flex items-center cursor-pointer w-full">
+                    <Shield className="h-4 w-4 mr-2 text-green-500" />
+                    <div>
+                      <div className="font-medium">NDA Protection</div>
+                      <div className="text-xs text-muted-foreground">Secure document sharing</div>
+                    </div>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/features/investor-database" className="flex items-center cursor-pointer w-full">
+                    <Database className="h-4 w-4 mr-2 text-indigo-500" />
+                    <div>
+                      <div className="font-medium">Investor CRM</div>
+                      <div className="text-xs text-muted-foreground">Track buyer relationships</div>
+                    </div>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/features/messages" className="flex items-center cursor-pointer w-full">
+                    <MessageSquare className="h-4 w-4 mr-2 text-cyan-500" />
+                    <div>
+                      <div className="font-medium">Message Center</div>
+                      <div className="text-xs text-muted-foreground">Centralized communication</div>
+                    </div>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/features/analytics" className="flex items-center cursor-pointer w-full">
+                    <TrendingUp className="h-4 w-4 mr-2 text-emerald-500" />
+                    <div>
+                      <div className="font-medium">Analytics Dashboard</div>
+                      <div className="text-xs text-muted-foreground">Track buyer engagement</div>
+                    </div>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/virtual-data-room" className="flex items-center cursor-pointer w-full">
+                    <FileText className="h-4 w-4 mr-2 text-purple-500" />
+                    <div>
+                      <div className="font-medium">Virtual Data Room</div>
+                      <div className="text-xs text-muted-foreground">Secure deal management</div>
+                    </div>
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Solutions Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`${isHomePage ? "text-white hover:bg-white/10 hover:text-white" : "text-gray-700 hover:text-gray-900"} transition-colors`}
+                >
+                  Solutions
+                  <ChevronDown className="ml-1 h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                <DropdownMenuItem asChild>
+                  <Link href="/solutions/business-brokers" className="flex items-center cursor-pointer w-full">
+                    <Briefcase className="h-4 w-4 mr-2 text-blue-600" />
+                    <div>
+                      <div className="font-medium">For M&A Advisors</div>
+                      <div className="text-xs text-muted-foreground">Streamline deal flow</div>
+                    </div>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/solutions/investment-banking" className="flex items-center cursor-pointer w-full">
+                    <BarChart3 className="h-4 w-4 mr-2 text-slate-700" />
+                    <div>
+                      <div className="font-medium">For Investment Banks</div>
+                      <div className="text-xs text-muted-foreground">Enterprise solutions</div>
+                    </div>
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <Link href="/pricing">
-              <span className={`text-sm font-medium transition-colors cursor-pointer ${isHomePage ? "text-white hover:text-gray-200" : "hover:text-primary"}`}>Pricing</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`${isHomePage ? "text-white hover:bg-white/10 hover:text-white" : "text-gray-700 hover:text-gray-900"} transition-colors`}
+              >
+                Pricing
+              </Button>
             </Link>
             <Link href="/contact">
-              <span className={`text-sm font-medium transition-colors cursor-pointer ${isHomePage ? "text-white hover:text-gray-200" : "hover:text-primary"}`}>Contact</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`${isHomePage ? "text-white hover:bg-white/10 hover:text-white" : "text-gray-700 hover:text-gray-900"} transition-colors`}
+              >
+                Contact
+              </Button>
             </Link>
           </div>
         )}
@@ -211,22 +337,88 @@ export function Navbar() {
                     <Menu className="h-5 w-5" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+                <SheetContent side="right" className="w-[300px] sm:w-[400px] overflow-y-auto">
                   <SheetHeader>
                     <SheetTitle>Menu</SheetTitle>
                   </SheetHeader>
-                  <div className="grid gap-4 py-6">
+                  <div className="flex flex-col gap-2 py-6">
+                    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-2 mb-2">
+                      Features
+                    </div>
+                    <Link href="/features/ai-powered-cim" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button variant="ghost" className="w-full justify-start text-left h-11">
+                        <Zap className="mr-3 h-4 w-4 text-orange-500" />
+                        AI CIM Generator
+                      </Button>
+                    </Link>
+                    <Link href="/features/sde-analyzer" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button variant="ghost" className="w-full justify-start text-left h-11">
+                        <WandSparkles className="mr-3 h-4 w-4 text-blue-500" />
+                        SDE Analyzer
+                      </Button>
+                    </Link>
+                    <Link href="/features/nda-protection" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button variant="ghost" className="w-full justify-start text-left h-11">
+                        <Shield className="mr-3 h-4 w-4 text-green-500" />
+                        NDA Protection
+                      </Button>
+                    </Link>
+                    <Link href="/features/investor-database" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button variant="ghost" className="w-full justify-start text-left h-11">
+                        <Database className="mr-3 h-4 w-4 text-indigo-500" />
+                        Investor CRM
+                      </Button>
+                    </Link>
+                    <Link href="/features/messages" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button variant="ghost" className="w-full justify-start text-left h-11">
+                        <MessageSquare className="mr-3 h-4 w-4 text-cyan-500" />
+                        Message Center
+                      </Button>
+                    </Link>
+                    <Link href="/features/analytics" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button variant="ghost" className="w-full justify-start text-left h-11">
+                        <TrendingUp className="mr-3 h-4 w-4 text-emerald-500" />
+                        Analytics Dashboard
+                      </Button>
+                    </Link>
+                    <Link href="/virtual-data-room" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button variant="ghost" className="w-full justify-start text-left h-11">
+                        <FileText className="mr-3 h-4 w-4 text-purple-500" />
+                        Virtual Data Room
+                      </Button>
+                    </Link>
+
+                    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-2 mb-2 mt-4">
+                      Solutions
+                    </div>
+                    <Link href="/solutions/business-brokers" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button variant="ghost" className="w-full justify-start text-left h-11">
+                        <Briefcase className="mr-3 h-4 w-4 text-blue-600" />
+                        For M&A Advisors
+                      </Button>
+                    </Link>
+                    <Link href="/solutions/investment-banking" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button variant="ghost" className="w-full justify-start text-left h-11">
+                        <BarChart3 className="mr-3 h-4 w-4 text-slate-700" />
+                        For Investment Banks
+                      </Button>
+                    </Link>
+
+                    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-2 mb-2 mt-4">
+                      Company
+                    </div>
                     <Link href="/pricing" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button variant="ghost" className="w-full justify-start text-left" data-testid="link-pricing">
+                      <Button variant="ghost" className="w-full justify-start text-left h-11" data-testid="link-pricing">
                         Pricing
                       </Button>
                     </Link>
                     <Link href="/contact" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button variant="ghost" className="w-full justify-start text-left" data-testid="link-contact">
+                      <Button variant="ghost" className="w-full justify-start text-left h-11" data-testid="link-contact">
                         Contact
                       </Button>
                     </Link>
-                    <div className="pt-4 border-t">
+
+                    <div className="pt-4 border-t mt-4">
                       <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
                         <Button className="w-full" data-testid="button-login-mobile">
                           Login / Sign Up
