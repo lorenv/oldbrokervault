@@ -258,6 +258,10 @@ export default function AccountPage() {
         // Invalidate queries to refresh data
         queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
         queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+        // Also invalidate e-sign branding since logo is synced there too
+        if (field === 'businessLogo') {
+          queryClient.invalidateQueries({ queryKey: ["/api/esign/branding"] });
+        }
 
         toast({
           title: "Image Saved",

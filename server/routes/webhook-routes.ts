@@ -305,14 +305,16 @@ router.post('/:id/test', async (req, res) => {
   }
 });
 
-// Get delivery logs for a webhook
+// Get delivery logs for a webhook with pagination and filtering
 router.get('/:id/deliveries', async (req, res) => {
   if (!req.isAuthenticated()) return res.sendStatus(401);
 
   try {
     const webhookId = parseInt(req.params.id);
-    const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+    const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
     const offset = parseInt(req.query.offset as string) || 0;
+    const status = req.query.status as string | undefined;
+    const eventType = req.query.eventType as string | undefined;
 
     // Verify ownership
     const [webhook] = await db
@@ -327,15 +329,40 @@ router.get('/:id/deliveries', async (req, res) => {
       return res.status(404).json({ error: 'Webhook not found' });
     }
 
+    // Build filter conditions
+    const conditions = [eq(webhookDeliveries.webhookId, webhookId)];
+
+    if (status && ['success', 'failed', 'pending', 'retrying'].includes(status)) {
+      conditions.push(eq(webhookDeliveries.status, status));
+    }
+
+    if (eventType && WEBHOOK_EVENT_TYPES.includes(eventType as any)) {
+      conditions.push(eq(webhookDeliveries.eventType, eventType));
+    }
+
+    // Get total count for pagination
+    const [countResult] = await db
+      .select({ total: count() })
+      .from(webhookDeliveries)
+      .where(and(...conditions));
+
     const deliveries = await db
       .select()
       .from(webhookDeliveries)
-      .where(eq(webhookDeliveries.webhookId, webhookId))
+      .where(and(...conditions))
       .orderBy(desc(webhookDeliveries.createdAt))
       .limit(limit)
       .offset(offset);
 
-    res.json(deliveries);
+    res.json({
+      deliveries,
+      pagination: {
+        total: countResult?.total || 0,
+        limit,
+        offset,
+        hasMore: offset + deliveries.length < (countResult?.total || 0)
+      }
+    });
   } catch (error) {
     console.error('Error fetching deliveries:', error);
     res.status(500).json({ error: 'Failed to fetch deliveries' });

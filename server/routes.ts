@@ -7111,13 +7111,13 @@ ${finalQuestion}
                   .limit(1);
 
                 if (existingBranding) {
-                  // Update existing branding with primary color
+                  // Update existing branding with primary color (logo will be synced after file save)
                   await db
                     .update(userBranding)
                     .set({ primaryColor, updatedAt: new Date() })
                     .where(eq(userBranding.userId, req.user!.id));
                 } else {
-                  // Create new branding entry with primary color
+                  // Create new branding entry with primary color (logo will be synced after file save)
                   await db.insert(userBranding).values({
                     userId: req.user!.id,
                     primaryColor,
@@ -7144,8 +7144,36 @@ ${finalQuestion}
               req.user!.id,
               'logos'
             );
-            processedBusinessLogo = logoMetadata.publicPath; // Use file path instead of base64
-            console.log('Business logo saved as file:', logoMetadata.publicPath);
+            // Add cache-busting timestamp to prevent browser caching old image
+            const logoUrlWithCacheBust = `${logoMetadata.publicPath}?t=${Date.now()}`;
+            processedBusinessLogo = logoUrlWithCacheBust;
+            console.log('Business logo saved as file:', logoUrlWithCacheBust);
+
+            // Also sync the logo to e-signature branding settings
+            try {
+              const [existingBranding] = await db
+                .select()
+                .from(userBranding)
+                .where(eq(userBranding.userId, req.user!.id))
+                .limit(1);
+
+              if (existingBranding) {
+                await db
+                  .update(userBranding)
+                  .set({ logoUrl: logoUrlWithCacheBust, updatedAt: new Date() })
+                  .where(eq(userBranding.userId, req.user!.id));
+              } else {
+                await db.insert(userBranding).values({
+                  userId: req.user!.id,
+                  logoUrl: logoUrlWithCacheBust,
+                  companyName: businessName || null,
+                });
+              }
+              console.log('Synced logo to e-signature settings:', logoUrlWithCacheBust);
+            } catch (logoSyncError) {
+              console.warn('E-signature logo sync failed:', logoSyncError);
+              // Continue - this is not a critical failure
+            }
           } catch (processingError) {
             console.warn('Logo file save failed, falling back to base64:', processingError);
             processedBusinessLogo = businessLogo;
@@ -7159,7 +7187,7 @@ ${finalQuestion}
           });
         }
       }
-      
+
       // Process profile photo if it's a new upload - save as file instead of base64
       if (profilePhoto && profilePhoto.startsWith('data:image/')) {
         try {

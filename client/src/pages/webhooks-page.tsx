@@ -58,9 +58,11 @@ import {
   EyeOff,
   Send,
   ChevronRight,
+  ChevronLeft,
   ArrowLeft,
   Zap,
   ExternalLink,
+  Filter,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -131,6 +133,12 @@ export default function WebhooksPage() {
   const [newSecret, setNewSecret] = useState<string | null>(null);
   const [showSecret, setShowSecret] = useState(false);
 
+  // Pagination and filtering state for deliveries
+  const [deliveryPage, setDeliveryPage] = useState(0);
+  const [deliveryStatusFilter, setDeliveryStatusFilter] = useState<string>('all');
+  const [deliveryEventFilter, setDeliveryEventFilter] = useState<string>('all');
+  const DELIVERIES_PER_PAGE = 20;
+
   // Form state for creating/editing webhooks
   const [formData, setFormData] = useState({
     name: '',
@@ -156,12 +164,33 @@ export default function WebhooksPage() {
     },
   });
 
-  // Fetch webhook details with deliveries
+  // Fetch webhook details
   const { data: webhookDetails } = useQuery({
     queryKey: ['/api/webhooks', selectedWebhook?.id],
     queryFn: async () => {
       if (!selectedWebhook) return null;
       const res = await apiRequest('GET', `/api/webhooks/${selectedWebhook.id}`);
+      return res.json();
+    },
+    enabled: !!selectedWebhook,
+  });
+
+  // Fetch paginated deliveries with filtering
+  const { data: deliveriesData, isLoading: isLoadingDeliveries } = useQuery({
+    queryKey: ['/api/webhooks', selectedWebhook?.id, 'deliveries', deliveryPage, deliveryStatusFilter, deliveryEventFilter],
+    queryFn: async () => {
+      if (!selectedWebhook) return null;
+      const params = new URLSearchParams({
+        limit: String(DELIVERIES_PER_PAGE),
+        offset: String(deliveryPage * DELIVERIES_PER_PAGE),
+      });
+      if (deliveryStatusFilter !== 'all') {
+        params.append('status', deliveryStatusFilter);
+      }
+      if (deliveryEventFilter !== 'all') {
+        params.append('eventType', deliveryEventFilter);
+      }
+      const res = await apiRequest('GET', `/api/webhooks/${selectedWebhook.id}/deliveries?${params}`);
       return res.json();
     },
     enabled: !!selectedWebhook,
@@ -496,18 +525,84 @@ export default function WebhooksPage() {
             </CardContent>
           </Card>
 
-          {/* Recent Deliveries */}
+          {/* Delivery Logs with Pagination & Filtering */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Recent Deliveries</CardTitle>
-              <CardDescription>
-                History of webhook delivery attempts
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg">Delivery Logs</CardTitle>
+                  <CardDescription>
+                    History of webhook delivery attempts
+                    {deliveriesData?.pagination && (
+                      <span className="ml-2">({deliveriesData.pagination.total} total)</span>
+                    )}
+                  </CardDescription>
+                </div>
+              </div>
+              {/* Filters */}
+              <div className="flex gap-3 mt-4">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-gray-500" />
+                  <Select
+                    value={deliveryStatusFilter}
+                    onValueChange={(value) => {
+                      setDeliveryStatusFilter(value);
+                      setDeliveryPage(0);
+                    }}
+                  >
+                    <SelectTrigger className="w-[130px] h-8">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="success">Success</SelectItem>
+                      <SelectItem value="failed">Failed</SelectItem>
+                      <SelectItem value="retrying">Retrying</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Select
+                  value={deliveryEventFilter}
+                  onValueChange={(value) => {
+                    setDeliveryEventFilter(value);
+                    setDeliveryPage(0);
+                  }}
+                >
+                  <SelectTrigger className="w-[160px] h-8">
+                    <SelectValue placeholder="Event Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Events</SelectItem>
+                    {selectedWebhook?.events.map(event => (
+                      <SelectItem key={event} value={event}>
+                        {eventLabels[event] || event}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {(deliveryStatusFilter !== 'all' || deliveryEventFilter !== 'all') && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8"
+                    onClick={() => {
+                      setDeliveryStatusFilter('all');
+                      setDeliveryEventFilter('all');
+                      setDeliveryPage(0);
+                    }}
+                  >
+                    Clear filters
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
-              {webhookDetails?.recentDeliveries?.length > 0 ? (
+              {isLoadingDeliveries ? (
+                <div className="text-center py-8 text-gray-500">Loading deliveries...</div>
+              ) : deliveriesData?.deliveries?.length > 0 ? (
                 <div className="space-y-3">
-                  {webhookDetails.recentDeliveries.map((delivery: WebhookDelivery) => (
+                  {deliveriesData.deliveries.map((delivery: WebhookDelivery) => (
                     <div
                       key={delivery.id}
                       className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
@@ -545,10 +640,42 @@ export default function WebhooksPage() {
                       </div>
                     </div>
                   ))}
+
+                  {/* Pagination Controls */}
+                  {deliveriesData.pagination && (
+                    <div className="flex items-center justify-between pt-4 border-t mt-4">
+                      <div className="text-sm text-gray-500">
+                        Showing {deliveriesData.pagination.offset + 1}-
+                        {Math.min(deliveriesData.pagination.offset + deliveriesData.deliveries.length, deliveriesData.pagination.total)} of {deliveriesData.pagination.total}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setDeliveryPage(p => Math.max(0, p - 1))}
+                          disabled={deliveryPage === 0}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                          Previous
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setDeliveryPage(p => p + 1)}
+                          disabled={!deliveriesData.pagination.hasMore}
+                        >
+                          Next
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-center py-8 text-gray-500">
-                  No deliveries yet. Events will appear here when triggered.
+                  {deliveryStatusFilter !== 'all' || deliveryEventFilter !== 'all'
+                    ? 'No deliveries match your filters.'
+                    : 'No deliveries yet. Events will appear here when triggered.'}
                 </div>
               )}
             </CardContent>
@@ -712,7 +839,12 @@ export default function WebhooksPage() {
             <Card
               key={webhook.id}
               className="cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => setSelectedWebhook(webhook)}
+              onClick={() => {
+                setSelectedWebhook(webhook);
+                setDeliveryPage(0);
+                setDeliveryStatusFilter('all');
+                setDeliveryEventFilter('all');
+              }}
             >
               <CardContent className="py-4">
                 <div className="flex items-center justify-between">
