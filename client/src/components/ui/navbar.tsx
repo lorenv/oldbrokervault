@@ -16,7 +16,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Settings, LogOut, User, HelpCircle, Plus, Menu, MessageCircle, BarChart3, WandSparkles, Signature, MoreHorizontal, FileCheck, ChevronDown, Users, FileText, Zap, Shield, Database, PenTool, Briefcase, MessageSquare, TrendingUp, Webhook } from "lucide-react";
+import { Settings, LogOut, User, HelpCircle, Plus, Menu, MessageCircle, BarChart3, WandSparkles, Signature, MoreHorizontal, FileCheck, ChevronDown, Users, FileText, Zap, Shield, Database, PenTool, Briefcase, MessageSquare, TrendingUp, Webhook, Vault } from "lucide-react";
 import { useState, useRef } from "react";
 import { SupportDialog } from "./support-dialog";
 import { useQuery } from "@tanstack/react-query";
@@ -27,9 +27,7 @@ export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [location, setLocation] = useLocation();
   const [featuresOpen, setFeaturesOpen] = useState(false);
-  const [solutionsOpen, setSolutionsOpen] = useState(false);
   const featuresTimeout = useRef<NodeJS.Timeout | null>(null);
-  const solutionsTimeout = useRef<NodeJS.Timeout | null>(null);
   const isHomePage = location === '/';
 
   // Fetch profile data for profile picture
@@ -210,139 +208,126 @@ export function Navbar() {
                 <ChevronDown className={`ml-1 h-3 w-3 transition-transform duration-200 ${featuresOpen ? 'rotate-180' : ''}`} />
               </Button>
               {featuresOpen && (
-                <div className="absolute top-full left-0 mt-1 w-[480px] bg-white rounded-md shadow-lg border p-3 z-50">
-                  <div className="grid grid-cols-2 gap-1">
+                <div className="absolute top-full left-0 mt-2 w-[600px] bg-white rounded-xl shadow-2xl border border-gray-200/60 p-6 z-50">
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-1">
                     {/* Left Column */}
-                    <div>
+                    <div className="space-y-1">
+                      <div className="px-3 py-2 mb-2">
+                        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Core Platform</span>
+                      </div>
                       <Link href="/features/ai-powered-cim" onClick={() => setFeaturesOpen(false)}>
-                        <div className="flex items-center px-3 py-2 hover:bg-gray-100 cursor-pointer rounded">
-                          <Zap className="h-4 w-4 mr-2 text-orange-500" />
+                        <div className="flex items-start px-3 py-3 hover:bg-gray-50 cursor-pointer rounded-lg transition-colors group">
+                          <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center mr-3">
+                            <Zap className="h-5 w-5 text-orange-600" />
+                          </div>
                           <div>
-                            <div className="font-medium text-sm">AI CIM Generator</div>
-                            <div className="text-xs text-muted-foreground">Create CIMs in minutes</div>
+                            <div className="font-semibold text-gray-900 group-hover:text-orange-600 transition-colors">AI CIM Generator</div>
+                            <div className="text-sm text-gray-500 mt-0.5">Create professional CIMs in minutes with AI</div>
                           </div>
                         </div>
                       </Link>
                       <Link href="/features/esignatures" onClick={() => setFeaturesOpen(false)}>
-                        <div className="flex items-center px-3 py-2 hover:bg-gray-100 cursor-pointer rounded">
-                          <PenTool className="h-4 w-4 mr-2 text-indigo-500" />
+                        <div className="flex items-start px-3 py-3 hover:bg-gray-50 cursor-pointer rounded-lg transition-colors group">
+                          <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center mr-3">
+                            <PenTool className="h-5 w-5 text-indigo-600" />
+                          </div>
                           <div>
-                            <div className="font-medium text-sm">eSignatures</div>
-                            <div className="text-xs text-muted-foreground">Secure digital signing</div>
+                            <div className="font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">eSignatures</div>
+                            <div className="text-sm text-gray-500 mt-0.5">Secure digital document signing</div>
                           </div>
                         </div>
                       </Link>
                       <Link href="/features/sde-analyzer" onClick={() => setFeaturesOpen(false)}>
-                        <div className="flex items-center px-3 py-2 hover:bg-gray-100 cursor-pointer rounded">
-                          <WandSparkles className="h-4 w-4 mr-2 text-blue-500" />
+                        <div className="flex items-start px-3 py-3 hover:bg-gray-50 cursor-pointer rounded-lg transition-colors group">
+                          <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center mr-3">
+                            <WandSparkles className="h-5 w-5 text-blue-600" />
+                          </div>
                           <div>
-                            <div className="font-medium text-sm">SDE Analyzer</div>
-                            <div className="text-xs text-muted-foreground">AI financial analysis</div>
+                            <div className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">SDE Analyzer</div>
+                            <div className="text-sm text-gray-500 mt-0.5">AI-powered financial analysis</div>
                           </div>
                         </div>
                       </Link>
                       <Link href="/features/nda-protection" onClick={() => setFeaturesOpen(false)}>
-                        <div className="flex items-center px-3 py-2 hover:bg-gray-100 cursor-pointer rounded">
-                          <Shield className="h-4 w-4 mr-2 text-green-500" />
-                          <div>
-                            <div className="font-medium text-sm">NDA Protection</div>
-                            <div className="text-xs text-muted-foreground">Secure document sharing</div>
+                        <div className="flex items-start px-3 py-3 hover:bg-gray-50 cursor-pointer rounded-lg transition-colors group">
+                          <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center mr-3">
+                            <Shield className="h-5 w-5 text-green-600" />
                           </div>
-                        </div>
-                      </Link>
-                      <Link href="/features/investor-database" onClick={() => setFeaturesOpen(false)}>
-                        <div className="flex items-center px-3 py-2 hover:bg-gray-100 cursor-pointer rounded">
-                          <Database className="h-4 w-4 mr-2 text-purple-500" />
                           <div>
-                            <div className="font-medium text-sm">Investor CRM</div>
-                            <div className="text-xs text-muted-foreground">Track buyer relationships</div>
+                            <div className="font-semibold text-gray-900 group-hover:text-green-600 transition-colors">NDA Protection</div>
+                            <div className="text-sm text-gray-500 mt-0.5">Secure document sharing controls</div>
                           </div>
                         </div>
                       </Link>
                     </div>
                     {/* Right Column */}
-                    <div>
-                      <Link href="/features/messages" onClick={() => setFeaturesOpen(false)}>
-                        <div className="flex items-center px-3 py-2 hover:bg-gray-100 cursor-pointer rounded">
-                          <MessageSquare className="h-4 w-4 mr-2 text-cyan-500" />
+                    <div className="space-y-1">
+                      <div className="px-3 py-2 mb-2">
+                        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Tools & Integrations</span>
+                      </div>
+                      <Link href="/features/investor-database" onClick={() => setFeaturesOpen(false)}>
+                        <div className="flex items-start px-3 py-3 hover:bg-gray-50 cursor-pointer rounded-lg transition-colors group">
+                          <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center mr-3">
+                            <Database className="h-5 w-5 text-purple-600" />
+                          </div>
                           <div>
-                            <div className="font-medium text-sm">Message Center</div>
-                            <div className="text-xs text-muted-foreground">Centralized communication</div>
+                            <div className="font-semibold text-gray-900 group-hover:text-purple-600 transition-colors">Investor CRM</div>
+                            <div className="text-sm text-gray-500 mt-0.5">Track and manage buyer relationships</div>
+                          </div>
+                        </div>
+                      </Link>
+                      <Link href="/features/messages" onClick={() => setFeaturesOpen(false)}>
+                        <div className="flex items-start px-3 py-3 hover:bg-gray-50 cursor-pointer rounded-lg transition-colors group">
+                          <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-cyan-100 flex items-center justify-center mr-3">
+                            <MessageSquare className="h-5 w-5 text-cyan-600" />
+                          </div>
+                          <div>
+                            <div className="font-semibold text-gray-900 group-hover:text-cyan-600 transition-colors">Message Center</div>
+                            <div className="text-sm text-gray-500 mt-0.5">Centralized buyer communication</div>
                           </div>
                         </div>
                       </Link>
                       <Link href="/features/analytics" onClick={() => setFeaturesOpen(false)}>
-                        <div className="flex items-center px-3 py-2 hover:bg-gray-100 cursor-pointer rounded">
-                          <TrendingUp className="h-4 w-4 mr-2 text-emerald-500" />
+                        <div className="flex items-start px-3 py-3 hover:bg-gray-50 cursor-pointer rounded-lg transition-colors group">
+                          <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center mr-3">
+                            <TrendingUp className="h-5 w-5 text-emerald-600" />
+                          </div>
                           <div>
-                            <div className="font-medium text-sm">Analytics Dashboard</div>
-                            <div className="text-xs text-muted-foreground">Track buyer engagement</div>
+                            <div className="font-semibold text-gray-900 group-hover:text-emerald-600 transition-colors">Analytics Dashboard</div>
+                            <div className="text-sm text-gray-500 mt-0.5">Track engagement and deal progress</div>
                           </div>
                         </div>
                       </Link>
                       <Link href="/features/webhooks" onClick={() => setFeaturesOpen(false)}>
-                        <div className="flex items-center px-3 py-2 hover:bg-gray-100 cursor-pointer rounded">
-                          <Webhook className="h-4 w-4 mr-2 text-blue-600" />
-                          <div>
-                            <div className="font-medium text-sm">Webhooks</div>
-                            <div className="text-xs text-muted-foreground">Real-time integrations</div>
+                        <div className="flex items-start px-3 py-3 hover:bg-gray-50 cursor-pointer rounded-lg transition-colors group">
+                          <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center mr-3">
+                            <Webhook className="h-5 w-5 text-blue-600" />
                           </div>
-                        </div>
-                      </Link>
-                      <Link href="/virtual-data-room" onClick={() => setFeaturesOpen(false)}>
-                        <div className="flex items-center px-3 py-2 hover:bg-gray-100 cursor-pointer rounded">
-                          <FileText className="h-4 w-4 mr-2 text-slate-600" />
                           <div>
-                            <div className="font-medium text-sm">Virtual Data Room</div>
-                            <div className="text-xs text-muted-foreground">Secure deal management</div>
+                            <div className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">Webhooks</div>
+                            <div className="text-sm text-gray-500 mt-0.5">Real-time integrations & automation</div>
                           </div>
                         </div>
                       </Link>
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
-
-            {/* Solutions Dropdown - Hover */}
-            <div
-              className="relative"
-              onMouseEnter={() => {
-                if (solutionsTimeout.current) clearTimeout(solutionsTimeout.current);
-                setSolutionsOpen(true);
-              }}
-              onMouseLeave={() => {
-                solutionsTimeout.current = setTimeout(() => setSolutionsOpen(false), 150);
-              }}
-            >
-              <Button
-                variant="ghost"
-                size="sm"
-                className={`${isHomePage ? "text-white hover:bg-white/10 hover:text-white" : "text-gray-700 hover:text-gray-900"} transition-colors`}
-              >
-                Solutions
-                <ChevronDown className={`ml-1 h-3 w-3 transition-transform duration-200 ${solutionsOpen ? 'rotate-180' : ''}`} />
-              </Button>
-              {solutionsOpen && (
-                <div className="absolute top-full left-0 mt-1 w-56 bg-white rounded-md shadow-lg border py-1 z-50">
-                  <Link href="/solutions/business-brokers" onClick={() => setSolutionsOpen(false)}>
-                    <div className="flex items-center px-3 py-2 hover:bg-gray-100 cursor-pointer">
-                      <Briefcase className="h-4 w-4 mr-2 text-blue-600" />
-                      <div>
-                        <div className="font-medium text-sm">For M&A Advisors</div>
-                        <div className="text-xs text-muted-foreground">Streamline deal flow</div>
+                  {/* Bottom CTA */}
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <Link href="/virtual-data-room" onClick={() => setFeaturesOpen(false)}>
+                      <div className="flex items-center justify-between px-3 py-3 hover:bg-gray-50 cursor-pointer rounded-lg transition-colors group">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center mr-3">
+                            <Vault className="h-5 w-5 text-slate-600" />
+                          </div>
+                          <div>
+                            <div className="font-semibold text-gray-900 group-hover:text-slate-600 transition-colors">Virtual Data Room</div>
+                            <div className="text-sm text-gray-500 mt-0.5">Secure deal management & document sharing</div>
+                          </div>
+                        </div>
+                        <ChevronDown className="h-4 w-4 text-gray-400 -rotate-90" />
                       </div>
-                    </div>
-                  </Link>
-                  <Link href="/solutions/investment-banking" onClick={() => setSolutionsOpen(false)}>
-                    <div className="flex items-center px-3 py-2 hover:bg-gray-100 cursor-pointer">
-                      <BarChart3 className="h-4 w-4 mr-2 text-slate-700" />
-                      <div>
-                        <div className="font-medium text-sm">For Investment Banks</div>
-                        <div className="text-xs text-muted-foreground">Enterprise solutions</div>
-                      </div>
-                    </div>
-                  </Link>
+                    </Link>
+                  </div>
                 </div>
               )}
             </div>
@@ -455,7 +440,7 @@ export function Navbar() {
                     </Link>
                     <Link href="/virtual-data-room" onClick={() => setIsMobileMenuOpen(false)}>
                       <Button variant="ghost" className="w-full justify-start text-left h-11">
-                        <FileText className="mr-3 h-4 w-4 text-purple-500" />
+                        <Vault className="mr-3 h-4 w-4 text-purple-500" />
                         Virtual Data Room
                       </Button>
                     </Link>
