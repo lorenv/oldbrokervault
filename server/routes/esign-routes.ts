@@ -493,7 +493,7 @@ router.put('/branding', async (req: Request, res: Response) => {
   }
 });
 
-// Upload branding logo
+// Upload branding logo - extracts colors and syncs to both e-sign branding AND user profile
 router.post('/branding/logo', imageUpload.single('logo'), async (req: Request, res: Response) => {
   try {
     if (!req.user) {
@@ -510,7 +510,24 @@ router.post('/branding/logo', imageUpload.single('logo'), async (req: Request, r
     const storageKey = `private/branding/${req.user.id}/logo${ext}`;
     const result = await objectStorage.uploadBuffer(storageKey, req.file.buffer, req.file.mimetype);
 
-    // Update branding record
+    // Extract brand colors from the uploaded logo
+    let extractedColors: string[] = [];
+    let primaryColor: string | null = null;
+    try {
+      const { extractBrandColors } = await import('../services/brand-color-extractor');
+      const colors = await extractBrandColors(req.file.buffer);
+      extractedColors = colors.colors;
+      primaryColor = extractedColors.length > 0 ? extractedColors[0] : null;
+      console.log('[ESIGN] Extracted brand colors from logo:', extractedColors);
+    } catch (colorError) {
+      console.warn('[ESIGN] Brand color extraction failed:', colorError);
+      // Continue without colors - not critical
+    }
+
+    // Add cache-busting timestamp to logo URL to prevent browser caching old image
+    const logoUrlWithCacheBust = `${result.url}?t=${Date.now()}`;
+
+    // Update e-sign branding record with logo and primary color
     const [existing] = await db
       .select()
       .from(userBranding)
@@ -520,16 +537,40 @@ router.post('/branding/logo', imageUpload.single('logo'), async (req: Request, r
     if (existing) {
       await db
         .update(userBranding)
-        .set({ logoUrl: result.url, updatedAt: new Date() })
+        .set({
+          logoUrl: logoUrlWithCacheBust,
+          primaryColor: primaryColor || existing.primaryColor,
+          updatedAt: new Date()
+        })
         .where(eq(userBranding.userId, req.user.id));
     } else {
       await db.insert(userBranding).values({
         userId: req.user.id,
-        logoUrl: result.url,
+        logoUrl: logoUrlWithCacheBust,
+        primaryColor: primaryColor || '#0072CE',
       });
     }
 
-    res.json({ logoUrl: result.url });
+    // Also sync logo and colors to user profile (account settings)
+    try {
+      await db
+        .update(users)
+        .set({
+          businessLogo: logoUrlWithCacheBust,
+          brandColors: extractedColors.length > 0 ? extractedColors : undefined,
+        })
+        .where(eq(users.id, req.user.id));
+      console.log('[ESIGN] Synced logo and colors to user profile');
+    } catch (syncError) {
+      console.warn('[ESIGN] Failed to sync logo to user profile:', syncError);
+      // Continue - e-sign branding was updated successfully
+    }
+
+    res.json({
+      logoUrl: logoUrlWithCacheBust,
+      brandColors: extractedColors,
+      primaryColor: primaryColor
+    });
   } catch (error) {
     console.error('[ESIGN] Error uploading logo:', error);
     res.status(500).json({ error: 'Failed to upload logo' });

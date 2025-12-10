@@ -1,6 +1,21 @@
 node_modules
 dist
 .DS_Store
+.env
+.env.*
 server/public
 vite.config.ts.*
-*.tar.gz.config/pulse/
+*.tar.gz
+
+# System config files that should not be committed
+.config/
+.cache/
+.local/
+
+# Attached assets - exclude system/config files
+attached_assets/*.zip
+attached_assets/cache_*
+attached_assets/config_*
+attached_assets/dist_*
+attached_assets/client_*
+attached_assets/env_*

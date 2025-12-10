@@ -120,10 +120,20 @@ export default function EsignSettings() {
       return res.json();
     },
     onSuccess: (data) => {
-      setFormData((prev) => ({ ...prev, logoUrl: data.logoUrl }));
+      setFormData((prev) => ({
+        ...prev,
+        logoUrl: data.logoUrl,
+        primaryColor: data.primaryColor || prev.primaryColor,
+      }));
+      // Invalidate all related queries to ensure data syncs everywhere
+      queryClient.invalidateQueries({ queryKey: ["/api/esign/branding"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
       toast({
         title: "Logo uploaded",
-        description: "Your company logo has been uploaded.",
+        description: data.brandColors?.length > 0
+          ? "Your company logo has been uploaded and brand colors extracted."
+          : "Your company logo has been uploaded.",
       });
     },
     onError: () => {
