@@ -55,6 +55,8 @@ import { textExtractionRouter } from "./routes/text-extraction";
 import { registerSDEAnalyzerRoutes } from "./routes/sde-analyzer-routes";
 import { sdeProcessor } from "./sde-processor";
 import { simpleParser } from 'mailparser';
+import webhookRoutes from "./routes/webhook-routes";
+import { dispatchWebhookEvent } from "./webhook-dispatcher";
 
 
 // Directory paths
@@ -2095,7 +2097,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ndaTemplateId: doc.ndaTemplateId,
         ndaApprovalRequired: doc.ndaApprovalRequired
       });
-      
+
+      // Dispatch webhook event for CIM creation (async, don't await)
+      dispatchWebhookEvent(req.user!.id, 'cim.created', {
+        cim_id: doc.id,
+        title: doc.title,
+        share_url: doc.shareSlug ? `${process.env.BASE_URL || 'https://cimshare.com'}/share/${doc.shareSlug}` : null,
+        created_at: doc.createdAt
+      }).catch(err => console.error('Webhook dispatch error:', err));
+
       res.json(doc);
     } catch (error) {
       console.error("CIM generation error:", error instanceof Error ? error.message : String(error));
@@ -9214,8 +9224,19 @@ ${finalQuestion}
           } else {
           }
 
-          res.json({ 
-            success: true, 
+          // Dispatch webhook event for NDA signed (async, don't await)
+          dispatchWebhookEvent(cimDoc.userId, 'nda.signed', {
+            nda_id: signature.id,
+            cim_id: cimDoc.id,
+            cim_title: cimDoc.title,
+            signer_email: signerEmail,
+            signer_name: signerName,
+            signer_location: signerLocation,
+            signed_at: signature.signedAt
+          }).catch(err => console.error('Webhook dispatch error:', err));
+
+          res.json({
+            success: true,
             signature,
             requiresApproval: false,
             message: "NDA signed successfully. Check your email for confirmation and CIM access."
@@ -10147,6 +10168,15 @@ ${finalQuestion}
         })
         .returning();
 
+      // Dispatch webhook event for contact created (async, don't await)
+      dispatchWebhookEvent(req.user!.id, 'contact.created', {
+        contact_id: newContact.id,
+        email: newContact.email,
+        name: newContact.name,
+        status: newContact.status,
+        created_at: newContact.createdAt
+      }).catch(err => console.error('Webhook dispatch error:', err));
+
       res.json(newContact);
     } catch (error: any) {
       console.error('Error creating investor contact:', error);
@@ -10726,6 +10756,9 @@ ${finalQuestion}
   // Register e-signature routes
   app.use('/api/esignature', eSignatureRoutes);
   app.use('/api/esign', esignRoutes);
+
+  // Register webhook routes
+  app.use('/api/webhooks', webhookRoutes);
 
   // Background job: Clean up stale document locks (15+ minutes old)
   async function cleanupStaleLocks() {

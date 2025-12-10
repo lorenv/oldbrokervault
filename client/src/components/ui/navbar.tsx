@@ -16,8 +16,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Settings, LogOut, User, HelpCircle, Plus, Menu, MessageCircle, BarChart3, WandSparkles, Signature, MoreHorizontal, FileCheck, ChevronDown, Users, FileText, Zap, Shield, Database, PenTool, Briefcase, MessageSquare, TrendingUp } from "lucide-react";
-import { useState } from "react";
+import { Settings, LogOut, User, HelpCircle, Plus, Menu, MessageCircle, BarChart3, WandSparkles, Signature, MoreHorizontal, FileCheck, ChevronDown, Users, FileText, Zap, Shield, Database, PenTool, Briefcase, MessageSquare, TrendingUp, Webhook } from "lucide-react";
+import { useState, useRef } from "react";
 import { SupportDialog } from "./support-dialog";
 import { useQuery } from "@tanstack/react-query";
 
@@ -26,6 +26,10 @@ export function Navbar() {
   const [isSupportOpen, setIsSupportOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [location, setLocation] = useLocation();
+  const [featuresOpen, setFeaturesOpen] = useState(false);
+  const [solutionsOpen, setSolutionsOpen] = useState(false);
+  const featuresTimeout = useRef<NodeJS.Timeout | null>(null);
+  const solutionsTimeout = useRef<NodeJS.Timeout | null>(null);
   const isHomePage = location === '/';
 
   // Fetch profile data for profile picture
@@ -186,119 +190,162 @@ export function Navbar() {
         {/* Navigation for non-logged-in users - right aligned */}
         {!user && (
           <div className="hidden md:flex items-center space-x-1 mr-4">
-            {/* Features Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={`${isHomePage ? "text-white hover:bg-white/10 hover:text-white" : "text-gray-700 hover:text-gray-900"} transition-colors`}
-                >
-                  Features
-                  <ChevronDown className="ml-1 h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56">
-                <DropdownMenuItem asChild>
-                  <Link href="/features/ai-powered-cim" className="flex items-center cursor-pointer w-full">
-                    <Zap className="h-4 w-4 mr-2 text-orange-500" />
+            {/* Features Dropdown - Hover */}
+            <div
+              className="relative"
+              onMouseEnter={() => {
+                if (featuresTimeout.current) clearTimeout(featuresTimeout.current);
+                setFeaturesOpen(true);
+              }}
+              onMouseLeave={() => {
+                featuresTimeout.current = setTimeout(() => setFeaturesOpen(false), 150);
+              }}
+            >
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`${isHomePage ? "text-white hover:bg-white/10 hover:text-white" : "text-gray-700 hover:text-gray-900"} transition-colors`}
+              >
+                Features
+                <ChevronDown className={`ml-1 h-3 w-3 transition-transform duration-200 ${featuresOpen ? 'rotate-180' : ''}`} />
+              </Button>
+              {featuresOpen && (
+                <div className="absolute top-full left-0 mt-1 w-[480px] bg-white rounded-md shadow-lg border p-3 z-50">
+                  <div className="grid grid-cols-2 gap-1">
+                    {/* Left Column */}
                     <div>
-                      <div className="font-medium">AI CIM Generator</div>
-                      <div className="text-xs text-muted-foreground">Create CIMs in minutes</div>
+                      <Link href="/features/ai-powered-cim" onClick={() => setFeaturesOpen(false)}>
+                        <div className="flex items-center px-3 py-2 hover:bg-gray-100 cursor-pointer rounded">
+                          <Zap className="h-4 w-4 mr-2 text-orange-500" />
+                          <div>
+                            <div className="font-medium text-sm">AI CIM Generator</div>
+                            <div className="text-xs text-muted-foreground">Create CIMs in minutes</div>
+                          </div>
+                        </div>
+                      </Link>
+                      <Link href="/features/esignatures" onClick={() => setFeaturesOpen(false)}>
+                        <div className="flex items-center px-3 py-2 hover:bg-gray-100 cursor-pointer rounded">
+                          <PenTool className="h-4 w-4 mr-2 text-indigo-500" />
+                          <div>
+                            <div className="font-medium text-sm">eSignatures</div>
+                            <div className="text-xs text-muted-foreground">Secure digital signing</div>
+                          </div>
+                        </div>
+                      </Link>
+                      <Link href="/features/sde-analyzer" onClick={() => setFeaturesOpen(false)}>
+                        <div className="flex items-center px-3 py-2 hover:bg-gray-100 cursor-pointer rounded">
+                          <WandSparkles className="h-4 w-4 mr-2 text-blue-500" />
+                          <div>
+                            <div className="font-medium text-sm">SDE Analyzer</div>
+                            <div className="text-xs text-muted-foreground">AI financial analysis</div>
+                          </div>
+                        </div>
+                      </Link>
+                      <Link href="/features/nda-protection" onClick={() => setFeaturesOpen(false)}>
+                        <div className="flex items-center px-3 py-2 hover:bg-gray-100 cursor-pointer rounded">
+                          <Shield className="h-4 w-4 mr-2 text-green-500" />
+                          <div>
+                            <div className="font-medium text-sm">NDA Protection</div>
+                            <div className="text-xs text-muted-foreground">Secure document sharing</div>
+                          </div>
+                        </div>
+                      </Link>
+                      <Link href="/features/investor-database" onClick={() => setFeaturesOpen(false)}>
+                        <div className="flex items-center px-3 py-2 hover:bg-gray-100 cursor-pointer rounded">
+                          <Database className="h-4 w-4 mr-2 text-purple-500" />
+                          <div>
+                            <div className="font-medium text-sm">Investor CRM</div>
+                            <div className="text-xs text-muted-foreground">Track buyer relationships</div>
+                          </div>
+                        </div>
+                      </Link>
                     </div>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/features/sde-analyzer" className="flex items-center cursor-pointer w-full">
-                    <WandSparkles className="h-4 w-4 mr-2 text-blue-500" />
+                    {/* Right Column */}
                     <div>
-                      <div className="font-medium">SDE Analyzer</div>
-                      <div className="text-xs text-muted-foreground">AI financial analysis</div>
+                      <Link href="/features/messages" onClick={() => setFeaturesOpen(false)}>
+                        <div className="flex items-center px-3 py-2 hover:bg-gray-100 cursor-pointer rounded">
+                          <MessageSquare className="h-4 w-4 mr-2 text-cyan-500" />
+                          <div>
+                            <div className="font-medium text-sm">Message Center</div>
+                            <div className="text-xs text-muted-foreground">Centralized communication</div>
+                          </div>
+                        </div>
+                      </Link>
+                      <Link href="/features/analytics" onClick={() => setFeaturesOpen(false)}>
+                        <div className="flex items-center px-3 py-2 hover:bg-gray-100 cursor-pointer rounded">
+                          <TrendingUp className="h-4 w-4 mr-2 text-emerald-500" />
+                          <div>
+                            <div className="font-medium text-sm">Analytics Dashboard</div>
+                            <div className="text-xs text-muted-foreground">Track buyer engagement</div>
+                          </div>
+                        </div>
+                      </Link>
+                      <Link href="/features/webhooks" onClick={() => setFeaturesOpen(false)}>
+                        <div className="flex items-center px-3 py-2 hover:bg-gray-100 cursor-pointer rounded">
+                          <Webhook className="h-4 w-4 mr-2 text-blue-600" />
+                          <div>
+                            <div className="font-medium text-sm">Webhooks</div>
+                            <div className="text-xs text-muted-foreground">Real-time integrations</div>
+                          </div>
+                        </div>
+                      </Link>
+                      <Link href="/virtual-data-room" onClick={() => setFeaturesOpen(false)}>
+                        <div className="flex items-center px-3 py-2 hover:bg-gray-100 cursor-pointer rounded">
+                          <FileText className="h-4 w-4 mr-2 text-slate-600" />
+                          <div>
+                            <div className="font-medium text-sm">Virtual Data Room</div>
+                            <div className="text-xs text-muted-foreground">Secure deal management</div>
+                          </div>
+                        </div>
+                      </Link>
                     </div>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/features/nda-protection" className="flex items-center cursor-pointer w-full">
-                    <Shield className="h-4 w-4 mr-2 text-green-500" />
-                    <div>
-                      <div className="font-medium">NDA Protection</div>
-                      <div className="text-xs text-muted-foreground">Secure document sharing</div>
-                    </div>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/features/investor-database" className="flex items-center cursor-pointer w-full">
-                    <Database className="h-4 w-4 mr-2 text-indigo-500" />
-                    <div>
-                      <div className="font-medium">Investor CRM</div>
-                      <div className="text-xs text-muted-foreground">Track buyer relationships</div>
-                    </div>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/features/messages" className="flex items-center cursor-pointer w-full">
-                    <MessageSquare className="h-4 w-4 mr-2 text-cyan-500" />
-                    <div>
-                      <div className="font-medium">Message Center</div>
-                      <div className="text-xs text-muted-foreground">Centralized communication</div>
-                    </div>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/features/analytics" className="flex items-center cursor-pointer w-full">
-                    <TrendingUp className="h-4 w-4 mr-2 text-emerald-500" />
-                    <div>
-                      <div className="font-medium">Analytics Dashboard</div>
-                      <div className="text-xs text-muted-foreground">Track buyer engagement</div>
-                    </div>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/virtual-data-room" className="flex items-center cursor-pointer w-full">
-                    <FileText className="h-4 w-4 mr-2 text-purple-500" />
-                    <div>
-                      <div className="font-medium">Virtual Data Room</div>
-                      <div className="text-xs text-muted-foreground">Secure deal management</div>
-                    </div>
-                  </Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  </div>
+                </div>
+              )}
+            </div>
 
-            {/* Solutions Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={`${isHomePage ? "text-white hover:bg-white/10 hover:text-white" : "text-gray-700 hover:text-gray-900"} transition-colors`}
-                >
-                  Solutions
-                  <ChevronDown className="ml-1 h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56">
-                <DropdownMenuItem asChild>
-                  <Link href="/solutions/business-brokers" className="flex items-center cursor-pointer w-full">
-                    <Briefcase className="h-4 w-4 mr-2 text-blue-600" />
-                    <div>
-                      <div className="font-medium">For M&A Advisors</div>
-                      <div className="text-xs text-muted-foreground">Streamline deal flow</div>
+            {/* Solutions Dropdown - Hover */}
+            <div
+              className="relative"
+              onMouseEnter={() => {
+                if (solutionsTimeout.current) clearTimeout(solutionsTimeout.current);
+                setSolutionsOpen(true);
+              }}
+              onMouseLeave={() => {
+                solutionsTimeout.current = setTimeout(() => setSolutionsOpen(false), 150);
+              }}
+            >
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`${isHomePage ? "text-white hover:bg-white/10 hover:text-white" : "text-gray-700 hover:text-gray-900"} transition-colors`}
+              >
+                Solutions
+                <ChevronDown className={`ml-1 h-3 w-3 transition-transform duration-200 ${solutionsOpen ? 'rotate-180' : ''}`} />
+              </Button>
+              {solutionsOpen && (
+                <div className="absolute top-full left-0 mt-1 w-56 bg-white rounded-md shadow-lg border py-1 z-50">
+                  <Link href="/solutions/business-brokers" onClick={() => setSolutionsOpen(false)}>
+                    <div className="flex items-center px-3 py-2 hover:bg-gray-100 cursor-pointer">
+                      <Briefcase className="h-4 w-4 mr-2 text-blue-600" />
+                      <div>
+                        <div className="font-medium text-sm">For M&A Advisors</div>
+                        <div className="text-xs text-muted-foreground">Streamline deal flow</div>
+                      </div>
                     </div>
                   </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/solutions/investment-banking" className="flex items-center cursor-pointer w-full">
-                    <BarChart3 className="h-4 w-4 mr-2 text-slate-700" />
-                    <div>
-                      <div className="font-medium">For Investment Banks</div>
-                      <div className="text-xs text-muted-foreground">Enterprise solutions</div>
+                  <Link href="/solutions/investment-banking" onClick={() => setSolutionsOpen(false)}>
+                    <div className="flex items-center px-3 py-2 hover:bg-gray-100 cursor-pointer">
+                      <BarChart3 className="h-4 w-4 mr-2 text-slate-700" />
+                      <div>
+                        <div className="font-medium text-sm">For Investment Banks</div>
+                        <div className="text-xs text-muted-foreground">Enterprise solutions</div>
+                      </div>
                     </div>
                   </Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                </div>
+              )}
+            </div>
 
             <Link href="/pricing">
               <Button
@@ -309,21 +356,34 @@ export function Navbar() {
                 Pricing
               </Button>
             </Link>
-            <Link href="/contact">
-              <Button
-                variant="ghost"
-                size="sm"
-                className={`${isHomePage ? "text-white hover:bg-white/10 hover:text-white" : "text-gray-700 hover:text-gray-900"} transition-colors`}
-              >
-                Contact
-              </Button>
-            </Link>
           </div>
         )}
 
-        {/* Login button for non-users */}
+        {/* CTA buttons for non-users */}
         {!user && (
           <div className="flex items-center space-x-3">
+            {/* Desktop Book a Demo + Login */}
+            <div className="hidden md:flex items-center gap-2">
+              <Link href="/login">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`${isHomePage ? "text-white hover:bg-white/10 hover:text-white" : "text-gray-700 hover:text-gray-900"} transition-colors`}
+                  data-testid="button-login"
+                >
+                  Login
+                </Button>
+              </Link>
+              <a href="https://meetings-na2.hubspot.com/rob-kale" target="_blank" rel="noopener noreferrer">
+                <Button
+                  size="sm"
+                  className={`${isHomePage ? "bg-white text-gray-900 hover:bg-gray-100" : "bg-primary text-white hover:bg-primary/90"} transition-colors`}
+                >
+                  Book a Demo
+                </Button>
+              </a>
+            </div>
+
             {/* Mobile Menu for Logged-out Users */}
             <div className="md:hidden">
               <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
@@ -349,6 +409,12 @@ export function Navbar() {
                       <Button variant="ghost" className="w-full justify-start text-left h-11">
                         <Zap className="mr-3 h-4 w-4 text-orange-500" />
                         AI CIM Generator
+                      </Button>
+                    </Link>
+                    <Link href="/features/esignatures" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button variant="ghost" className="w-full justify-start text-left h-11">
+                        <PenTool className="mr-3 h-4 w-4 text-indigo-500" />
+                        eSignatures
                       </Button>
                     </Link>
                     <Link href="/features/sde-analyzer" onClick={() => setIsMobileMenuOpen(false)}>
@@ -379,6 +445,12 @@ export function Navbar() {
                       <Button variant="ghost" className="w-full justify-start text-left h-11">
                         <TrendingUp className="mr-3 h-4 w-4 text-emerald-500" />
                         Analytics Dashboard
+                      </Button>
+                    </Link>
+                    <Link href="/features/webhooks" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button variant="ghost" className="w-full justify-start text-left h-11">
+                        <Webhook className="mr-3 h-4 w-4 text-blue-600" />
+                        Webhooks
                       </Button>
                     </Link>
                     <Link href="/virtual-data-room" onClick={() => setIsMobileMenuOpen(false)}>
@@ -412,36 +484,21 @@ export function Navbar() {
                         Pricing
                       </Button>
                     </Link>
-                    <Link href="/contact" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button variant="ghost" className="w-full justify-start text-left h-11" data-testid="link-contact">
-                        Contact
-                      </Button>
-                    </Link>
-
-                    <div className="pt-4 border-t mt-4">
+                    <div className="pt-4 border-t mt-4 space-y-2">
                       <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                        <Button className="w-full" data-testid="button-login-mobile">
-                          Login / Sign Up
+                        <Button variant="outline" className="w-full" data-testid="button-login-mobile">
+                          Login
                         </Button>
                       </Link>
+                      <a href="https://meetings-na2.hubspot.com/rob-kale" target="_blank" rel="noopener noreferrer" onClick={() => setIsMobileMenuOpen(false)}>
+                        <Button className="w-full">
+                          Book a Demo
+                        </Button>
+                      </a>
                     </div>
                   </div>
                 </SheetContent>
               </Sheet>
-            </div>
-            
-            {/* Desktop Login Button */}
-            <div className="hidden md:block">
-              <Link href="/login">
-                <Button 
-                  variant="outline"
-                  size="sm" 
-                  className={`${isHomePage ? "bg-transparent border-white text-white hover:bg-white hover:text-gray-800 transition-colors" : ""}`}
-                  data-testid="button-login"
-                >
-                  Login / Sign Up
-                </Button>
-              </Link>
             </div>
           </div>
         )}
@@ -483,6 +540,12 @@ export function Navbar() {
                   <Link href="/account" className="flex items-center cursor-pointer w-full">
                     <Settings className="h-4 w-4 mr-2" />
                     Account Settings
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/webhooks" className="flex items-center cursor-pointer w-full">
+                    <Zap className="h-4 w-4 mr-2" />
+                    Webhooks
                   </Link>
                 </DropdownMenuItem>
                 {user.isAdmin && (

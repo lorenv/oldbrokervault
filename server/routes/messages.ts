@@ -3,6 +3,7 @@ import { messageService } from "../message-service";
 import { db } from '../db';
 import { messageAttachments } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
+import { dispatchWebhookEvent } from "../webhook-dispatcher";
 
 const router = Router();
 
@@ -87,6 +88,14 @@ router.post("/threads/:threadId/reply", async (req, res) => {
       attachmentPaths,
       ccEmails
     );
+
+    // Dispatch webhook event for message sent (async, don't await)
+    dispatchWebhookEvent(userId, 'message.sent', {
+      message_id: message.id,
+      thread_id: threadId,
+      content_preview: content.trim().substring(0, 100),
+      sent_at: message.createdAt
+    }).catch(err => console.error('Webhook dispatch error:', err));
 
     res.json(message);
   } catch (error) {

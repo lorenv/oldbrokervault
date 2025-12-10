@@ -47,6 +47,7 @@ import { useAuth } from "@/hooks/use-auth";
 import MarketingHomePage from "@/pages/marketing-home-page";
 import VirtualDataRoomPage from "@/pages/virtual-data-room-page";
 import SDEAnalyzerPage from "@/pages/sde-analyzer-page";
+import WebhooksPage from "@/pages/webhooks-page";
 
 // E-Signature Pages
 import EsignDashboard from "@/pages/esign/esign-dashboard";
@@ -62,10 +63,12 @@ import EsignSettings from "@/pages/esign/esign-settings";
 // Lazy load SEO pages for better performance
 const NdaProtectionPage = lazy(() => import("@/pages/features/nda-protection"));
 const AiPoweredCimPage = lazy(() => import("@/pages/features/ai-powered-cim"));
+const ESignaturesFeaturePage = lazy(() => import("@/pages/features/esignatures"));
 const InvestorDatabaseFeaturePage = lazy(() => import("@/pages/features/investor-database"));
 const SdeAnalyzerFeaturePage = lazy(() => import("@/pages/features/sde-analyzer"));
 const MessagesFeaturePage = lazy(() => import("@/pages/features/messages"));
 const AnalyticsFeaturePage = lazy(() => import("@/pages/features/analytics"));
+const WebhooksFeaturePage = lazy(() => import("@/pages/features/webhooks"));
 const BusinessBrokersPage = lazy(() => import("@/pages/solutions/business-brokers"));
 const InvestmentBankingPage = lazy(() => import("@/pages/solutions/investment-banking"));
 
@@ -104,6 +107,7 @@ function Router() {
             <ProtectedRoute path="/esign/settings" component={EsignSettings} />
             <ProtectedRoute path="/account" component={AccountPage} />
             <ProtectedRoute path="/profile" component={AccountPage} />
+            <ProtectedRoute path="/webhooks" component={WebhooksPage} />
             <Route path="/pricing" component={PricingPage} />
             <Route path="/virtual-data-room" component={VirtualDataRoomPage} />
             <Route path="/checkout-success" component={CheckoutSuccess} />
@@ -149,6 +153,11 @@ function Router() {
                 <AiPoweredCimPage />
               </Suspense>
             </Route>
+            <Route path="/features/esignatures">
+              <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+                <ESignaturesFeaturePage />
+              </Suspense>
+            </Route>
             <Route path="/features/investor-database">
               <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
                 <InvestorDatabaseFeaturePage />
@@ -167,6 +176,11 @@ function Router() {
             <Route path="/features/analytics">
               <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
                 <AnalyticsFeaturePage />
+              </Suspense>
+            </Route>
+            <Route path="/features/webhooks">
+              <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+                <WebhooksFeaturePage />
               </Suspense>
             </Route>
             {/* SEO Solution Pages */}
