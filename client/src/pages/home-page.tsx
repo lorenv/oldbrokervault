@@ -164,6 +164,7 @@ export default function HomePage() {
       description:
         "Get signatures instantly with built-in e-signing that tracks every approval.",
       color: "text-yellow-500",
+      link: "/features/esignatures",
       size: "small",
     },
   ];

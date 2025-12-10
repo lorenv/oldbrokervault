@@ -1434,3 +1434,112 @@ export const insertEsignRecentRecipientSchema = createInsertSchema(esignRecentRe
 
 export type EsignRecentRecipient = typeof esignRecentRecipients.$inferSelect;
 export type InsertEsignRecentRecipient = z.infer<typeof insertEsignRecentRecipientSchema>;
+
+// ============================================================================
+// WEBHOOKS SYSTEM - User-configurable webhooks for external integrations
+// ============================================================================
+
+// Available webhook event types
+export const WEBHOOK_EVENT_TYPES = [
+  // CIM Events
+  'cim.created',
+  'cim.updated',
+  'cim.published',
+  'cim.viewed',
+  'cim.downloaded',
+  // NDA Events
+  'nda.sent',
+  'nda.signed',
+  'nda.declined',
+  // Contact Events
+  'contact.created',
+  'contact.updated',
+  'contact.deleted',
+  // Message Events
+  'message.received',
+  'message.sent',
+  // Data Room Events
+  'dataroom.file_uploaded',
+  'dataroom.file_viewed',
+  'dataroom.access_granted',
+] as const;
+
+export type WebhookEventType = typeof WEBHOOK_EVENT_TYPES[number];
+
+// Webhook configurations - stores user's webhook endpoints
+export const webhooks = pgTable("webhooks", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  name: text("name").notNull(), // User-friendly name (e.g., "HubSpot Sync")
+  url: text("url").notNull(), // Endpoint URL
+  secret: text("secret").notNull(), // HMAC signing secret for payload verification
+  events: text("events").array().notNull(), // Array of subscribed event types
+  isActive: boolean("is_active").default(true).notNull(),
+  // Health tracking
+  lastTriggeredAt: timestamp("last_triggered_at"),
+  lastSuccessAt: timestamp("last_success_at"),
+  lastFailureAt: timestamp("last_failure_at"),
+  consecutiveFailures: integer("consecutive_failures").default(0).notNull(),
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+// Webhook delivery logs - tracks all delivery attempts
+export const webhookDeliveries = pgTable("webhook_deliveries", {
+  id: serial("id").primaryKey(),
+  webhookId: integer("webhook_id").notNull(),
+  eventType: text("event_type").notNull(),
+  eventId: text("event_id").notNull(), // Unique ID for this event (for idempotency)
+  payload: jsonb("payload").notNull(), // The full payload sent
+  // Delivery status
+  status: text("status").notNull().default("pending"), // pending, success, failed, retrying
+  statusCode: integer("status_code"), // HTTP response code
+  responseBody: text("response_body"), // Response from webhook endpoint (truncated)
+  errorMessage: text("error_message"),
+  // Retry tracking
+  attemptCount: integer("attempt_count").default(0).notNull(),
+  nextRetryAt: timestamp("next_retry_at"),
+  // Timing
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  deliveredAt: timestamp("delivered_at"),
+  durationMs: integer("duration_ms") // How long the request took
+});
+
+// Zod schemas for webhooks
+export const insertWebhookSchema = createInsertSchema(webhooks).pick({
+  name: true,
+  url: true,
+  events: true
+}).extend({
+  name: z.string().min(1, "Webhook name is required").max(100),
+  url: z.string().url("Please enter a valid URL").refine(
+    (url) => url.startsWith('https://'),
+    "Webhook URL must use HTTPS"
+  ),
+  events: z.array(z.enum(WEBHOOK_EVENT_TYPES as unknown as [string, ...string[]])).min(1, "Select at least one event"),
+  isActive: z.boolean().optional()
+});
+
+export const updateWebhookSchema = insertWebhookSchema.partial().extend({
+  isActive: z.boolean().optional()
+});
+
+export const insertWebhookDeliverySchema = createInsertSchema(webhookDeliveries).pick({
+  webhookId: true,
+  eventType: true,
+  eventId: true,
+  payload: true
+}).extend({
+  webhookId: z.number(),
+  eventType: z.string(),
+  eventId: z.string(),
+  payload: z.record(z.any())
+});
+
+// Type exports for webhooks
+export type Webhook = typeof webhooks.$inferSelect;
+export type InsertWebhook = z.infer<typeof insertWebhookSchema>;
+export type UpdateWebhook = z.infer<typeof updateWebhookSchema>;
+export type WebhookDelivery = typeof webhookDeliveries.$inferSelect;
+export type InsertWebhookDelivery = z.infer<typeof insertWebhookDeliverySchema>;
