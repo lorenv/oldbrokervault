@@ -705,7 +705,7 @@ export default function WebhooksPage() {
               Add Webhook
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-lg md:max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create Webhook</DialogTitle>
               <DialogDescription>
@@ -740,30 +740,47 @@ export default function WebhooksPage() {
               </div>
               <div>
                 <Label>Events to send</Label>
-                <div className="mt-2 space-y-4 max-h-[300px] overflow-y-auto border rounded-lg p-3">
-                  {eventCategories && Object.entries(eventCategories).map(([key, category]) => (
-                    <div key={key}>
-                      <div className="font-medium text-sm text-gray-700 mb-2">
-                        {category.label}
+                <div className="mt-2 max-h-[400px] overflow-y-auto border rounded-lg p-3">
+                  {eventCategories && (() => {
+                    const entries = Object.entries(eventCategories);
+                    const leftColumns = entries.slice(0, 3);
+                    const rightColumns = entries.slice(3);
+
+                    const renderCategory = ([key, category]: [string, { label: string; events: string[] }]) => (
+                      <div key={key} className="mb-4">
+                        <div className="font-medium text-sm text-gray-700 mb-2">
+                          {category.label}
+                        </div>
+                        <div className="space-y-2 pl-2">
+                          {category.events.map((event: string) => (
+                            <label
+                              key={event}
+                              className="flex items-center gap-2 cursor-pointer"
+                            >
+                              <Checkbox
+                                checked={formData.events.includes(event)}
+                                onCheckedChange={() => toggleEvent(event)}
+                              />
+                              <span className="text-sm">
+                                {eventLabels[event] || event}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
                       </div>
-                      <div className="space-y-2 pl-2">
-                        {category.events.map((event: string) => (
-                          <label
-                            key={event}
-                            className="flex items-center gap-2 cursor-pointer"
-                          >
-                            <Checkbox
-                              checked={formData.events.includes(event)}
-                              onCheckedChange={() => toggleEvent(event)}
-                            />
-                            <span className="text-sm">
-                              {eventLabels[event] || event}
-                            </span>
-                          </label>
-                        ))}
+                    );
+
+                    return (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          {leftColumns.map(renderCategory)}
+                        </div>
+                        <div>
+                          {rightColumns.map(renderCategory)}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })()}
                 </div>
               </div>
             </div>

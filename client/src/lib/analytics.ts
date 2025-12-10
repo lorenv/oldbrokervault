@@ -7,6 +7,8 @@ declare global {
 }
 
 // Initialize Google Analytics
+// Note: The gtag script is loaded in index.html for proper Google Tag detection
+// This function ensures the gtag function is available for use in the app
 export const initGA = () => {
   const measurementId = import.meta.env.VITE_GA_MEASUREMENT_ID;
 
@@ -14,33 +16,13 @@ export const initGA = () => {
     return;
   }
 
-  // Initialize dataLayer immediately
+  // Ensure dataLayer and gtag are available (should already be set by index.html)
   window.dataLayer = window.dataLayer || [];
-  window.gtag = function() {
-    window.dataLayer.push(arguments);
-  };
-  
-  // Set initial timestamp
-  window.gtag('js', new Date());
-  
-  // Configure GA with initial page view
-  window.gtag('config', measurementId, {
-    send_page_view: true
-  });
-
-  // Add Google Analytics script to the head
-  const script1 = document.createElement('script');
-  script1.async = true;
-  script1.src = `https://www.googletagmanager.com/gtag/js?id=${measurementId}`;
-  
-  // Log when script loads successfully
-  script1.onload = () => {
-  };
-  
-  script1.onerror = () => {
-  };
-  
-  document.head.appendChild(script1);
+  if (!window.gtag) {
+    window.gtag = function() {
+      window.dataLayer.push(arguments);
+    };
+  }
 };
 
 // Track page views - useful for single-page applications
