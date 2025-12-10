@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { db } from '../db';
 import { webhooks, webhookDeliveries, WEBHOOK_EVENT_TYPES, insertWebhookSchema, updateWebhookSchema } from '@shared/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, count, like } from 'drizzle-orm';
 import * as crypto from 'crypto';
 
 const router = Router();

@@ -1,10 +1,15 @@
 import { db } from './db';
 import { webhooks, webhookDeliveries, Webhook, WebhookDelivery, WebhookEventType } from '@shared/schema';
-import { eq, and, lte, inArray } from 'drizzle-orm';
+import { eq, and, lte, gte, inArray, count } from 'drizzle-orm';
 import * as crypto from 'crypto';
 
 // Retry configuration
 const MAX_RETRIES = 5;
+
+// Rate limiting configuration
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute window
+const RATE_LIMIT_MAX_EVENTS_PER_WEBHOOK = 100; // Max 100 events per webhook per minute
+const RATE_LIMIT_MAX_EVENTS_PER_USER = 500; // Max 500 events per user per minute
 const RETRY_DELAYS = [
   60 * 1000,        // 1 minute
   5 * 60 * 1000,    // 5 minutes
@@ -119,6 +124,90 @@ function buildTestPayload(eventType: WebhookEventType): Record<string, any> {
 }
 
 class WebhookDispatcher {
+  // In-memory rate limit tracking (resets on server restart, but DB is source of truth)
+  private rateLimitCache: Map<string, { count: number; resetAt: number }> = new Map();
+
+  // Check if a webhook is rate limited
+  private async isWebhookRateLimited(webhookId: number): Promise<boolean> {
+    const cacheKey = `webhook:${webhookId}`;
+    const now = Date.now();
+
+    // Check cache first
+    const cached = this.rateLimitCache.get(cacheKey);
+    if (cached && cached.resetAt > now) {
+      if (cached.count >= RATE_LIMIT_MAX_EVENTS_PER_WEBHOOK) {
+        return true;
+      }
+      cached.count++;
+      return false;
+    }
+
+    // Query database for recent deliveries
+    const windowStart = new Date(now - RATE_LIMIT_WINDOW_MS);
+    const [result] = await db
+      .select({ count: count() })
+      .from(webhookDeliveries)
+      .where(and(
+        eq(webhookDeliveries.webhookId, webhookId),
+        gte(webhookDeliveries.createdAt, windowStart)
+      ));
+
+    const currentCount = result?.count || 0;
+
+    // Update cache
+    this.rateLimitCache.set(cacheKey, {
+      count: currentCount + 1,
+      resetAt: now + RATE_LIMIT_WINDOW_MS
+    });
+
+    return currentCount >= RATE_LIMIT_MAX_EVENTS_PER_WEBHOOK;
+  }
+
+  // Check if a user is rate limited across all webhooks
+  private async isUserRateLimited(userId: number): Promise<boolean> {
+    const cacheKey = `user:${userId}`;
+    const now = Date.now();
+
+    // Check cache first
+    const cached = this.rateLimitCache.get(cacheKey);
+    if (cached && cached.resetAt > now) {
+      if (cached.count >= RATE_LIMIT_MAX_EVENTS_PER_USER) {
+        return true;
+      }
+      cached.count++;
+      return false;
+    }
+
+    // Query database for recent deliveries across all user's webhooks
+    const windowStart = new Date(now - RATE_LIMIT_WINDOW_MS);
+    const userWebhookIds = await db
+      .select({ id: webhooks.id })
+      .from(webhooks)
+      .where(eq(webhooks.userId, userId));
+
+    if (userWebhookIds.length === 0) {
+      return false;
+    }
+
+    const [result] = await db
+      .select({ count: count() })
+      .from(webhookDeliveries)
+      .where(and(
+        inArray(webhookDeliveries.webhookId, userWebhookIds.map(w => w.id)),
+        gte(webhookDeliveries.createdAt, windowStart)
+      ));
+
+    const currentCount = result?.count || 0;
+
+    // Update cache
+    this.rateLimitCache.set(cacheKey, {
+      count: currentCount + 1,
+      resetAt: now + RATE_LIMIT_WINDOW_MS
+    });
+
+    return currentCount >= RATE_LIMIT_MAX_EVENTS_PER_USER;
+  }
+
   // Dispatch an event to all subscribed webhooks for a user
   async dispatch(
     userId: number,
@@ -126,6 +215,12 @@ class WebhookDispatcher {
     data: Record<string, any>
   ): Promise<void> {
     try {
+      // Check user-level rate limit first
+      if (await this.isUserRateLimited(userId)) {
+        console.warn(`User ${userId} rate limited for webhooks`);
+        return;
+      }
+
       // Find all active webhooks for this user that subscribe to this event
       const userWebhooks = await db
         .select()
@@ -151,9 +246,15 @@ class WebhookDispatcher {
         data
       };
 
-      // Queue deliveries for all subscribed webhooks
+      // Queue deliveries for all subscribed webhooks (with per-webhook rate limiting)
       await Promise.all(
-        subscribedWebhooks.map(webhook => this.queueDelivery(webhook, eventType, payload))
+        subscribedWebhooks.map(async webhook => {
+          if (await this.isWebhookRateLimited(webhook.id)) {
+            console.warn(`Webhook ${webhook.id} rate limited`);
+            return;
+          }
+          return this.queueDelivery(webhook, eventType, payload);
+        })
       );
     } catch (error) {
       console.error('Error dispatching webhook:', error);
