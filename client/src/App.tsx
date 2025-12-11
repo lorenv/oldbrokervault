@@ -48,6 +48,7 @@ import MarketingHomePage from "@/pages/marketing-home-page";
 import VirtualDataRoomPage from "@/pages/virtual-data-room-page";
 import SDEAnalyzerPage from "@/pages/sde-analyzer-page";
 import WebhooksPage from "@/pages/webhooks-page";
+import IntegrationsPage from "@/pages/integrations-page";
 
 // E-Signature Pages
 import EsignDashboard from "@/pages/esign/esign-dashboard";
@@ -108,6 +109,7 @@ function Router() {
             <ProtectedRoute path="/account" component={AccountPage} />
             <ProtectedRoute path="/profile" component={AccountPage} />
             <ProtectedRoute path="/webhooks" component={WebhooksPage} />
+            <ProtectedRoute path="/integrations" component={IntegrationsPage} />
             <Route path="/pricing" component={PricingPage} />
             <Route path="/virtual-data-room" component={VirtualDataRoomPage} />
             <Route path="/checkout-success" component={CheckoutSuccess} />

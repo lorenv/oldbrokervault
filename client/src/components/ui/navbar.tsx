@@ -16,7 +16,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Settings, LogOut, User, HelpCircle, Plus, Menu, MessageCircle, BarChart3, WandSparkles, Signature, MoreHorizontal, FileCheck, ChevronDown, Users, FileText, Zap, Shield, Database, PenTool, Briefcase, MessageSquare, TrendingUp, Webhook, Vault } from "lucide-react";
+import { Settings, LogOut, User, HelpCircle, Plus, Menu, MessageCircle, BarChart3, WandSparkles, Signature, MoreHorizontal, FileCheck, ChevronDown, Users, FileText, Zap, Shield, Database, PenTool, Briefcase, MessageSquare, TrendingUp, Webhook, Link2 } from "lucide-react";
 import { useState, useRef } from "react";
 import { SupportDialog } from "./support-dialog";
 import { useQuery } from "@tanstack/react-query";
@@ -140,7 +140,7 @@ export function Navbar() {
                     variant="ghost"
                     size="sm"
                     className={`relative ${
-                      ['/analytics', '/messages', '/sde-analyzer', '/nda-templates'].includes(location)
+                      ['/analytics', '/messages', '/sde-analyzer', '/nda-templates', '/integrations'].includes(location)
                         ? 'text-blue-700 font-semibold'
                         : isHomePage ? 'text-white' : 'text-gray-700'
                     } hover:bg-white/10 transition-colors ${isHomePage ? 'hover:text-white' : 'hover:text-gray-900'}`}
@@ -148,7 +148,7 @@ export function Navbar() {
                     <MoreHorizontal className="mr-1 h-4 w-4" />
                     More
                     <ChevronDown className="ml-1 h-3 w-3" />
-                    {['/analytics', '/messages', '/sde-analyzer', '/nda-templates'].includes(location) && (
+                    {['/analytics', '/messages', '/sde-analyzer', '/nda-templates', '/integrations'].includes(location) && (
                       <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></span>
                     )}
                   </Button>
@@ -177,6 +177,12 @@ export function Navbar() {
                     <Link href="/nda-templates" className="flex items-center cursor-pointer w-full">
                       <FileCheck className="h-4 w-4 mr-2" />
                       NDA Templates
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/integrations" className="flex items-center cursor-pointer w-full">
+                      <Link2 className="h-4 w-4 mr-2" />
+                      Integrations
                     </Link>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -316,11 +322,9 @@ export function Navbar() {
                     <Link href="/virtual-data-room" onClick={() => setFeaturesOpen(false)}>
                       <div className="flex items-center justify-between px-3 py-3 hover:bg-gray-50 cursor-pointer rounded-lg transition-colors group">
                         <div className="flex items-center">
-                          <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center mr-3">
-                            <Vault className="h-5 w-5 text-slate-600" />
-                          </div>
+                          <img src="/vv.png" alt="Virtual Diligence Room" className="w-10 h-10 object-contain mr-3" />
                           <div>
-                            <div className="font-semibold text-gray-900 group-hover:text-slate-600 transition-colors">Virtual Data Room</div>
+                            <div className="font-semibold text-gray-900 group-hover:text-slate-600 transition-colors">Virtual Diligence Room</div>
                             <div className="text-sm text-gray-500 mt-0.5">Secure deal management & document sharing</div>
                           </div>
                         </div>
@@ -440,8 +444,8 @@ export function Navbar() {
                     </Link>
                     <Link href="/virtual-data-room" onClick={() => setIsMobileMenuOpen(false)}>
                       <Button variant="ghost" className="w-full justify-start text-left h-11">
-                        <Vault className="mr-3 h-4 w-4 text-purple-500" />
-                        Virtual Data Room
+                        <img src="/vv.png" alt="" className="mr-3 h-4 w-4 object-contain" />
+                        Virtual Diligence Room
                       </Button>
                     </Link>
 
@@ -525,12 +529,6 @@ export function Navbar() {
                   <Link href="/account" className="flex items-center cursor-pointer w-full">
                     <Settings className="h-4 w-4 mr-2" />
                     Account Settings
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/webhooks" className="flex items-center cursor-pointer w-full">
-                    <Zap className="h-4 w-4 mr-2" />
-                    Webhooks
                   </Link>
                 </DropdownMenuItem>
                 {user.isAdmin && (

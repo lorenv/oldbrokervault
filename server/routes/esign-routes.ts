@@ -43,6 +43,8 @@ import {
 import { summarizeDocumentForSigner } from '../openai';
 import { summarizeDocumentWithVision } from '../services/anthropic-vision';
 import * as pdfParseModule from 'pdf-parse';
+import { dispatchIntegrationEvent } from '../integrations';
+import { dispatchWebhookEvent } from '../webhook-dispatcher';
 const pdfParse = (pdfParseModule as any).default || pdfParseModule;
 
 const router = Router();
@@ -2552,6 +2554,37 @@ router.post('/sign/:token/complete', async (req: Request, res: Response) => {
       await logAuditEvent(envelope.id, 'envelope_completed', {
         signerCount: allSigners.length,
       }, req);
+
+      // Dispatch esign.envelope_completed event to both webhooks and integrations
+      const eventPayload = {
+        envelope: {
+          id: envelope.id,
+          envelopeId: envelope.envelopeId,
+          title: envelope.title,
+          status: 'completed',
+          completedAt: new Date().toISOString(),
+          createdAt: envelope.createdAt?.toISOString(),
+        },
+        signers: allSigners.map(s => ({
+          name: s.name,
+          email: s.email,
+          signedAt: s.signedAt?.toISOString(),
+        })),
+        recipient: {
+          name: recipient.name,
+          email: recipient.email,
+        },
+      };
+
+      // Send to webhooks (legacy system)
+      dispatchWebhookEvent(envelope.userId, 'esign.envelope_completed', eventPayload).catch(err => {
+        console.error('Failed to dispatch esign.envelope_completed webhook event:', err);
+      });
+
+      // Send to integrations (new system)
+      dispatchIntegrationEvent(envelope.userId, 'esign.envelope_completed', eventPayload).catch(err => {
+        console.error('Failed to dispatch esign.envelope_completed integration event:', err);
+      });
 
       // Get owner info for completion emails
       const [owner] = await db

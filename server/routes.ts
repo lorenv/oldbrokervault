@@ -56,6 +56,7 @@ import { registerSDEAnalyzerRoutes } from "./routes/sde-analyzer-routes";
 import { sdeProcessor } from "./sde-processor";
 import { simpleParser } from 'mailparser';
 import webhookRoutes from "./routes/webhook-routes";
+import integrationRoutes from "./routes/integration-routes";
 import { dispatchWebhookEvent } from "./webhook-dispatcher";
 
 
@@ -10787,6 +10788,9 @@ ${finalQuestion}
 
   // Register webhook routes
   app.use('/api/webhooks', webhookRoutes);
+
+  // Register integration routes
+  app.use('/api/integrations', integrationRoutes);
 
   // Background job: Clean up stale document locks (15+ minutes old)
   async function cleanupStaleLocks() {
