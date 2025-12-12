@@ -85,7 +85,7 @@ export default function ESignaturesPage() {
               Secure eSignatures
             </Badge>
 
-            <h1 className="text-5xl lg:text-6xl font-bold mb-6 text-slate-900 leading-tight animate-text-gradient">
+            <h1 className="text-5xl lg:text-6xl font-bold mb-6 pb-1 text-slate-900 leading-tight animate-text-gradient">
               eSignatures Built for M&A Professionals
             </h1>
 
@@ -151,6 +151,29 @@ export default function ESignaturesPage() {
             </div>
           </div>
           <p className="text-center text-sm text-slate-500 mt-4">Click any image to enlarge</p>
+        </div>
+      </section>
+
+      {/* Video Walkthrough */}
+      <section className="container mx-auto px-4 py-16 bg-slate-50">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-8">
+            <Badge className="mb-4 bg-indigo-100 text-indigo-700 border border-indigo-200">
+              <Zap className="h-4 w-4 mr-2" />
+              Video Walkthrough
+            </Badge>
+            <h2 className="text-3xl font-bold text-slate-900 mb-4">Watch How It Works</h2>
+            <p className="text-lg text-slate-600">See our eSignature feature in action with this quick walkthrough</p>
+          </div>
+          <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl border border-slate-200">
+            <iframe
+              src="https://www.youtube.com/embed/J94mwM7rEOs"
+              title="CIM Share eSignatures Walkthrough"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="absolute inset-0 w-full h-full"
+            />
+          </div>
         </div>
       </section>
 
@@ -1033,6 +1056,63 @@ export default function ESignaturesPage() {
                 <p className="text-sm text-slate-600">Create once, use forever with pre-placed signature fields</p>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Integrations Section */}
+      <section className="container mx-auto px-4 py-16 bg-gradient-to-br from-slate-50 to-indigo-50">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <Badge className="mb-4 bg-indigo-100 text-indigo-700 border border-indigo-200">
+              <Zap className="h-4 w-4 mr-2" />
+              Automations & Integrations
+            </Badge>
+            <h2 className="text-4xl font-bold mb-4 text-slate-900">Automate Your Signature Workflows</h2>
+            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+              Connect eSignature events to your favorite tools. Automatically sync completed signatures to your CRM, notify your team, or trigger custom workflows.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <Card className="border border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white">
+              <CardContent className="p-6 text-center">
+                <img src="/hubspot.png" alt="HubSpot" className="h-12 mx-auto mb-4 object-contain" />
+                <h3 className="font-semibold text-slate-900 mb-2">HubSpot</h3>
+                <p className="text-sm text-slate-600">
+                  Automatically create deals, update contacts, or log activities when documents are signed.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white">
+              <CardContent className="p-6 text-center">
+                <img src="/slack.png" alt="Slack" className="h-12 mx-auto mb-4 object-contain" />
+                <h3 className="font-semibold text-slate-900 mb-2">Slack</h3>
+                <p className="text-sm text-slate-600">
+                  Get instant notifications in your team channels when signatures are completed.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white">
+              <CardContent className="p-6 text-center">
+                <img src="/zapier-icon.svg" alt="Zapier" className="h-12 mx-auto mb-4 object-contain" />
+                <h3 className="font-semibold text-slate-900 mb-2">Zapier</h3>
+                <p className="text-sm text-slate-600">
+                  Connect to 5,000+ apps and automate any workflow when signature events occur.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="text-center mt-8">
+            <Link href="/features/integrations">
+              <Button variant="outline" className="border-indigo-300 text-indigo-700 hover:bg-indigo-50">
+                Explore All Integrations
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
           </div>
         </div>
       </section>

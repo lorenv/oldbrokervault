@@ -20,7 +20,8 @@ import {
   Clock,
   Paperclip,
   Sparkles,
-  Globe
+  Globe,
+  Zap
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { SEOHead } from "@/components/seo-head";
@@ -65,7 +66,7 @@ export default function MessagesFeaturePage() {
               Centralized Communication
             </Badge>
 
-            <h1 className="text-5xl lg:text-6xl font-bold mb-6 text-slate-900 leading-tight animate-text-gradient">
+            <h1 className="text-5xl lg:text-6xl font-bold mb-6 pb-1 text-slate-900 leading-tight animate-text-gradient">
               One Inbox for All Your Deals
             </h1>
 
@@ -516,6 +517,63 @@ export default function MessagesFeaturePage() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Integrations Section */}
+      <section className="container mx-auto px-4 py-16 bg-gradient-to-br from-slate-50 to-cyan-50">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <Badge className="mb-4 bg-cyan-100 text-cyan-700 border border-cyan-200">
+              <Zap className="h-4 w-4 mr-2" />
+              Automations & Integrations
+            </Badge>
+            <h2 className="text-4xl font-bold mb-4 text-slate-900">Automate Your Message Workflows</h2>
+            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+              Connect message events to your favorite tools. Automatically log conversations to your CRM, notify your team of new inquiries, or trigger custom workflows.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <Card className="border border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white">
+              <CardContent className="p-6 text-center">
+                <img src="/hubspot.png" alt="HubSpot" className="h-12 mx-auto mb-4 object-contain" />
+                <h3 className="font-semibold text-slate-900 mb-2">HubSpot</h3>
+                <p className="text-sm text-slate-600">
+                  Automatically log buyer inquiries and create tasks when new messages arrive.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white">
+              <CardContent className="p-6 text-center">
+                <img src="/slack.png" alt="Slack" className="h-12 mx-auto mb-4 object-contain" />
+                <h3 className="font-semibold text-slate-900 mb-2">Slack</h3>
+                <p className="text-sm text-slate-600">
+                  Get instant notifications in your team channels when buyers send messages.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white">
+              <CardContent className="p-6 text-center">
+                <img src="/zapier-icon.svg" alt="Zapier" className="h-12 mx-auto mb-4 object-contain" />
+                <h3 className="font-semibold text-slate-900 mb-2">Zapier</h3>
+                <p className="text-sm text-slate-600">
+                  Connect to 5,000+ apps and automate any workflow when messages are received.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="text-center mt-8">
+            <Link href="/features/integrations">
+              <Button variant="outline" className="border-cyan-300 text-cyan-700 hover:bg-cyan-50">
+                Explore All Integrations
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
           </div>
         </div>
       </section>

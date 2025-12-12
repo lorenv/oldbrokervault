@@ -69,7 +69,7 @@ const InvestorDatabaseFeaturePage = lazy(() => import("@/pages/features/investor
 const SdeAnalyzerFeaturePage = lazy(() => import("@/pages/features/sde-analyzer"));
 const MessagesFeaturePage = lazy(() => import("@/pages/features/messages"));
 const AnalyticsFeaturePage = lazy(() => import("@/pages/features/analytics"));
-const WebhooksFeaturePage = lazy(() => import("@/pages/features/webhooks"));
+const IntegrationsFeaturePage = lazy(() => import("@/pages/features/integrations"));
 const BusinessBrokersPage = lazy(() => import("@/pages/solutions/business-brokers"));
 const InvestmentBankingPage = lazy(() => import("@/pages/solutions/investment-banking"));
 
@@ -180,9 +180,9 @@ function Router() {
                 <AnalyticsFeaturePage />
               </Suspense>
             </Route>
-            <Route path="/features/webhooks">
+            <Route path="/features/integrations">
               <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
-                <WebhooksFeaturePage />
+                <IntegrationsFeaturePage />
               </Suspense>
             </Route>
             {/* SEO Solution Pages */}

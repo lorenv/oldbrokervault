@@ -19,7 +19,8 @@ import {
   FileText,
   Download,
   Share2,
-  Key
+  Key,
+  Zap
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { SEOHead } from "@/components/seo-head";
@@ -64,7 +65,7 @@ export default function NdaProtectionPage() {
               Enterprise-Grade Security
             </Badge>
             
-            <h1 className="text-5xl lg:text-6xl font-bold mb-6 text-slate-900 leading-tight animate-text-gradient">
+            <h1 className="text-5xl lg:text-6xl font-bold mb-6 pb-1 text-slate-900 leading-tight animate-text-gradient">
               Protect Your Business Information
             </h1>
             
@@ -631,6 +632,63 @@ export default function NdaProtectionPage() {
         </div>
       </section>
 
+      {/* Integrations Section */}
+      <section className="container mx-auto px-4 py-16 bg-gradient-to-br from-slate-50 to-green-50">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <Badge className="mb-4 bg-green-100 text-green-700 border border-green-200">
+              <Zap className="h-4 w-4 mr-2" />
+              Automations & Integrations
+            </Badge>
+            <h2 className="text-4xl font-bold mb-4 text-slate-900">Automate Your NDA Workflows</h2>
+            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+              Connect NDA signature events to your favorite tools. Automatically update your CRM when NDAs are signed, notify your team, or trigger custom workflows.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <Card className="border border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white">
+              <CardContent className="p-6 text-center">
+                <img src="/hubspot.png" alt="HubSpot" className="h-12 mx-auto mb-4 object-contain" />
+                <h3 className="font-semibold text-slate-900 mb-2">HubSpot</h3>
+                <p className="text-sm text-slate-600">
+                  Automatically update contact status or create deals when NDAs are signed.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white">
+              <CardContent className="p-6 text-center">
+                <img src="/slack.png" alt="Slack" className="h-12 mx-auto mb-4 object-contain" />
+                <h3 className="font-semibold text-slate-900 mb-2">Slack</h3>
+                <p className="text-sm text-slate-600">
+                  Get instant notifications when investors sign NDAs and are ready to view your CIM.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white">
+              <CardContent className="p-6 text-center">
+                <img src="/zapier-icon.svg" alt="Zapier" className="h-12 mx-auto mb-4 object-contain" />
+                <h3 className="font-semibold text-slate-900 mb-2">Zapier</h3>
+                <p className="text-sm text-slate-600">
+                  Connect to 5,000+ apps and automate any workflow when NDA events occur.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="text-center mt-8">
+            <Link href="/features/integrations">
+              <Button variant="outline" className="border-green-300 text-green-700 hover:bg-green-50">
+                Explore All Integrations
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="container mx-auto px-4 py-16">
         <Card className="max-w-4xl mx-auto bg-slate-900 border-0 text-white text-center">
@@ -638,7 +696,7 @@ export default function NdaProtectionPage() {
             <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
               <Shield className="h-8 w-8 text-white" />
             </div>
-            
+
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               Ready to Protect Your Business Information?
             </h2>

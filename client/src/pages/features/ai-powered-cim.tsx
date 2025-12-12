@@ -65,7 +65,7 @@ export default function AiPoweredCimPage() {
               AI-Powered Document Generation
             </Badge>
             
-            <h1 className="text-5xl lg:text-6xl font-bold mb-6 text-slate-900 leading-tight animate-text-gradient">
+            <h1 className="text-5xl lg:text-6xl font-bold mb-6 pb-1 text-slate-900 leading-tight animate-text-gradient">
               Create Professional CIMs in Minutes
             </h1>
             
