@@ -22,7 +22,8 @@ import {
   Eye,
   Calendar,
   UserCheck,
-  Settings
+  Settings,
+  Zap
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { SEOHead } from "@/components/seo-head";
@@ -67,7 +68,7 @@ export default function InvestorDatabasePage() {
               Contact Management System
             </Badge>
             
-            <h1 className="text-5xl lg:text-6xl font-bold mb-6 text-slate-900 leading-tight animate-text-gradient">
+            <h1 className="text-5xl lg:text-6xl font-bold mb-6 pb-1 text-slate-900 leading-tight animate-text-gradient">
               Track and Manage Your Document Recipients
             </h1>
             
@@ -666,6 +667,63 @@ export default function InvestorDatabasePage() {
         </div>
       </section>
 
+      {/* Integrations Section */}
+      <section className="container mx-auto px-4 py-16 bg-gradient-to-br from-slate-50 to-purple-50">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <Badge className="mb-4 bg-purple-100 text-purple-700 border border-purple-200">
+              <Zap className="h-4 w-4 mr-2" />
+              Automations & Integrations
+            </Badge>
+            <h2 className="text-4xl font-bold mb-4 text-slate-900">Sync Your Investor CRM</h2>
+            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+              Connect contact events to your favorite tools. Automatically sync new contacts to your CRM, notify your team, or trigger custom workflows when investors engage.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <Card className="border border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white">
+              <CardContent className="p-6 text-center">
+                <img src="/hubspot.png" alt="HubSpot" className="h-12 mx-auto mb-4 object-contain" />
+                <h3 className="font-semibold text-slate-900 mb-2">HubSpot</h3>
+                <p className="text-sm text-slate-600">
+                  Automatically create contacts or update deals when new investors are added to your database.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white">
+              <CardContent className="p-6 text-center">
+                <img src="/slack.png" alt="Slack" className="h-12 mx-auto mb-4 object-contain" />
+                <h3 className="font-semibold text-slate-900 mb-2">Slack</h3>
+                <p className="text-sm text-slate-600">
+                  Get instant notifications when new investor contacts are added to your CRM.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white">
+              <CardContent className="p-6 text-center">
+                <img src="/zapier-icon.svg" alt="Zapier" className="h-12 mx-auto mb-4 object-contain" />
+                <h3 className="font-semibold text-slate-900 mb-2">Zapier</h3>
+                <p className="text-sm text-slate-600">
+                  Connect to 5,000+ apps and automate any workflow when new contacts are created.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="text-center mt-8">
+            <Link href="/features/integrations">
+              <Button variant="outline" className="border-purple-300 text-purple-700 hover:bg-purple-50">
+                Explore All Integrations
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="container mx-auto px-4 py-16">
         <Card className="max-w-4xl mx-auto bg-slate-900 border-0 text-white text-center">
@@ -673,15 +731,15 @@ export default function InvestorDatabasePage() {
             <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
               <Database className="h-8 w-8 text-white" />
             </div>
-            
+
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               Ready to Organize Your Investor Contacts?
             </h2>
-            
+
             <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
               Start building valuable investor relationships with automated contact management and engagement tracking.
             </p>
-            
+
             <div className="flex flex-wrap gap-4 justify-center">
               <Link href="/login">
                 <Button size="lg" variant="secondary" className="bg-white text-slate-900 hover:bg-slate-100">

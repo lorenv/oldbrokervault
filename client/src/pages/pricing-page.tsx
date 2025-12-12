@@ -348,7 +348,7 @@ export default function PricingPage() {
                           size="lg"
                           onClick={() => setShowSignupModal(true)}
                         >
-                          Get Started
+                          Start {plan.name}
                         </Button>
                       )}
                     </div>

@@ -16,7 +16,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Settings, LogOut, User, HelpCircle, Plus, Menu, MessageCircle, BarChart3, WandSparkles, Signature, MoreHorizontal, FileCheck, ChevronDown, Users, FileText, Zap, Shield, Database, PenTool, Briefcase, MessageSquare, TrendingUp, Webhook, Link2, Workflow } from "lucide-react";
+import { Settings, LogOut, User, HelpCircle, Plus, Menu, MessageCircle, BarChart3, WandSparkles, Signature, MoreHorizontal, FileCheck, ChevronDown, Users, FileText, Zap, Shield, Database, PenTool, Briefcase, MessageSquare, TrendingUp, Link2, Workflow } from "lucide-react";
 import { useState, useRef } from "react";
 import { SupportDialog } from "./support-dialog";
 import { useQuery } from "@tanstack/react-query";
@@ -214,7 +214,7 @@ export function Navbar() {
                 <ChevronDown className={`ml-1 h-3 w-3 transition-transform duration-200 ${featuresOpen ? 'rotate-180' : ''}`} />
               </Button>
               {featuresOpen && (
-                <div className="absolute top-full left-0 mt-2 w-[600px] bg-white rounded-xl shadow-2xl border border-gray-200/60 p-6 z-50">
+                <div className="absolute top-full right-0 mt-2 w-[600px] max-w-[calc(100vw-2rem)] bg-white rounded-xl shadow-2xl border border-gray-200/60 p-6 z-50">
                   <div className="grid grid-cols-2 gap-x-6 gap-y-1">
                     {/* Left Column */}
                     <div className="space-y-1">
@@ -304,14 +304,14 @@ export function Navbar() {
                           </div>
                         </div>
                       </Link>
-                      <Link href="/features/webhooks" onClick={() => setFeaturesOpen(false)}>
+                      <Link href="/features/integrations" onClick={() => setFeaturesOpen(false)}>
                         <div className="flex items-start px-3 py-3 hover:bg-gray-50 cursor-pointer rounded-lg transition-colors group">
                           <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center mr-3">
-                            <Webhook className="h-5 w-5 text-blue-600" />
+                            <Workflow className="h-5 w-5 text-blue-600" />
                           </div>
                           <div>
-                            <div className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">Webhooks</div>
-                            <div className="text-sm text-gray-500 mt-0.5">Real-time integrations & automation</div>
+                            <div className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">Integrations</div>
+                            <div className="text-sm text-gray-500 mt-0.5">Connect to Zapier, HubSpot & more</div>
                           </div>
                         </div>
                       </Link>
@@ -436,10 +436,10 @@ export function Navbar() {
                         Analytics Dashboard
                       </Button>
                     </Link>
-                    <Link href="/features/webhooks" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Link href="/features/integrations" onClick={() => setIsMobileMenuOpen(false)}>
                       <Button variant="ghost" className="w-full justify-start text-left h-11">
-                        <Webhook className="mr-3 h-4 w-4 text-blue-600" />
-                        Webhooks
+                        <Workflow className="mr-3 h-4 w-4 text-blue-600" />
+                        Integrations
                       </Button>
                     </Link>
                     <Link href="/virtual-data-room" onClick={() => setIsMobileMenuOpen(false)}>

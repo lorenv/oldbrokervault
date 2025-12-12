@@ -65,7 +65,7 @@ export default function SdeAnalyzerPage() {
               AI-Powered Financial Analysis
             </Badge>
 
-            <h1 className="text-5xl lg:text-6xl font-bold mb-6 text-slate-900 leading-tight animate-text-gradient">
+            <h1 className="text-5xl lg:text-6xl font-bold mb-6 pb-1 text-slate-900 leading-tight animate-text-gradient">
               Calculate SDE in Minutes, Not Hours
             </h1>
 

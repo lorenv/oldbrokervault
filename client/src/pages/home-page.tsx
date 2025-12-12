@@ -121,6 +121,7 @@ export default function HomePage() {
         "Share confidential information safely with built-in NDAs that get signed before anyone sees your documents.",
       color: "text-green-500",
       link: "/features/nda-protection",
+      linkText: "Explore NDA Protection",
       size: "large",
     },
     {
@@ -130,6 +131,7 @@ export default function HomePage() {
         "Let AI extract business data from websites and documents, turning hours of research into minutes.",
       color: "text-orange-500",
       link: "/features/ai-powered-cim",
+      linkText: "See AI CIM Generator",
       size: "large",
     },
     {
@@ -139,6 +141,7 @@ export default function HomePage() {
         "Upload financial documents and let AI automatically summarize annual revenues and identify addbacks—saving hours of manual work.",
       color: "text-blue-500",
       link: "/features/sde-analyzer",
+      linkText: "Try the SDE Analyzer",
       size: "medium",
     },
     {
@@ -148,6 +151,7 @@ export default function HomePage() {
         "Keep every investor contact organized with automatic tracking of who viewed what and when.",
       color: "text-indigo-500",
       link: "/features/investor-database",
+      linkText: "View Investor CRM Features",
       size: "medium",
     },
     {
@@ -165,6 +169,7 @@ export default function HomePage() {
         "Get signatures instantly with built-in e-signing that tracks every approval.",
       color: "text-yellow-500",
       link: "/features/esignatures",
+      linkText: "Explore eSignatures",
       size: "small",
     },
   ];
@@ -446,7 +451,7 @@ export default function HomePage() {
                           variant="ghost"
                           className="mt-4 p-0 h-auto font-semibold text-blue-600 hover:text-blue-700 group-hover:translate-x-2 transition-all duration-300 flex items-center"
                         >
-                          Learn more
+                          {feature.linkText || "Learn more"}
                           <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
                         </Button>
                       </Link>
@@ -813,7 +818,7 @@ export default function HomePage() {
                   variant="outline"
                   onClick={() => handlePricingClick(billingPeriod === "monthly" ? "starter_monthly" : "starter")}
                 >
-                  Get Started
+                  Start with Starter Plan
                 </Button>
               </CardContent>
             </Card>
@@ -866,7 +871,7 @@ export default function HomePage() {
                   className="w-full mt-6"
                   onClick={() => handlePricingClick(billingPeriod === "monthly" ? "pro_monthly" : "pro")}
                 >
-                  Get Started
+                  Choose Pro Plan
                 </Button>
               </CardContent>
             </Card>

@@ -65,7 +65,7 @@ export default function AnalyticsFeaturePage() {
               Real-Time Analytics
             </Badge>
 
-            <h1 className="text-5xl lg:text-6xl font-bold mb-6 text-slate-900 leading-tight animate-text-gradient">
+            <h1 className="text-5xl lg:text-6xl font-bold mb-6 pb-1 text-slate-900 leading-tight animate-text-gradient">
               Know Exactly Who's Interested
             </h1>
 
