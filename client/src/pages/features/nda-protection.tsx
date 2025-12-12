@@ -649,7 +649,7 @@ export default function NdaProtectionPage() {
           <div className="grid md:grid-cols-3 gap-8">
             <Card className="border border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white">
               <CardContent className="p-6 text-center">
-                <img src="/hubspot.png" alt="HubSpot" className="h-12 mx-auto mb-4 object-contain" />
+                <img src="/hubspot.png" alt="HubSpot" loading="lazy" className="h-12 mx-auto mb-4 object-contain" />
                 <h3 className="font-semibold text-slate-900 mb-2">HubSpot</h3>
                 <p className="text-sm text-slate-600">
                   Automatically update contact status or create deals when NDAs are signed.
@@ -659,7 +659,7 @@ export default function NdaProtectionPage() {
 
             <Card className="border border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white">
               <CardContent className="p-6 text-center">
-                <img src="/slack.png" alt="Slack" className="h-12 mx-auto mb-4 object-contain" />
+                <img src="/slack.png" alt="Slack" loading="lazy" className="h-12 mx-auto mb-4 object-contain" />
                 <h3 className="font-semibold text-slate-900 mb-2">Slack</h3>
                 <p className="text-sm text-slate-600">
                   Get instant notifications when investors sign NDAs and are ready to view your CIM.
@@ -669,7 +669,7 @@ export default function NdaProtectionPage() {
 
             <Card className="border border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white">
               <CardContent className="p-6 text-center">
-                <img src="/zapier-icon.svg" alt="Zapier" className="h-12 mx-auto mb-4 object-contain" />
+                <img src="/zapier-icon.svg" alt="Zapier" loading="lazy" className="h-12 mx-auto mb-4 object-contain" />
                 <h3 className="font-semibold text-slate-900 mb-2">Zapier</h3>
                 <p className="text-sm text-slate-600">
                   Connect to 5,000+ apps and automate any workflow when NDA events occur.
