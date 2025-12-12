@@ -1177,7 +1177,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         phoneNumber: userProfile.phoneNumber, // Use correct field name
         businessName: userProfile.businessName,
         businessLogo: processImageUrl(userProfile.businessLogo), // Process business logo URL
-        profilePhoto: processImageUrl(userProfile.profilePhoto) // Process profile photo URL
+        profilePhoto: processImageUrl(userProfile.profilePhoto), // Process profile photo URL
+        brandColors: userProfile.brandColors // Include brand colors for theme support
       };
       
       console.log("=== USER PROFILE IMAGE DEBUG ===");
@@ -1224,7 +1225,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           createdAt: cimDoc.createdAt ? cimDoc.createdAt.toISOString() : null,
           userProfile: sanitizedUserProfile,
           userId: cimDoc.userId,
-          shareSlug: cimDoc.shareSlug
+          shareSlug: cimDoc.shareSlug,
+          displaySettings: cimDoc.displaySettings
         },
         websiteUrl: cimDoc.websiteUrl || '',
         selectedImages: absoluteSelectedImages,
@@ -7482,6 +7484,69 @@ ${finalQuestion}
       console.error('PDF branding colors update error:', error);
       res.status(500).json({
         error: "Failed to update branding colors",
+        message: "Please try again later"
+      });
+    }
+  });
+
+  // Save default display settings for new documents
+  app.put("/api/user/default-display-settings", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const { theme, sectionStyle, contactPosition, customColor, customColorSecondary } = req.body;
+
+      // Validate theme
+      const validThemes = ['corporate-blue', 'forest-green', 'charcoal', 'burgundy', 'brand', 'custom'];
+      if (theme && !validThemes.includes(theme)) {
+        return res.status(400).json({ error: "Invalid theme" });
+      }
+
+      // Validate sectionStyle
+      const validStyles = ['cards', 'minimal'];
+      if (sectionStyle && !validStyles.includes(sectionStyle)) {
+        return res.status(400).json({ error: "Invalid section style" });
+      }
+
+      // Validate contactPosition
+      const validPositions = ['sidebar', 'bottom'];
+      if (contactPosition && !validPositions.includes(contactPosition)) {
+        return res.status(400).json({ error: "Invalid contact position" });
+      }
+
+      // Validate custom colors if provided
+      const hexColorRegex = /^#[0-9A-Fa-f]{6}$/;
+      if (customColor && !hexColorRegex.test(customColor)) {
+        return res.status(400).json({ error: "Invalid custom color format" });
+      }
+      if (customColorSecondary && !hexColorRegex.test(customColorSecondary)) {
+        return res.status(400).json({ error: "Invalid custom secondary color format" });
+      }
+
+      const defaultDisplaySettings = {
+        theme: theme || 'corporate-blue',
+        sectionStyle: sectionStyle || 'cards',
+        contactPosition: contactPosition || 'sidebar',
+        ...(customColor && { customColor }),
+        ...(customColorSecondary && { customColorSecondary })
+      };
+
+      const updatedUser = await storage.updateUserProfile(req.user!.id, {
+        defaultDisplaySettings
+      });
+
+      // Invalidate user cache
+      const { invalidateUserCache } = await import("./auth");
+      invalidateUserCache(req.user!.id);
+
+      res.json({
+        defaultDisplaySettings: updatedUser.defaultDisplaySettings,
+        message: "Default display settings saved successfully"
+      });
+    } catch (error) {
+      console.error('Default display settings update error:', error);
+      res.status(500).json({
+        error: "Failed to save default display settings",
         message: "Please try again later"
       });
     }

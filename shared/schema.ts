@@ -125,6 +125,14 @@ export const users = pgTable("users", {
   emailPreferences: jsonb("email_preferences").default({ onboarding: true, marketing: true, transactional: true }),
   unsubscribeToken: text("unsubscribe_token"),
   unsubscribeTokenExpiry: timestamp("unsubscribe_token_expiry"),
+  // Default display settings for new documents
+  defaultDisplaySettings: jsonb("default_display_settings").$type<{
+    theme: 'corporate-blue' | 'forest-green' | 'charcoal' | 'burgundy' | 'brand' | 'custom';
+    sectionStyle: 'cards' | 'minimal';
+    contactPosition: 'sidebar' | 'bottom';
+    customColor?: string;
+    customColorSecondary?: string;
+  }>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -191,7 +199,13 @@ export const cimDocuments = pgTable("cim_documents", {
   // Example document flag - doesn't count towards subscription limits
   isExample: boolean("is_example").default(false).notNull(),
   // Soft delete - marks document as deleted but keeps in database for limit tracking
-  deletedAt: timestamp("deleted_at")
+  deletedAt: timestamp("deleted_at"),
+  // Display settings for share page customization
+  displaySettings: jsonb("display_settings").$type<{
+    theme: 'corporate-blue' | 'forest-green' | 'charcoal' | 'burgundy' | 'brand';
+    sectionStyle: 'cards' | 'flat' | 'minimal';
+    contactPosition: 'sidebar' | 'bottom';
+  }>()
 });
 
 export const uploadedFiles = pgTable("uploaded_files", {

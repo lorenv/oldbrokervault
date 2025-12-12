@@ -27,10 +27,11 @@ import { useLocation } from "wouter";
 import { SubscriptionCard } from "@/components/ui/subscription-card";
 import { SecurityDashboard } from "@/components/security-dashboard";
 import { UserManagement } from "@/components/user-management";
-import { User, Phone, Building, Upload, Camera, Shield, Lock, CreditCard, Settings, FileImage, FileText, Globe } from "lucide-react";
+import { User, Phone, Building, Upload, Camera, Shield, Lock, CreditCard, Settings, FileImage, FileText, Globe, Sparkles } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UnifiedPdfTemplateSelector } from "@/components/unified-pdf-template-selector";
+import { DocumentDefaultsSettings } from "@/components/document-defaults-settings";
 
 // Define authorized admin emails
 const AUTHORIZED_ADMIN_EMAILS = [
@@ -88,6 +89,7 @@ export default function AccountPage() {
   };
   
   const [activeTab, setActiveTab] = useState(getTabFromUrl());
+  const [profileSubTab, setProfileSubTab] = useState("info");
 
   // Listen for URL changes to update active tab (browser back/forward only)
   useEffect(() => {
@@ -577,6 +579,54 @@ export default function AccountPage() {
 
         {/* Profile & Branding Tab */}
         <TabsContent value="profile" className="space-y-6">
+          {/* Sub-tabs for Profile & Branding */}
+          <div className="flex justify-center">
+            <div className="inline-flex gap-1 p-1.5 bg-gray-100/80 rounded-xl border border-gray-200/50">
+              <button
+                onClick={() => setProfileSubTab("info")}
+                className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
+                  profileSubTab === "info"
+                    ? "bg-white text-gray-900 shadow-md ring-1 ring-gray-200/50"
+                    : "text-gray-500 hover:text-gray-700 hover:bg-white/50"
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Profile Info
+                </span>
+              </button>
+              <button
+                onClick={() => setProfileSubTab("branding")}
+                className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
+                  profileSubTab === "branding"
+                    ? "bg-white text-gray-900 shadow-md ring-1 ring-gray-200/50"
+                    : "text-gray-500 hover:text-gray-700 hover:bg-white/50"
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  PDF Branding
+                </span>
+              </button>
+              <button
+                onClick={() => setProfileSubTab("defaults")}
+                className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
+                  profileSubTab === "defaults"
+                    ? "bg-white text-gray-900 shadow-md ring-1 ring-gray-200/50"
+                    : "text-gray-500 hover:text-gray-700 hover:bg-white/50"
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <Globe className="h-4 w-4" />
+                  Online CIM Branding
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {/* Profile Info Sub-tab */}
+          {profileSubTab === "info" && (
+          <>
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Personal Information */}
             <Card className="lg:col-span-1 border-0 shadow-md bg-white rounded-xl overflow-hidden">
@@ -865,9 +915,18 @@ export default function AccountPage() {
               </div>
             </CardContent>
           </Card>
+          </>
+          )}
 
-          {/* PDF Templates (Branded + Background combined) */}
-          <UnifiedPdfTemplateSelector />
+          {/* PDF Branding Sub-tab */}
+          {profileSubTab === "branding" && (
+            <UnifiedPdfTemplateSelector />
+          )}
+
+          {/* Online CIM Branding Sub-tab */}
+          {profileSubTab === "defaults" && (
+            <DocumentDefaultsSettings user={user} />
+          )}
 
         </TabsContent>
 

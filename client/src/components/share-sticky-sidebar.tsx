@@ -15,11 +15,22 @@ interface ShareStickySidebarProps {
   cimTitle: string;
   userProfile?: any;
   logoUrl?: string;
+  themeColors?: {
+    primary: string;
+    primaryLight: string;
+    gradient: { from: string; to: string };
+  };
 }
 
-export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }: ShareStickySidebarProps) {
+export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl, themeColors }: ShareStickySidebarProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Theme colors with defaults
+  const primaryColor = themeColors?.primary || '#2563eb';
+  const primaryLight = themeColors?.primaryLight || '#dbeafe';
+  const gradientFrom = themeColors?.gradient?.from || '#475569';
+  const gradientTo = themeColors?.gradient?.to || '#2563eb';
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -107,10 +118,10 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
         {/* Contact Information Section */}
         {userProfile && (
           <>
-            <CardHeader className="pb-2 pt-6 px-6 bg-blue-50/30">
+            <CardHeader className="pb-2 pt-6 px-6" style={{ backgroundColor: `${primaryColor}08` }}>
               <CardTitle className="flex items-center gap-2 text-base font-medium text-slate-700">
-                <div className="p-1.5 bg-blue-100/80 rounded-lg">
-                  <User className="h-4 w-4 text-blue-600" />
+                <div className="p-1.5 rounded-lg" style={{ backgroundColor: `${primaryColor}15` }}>
+                  <User className="h-4 w-4" style={{ color: primaryColor }} />
                 </div>
                 Contact Information
               </CardTitle>
@@ -136,7 +147,7 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
                     </h3>
                   )}
                   {userProfile.title && (
-                    <p className="text-sm text-blue-600 font-medium break-words overflow-wrap-anywhere">{userProfile.title}</p>
+                    <p className="text-sm font-medium break-words overflow-wrap-anywhere" style={{ color: primaryColor }}>{userProfile.title}</p>
                   )}
                   {userProfile.businessName && (
                     <p className="text-sm text-slate-600 font-medium flex items-center justify-center gap-1 break-words">
@@ -160,26 +171,34 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
                 {/* Contact Details */}
                 <div className="space-y-3">
                   {userProfile.email && (
-                    <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl hover:from-blue-100 hover:to-blue-150 transition-all duration-200 transform hover:scale-[1.02] shadow-sm">
-                      <div className="p-1.5 bg-blue-500 rounded-lg shadow-sm">
+                    <div
+                      className="flex items-center gap-3 p-3 rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-sm"
+                      style={{ background: `linear-gradient(to right, ${primaryColor}10, ${primaryColor}18)` }}
+                    >
+                      <div className="p-1.5 rounded-lg shadow-sm" style={{ backgroundColor: primaryColor }}>
                         <Mail className="h-4 w-4 text-white flex-shrink-0" />
                       </div>
                       <a
                         href={`mailto:${userProfile.email}`}
-                        className="text-blue-700 text-sm font-semibold hover:text-blue-800 transition-colors break-all min-w-0 flex-1"
+                        className="text-sm font-semibold transition-colors break-all min-w-0 flex-1"
+                        style={{ color: primaryColor }}
                       >
                         {userProfile.email}
                       </a>
                     </div>
                   )}
                   {(userProfile.phoneNumber || userProfile.phone) && (
-                    <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl hover:from-blue-100 hover:to-blue-150 transition-all duration-200 transform hover:scale-[1.02] shadow-sm">
-                      <div className="p-1.5 bg-blue-500 rounded-lg shadow-sm">
+                    <div
+                      className="flex items-center gap-3 p-3 rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-sm"
+                      style={{ background: `linear-gradient(to right, ${primaryColor}10, ${primaryColor}18)` }}
+                    >
+                      <div className="p-1.5 rounded-lg shadow-sm" style={{ backgroundColor: primaryColor }}>
                         <Phone className="h-4 w-4 text-white flex-shrink-0" />
                       </div>
                       <a
                         href={`tel:${userProfile.phoneNumber || userProfile.phone}`}
-                        className="text-blue-700 text-sm font-semibold hover:text-blue-800 transition-colors break-all min-w-0 flex-1"
+                        className="text-sm font-semibold transition-colors break-all min-w-0 flex-1"
+                        style={{ color: primaryColor }}
                       >
                         {userProfile.phoneNumber}
                       </a>
@@ -193,10 +212,10 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
 
         {/* Ask Questions Section */}
         <div className="border-t border-gray-200/50">
-          <CardHeader className="pb-4 pt-6 px-6 border-t border-gray-200/50 bg-purple-50/30">
+          <CardHeader className="pb-4 pt-6 px-6 border-t border-gray-200/50" style={{ backgroundColor: `${primaryColor}08` }}>
             <CardTitle className="flex items-center gap-2 text-base font-medium text-slate-700">
-              <div className="p-1.5 bg-purple-100/80 rounded-lg">
-                <MessageSquare className="h-4 w-4 text-purple-600" />
+              <div className="p-1.5 rounded-lg" style={{ backgroundColor: `${primaryColor}15` }}>
+                <MessageSquare className="h-4 w-4" style={{ color: primaryColor }} />
               </div>
               Ask Questions
             </CardTitle>
@@ -307,7 +326,8 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full bg-gradient-to-r from-slate-600 to-blue-600 hover:from-slate-700 hover:to-blue-700 text-white font-medium text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full text-white font-medium text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ background: `linear-gradient(to right, ${gradientFrom}, ${gradientTo})` }}
                 >
                   {isSubmitting ? (
                     <>

@@ -118,6 +118,18 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
+// Query stats endpoint for performance debugging (dev only)
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/api/debug/query-stats', async (req, res) => {
+    try {
+      const { queryLogger } = await import('./query-logger');
+      res.json(queryLogger.getStats());
+    } catch {
+      res.json({ message: 'Query logger not initialized' });
+    }
+  });
+}
+
 // COMPRESSION MIDDLEWARE - gzip/deflate responses (60-80% size reduction)
 // Applied early to compress all responses including API JSON and static assets
 app.use(compression({

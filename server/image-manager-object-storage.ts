@@ -69,8 +69,8 @@ export class ObjectStorageImageManager {
   ): Promise<ImageMetadata> {
     const { optimize = true, maxWidth = 1200, maxHeight = 800 } = options;
     
-    const fileName = this.generateFileName(originalName, mimeType);
-    const storageKey = objectStorage.generateImageKey(userId.toString(), type, fileName);
+    let fileName = this.generateFileName(originalName, mimeType);
+    let storageKey = objectStorage.generateImageKey(userId.toString(), type, fileName);
 
     let processedBuffer = buffer;
     let finalMimeType = mimeType;
@@ -82,7 +82,7 @@ export class ObjectStorageImageManager {
       try {
         const sharpInstance = sharp(buffer);
         const metadata = await sharpInstance.metadata();
-        
+
         width = metadata.width;
         height = metadata.height;
 
@@ -94,13 +94,28 @@ export class ObjectStorageImageManager {
           });
         }
 
-        // Convert to optimal format and compress
-        if (mimeType === 'image/png') {
-          processedBuffer = await sharpInstance.png({ quality: 90 }).toBuffer();
+        // Check if image has transparency (needs PNG)
+        const hasAlpha = metadata.hasAlpha || metadata.channels === 4;
+
+        if (hasAlpha) {
+          // Preserve transparency with WebP (supports alpha)
+          processedBuffer = await sharpInstance
+            .webp({ quality: 80, alphaQuality: 90 })
+            .toBuffer();
+          finalMimeType = 'image/webp';
         } else {
-          processedBuffer = await sharpInstance.jpeg({ quality: 85 }).toBuffer();
-          finalMimeType = 'image/jpeg';
+          // Use WebP for photos - 25-35% smaller than JPEG
+          processedBuffer = await sharpInstance
+            .webp({ quality: 80 })
+            .toBuffer();
+          finalMimeType = 'image/webp';
         }
+
+        // Update filename extension to .webp
+        const baseName = fileName.replace(/\.[^.]+$/, '');
+        fileName = `${baseName}.webp`;
+        // Regenerate storage key with new filename
+        storageKey = objectStorage.generateImageKey(userId.toString(), type, fileName);
       } catch (error) {
         log(`Warning: Image optimization failed for ${originalName}: ${error instanceof Error ? error.message : String(error)}`);
         processedBuffer = buffer;

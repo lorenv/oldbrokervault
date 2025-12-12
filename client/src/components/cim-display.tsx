@@ -163,6 +163,22 @@ interface CimDisplayProps {
   autoTriggerShare?: boolean;
   onShareTriggered?: () => void;
   customSections?: any[]; // For share view to pass pre-fetched custom sections
+  displaySettings?: {
+    theme: string;
+    sectionStyle: 'cards' | 'flat' | 'minimal';
+    contactPosition: string;
+  };
+  themeColors?: {
+    primary: string;
+    primaryHover: string;
+    primaryLight: string;
+    secondary: string;
+    gradient: { from: string; to: string };
+    text: { primary: string; secondary: string; onPrimary: string };
+    border: string;
+    cardBg: string;
+    pageBg: string;
+  };
 }
 
 export function CimDisplay({
@@ -174,7 +190,9 @@ export function CimDisplay({
   cimDocument,
   autoTriggerShare,
   onShareTriggered,
-  customSections: providedCustomSections
+  customSections: providedCustomSections,
+  displaySettings,
+  themeColors
 }: CimDisplayProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -736,10 +754,23 @@ export function CimDisplay({
         )}
 
         {/* Business Images */}
-        {(localSelectedImages && localSelectedImages.length > 0 || !isSharedView) && (
-          <div className="mb-4 border-2 border-gray-200 rounded-lg overflow-hidden">
-            <div className="bg-gradient-to-r from-slate-600 to-blue-600 text-white p-4 flex justify-between items-center">
-              <h3 className="font-semibold">Business Images</h3>
+        {(localSelectedImages && localSelectedImages.length > 0 || !isSharedView) && (() => {
+          const isMinimalStyleForImages = isSharedView && displaySettings?.sectionStyle === 'minimal';
+          return (
+          <div className={isMinimalStyleForImages ? "mb-6" : "mb-4 border-2 border-gray-200 rounded-lg overflow-hidden"}>
+            <div
+              className={isMinimalStyleForImages
+                ? "py-4 flex justify-between items-center"
+                : "bg-gradient-to-r from-slate-600 to-blue-600 text-white p-4 flex justify-between items-center"
+              }
+              style={!isMinimalStyleForImages && themeColors ? { background: `linear-gradient(to right, ${themeColors.gradient.from}, ${themeColors.gradient.to})` } : undefined}
+            >
+              <div>
+                <h3 className={isMinimalStyleForImages ? "text-lg font-semibold" : "font-semibold text-white"} style={isMinimalStyleForImages && themeColors ? { color: themeColors.primary } : undefined}>Business Images</h3>
+                {isMinimalStyleForImages && themeColors && (
+                  <div className="h-0.5 mt-2 rounded w-32" style={{ backgroundColor: themeColors.primary }} />
+                )}
+              </div>
               {!isSharedView && (
                 <div className="flex gap-2">
                   <input
@@ -761,7 +792,7 @@ export function CimDisplay({
                 </div>
               )}
             </div>
-            <div className="bg-white p-6">
+            <div className={isMinimalStyleForImages ? "py-4" : "bg-white p-6"}>
               {localSelectedImages && localSelectedImages.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {localSelectedImages.map((image: any, index: number) => (
@@ -823,7 +854,8 @@ export function CimDisplay({
               ) : null}
             </div>
           </div>
-        )}
+          );
+        })()}
 
         {/* Combined Draggable Sections */}
         <DndContext
@@ -840,9 +872,38 @@ export function CimDisplay({
               if (unifiedSection.type === 'regular') {
                 const section = unifiedSection.data;
                 const sectionId = unifiedSection.id;
+                // Determine section style classes based on displaySettings
+                const sectionStyleType = isSharedView ? (displaySettings?.sectionStyle || 'cards') : 'cards';
+                const isMinimalStyle = sectionStyleType === 'minimal';
+                const getWrapperClasses = () => {
+                  if (!isSharedView) return "mb-4 relative group border-2 border-gray-200 shadow-none overflow-hidden";
+                  if (isMinimalStyle) return "mb-6 relative group";
+                  return "mb-4 relative group bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden";
+                };
+                const getHeaderClasses = () => {
+                  if (!isSharedView) return "bg-gradient-to-r from-slate-600 to-blue-600 text-white";
+                  if (isMinimalStyle) return "px-6 py-4";
+                  return "text-white";
+                };
+                const getHeaderStyle = () => {
+                  if (!isSharedView) return undefined;
+                  if (isMinimalStyle) return undefined; // Minimal style doesn't use gradient background
+                  if (!themeColors) return undefined;
+                  return { background: `linear-gradient(to right, ${themeColors.gradient.from}, ${themeColors.gradient.to})` };
+                };
+                const getTitleClasses = () => {
+                  if (!isSharedView) return "text-lg pr-8 text-white";
+                  if (isMinimalStyle) return "text-lg font-semibold pr-8";
+                  return "text-lg pr-8 text-white";
+                };
+                const getTitleStyle = () => {
+                  if (!isSharedView || !isMinimalStyle || !themeColors) return undefined;
+                  return { color: themeColors.primary };
+                };
+
                 return (
                   <DraggableSection key={sectionId} id={sectionId} isSharedView={isSharedView}>
-                    <Card className="mb-4 relative group border-2 border-gray-200 shadow-none overflow-hidden">
+                    <Card className={getWrapperClasses()}>
                       {!isSharedView && (
                         <Button
                           size="sm"
@@ -852,10 +913,13 @@ export function CimDisplay({
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       )}
-                      <CardHeader className={isSharedView ? "bg-blue-50" : "bg-gradient-to-r from-slate-600 to-blue-600 text-white"}>
-                        <CardTitle className={`text-lg pr-8 ${!isSharedView ? "text-white" : ""}`}>
+                      <CardHeader className={getHeaderClasses()} style={getHeaderStyle()}>
+                        <CardTitle className={getTitleClasses()} style={getTitleStyle()}>
                           {section.title}
                         </CardTitle>
+                        {isMinimalStyle && themeColors && (
+                          <div className="h-0.5 mt-2 rounded" style={{ backgroundColor: themeColors.primary }} />
+                        )}
                       </CardHeader>
                       <CardContent>
                         <div className="prose prose-base max-w-none break-words overflow-hidden text-base leading-relaxed">
@@ -928,9 +992,38 @@ export function CimDisplay({
               } else {
                 // Custom section rendering
                 const customSection = unifiedSection.data;
+                // Use same section style as regular sections
+                const customSectionStyleType = isSharedView ? (displaySettings?.sectionStyle || 'cards') : 'cards';
+                const isCustomMinimalStyle = customSectionStyleType === 'minimal';
+                const getCustomWrapperClasses = () => {
+                  if (!isSharedView) return "mb-4 relative group";
+                  if (isCustomMinimalStyle) return "mb-6 relative group";
+                  return "mb-4 relative group bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden";
+                };
+                const getCustomHeaderClasses = () => {
+                  if (!isSharedView) return "";
+                  if (isCustomMinimalStyle) return "px-6 py-4";
+                  return "text-white";
+                };
+                const getCustomHeaderStyle = () => {
+                  if (!isSharedView) return undefined;
+                  if (isCustomMinimalStyle) return undefined;
+                  if (!themeColors) return undefined;
+                  return { background: `linear-gradient(to right, ${themeColors.gradient.from}, ${themeColors.gradient.to})` };
+                };
+                const getCustomTitleClasses = () => {
+                  if (!isSharedView) return "text-lg pr-16";
+                  if (isCustomMinimalStyle) return "text-lg font-semibold pr-16";
+                  return "text-lg pr-16 text-white";
+                };
+                const getCustomTitleStyle = () => {
+                  if (!isSharedView || !isCustomMinimalStyle || !themeColors) return undefined;
+                  return { color: themeColors.primary };
+                };
+
                 return (
                   <DraggableSection key={`custom-${customSection.id}`} id={`custom-${customSection.id}`} isSharedView={isSharedView}>
-                    <Card className="mb-4 relative group">
+                    <Card className={getCustomWrapperClasses()}>
                       {!isSharedView && (
                         <>
                           <Button
@@ -951,10 +1044,13 @@ export function CimDisplay({
                           </Button>
                         </>
                       )}
-                      <CardHeader className={isSharedView ? "bg-blue-50" : ""}>
-                        <CardTitle className="text-lg pr-16">
+                      <CardHeader className={getCustomHeaderClasses()} style={getCustomHeaderStyle()}>
+                        <CardTitle className={getCustomTitleClasses()} style={getCustomTitleStyle()}>
                           {customSection.title}
                         </CardTitle>
+                        {isCustomMinimalStyle && themeColors && (
+                          <div className="h-0.5 mt-2 rounded" style={{ backgroundColor: themeColors.primary }} />
+                        )}
                       </CardHeader>
                       <CardContent>
                         {customSection.type === 'text' ? (

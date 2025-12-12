@@ -53,7 +53,9 @@
       "Bash(echo:*)",
       "Bash(awk:*)",
       "Bash(env)",
-      "Bash(timeout 10 npm run dev:*)"
+      "Bash(timeout 10 npm run dev:*)",
+      "Bash(timeout 15 npm run dev:*)",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": [],

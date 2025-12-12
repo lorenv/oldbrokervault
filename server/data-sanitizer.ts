@@ -31,6 +31,7 @@ export function sanitizeUser(user: User): Partial<User> {
     customSubdomain: user.customSubdomain,
     brandColors: user.brandColors,
     brandedPdfTemplate: user.brandedPdfTemplate,
+    defaultDisplaySettings: user.defaultDisplaySettings,
     createdAt: user.createdAt
     // Explicitly excluded: password, stripeCustomerId, subscriptionId,
     // googleAccessToken, googleRefreshToken, googleTokenExpiry
