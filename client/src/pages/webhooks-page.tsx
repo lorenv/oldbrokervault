@@ -119,9 +119,6 @@ const eventLabels: Record<string, string> = {
   'contact.deleted': 'Contact Deleted',
   'message.received': 'Message Received',
   'message.sent': 'Message Sent',
-  'dataroom.file_uploaded': 'File Uploaded',
-  'dataroom.file_viewed': 'File Viewed',
-  'dataroom.access_granted': 'Access Granted',
 };
 
 export default function WebhooksPage() {

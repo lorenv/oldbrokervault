@@ -17,7 +17,7 @@ import {
   insertIntegrationAutomationSchema,
   updateIntegrationAutomationSchema,
 } from '@shared/schema';
-import { eq, and, desc, sql, count } from 'drizzle-orm';
+import { eq, and, desc, sql, count, inArray } from 'drizzle-orm';
 import * as crypto from 'crypto';
 import {
   getProvider,
@@ -42,8 +42,16 @@ function requireAuth(req: Request, res: Response, next: Function) {
   next();
 }
 
-// Apply auth middleware to all routes
-router.use(requireAuth);
+// Apply auth middleware to all routes EXCEPT OAuth callbacks
+router.use((req, res, next) => {
+  console.log('Integration route middleware - path:', req.path);
+  // Skip auth for OAuth callback routes - they use state parameter for verification
+  if (req.path.startsWith('/oauth/callback')) {
+    console.log('Skipping auth for OAuth callback');
+    return next();
+  }
+  return requireAuth(req, res, next);
+});
 
 // ============================================================================
 // METADATA ENDPOINTS
@@ -83,7 +91,6 @@ router.get('/event-types', async (req: Request, res: Response) => {
       ndas: {
         label: 'NDAs',
         events: [
-          { type: 'nda.sent', label: 'NDA Sent' },
           { type: 'nda.signed', label: 'NDA Signed' },
           { type: 'nda.declined', label: 'NDA Declined' },
         ]
@@ -99,7 +106,6 @@ router.get('/event-types', async (req: Request, res: Response) => {
         events: [
           { type: 'contact.created', label: 'Contact Created' },
           { type: 'contact.updated', label: 'Contact Updated' },
-          { type: 'contact.deleted', label: 'Contact Deleted' },
         ]
       },
       messages: {
@@ -109,14 +115,6 @@ router.get('/event-types', async (req: Request, res: Response) => {
           { type: 'message.sent', label: 'Message Sent' },
         ]
       },
-      dataroom: {
-        label: 'Data Room',
-        events: [
-          { type: 'dataroom.file_uploaded', label: 'File Uploaded' },
-          { type: 'dataroom.file_viewed', label: 'File Viewed' },
-          { type: 'dataroom.access_granted', label: 'Access Granted' },
-        ]
-      }
     };
 
     res.json({ categories });
@@ -157,6 +155,65 @@ router.get('/connections', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Error fetching connections:', error);
     res.status(500).json({ error: 'Failed to fetch connections' });
+  }
+});
+
+/**
+ * GET /api/integrations/auth/:provider
+ * Initiate OAuth flow for a provider (redirects to provider's auth page)
+ */
+router.get('/auth/:provider', async (req: Request, res: Response) => {
+  try {
+    console.log('OAuth init - Session ID:', req.sessionID);
+    console.log('OAuth init - User:', req.user);
+
+    const userId = (req.user as any).id;
+    const { provider } = req.params;
+
+    if (!provider || !INTEGRATION_PROVIDERS.includes(provider as any)) {
+      return res.redirect('/integrations?error=invalid_provider');
+    }
+
+    if (!providerRequiresOAuth(provider as any)) {
+      return res.redirect('/integrations?error=provider_not_oauth');
+    }
+
+    const providerInstance = getProvider(provider as any);
+    if (!providerInstance?.getAuthUrl) {
+      return res.redirect('/integrations?error=oauth_not_supported');
+    }
+
+    // Generate state for CSRF protection - encode userId in state for callback recovery
+    const randomPart = crypto.randomBytes(16).toString('hex');
+    // State format: randomPart:userId:provider - allows recovery if session is lost
+    const state = `${randomPart}:${userId}:${provider}`;
+
+    // Store state and userId in session for verification in callback
+    (req.session as any).oauthState = state;
+    (req.session as any).oauthProvider = provider;
+    (req.session as any).oauthUserId = userId;
+
+    const authUrl = providerInstance.getAuthUrl(userId, state);
+    console.log('OAuth init - Auth URL:', authUrl);
+
+    // Force session save before redirect - MUST wait for completion
+    await new Promise<void>((resolve, reject) => {
+      req.session.save((err) => {
+        if (err) {
+          console.error('Session save error:', err);
+          reject(err);
+        } else {
+          console.log('OAuth init - Session saved successfully, state:', state);
+          resolve();
+        }
+      });
+    });
+
+    console.log('OAuth init - Redirecting to HubSpot');
+    return res.redirect(authUrl);
+  } catch (error: any) {
+    console.error('Error initiating OAuth:', error);
+    return res.redirect(`/integrations?error=${encodeURIComponent(error.message || 'oauth_init_failed')}`);
   }
 });
 
@@ -354,23 +411,58 @@ router.get('/oauth/callback/:provider', async (req: Request, res: Response) => {
     const { provider } = req.params;
     const { code, state, error } = req.query;
 
-    // Verify state
-    const expectedState = (req.session as any).oauthState;
-    const expectedProvider = (req.session as any).oauthProvider;
+    console.log('OAuth callback received:', { provider, hasCode: !!code, state, error });
+    console.log('Session data:', {
+      oauthState: (req.session as any)?.oauthState,
+      oauthProvider: (req.session as any)?.oauthProvider,
+      oauthUserId: (req.session as any)?.oauthUserId,
+      sessionId: req.sessionID,
+    });
+    console.log('Request cookies:', req.headers.cookie ? 'present' : 'none');
 
     if (error) {
       return res.redirect(`/integrations?error=${encodeURIComponent(error as string)}`);
     }
 
-    if (!code || state !== expectedState || provider !== expectedProvider) {
-      return res.redirect('/integrations?error=invalid_state');
+    if (!code || !state) {
+      return res.redirect('/integrations?error=missing_params');
     }
 
-    // Clear session state
-    delete (req.session as any).oauthState;
-    delete (req.session as any).oauthProvider;
+    // Try session-based verification first
+    let userId: number | undefined;
+    const expectedState = (req.session as any)?.oauthState;
+    const expectedProvider = (req.session as any)?.oauthProvider;
 
-    const userId = (req.user as any).id;
+    if (expectedState && state === expectedState && provider === expectedProvider) {
+      // Session is valid - use session userId
+      userId = (req.session as any).oauthUserId;
+      console.log('OAuth callback - Using session-based verification, userId:', userId);
+    } else {
+      // Session lost (cross-origin cookie issue) - extract from state parameter
+      // State format: randomPart:userId:provider
+      console.log('OAuth callback - Session verification failed, trying state extraction');
+      const stateParts = (state as string).split(':');
+      if (stateParts.length === 3) {
+        const [, extractedUserId, extractedProvider] = stateParts;
+        if (extractedProvider === provider && extractedUserId) {
+          userId = parseInt(extractedUserId, 10);
+          console.log('OAuth callback - Extracted userId from state:', userId);
+        }
+      }
+    }
+
+    if (!userId || isNaN(userId)) {
+      console.error('OAuth callback - Could not determine userId');
+      return res.redirect('/integrations?error=session_expired');
+    }
+
+    // Clear session state if present
+    if ((req.session as any)?.oauthState) {
+      delete (req.session as any).oauthState;
+      delete (req.session as any).oauthProvider;
+      delete (req.session as any).oauthUserId;
+    }
+
     const providerInstance = getProvider(provider as any);
 
     if (!providerInstance?.handleCallback) {
@@ -541,9 +633,35 @@ router.get('/automations', async (req: Request, res: Response) => {
 
     const results = await query;
 
+    // Get run statistics for each automation
+    const automationIds = results.map(r => r.automation.id);
+
+    let runStats: Record<number, { totalRuns: number; successfulRuns: number }> = {};
+
+    if (automationIds.length > 0) {
+      const stats = await db
+        .select({
+          automationId: integrationAutomationRuns.automationId,
+          total: count(),
+          successful: sql<number>`count(*) filter (where ${integrationAutomationRuns.status} = 'success')`,
+        })
+        .from(integrationAutomationRuns)
+        .where(inArray(integrationAutomationRuns.automationId, automationIds))
+        .groupBy(integrationAutomationRuns.automationId);
+
+      for (const stat of stats) {
+        runStats[stat.automationId] = {
+          totalRuns: Number(stat.total) || 0,
+          successfulRuns: Number(stat.successful) || 0,
+        };
+      }
+    }
+
     const automations = results.map(r => ({
       ...r.automation,
       connection: r.connection,
+      totalRuns: runStats[r.automation.id]?.totalRuns || 0,
+      successfulRuns: runStats[r.automation.id]?.successfulRuns || 0,
     }));
 
     // Get total count
@@ -575,9 +693,12 @@ router.post('/automations', async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
 
+    console.log('Creating automation, request body:', JSON.stringify(req.body, null, 2));
+
     // Validate input
     const validationResult = insertIntegrationAutomationSchema.safeParse(req.body);
     if (!validationResult.success) {
+      console.error('Automation validation failed:', JSON.stringify(validationResult.error.flatten(), null, 2));
       return res.status(400).json({
         error: 'Validation failed',
         details: validationResult.error.flatten()
@@ -683,6 +804,62 @@ router.get('/automations/:id', async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/integrations/automations/:id/runs
+ * Get paginated runs for a specific automation
+ */
+router.get('/automations/:id/runs', async (req: Request, res: Response) => {
+  try {
+    const userId = (req.user as any).id;
+    const automationId = parseInt(req.params.id);
+    const limit = parseInt(req.query.limit as string) || 20;
+    const offset = parseInt(req.query.offset as string) || 0;
+
+    // Verify automation ownership
+    const [automation] = await db
+      .select()
+      .from(integrationAutomations)
+      .where(and(
+        eq(integrationAutomations.id, automationId),
+        eq(integrationAutomations.userId, userId)
+      ));
+
+    if (!automation) {
+      return res.status(404).json({ error: 'Automation not found' });
+    }
+
+    // Get total count
+    const [countResult] = await db
+      .select({ count: count() })
+      .from(integrationAutomationRuns)
+      .where(eq(integrationAutomationRuns.automationId, automationId));
+
+    const total = countResult?.count || 0;
+
+    // Get paginated runs
+    const runs = await db
+      .select()
+      .from(integrationAutomationRuns)
+      .where(eq(integrationAutomationRuns.automationId, automationId))
+      .orderBy(desc(integrationAutomationRuns.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    res.json({
+      runs,
+      pagination: {
+        total,
+        limit,
+        offset,
+        hasMore: offset + runs.length < total,
+      },
+    });
+  } catch (error: any) {
+    console.error('Error fetching automation runs:', error);
+    res.status(500).json({ error: 'Failed to fetch runs' });
+  }
+});
+
+/**
  * PATCH /api/integrations/automations/:id
  * Update an automation
  */
@@ -690,6 +867,8 @@ router.patch('/automations/:id', async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
     const automationId = parseInt(req.params.id);
+
+    console.log('PATCH /automations/:id - Request body:', JSON.stringify(req.body, null, 2));
 
     // Verify ownership
     const [existing] = await db
@@ -707,6 +886,7 @@ router.patch('/automations/:id', async (req: Request, res: Response) => {
     // Validate input
     const validationResult = updateIntegrationAutomationSchema.safeParse(req.body);
     if (!validationResult.success) {
+      console.error('PATCH validation failed:', JSON.stringify(validationResult.error.flatten(), null, 2));
       return res.status(400).json({
         error: 'Validation failed',
         details: validationResult.error.flatten()
@@ -714,6 +894,7 @@ router.patch('/automations/:id', async (req: Request, res: Response) => {
     }
 
     const data = validationResult.data;
+    console.log('PATCH validated data:', JSON.stringify(data, null, 2));
 
     const [automation] = await db
       .update(integrationAutomations)

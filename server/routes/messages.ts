@@ -4,6 +4,7 @@ import { db } from '../db';
 import { messageAttachments } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
 import { dispatchWebhookEvent } from "../webhook-dispatcher";
+import { dispatchIntegrationEvent } from "../integrations";
 
 const router = Router();
 
@@ -90,12 +91,16 @@ router.post("/threads/:threadId/reply", async (req, res) => {
     );
 
     // Dispatch webhook event for message sent (async, don't await)
-    dispatchWebhookEvent(userId, 'message.sent', {
+    const messageSentPayload = {
       message_id: message.id,
       thread_id: threadId,
       content_preview: content.trim().substring(0, 100),
-      sent_at: message.createdAt
-    }).catch(err => console.error('Webhook dispatch error:', err));
+      sent_at: message.createdAt,
+    };
+    dispatchWebhookEvent(userId, 'message.sent', messageSentPayload)
+      .catch(err => console.error('Webhook dispatch error:', err));
+    dispatchIntegrationEvent(userId, 'message.sent', messageSentPayload)
+      .catch(err => console.error('Integration dispatch error:', err));
 
     res.json(message);
   } catch (error) {
@@ -217,8 +222,23 @@ router.post("/contact", async (req, res) => {
       content
     );
 
-    res.json({ 
-      success: true, 
+    // Dispatch message.received event for the CIM owner
+    const messageReceivedPayload = {
+      thread_id: thread.id,
+      cim_document_id: parseInt(cimDocumentId),
+      sender_email: inquirerEmail,
+      sender_name: inquirerName,
+      subject: subject,
+      content_preview: content.substring(0, 100),
+      received_at: new Date().toISOString(),
+    };
+    dispatchIntegrationEvent(cimDoc.userId, 'message.received', messageReceivedPayload)
+      .catch(err => console.error('Integration dispatch error:', err));
+    dispatchWebhookEvent(cimDoc.userId, 'message.received', messageReceivedPayload)
+      .catch(err => console.error('Webhook dispatch error:', err));
+
+    res.json({
+      success: true,
       threadId: thread.id,
       message: "Your message has been sent successfully. You will receive a confirmation email shortly."
     });

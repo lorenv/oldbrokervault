@@ -57,10 +57,6 @@ router.get('/event-types', async (req, res) => {
       label: 'Message Events',
       events: WEBHOOK_EVENT_TYPES.filter(e => e.startsWith('message.'))
     },
-    dataroom: {
-      label: 'Data Room Events',
-      events: WEBHOOK_EVENT_TYPES.filter(e => e.startsWith('dataroom.'))
-    }
   };
 
   res.json(eventCategories);

@@ -26,10 +26,11 @@ import type {
 const SLACK_CLIENT_ID = process.env.SLACK_CLIENT_ID || '';
 const SLACK_CLIENT_SECRET = process.env.SLACK_CLIENT_SECRET || '';
 const SLACK_REDIRECT_URI = process.env.SLACK_REDIRECT_URI ||
-  `${process.env.PUBLIC_URL || 'http://localhost:5000'}/api/integrations/oauth/callback/slack`;
+  `${process.env.PUBLIC_URL || 'https://cb1f9736-4a0a-4a40-80bd-c08d8761dbaa-00-1y6o4mf3nu2bh.riker.replit.dev'}/api/integrations/oauth/callback/slack`;
 
-// Required scopes for posting messages and reading channels
-const SLACK_SCOPES = ['chat:write', 'channels:read', 'groups:read'];
+// Required scopes for posting messages, reading channels, and uploading files
+// chat:write.public allows posting to public channels without joining first
+const SLACK_SCOPES = ['chat:write', 'chat:write.public', 'channels:read', 'groups:read', 'files:write', 'channels:join'];
 
 export class SlackProvider extends BaseProvider {
   id: IntegrationProvider = 'slack';
@@ -196,7 +197,12 @@ export class SlackProvider extends BaseProvider {
     mappedPayload: Record<string, any>,
     eventPayload: Record<string, any>
   ): Promise<ExecutionResult> {
+    console.log('[SlackProvider.execute] Starting execution');
+    console.log('[SlackProvider.execute] Connection:', connection ? 'present' : 'null');
+    console.log('[SlackProvider.execute] destinationConfig:', JSON.stringify(automation.destinationConfig));
+
     if (!connection) {
+      console.log('[SlackProvider.execute] No connection found');
       return {
         success: false,
         error: 'Slack connection not found'
@@ -208,14 +214,19 @@ export class SlackProvider extends BaseProvider {
       : null;
 
     if (!accessToken) {
+      console.log('[SlackProvider.execute] No access token');
       return {
         success: false,
         error: 'Slack access token not available'
       };
     }
 
+    console.log('[SlackProvider.execute] Access token retrieved successfully');
+
     const config = automation.destinationConfig as SlackDestinationConfig;
+    console.log('[SlackProvider.execute] Config channelId:', config?.channelId);
     if (!config?.channelId) {
+      console.log('[SlackProvider.execute] No channel configured');
       return {
         success: false,
         error: 'Slack channel not configured'
@@ -248,6 +259,60 @@ export class SlackProvider extends BaseProvider {
           externalUrl: data.channel ? `https://slack.com/archives/${data.channel}/p${data.ts?.replace('.', '')}` : undefined,
           responseBody: JSON.stringify({ ok: true, ts: data.ts })
         };
+      } else if (data.error === 'not_in_channel') {
+        // Try to join the channel first, then retry
+        console.log('[SlackProvider.execute] Bot not in channel, attempting to join...');
+        const joinResponse = await this.httpRequest('https://slack.com/api/conversations.join', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ channel: config.channelId }),
+        });
+        const joinData = await joinResponse.json();
+
+        if (joinData.ok) {
+          console.log('[SlackProvider.execute] Successfully joined channel, retrying message...');
+          // Retry sending the message
+          const retryResponse = await this.httpRequest('https://slack.com/api/chat.postMessage', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              channel: config.channelId,
+              ...message
+            }),
+          });
+          const retryData = await retryResponse.json();
+
+          if (retryData.ok) {
+            return {
+              success: true,
+              statusCode: 200,
+              externalId: retryData.ts,
+              externalUrl: retryData.channel ? `https://slack.com/archives/${retryData.channel}/p${retryData.ts?.replace('.', '')}` : undefined,
+              responseBody: JSON.stringify({ ok: true, ts: retryData.ts })
+            };
+          } else {
+            return {
+              success: false,
+              statusCode: 200,
+              error: retryData.error || 'Failed to send Slack message after joining channel',
+              responseBody: JSON.stringify(retryData)
+            };
+          }
+        } else {
+          console.log('[SlackProvider.execute] Failed to join channel:', joinData.error);
+          return {
+            success: false,
+            statusCode: 200,
+            error: `Cannot post to channel: ${joinData.error || 'unable to join'}. Please add the bot to this channel manually.`,
+            responseBody: JSON.stringify(data)
+          };
+        }
       } else {
         return {
           success: false,
@@ -407,13 +472,11 @@ export class SlackProvider extends BaseProvider {
       'cim.published': '🚀 Document Published',
       'cim.viewed': '👁️ Document Viewed',
       'cim.downloaded': '⬇️ Document Downloaded',
-      'nda.sent': '📨 NDA Sent',
       'nda.signed': '✍️ NDA Signed',
       'nda.declined': '❌ NDA Declined',
       'esign.envelope_completed': '✅ E-Signature Completed',
       'contact.created': '👤 Contact Created',
       'contact.updated': '👤 Contact Updated',
-      'contact.deleted': '🗑️ Contact Deleted',
       'message.received': '💬 Message Received',
       'message.sent': '📤 Message Sent',
       'dataroom.file_uploaded': '📁 File Uploaded',

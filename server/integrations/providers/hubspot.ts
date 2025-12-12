@@ -23,23 +23,28 @@ import type {
   DestinationType,
   FieldMapping
 } from '@shared/schema';
+import { esignEnvelopes } from '@shared/schema';
+import { storage } from '../../storage';
+import { db } from '../../db';
+import { eq } from 'drizzle-orm';
 
 // HubSpot OAuth configuration
 const HUBSPOT_CLIENT_ID = process.env.HUBSPOT_CLIENT_ID || '';
 const HUBSPOT_CLIENT_SECRET = process.env.HUBSPOT_CLIENT_SECRET || '';
 const HUBSPOT_REDIRECT_URI = process.env.HUBSPOT_REDIRECT_URI ||
-  `${process.env.PUBLIC_URL || 'http://localhost:5000'}/api/integrations/oauth/callback/hubspot`;
+  `${process.env.PUBLIC_URL || 'https://cb1f9736-4a0a-4a40-80bd-c08d8761dbaa-00-1y6o4mf3nu2bh.riker.replit.dev'}/api/integrations/oauth/callback/hubspot`;
 
-// Required scopes for full CRM access
+// Required scopes for CRM access
 const HUBSPOT_SCOPES = [
+  'oauth',
   'crm.objects.contacts.read',
   'crm.objects.contacts.write',
   'crm.objects.deals.read',
   'crm.objects.deals.write',
   'crm.objects.companies.read',
   'crm.objects.companies.write',
+  'files',
   'files.ui_hidden.read',
-  'files.ui_hidden.write',
 ];
 
 // HubSpot API base URL
@@ -301,16 +306,19 @@ export class HubSpotProvider extends BaseProvider {
     const behavior = automation.behavior || 'upsert';
     const matchField = automation.matchField || 'email';
 
+    // Get portal ID for constructing correct URLs
+    const portalId = connection.providerAccountId;
+
     try {
       let result: ExecutionResult;
 
       if (behavior === 'create') {
-        result = await this.createRecord(accessToken, objectType, mappedPayload);
+        result = await this.createRecord(accessToken, objectType, mappedPayload, portalId);
       } else if (behavior === 'update') {
-        result = await this.updateRecord(accessToken, objectType, mappedPayload, matchField);
+        result = await this.updateRecord(accessToken, objectType, mappedPayload, matchField, portalId);
       } else {
         // upsert
-        result = await this.upsertRecord(accessToken, objectType, mappedPayload, matchField);
+        result = await this.upsertRecord(accessToken, objectType, mappedPayload, matchField, portalId);
       }
 
       // Handle file attachment if configured
@@ -345,7 +353,8 @@ export class HubSpotProvider extends BaseProvider {
   private async createRecord(
     accessToken: string,
     objectType: string,
-    properties: Record<string, any>
+    properties: Record<string, any>,
+    portalId?: string | null
   ): Promise<ExecutionResult> {
     const response = await this.httpRequest(
       `${HUBSPOT_API_BASE}/crm/v3/objects/${objectType}`,
@@ -366,7 +375,7 @@ export class HubSpotProvider extends BaseProvider {
         success: true,
         statusCode: response.status,
         externalId: data.id,
-        externalUrl: this.getRecordUrl(objectType, data.id),
+        externalUrl: this.getRecordUrl(objectType, data.id, portalId),
         responseBody: JSON.stringify(data),
       };
     } else {
@@ -386,7 +395,8 @@ export class HubSpotProvider extends BaseProvider {
     accessToken: string,
     objectType: string,
     properties: Record<string, any>,
-    matchField: string
+    matchField: string,
+    portalId?: string | null
   ): Promise<ExecutionResult> {
     const matchValue = properties[matchField];
     if (!matchValue) {
@@ -425,7 +435,7 @@ export class HubSpotProvider extends BaseProvider {
         success: true,
         statusCode: response.status,
         externalId: data.id,
-        externalUrl: this.getRecordUrl(objectType, data.id),
+        externalUrl: this.getRecordUrl(objectType, data.id, portalId),
         responseBody: JSON.stringify(data),
       };
     } else {
@@ -445,13 +455,14 @@ export class HubSpotProvider extends BaseProvider {
     accessToken: string,
     objectType: string,
     properties: Record<string, any>,
-    matchField: string
+    matchField: string,
+    portalId?: string | null
   ): Promise<ExecutionResult> {
     const matchValue = properties[matchField];
 
     // If no match value, just create
     if (!matchValue) {
-      return this.createRecord(accessToken, objectType, properties);
+      return this.createRecord(accessToken, objectType, properties, portalId);
     }
 
     // Search for existing record
@@ -478,7 +489,7 @@ export class HubSpotProvider extends BaseProvider {
           success: true,
           statusCode: response.status,
           externalId: data.id,
-          externalUrl: this.getRecordUrl(objectType, data.id),
+          externalUrl: this.getRecordUrl(objectType, data.id, portalId),
           responseBody: JSON.stringify({ ...data, _operation: 'updated' }),
         };
       } else {
@@ -491,7 +502,7 @@ export class HubSpotProvider extends BaseProvider {
       }
     } else {
       // Create new
-      const result = await this.createRecord(accessToken, objectType, properties);
+      const result = await this.createRecord(accessToken, objectType, properties, portalId);
       if (result.success && result.responseBody) {
         result.responseBody = result.responseBody.replace('}', ', "_operation": "created"}');
       }
@@ -616,40 +627,126 @@ export class HubSpotProvider extends BaseProvider {
     eventPayload: Record<string, any>,
     fileSource?: string | null
   ): Promise<{ fileUploaded: boolean; fileName?: string; fileSize?: number }> {
-    // Determine file URL based on source
-    let fileUrl: string | undefined;
+    let fileBuffer: ArrayBuffer;
     let fileName: string = 'document.pdf';
 
-    if (fileSource === 'signed_document' || !fileSource) {
-      fileUrl = eventPayload.data?.signed_document_url;
-      fileName = eventPayload.data?.file_name || 'signed_document.pdf';
-    } else if (fileSource === 'cim_pdf') {
-      fileUrl = eventPayload.data?.document_url || eventPayload.data?.cim_url;
-      fileName = eventPayload.data?.title ? `${eventPayload.data.title}.pdf` : 'document.pdf';
-    }
-
-    if (!fileUrl) {
-      return { fileUploaded: false };
-    }
-
     try {
-      // Download the file
-      const fileResponse = await fetch(fileUrl);
-      if (!fileResponse.ok) {
-        console.error('Failed to download file for HubSpot attachment');
+      // Determine file source based on event type if not explicitly set
+      const eventType = eventPayload.event;
+      const effectiveFileSource = fileSource || this.getDefaultFileSource(eventType);
+
+      if (effectiveFileSource === 'signed_nda' || effectiveFileSource === 'signed_document') {
+        // Get signed NDA directly from database using nda_id
+        const ndaId = eventPayload.data?.nda_id;
+        if (!ndaId) {
+          console.log('[HubSpot] No nda_id in event payload, cannot attach signed NDA');
+          return { fileUploaded: false };
+        }
+
+        const signature = await storage.getNdaSignatureById(ndaId);
+        if (!signature || !signature.signedNdaContent) {
+          console.error('[HubSpot] Could not find signed NDA content for ID:', ndaId);
+          return { fileUploaded: false };
+        }
+
+        // Convert base64 to buffer
+        // The signedNdaContent may have a data URL prefix or be raw base64
+        let base64Content = signature.signedNdaContent;
+        if (base64Content.startsWith('data:')) {
+          base64Content = base64Content.split(',')[1];
+        }
+
+        const buffer = Buffer.from(base64Content, 'base64');
+        fileBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+
+        // Generate filename from signer name
+        const signerName = signature.signerName || 'signer';
+        const safeName = signerName.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+        fileName = `signed-nda-${safeName}.pdf`;
+
+        console.log('[HubSpot] Retrieved signed NDA from database, size:', buffer.length);
+
+      } else if (effectiveFileSource === 'signed_esign' || effectiveFileSource === 'esign_document') {
+        // Get signed eSign envelope from database
+        const envelopeId = eventPayload.data?.envelope?.id;
+        if (!envelopeId) {
+          console.log('[HubSpot] No envelope.id in event payload, cannot attach signed eSign document');
+          return { fileUploaded: false };
+        }
+
+        const [envelope] = await db
+          .select()
+          .from(esignEnvelopes)
+          .where(eq(esignEnvelopes.id, envelopeId))
+          .limit(1);
+
+        if (!envelope || !envelope.signedDocumentUrl) {
+          console.error('[HubSpot] Could not find signed eSign document for envelope ID:', envelopeId);
+          return { fileUploaded: false };
+        }
+
+        // Download the signed document from object storage URL
+        const fileResponse = await fetch(envelope.signedDocumentUrl);
+        if (!fileResponse.ok) {
+          console.error('[HubSpot] Failed to download signed eSign document');
+          return { fileUploaded: false };
+        }
+        fileBuffer = await fileResponse.arrayBuffer();
+
+        // Generate filename from envelope title
+        const safeTitle = (envelope.title || 'document').replace(/[^a-z0-9]/gi, '-').toLowerCase();
+        fileName = `${safeTitle}-signed.pdf`;
+
+        console.log('[HubSpot] Retrieved signed eSign document, size:', fileBuffer.byteLength);
+
+      } else if (effectiveFileSource === 'cim_pdf') {
+        // Get CIM PDF - need to generate or fetch it
+        const cimId = eventPayload.data?.cim_id || eventPayload.data?.document?.id;
+        const documentUrl = eventPayload.data?.document_url || eventPayload.data?.cim_url;
+
+        if (documentUrl) {
+          // If a URL is provided, use it
+          const fileResponse = await fetch(documentUrl);
+          if (!fileResponse.ok) {
+            console.error('[HubSpot] Failed to download CIM PDF from URL');
+            return { fileUploaded: false };
+          }
+          fileBuffer = await fileResponse.arrayBuffer();
+        } else if (cimId) {
+          // Otherwise try to get the CIM and generate a PDF URL
+          // For now, log that we need a URL
+          console.log('[HubSpot] CIM PDF requires a document_url in the event payload');
+          return { fileUploaded: false };
+        } else {
+          console.log('[HubSpot] No CIM document URL or ID in event payload');
+          return { fileUploaded: false };
+        }
+
+        const title = eventPayload.data?.title || eventPayload.data?.cim_title || 'document';
+        const safeTitle = title.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+        fileName = `${safeTitle}.pdf`;
+
+        console.log('[HubSpot] Retrieved CIM PDF, size:', fileBuffer.byteLength);
+
+      } else {
+        console.log('[HubSpot] Unknown or unsupported file source:', effectiveFileSource);
         return { fileUploaded: false };
       }
-
-      const fileBuffer = await fileResponse.arrayBuffer();
       const fileSize = fileBuffer.byteLength;
 
       // Upload to HubSpot Files API
+      // HubSpot requires multipart form data with specific field names
       const formData = new FormData();
-      formData.append('file', new Blob([fileBuffer]), fileName);
+      formData.append('file', new Blob([fileBuffer], { type: 'application/pdf' }), fileName);
+      formData.append('folderPath', '/CIMShare');
       formData.append('options', JSON.stringify({
         access: 'PRIVATE',
-        folderPath: '/CIMShare',
+        overwrite: false,
+        duplicateValidationStrategy: 'NONE',
+        duplicateValidationScope: 'EXACT_FOLDER',
       }));
+
+      console.log('[HubSpot] Uploading file to HubSpot Files API:', fileName, 'size:', fileSize);
 
       const uploadResponse = await fetch(`${HUBSPOT_API_BASE}/files/v3/files`, {
         method: 'POST',
@@ -662,13 +759,37 @@ export class HubSpotProvider extends BaseProvider {
       const uploadData = await uploadResponse.json();
 
       if (!uploadResponse.ok) {
-        console.error('Failed to upload file to HubSpot:', uploadData);
+        console.error('[HubSpot] Failed to upload file to HubSpot:', uploadData);
         return { fileUploaded: false };
       }
+
+      console.log('[HubSpot] File uploaded successfully, file ID:', uploadData.id);
 
       const hubspotFileId = uploadData.id;
 
       // Create an engagement/note with the file attached
+      console.log('[HubSpot] Creating note with file attachment for record:', recordId, 'objectType:', objectType);
+
+      const notePayload = {
+        properties: {
+          hs_note_body: `Document attached: ${fileName}`,
+          hs_timestamp: new Date().toISOString(),
+          hs_attachment_ids: hubspotFileId,
+        },
+        associations: [{
+          to: { id: recordId },
+          types: [{
+            associationCategory: 'HUBSPOT_DEFINED',
+            // Note to Contact = 202, Note to Deal = 214, Note to Company = 190
+            associationTypeId: (objectType === 'contacts' || objectType === 'contact') ? 202
+              : (objectType === 'deals' || objectType === 'deal') ? 214
+              : 190
+          }]
+        }],
+      };
+
+      console.log('[HubSpot] Note payload:', JSON.stringify(notePayload));
+
       const noteResponse = await this.httpRequest(
         `${HUBSPOT_API_BASE}/crm/v3/objects/notes`,
         {
@@ -677,24 +798,15 @@ export class HubSpotProvider extends BaseProvider {
             'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            properties: {
-              hs_note_body: `Document attached: ${fileName}`,
-              hs_timestamp: new Date().toISOString(),
-              hs_attachment_ids: hubspotFileId,
-            },
-            associations: [{
-              to: { id: recordId },
-              types: [{
-                associationCategory: 'HUBSPOT_DEFINED',
-                associationTypeId: objectType === 'contacts' ? 202 : 214 // Note to Contact or Deal
-              }]
-            }],
-          }),
+          body: JSON.stringify(notePayload),
         }
       );
 
+      const noteData = await noteResponse.json().catch(() => ({}));
+      console.log('[HubSpot] Note creation response:', noteResponse.status, noteResponse.ok ? 'OK' : 'FAILED', noteData);
+
       if (noteResponse.ok) {
+        console.log('[HubSpot] File attached successfully via note');
         return {
           fileUploaded: true,
           fileName,
@@ -702,11 +814,26 @@ export class HubSpotProvider extends BaseProvider {
         };
       }
 
+      console.error('[HubSpot] Failed to create note with attachment:', noteData);
       return { fileUploaded: false };
     } catch (error) {
       console.error('Error attaching file to HubSpot:', error);
       return { fileUploaded: false };
     }
+  }
+
+  /**
+   * Get default file source based on event type
+   */
+  private getDefaultFileSource(eventType?: string): string | null {
+    if (!eventType) return null;
+
+    const mapping: Record<string, string> = {
+      'nda.signed': 'signed_nda',
+      'esign.envelope_completed': 'signed_esign',
+      'cim.created': 'cim_pdf',
+    };
+    return mapping[eventType] || null;
   }
 
   /**
@@ -725,13 +852,17 @@ export class HubSpotProvider extends BaseProvider {
   /**
    * Get URL to view record in HubSpot
    */
-  private getRecordUrl(objectType: string, recordId: string): string {
+  private getRecordUrl(objectType: string, recordId: string, portalId?: string | null): string {
     const typeMap: Record<string, string> = {
       'contacts': 'contact',
       'deals': 'deal',
       'companies': 'company',
     };
     const type = typeMap[objectType] || objectType;
+    // Use portal ID if available for correct URL, otherwise use generic format
+    if (portalId) {
+      return `https://app.hubspot.com/contacts/${portalId}/${type}/${recordId}`;
+    }
     return `https://app.hubspot.com/contacts/record/${type}/${recordId}`;
   }
 

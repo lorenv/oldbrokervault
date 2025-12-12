@@ -1448,7 +1448,6 @@ export const WEBHOOK_EVENT_TYPES = [
   'cim.viewed',
   'cim.downloaded',
   // NDA Events
-  'nda.sent',
   'nda.signed',
   'nda.declined',
   // E-Signature Events
@@ -1456,14 +1455,9 @@ export const WEBHOOK_EVENT_TYPES = [
   // Contact Events
   'contact.created',
   'contact.updated',
-  'contact.deleted',
   // Message Events
   'message.received',
   'message.sent',
-  // Data Room Events
-  'dataroom.file_uploaded',
-  'dataroom.file_viewed',
-  'dataroom.access_granted',
 ] as const;
 
 export type WebhookEventType = typeof WEBHOOK_EVENT_TYPES[number];

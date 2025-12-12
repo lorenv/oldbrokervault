@@ -191,6 +191,8 @@ export async function dispatchIntegrationEvent(
   data: Record<string, any>
 ): Promise<void> {
   try {
+    console.log(`[Integration] Dispatching event: ${eventType} for user ${userId}`);
+
     // Build full event payload
     const eventPayload: EventPayload = {
       event: eventType,
@@ -207,6 +209,8 @@ export async function dispatchIntegrationEvent(
         eq(integrationAutomations.triggerEvent, eventType),
         eq(integrationAutomations.isActive, true)
       ));
+
+    console.log(`[Integration] Found ${automations.length} matching automations for event ${eventType}`);
 
     if (automations.length === 0) {
       return; // No matching automations
@@ -520,6 +524,8 @@ export async function testAutomation(
     dryRun?: boolean;      // Preview only, don't actually send
   } = {}
 ): Promise<{ success: boolean; result?: ExecutionResult; preview?: Record<string, any> }> {
+  console.log('[testAutomation] Starting test for automation:', automationId, 'options:', options);
+
   // Get the automation
   const [automation] = await db
     .select()
@@ -527,8 +533,11 @@ export async function testAutomation(
     .where(eq(integrationAutomations.id, automationId));
 
   if (!automation) {
+    console.log('[testAutomation] Automation not found:', automationId);
     return { success: false, result: { success: false, error: 'Automation not found' } };
   }
+
+  console.log('[testAutomation] Found automation:', automation.name, 'destinationType:', automation.destinationType);
 
   // Build test event payload
   let eventPayload: EventPayload;
@@ -569,15 +578,20 @@ export async function testAutomation(
   // Get connection if needed
   let connection: IntegrationConnection | null = null;
   if (automation.connectionId) {
+    console.log('[testAutomation] Fetching connection:', automation.connectionId);
     const [conn] = await db
       .select()
       .from(integrationConnections)
       .where(eq(integrationConnections.id, automation.connectionId));
     connection = conn || null;
+    console.log('[testAutomation] Connection found:', connection ? 'yes' : 'no');
   }
 
   // Execute
+  console.log('[testAutomation] Executing automation...');
+  console.log('[testAutomation] destinationConfig:', JSON.stringify(automation.destinationConfig));
   const result = await executeAutomation(connection, automation, mappedPayload, eventPayload);
+  console.log('[testAutomation] Execution result:', JSON.stringify(result));
 
   // Log the test run
   await db.insert(integrationAutomationRuns).values({
@@ -638,7 +652,6 @@ function buildSamplePayload(eventType: WebhookEventType): EventPayload {
       };
       break;
 
-    case 'nda.sent':
     case 'nda.signed':
     case 'nda.declined':
       basePayload.data = {
@@ -667,7 +680,6 @@ function buildSamplePayload(eventType: WebhookEventType): EventPayload {
 
     case 'contact.created':
     case 'contact.updated':
-    case 'contact.deleted':
       basePayload.data = {
         contact_id: 'test_contact_101',
         email: 'contact@example.com',

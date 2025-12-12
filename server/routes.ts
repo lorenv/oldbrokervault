@@ -58,6 +58,7 @@ import { simpleParser } from 'mailparser';
 import webhookRoutes from "./routes/webhook-routes";
 import integrationRoutes from "./routes/integration-routes";
 import { dispatchWebhookEvent } from "./webhook-dispatcher";
+import { dispatchIntegrationEvent } from "./integrations";
 
 
 // Directory paths
@@ -1015,6 +1016,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 }),
                 storage.incrementShareViewCount(cimDoc.id)
               ]);
+
+              // Dispatch cim.viewed event for NDA signer views
+              const cimViewedPayload = {
+                cim_id: cimDoc.id,
+                title: cimDoc.title,
+                viewer_email: accessToken.signerEmail,
+                viewer_name: accessToken.signerName,
+                viewer_type: 'nda_signer',
+                viewed_at: new Date().toISOString(),
+              };
+              dispatchIntegrationEvent(cimDoc.userId, 'cim.viewed', cimViewedPayload)
+                .catch(err => console.error('Integration dispatch error:', err));
+              dispatchWebhookEvent(cimDoc.userId, 'cim.viewed', cimViewedPayload)
+                .catch(err => console.error('Webhook dispatch error:', err));
             }
           } else if (!cimDoc.ndaProtected) {
             // Track anonymous view for non-NDA protected documents
@@ -1026,6 +1041,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }),
               storage.incrementShareViewCount(cimDoc.id)
             ]);
+
+            // Dispatch cim.viewed event for anonymous views
+            const cimViewedPayload = {
+              cim_id: cimDoc.id,
+              title: cimDoc.title,
+              viewer_type: 'anonymous',
+              viewed_at: new Date().toISOString(),
+            };
+            dispatchIntegrationEvent(cimDoc.userId, 'cim.viewed', cimViewedPayload)
+              .catch(err => console.error('Integration dispatch error:', err));
+            dispatchWebhookEvent(cimDoc.userId, 'cim.viewed', cimViewedPayload)
+              .catch(err => console.error('Webhook dispatch error:', err));
           }
         } catch (error) {
           console.error('Async view tracking error:', error);
@@ -1487,10 +1514,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Total shared PDF export time:", Date.now() - startTime + "ms");
       console.log("PDF generation completed, buffer length:", pdfBuffer.length);
 
+      // Dispatch cim.downloaded event
+      const viewerEmail = req.body.viewerEmail || 'anonymous';
+      const cimDownloadedPayload = {
+        cim_id: cimDoc.id,
+        title: cimDoc.title,
+        viewer_email: viewerEmail,
+        download_type: 'pdf',
+        downloaded_at: new Date().toISOString(),
+      };
+      dispatchIntegrationEvent(cimDoc.userId, 'cim.downloaded', cimDownloadedPayload)
+        .catch(err => console.error('Integration dispatch error:', err));
+      dispatchWebhookEvent(cimDoc.userId, 'cim.downloaded', cimDownloadedPayload)
+        .catch(err => console.error('Webhook dispatch error:', err));
+
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="cim-${cimDoc.id}.pdf"`);
       res.send(pdfBuffer);
-      
+
     } catch (error) {
       console.error("Shared PDF export error:", error);
       res.status(500).json({ error: "Failed to generate PDF document" });
@@ -2100,12 +2141,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Dispatch webhook event for CIM creation (async, don't await)
-      dispatchWebhookEvent(req.user!.id, 'cim.created', {
+      const cimCreatedPayload = {
         cim_id: doc.id,
         title: doc.title,
         share_url: doc.shareSlug ? `${process.env.BASE_URL || 'https://cimshare.com'}/share/${doc.shareSlug}` : null,
-        created_at: doc.createdAt
-      }).catch(err => console.error('Webhook dispatch error:', err));
+        created_at: doc.createdAt,
+        document: {
+          id: doc.id,
+          title: doc.title,
+        },
+      };
+      dispatchWebhookEvent(req.user!.id, 'cim.created', cimCreatedPayload)
+        .catch(err => console.error('Webhook dispatch error:', err));
+      dispatchIntegrationEvent(req.user!.id, 'cim.created', cimCreatedPayload)
+        .catch(err => console.error('Integration dispatch error:', err));
 
       res.json(doc);
     } catch (error) {
@@ -3327,13 +3376,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Updating CIM document with data:", req.body);
       const updatedDoc = await storage.updateCimDocument(docId, req.body);
       console.log("Updated CIM document:", updatedDoc);
-      
+
+      // Dispatch cim.updated event
+      const cimUpdatedPayload = {
+        cim_id: docId,
+        title: updatedDoc.title,
+        updated_fields: Object.keys(req.body),
+        updated_at: new Date().toISOString(),
+      };
+      dispatchIntegrationEvent(doc.userId, 'cim.updated', cimUpdatedPayload)
+        .catch(err => console.error('Integration dispatch error:', err));
+      dispatchWebhookEvent(doc.userId, 'cim.updated', cimUpdatedPayload)
+        .catch(err => console.error('Webhook dispatch error:', err));
+
       // Transform field name for frontend consistency
       const transformedDoc = {
         ...updatedDoc,
         ndaApprovalRequired: updatedDoc.ndaApprovalRequired
       };
-      
+
       res.json(transformedDoc);
     } catch (error) {
       console.error("CIM update error:", error);
@@ -6668,6 +6729,28 @@ ${finalQuestion}
         copyMeOnEmails: copyMeOnEmails !== undefined ? copyMeOnEmails : doc.copyMeOnEmails
       });
 
+      // Dispatch cim.published event when document is made public
+      if (isPublic && !doc.shareEnabled) {
+        const baseUrl = process.env.PUBLIC_URL || 'https://cb1f9736-4a0a-4a40-80bd-c08d8761dbaa-00-1y6o4mf3nu2bh.riker.replit.dev';
+        const shareUrl = updatedDoc.customSlug
+          ? `${baseUrl}/share/${updatedDoc.customSlug}`
+          : `${baseUrl}/share/${updatedDoc.shareSlug}`;
+
+        const cimPublishedPayload = {
+          cim_id: docId,
+          title: doc.title,
+          share_url: shareUrl,
+          share_slug: updatedDoc.shareSlug,
+          custom_slug: updatedDoc.customSlug,
+          nda_protected: updatedDoc.ndaProtected,
+          published_at: new Date().toISOString(),
+        };
+        dispatchIntegrationEvent(req.user!.id, 'cim.published', cimPublishedPayload)
+          .catch(err => console.error('Integration dispatch error:', err));
+        dispatchWebhookEvent(req.user!.id, 'cim.published', cimPublishedPayload)
+          .catch(err => console.error('Webhook dispatch error:', err));
+      }
+
       res.json({
         shareSlug: updatedDoc.shareSlug,
         customSlug: updatedDoc.customSlug,
@@ -8463,6 +8546,20 @@ ${finalQuestion}
         }
       );
 
+      // Dispatch nda.declined event
+      const ndaDeclinedPayload = {
+        cim_id: docId,
+        document_title: doc.title,
+        recipient_email: rejectedSignature.signerEmail,
+        recipient_name: rejectedSignature.signerName,
+        decline_reason: 'Rejected by document owner',
+        declined_at: new Date().toISOString(),
+      };
+      dispatchIntegrationEvent(req.user.id, 'nda.declined', ndaDeclinedPayload)
+        .catch(err => console.error('Integration dispatch error:', err));
+      dispatchWebhookEvent(req.user.id, 'nda.declined', ndaDeclinedPayload)
+        .catch(err => console.error('Webhook dispatch error:', err));
+
       res.json({
         success: true,
         signature: rejectedSignature,
@@ -9254,15 +9351,31 @@ ${finalQuestion}
           }
 
           // Dispatch webhook event for NDA signed (async, don't await)
-          dispatchWebhookEvent(cimDoc.userId, 'nda.signed', {
+          const ndaEventPayload = {
             nda_id: signature.id,
             cim_id: cimDoc.id,
             cim_title: cimDoc.title,
             signer_email: signerEmail,
             signer_name: signerName,
             signer_location: signerLocation,
-            signed_at: signature.signedAt
-          }).catch(err => console.error('Webhook dispatch error:', err));
+            signed_at: signature.signedAt,
+            // Add additional fields for integrations
+            signer: {
+              email: signerEmail,
+              name: signerName,
+            },
+            document: {
+              id: cimDoc.id,
+              title: cimDoc.title,
+            },
+          };
+
+          dispatchWebhookEvent(cimDoc.userId, 'nda.signed', ndaEventPayload)
+            .catch(err => console.error('Webhook dispatch error:', err));
+
+          // Dispatch to integration automations (HubSpot, etc.)
+          dispatchIntegrationEvent(cimDoc.userId, 'nda.signed', ndaEventPayload)
+            .catch(err => console.error('Integration dispatch error:', err));
 
           res.json({
             success: true,
@@ -10198,13 +10311,23 @@ ${finalQuestion}
         .returning();
 
       // Dispatch webhook event for contact created (async, don't await)
-      dispatchWebhookEvent(req.user!.id, 'contact.created', {
+      const contactCreatedPayload = {
         contact_id: newContact.id,
         email: newContact.email,
         name: newContact.name,
         status: newContact.status,
-        created_at: newContact.createdAt
-      }).catch(err => console.error('Webhook dispatch error:', err));
+        created_at: newContact.createdAt,
+        contact: {
+          email: newContact.email,
+          name: newContact.name,
+          company: newContact.company,
+          phone: newContact.phone,
+        },
+      };
+      dispatchWebhookEvent(req.user!.id, 'contact.created', contactCreatedPayload)
+        .catch(err => console.error('Webhook dispatch error:', err));
+      dispatchIntegrationEvent(req.user!.id, 'contact.created', contactCreatedPayload)
+        .catch(err => console.error('Integration dispatch error:', err));
 
       res.json(newContact);
     } catch (error: any) {
@@ -10248,6 +10371,20 @@ ${finalQuestion}
       if (!updated) {
         return res.status(404).json({ error: "Contact not found" });
       }
+
+      // Dispatch contact.updated event
+      const contactUpdatedPayload = {
+        contact_id: updated.id,
+        email: updated.email,
+        name: updated.name,
+        company: updated.company,
+        updated_fields: Object.keys(req.body),
+        updated_at: new Date().toISOString(),
+      };
+      dispatchIntegrationEvent(req.user.id, 'contact.updated', contactUpdatedPayload)
+        .catch(err => console.error('Integration dispatch error:', err));
+      dispatchWebhookEvent(req.user.id, 'contact.updated', contactUpdatedPayload)
+        .catch(err => console.error('Webhook dispatch error:', err));
 
       res.json(updated);
     } catch (error) {
@@ -10790,7 +10927,9 @@ ${finalQuestion}
   app.use('/api/webhooks', webhookRoutes);
 
   // Register integration routes
+  console.log('📦 Registering integration routes at /api/integrations');
   app.use('/api/integrations', integrationRoutes);
+  console.log('✅ Integration routes registered');
 
   // Background job: Clean up stale document locks (15+ minutes old)
   async function cleanupStaleLocks() {

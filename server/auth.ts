@@ -112,7 +112,9 @@ export function setupAuth(app: Express) {
                          req.path === '/auth' ||
                          req.path.startsWith('/nda/redirect/') ||
                          req.path.startsWith('/api/register') ||
-                         req.path.startsWith('/api/login');
+                         req.path.startsWith('/api/login') ||
+                         req.path.startsWith('/api/integrations/oauth/callback') ||
+                         req.path.startsWith('/api/integrations/auth');
     
     const sessionSettings: session.SessionOptions = {
       ...getSessionConfig(isPublicRoute),

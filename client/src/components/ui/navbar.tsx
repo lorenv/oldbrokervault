@@ -16,7 +16,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Settings, LogOut, User, HelpCircle, Plus, Menu, MessageCircle, BarChart3, WandSparkles, Signature, MoreHorizontal, FileCheck, ChevronDown, Users, FileText, Zap, Shield, Database, PenTool, Briefcase, MessageSquare, TrendingUp, Webhook, Link2 } from "lucide-react";
+import { Settings, LogOut, User, HelpCircle, Plus, Menu, MessageCircle, BarChart3, WandSparkles, Signature, MoreHorizontal, FileCheck, ChevronDown, Users, FileText, Zap, Shield, Database, PenTool, Briefcase, MessageSquare, TrendingUp, Webhook, Link2, Workflow } from "lucide-react";
 import { useState, useRef } from "react";
 import { SupportDialog } from "./support-dialog";
 import { useQuery } from "@tanstack/react-query";
@@ -181,7 +181,7 @@ export function Navbar() {
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href="/integrations" className="flex items-center cursor-pointer w-full">
-                      <Link2 className="h-4 w-4 mr-2" />
+                      <Workflow className="h-4 w-4 mr-2" />
                       Integrations
                     </Link>
                   </DropdownMenuItem>
