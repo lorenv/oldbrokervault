@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { SEOHead } from "@/components/seo-head";
+import { YouTubeLite } from "@/components/youtube-lite";
 import {
   Dialog,
   DialogContent,
@@ -165,13 +166,10 @@ export default function ESignaturesPage() {
             <h2 className="text-3xl font-bold text-slate-900 mb-4">Watch How It Works</h2>
             <p className="text-lg text-slate-600">See our eSignature feature in action with this quick walkthrough</p>
           </div>
-          <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl border border-slate-200">
-            <iframe
-              src="https://www.youtube.com/embed/J94mwM7rEOs"
+          <div className="rounded-2xl overflow-hidden shadow-2xl border border-slate-200">
+            <YouTubeLite
+              videoId="J94mwM7rEOs"
               title="CIM Share eSignatures Walkthrough"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              className="absolute inset-0 w-full h-full"
             />
           </div>
         </div>
@@ -1077,7 +1075,7 @@ export default function ESignaturesPage() {
           <div className="grid md:grid-cols-3 gap-8">
             <Card className="border border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white">
               <CardContent className="p-6 text-center">
-                <img src="/hubspot.png" alt="HubSpot" className="h-12 mx-auto mb-4 object-contain" />
+                <img src="/hubspot.png" alt="HubSpot" loading="lazy" className="h-12 mx-auto mb-4 object-contain" />
                 <h3 className="font-semibold text-slate-900 mb-2">HubSpot</h3>
                 <p className="text-sm text-slate-600">
                   Automatically create deals, update contacts, or log activities when documents are signed.
@@ -1087,7 +1085,7 @@ export default function ESignaturesPage() {
 
             <Card className="border border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white">
               <CardContent className="p-6 text-center">
-                <img src="/slack.png" alt="Slack" className="h-12 mx-auto mb-4 object-contain" />
+                <img src="/slack.png" alt="Slack" loading="lazy" className="h-12 mx-auto mb-4 object-contain" />
                 <h3 className="font-semibold text-slate-900 mb-2">Slack</h3>
                 <p className="text-sm text-slate-600">
                   Get instant notifications in your team channels when signatures are completed.
@@ -1097,7 +1095,7 @@ export default function ESignaturesPage() {
 
             <Card className="border border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white">
               <CardContent className="p-6 text-center">
-                <img src="/zapier-icon.svg" alt="Zapier" className="h-12 mx-auto mb-4 object-contain" />
+                <img src="/zapier-icon.svg" alt="Zapier" loading="lazy" className="h-12 mx-auto mb-4 object-contain" />
                 <h3 className="font-semibold text-slate-900 mb-2">Zapier</h3>
                 <p className="text-sm text-slate-600">
                   Connect to 5,000+ apps and automate any workflow when signature events occur.
