@@ -1,7 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
+import compression from "compression";
 // DEFERRED IMPORTS: Delay heavy imports to prevent startup memory overflow
 // import { registerRoutes } from "./routes"; // Moved to dynamic import
-// import { setupVite, serveStatic, log } from "./vite"; // Moved to dynamic import  
+// import { setupVite, serveStatic, log } from "./vite"; // Moved to dynamic import
 // import { setupSecurity } from "./security"; // Moved to dynamic import
 // import { imagePersistenceManager } from "./image-persistence"; // Not needed at startup
 import path from "path";
@@ -116,6 +117,33 @@ app.get('/health', (req, res) => {
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
+
+// Query stats endpoint for performance debugging (dev only)
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/api/debug/query-stats', async (req, res) => {
+    try {
+      const { queryLogger } = await import('./query-logger');
+      res.json(queryLogger.getStats());
+    } catch {
+      res.json({ message: 'Query logger not initialized' });
+    }
+  });
+}
+
+// COMPRESSION MIDDLEWARE - gzip/deflate responses (60-80% size reduction)
+// Applied early to compress all responses including API JSON and static assets
+app.use(compression({
+  level: 6, // Balanced compression (1-9, higher = smaller but slower)
+  threshold: 1024, // Only compress responses > 1KB
+  filter: (req, res) => {
+    // Don't compress if client doesn't accept it
+    if (req.headers['x-no-compression']) {
+      return false;
+    }
+    // Use compression's default filter (compresses text, json, etc.)
+    return compression.filter(req, res);
+  }
+}));
 
 // MEMORY-EFFICIENT JSON PARSING (Fix #3: Add memory-efficient JSON handling)
 // Reduce limits from 100mb to 50mb and implement streaming for large payloads

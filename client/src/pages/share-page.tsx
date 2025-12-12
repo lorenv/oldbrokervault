@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useRoute } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { NdaDialog } from "@/components/nda-dialog";
 import { UploadedFileViewer } from "@/components/uploaded-file-viewer";
 import { FinancialDocumentsDisplay } from "@/components/financial-documents-display";
 import { ShareStickySidebar } from "@/components/share-sticky-sidebar";
+import { ShareContactBottom } from "@/components/share-contact-bottom";
 import { Shield, FileText, AlertCircle, Download, Package, DollarSign, TrendingUp, BarChart3, Loader2, Globe, ExternalLink, Clock, Phone, Lock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +18,13 @@ import { OwnerToolbar } from "@/components/owner-toolbar";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { sanitizeHtml } from "@/lib/sanitize";
+import {
+  DisplaySettings,
+  DEFAULT_DISPLAY_SETTINGS,
+  getThemeColors,
+  getThemeCSSVariables,
+  SECTION_STYLES
+} from "@/lib/share-themes";
 
 export function SharePage() {
   const [matchShare, paramsShare] = useRoute("/share/:shareSlug");
@@ -156,6 +164,27 @@ export function SharePage() {
   });
 
   // Don't redirect - show NDA dialog instead when needed
+
+  // Get display settings and compute theme - MUST be before any early returns
+  const cimData = shareData?.cim;
+  const displaySettings: DisplaySettings = useMemo(() => {
+    const saved = cimData?.displaySettings;
+    if (!saved) return DEFAULT_DISPLAY_SETTINGS;
+    // Migrate legacy values: 'flat' and 'clean' become 'minimal'
+    const sectionStyle = (saved.sectionStyle === 'flat' || saved.sectionStyle === 'clean')
+      ? 'minimal'
+      : (saved.sectionStyle || 'cards');
+    return { ...DEFAULT_DISPLAY_SETTINGS, ...saved, sectionStyle };
+  }, [cimData?.displaySettings]);
+
+  const themeColors = useMemo(() => {
+    const brandColors = shareData?.userProfileData?.brandColors || shareData?.cim?.userProfile?.brandColors;
+    return getThemeColors(displaySettings, brandColors);
+  }, [displaySettings, shareData?.userProfileData?.brandColors, shareData?.cim?.userProfile?.brandColors]);
+
+  const themeCSSVars = useMemo(() => getThemeCSSVariables(themeColors), [themeColors]);
+  const sectionStyle = SECTION_STYLES[displaySettings.sectionStyle];
+  const showSidebar = displaySettings.contactPosition === 'sidebar';
 
   // Fetch uploaded files for the shared document
   const { data: uploadedFiles = [], isLoading: filesLoading } = useQuery({
@@ -378,9 +407,6 @@ export function SharePage() {
 
   // Show NDA dialog if document requires NDA and user hasn't signed or has no valid token and is not owner
   const shouldShowNdaDialog = ndaCheck?.requiresNda && !hasSignedNda && !accessToken && !ndaCheckError && !ndaCheck?.isOwner;
-
-  // Only access shareData.cim if shareData exists
-  const cimData = shareData?.cim;
 
   // Check if manual approval is required and not yet granted
   const needsApproval = shareData?.ndaApprovalStatus?.requiresApproval && !shareData?.ndaApprovalStatus?.isApproved;
@@ -740,10 +766,10 @@ export function SharePage() {
       )}
 
       {/* Content section with sidebar layout */}
-      <div className="max-w-[90rem] mx-auto px-4 md:px-6 py-8">
-        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
-          {/* Main content area */}
-          <div className="flex-1 min-w-0 space-y-6 animate-fade-in delay-200">
+      <div className="max-w-[90rem] mx-auto px-4 md:px-6 py-8" style={themeCSSVars as React.CSSProperties}>
+        <div className={`flex flex-col ${showSidebar ? 'lg:flex-row' : ''} gap-6 lg:gap-8`}>
+          {/* Main content area - full width when contact is at bottom */}
+          <div className={`${showSidebar ? 'flex-1' : 'w-full'} min-w-0 ${displaySettings.sectionStyle === 'minimal' ? 'bg-white rounded-xl shadow-lg p-8' : 'space-y-6'} animate-fade-in delay-200`}>
             {shareData.cim.analysis?.isUploadedFile === true ? (
               <div>
                 {filesLoading ? (
@@ -841,16 +867,29 @@ export function SharePage() {
             ) : (
               <>
                 {/* Financial Information Section - Always show */}
-                <Card className="border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden animate-slide-up delay-300">
-                    <CardHeader className="bg-gradient-to-r from-slate-600 to-blue-600 text-white pb-6 pt-8 px-8">
-                      <CardTitle className="flex items-center gap-3 text-2xl font-bold text-white">
-                        <div className="p-2 bg-white/20 rounded-lg">
-                          <DollarSign className="h-6 w-6 text-white" />
-                        </div>
-                        Financial Information
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-8">
+                <Card className={displaySettings.sectionStyle === 'cards' ? "border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden animate-slide-up delay-300" : "border-0 shadow-none bg-transparent animate-slide-up delay-300"}>
+                    {displaySettings.sectionStyle === 'cards' ? (
+                      <CardHeader
+                        className="text-white pb-6 pt-8 px-8"
+                        style={{ background: `linear-gradient(to right, ${themeColors.gradient.from}, ${themeColors.gradient.to})` }}
+                      >
+                        <CardTitle className="flex items-center gap-3 text-2xl font-bold text-white">
+                          <div className="p-2 bg-white/20 rounded-lg">
+                            <DollarSign className="h-6 w-6 text-white" />
+                          </div>
+                          Financial Information
+                        </CardTitle>
+                      </CardHeader>
+                    ) : (
+                      <div className="py-4">
+                        <h2 className="text-lg font-semibold flex items-center gap-2" style={{ color: themeColors.primary }}>
+                          <DollarSign className="h-5 w-5" style={{ color: themeColors.primary }} />
+                          Financial Information
+                        </h2>
+                        <div className="h-0.5 mt-2 rounded w-40" style={{ backgroundColor: themeColors.primary }} />
+                      </div>
+                    )}
+                    <CardContent className={displaySettings.sectionStyle === 'cards' ? "p-8" : "p-0 pt-4"}>
                       {/* Website extracted logo inside financial box - use website logo unless user uploaded override */}
                       {(shareData.cim.logoUrl || shareData.cim.userProfile?.businessLogo) && (
                         <div className="flex justify-center mb-8 pb-6 border-b border-gray-200 animate-fade-in delay-500">
@@ -867,28 +906,28 @@ export function SharePage() {
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100 animate-slide-up delay-500">
                           <div className="flex items-center justify-center gap-2 mb-3">
-                            <DollarSign className="h-5 w-5 text-blue-600" />
+                            <DollarSign className="h-5 w-5" style={{ color: themeColors.primary }} />
                             <h4 className="text-lg font-semibold text-gray-600">Asking Price</h4>
                           </div>
-                          <p className="text-2xl sm:text-3xl font-bold text-blue-600 break-words">
+                          <p className="text-2xl sm:text-3xl font-bold break-words" style={{ color: themeColors.primary }}>
                             {shareData.cim.askingPrice || "Not specified"}
                           </p>
                         </div>
                         <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100 animate-slide-up delay-700">
                           <div className="flex items-center justify-center gap-2 mb-3">
-                            <TrendingUp className="h-5 w-5 text-blue-600" />
+                            <TrendingUp className="h-5 w-5" style={{ color: themeColors.primary }} />
                             <h4 className="text-lg font-semibold text-gray-600">Annual Revenue</h4>
                           </div>
-                          <p className="text-2xl sm:text-3xl font-bold text-blue-600 break-words">
+                          <p className="text-2xl sm:text-3xl font-bold break-words" style={{ color: themeColors.primary }}>
                             {shareData.cim.revenue || "Not specified"}
                           </p>
                         </div>
                         <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100 animate-slide-up delay-1000">
                           <div className="flex items-center justify-center gap-2 mb-3">
-                            <BarChart3 className="h-5 w-5 text-purple-600" />
+                            <BarChart3 className="h-5 w-5" style={{ color: themeColors.secondary }} />
                             <h4 className="text-lg font-semibold text-gray-600">EBITDA</h4>
                           </div>
-                          <p className="text-2xl sm:text-3xl font-bold text-purple-600 break-words">
+                          <p className="text-2xl sm:text-3xl font-bold break-words" style={{ color: themeColors.secondary }}>
                             {shareData.cim.ebitda || "Not specified"}
                           </p>
                         </div>
@@ -903,22 +942,36 @@ export function SharePage() {
 
                 {/* Website URL Section */}
                 {shareData.websiteUrl && (
-                  <Card className="border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden animate-slide-up delay-500">
-                    <CardHeader className="bg-gradient-to-r from-slate-600 to-blue-600 text-white pb-6 pt-8 px-8">
-                      <CardTitle className="flex items-center gap-3 text-2xl font-bold text-white">
-                        <div className="p-2 bg-white/20 rounded-lg">
-                          <Globe className="h-6 w-6 text-white" />
-                        </div>
-                        Website
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-8">
+                  <Card className={displaySettings.sectionStyle === 'cards' ? "border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden animate-slide-up delay-500" : "border-0 shadow-none bg-transparent animate-slide-up delay-500"}>
+                    {displaySettings.sectionStyle === 'cards' ? (
+                      <CardHeader
+                        className="text-white pb-6 pt-8 px-8"
+                        style={{ background: `linear-gradient(to right, ${themeColors.gradient.from}, ${themeColors.gradient.to})` }}
+                      >
+                        <CardTitle className="flex items-center gap-3 text-2xl font-bold text-white">
+                          <div className="p-2 bg-white/20 rounded-lg">
+                            <Globe className="h-6 w-6 text-white" />
+                          </div>
+                          Website
+                        </CardTitle>
+                      </CardHeader>
+                    ) : (
+                      <div className="py-4">
+                        <h2 className="text-lg font-semibold flex items-center gap-2" style={{ color: themeColors.primary }}>
+                          <Globe className="h-5 w-5" style={{ color: themeColors.primary }} />
+                          Website
+                        </h2>
+                        <div className="h-0.5 mt-2 rounded w-20" style={{ backgroundColor: themeColors.primary }} />
+                      </div>
+                    )}
+                    <CardContent className={displaySettings.sectionStyle === 'cards' ? "p-8" : "p-0 pt-4"}>
                       <div className="text-center">
                         <a
                           href={shareData.websiteUrl.startsWith('http') ? shareData.websiteUrl : `https://${shareData.websiteUrl}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 text-xl md:text-2xl font-semibold text-blue-600 hover:text-blue-700 transition-colors duration-200 hover:underline break-all"
+                          className="inline-flex items-center gap-2 text-xl md:text-2xl font-semibold transition-colors duration-200 hover:underline break-all"
+                          style={{ color: themeColors.primary }}
                         >
                           <span className="break-all">{shareData.websiteUrl.replace(/^https?:\/\//, '')}</span>
                           <ExternalLink className="h-5 w-5 flex-shrink-0" />
@@ -942,21 +995,39 @@ export function SharePage() {
                   userProfile={shareData.cim.userProfile}
                   cimDocument={shareData.cim}
                   customSections={shareData.customSections}
+                  displaySettings={displaySettings}
+                  themeColors={themeColors}
                 />
               </>
             )}
           </div>
 
-          {/* Sticky Sidebar */}
-          <div className="lg:w-[28rem] flex-shrink-0 animate-slide-right delay-300">
-            <ShareStickySidebar
+          {/* Sticky Sidebar - only show when contact position is sidebar */}
+          {showSidebar && (
+            <div className="lg:w-[28rem] flex-shrink-0 animate-slide-right delay-300">
+              <ShareStickySidebar
+                shareSlug={shareSlug!}
+                cimTitle={shareData.cim.title}
+                userProfile={shareData.userProfileData || shareData.cim.userProfile}
+                logoUrl={shareData.cim.logoUrl}
+                themeColors={themeColors}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Contact Section at Bottom - show when contact position is bottom */}
+        {!showSidebar && (
+          <div className="mt-8 animate-slide-up delay-500">
+            <ShareContactBottom
               shareSlug={shareSlug!}
               cimTitle={shareData.cim.title}
               userProfile={shareData.userProfileData || shareData.cim.userProfile}
               logoUrl={shareData.cim.logoUrl}
+              themeColors={themeColors}
             />
           </div>
-        </div>
+        )}
       </div>
       </div>
     </div>

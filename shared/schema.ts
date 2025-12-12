@@ -125,6 +125,14 @@ export const users = pgTable("users", {
   emailPreferences: jsonb("email_preferences").default({ onboarding: true, marketing: true, transactional: true }),
   unsubscribeToken: text("unsubscribe_token"),
   unsubscribeTokenExpiry: timestamp("unsubscribe_token_expiry"),
+  // Default display settings for new documents
+  defaultDisplaySettings: jsonb("default_display_settings").$type<{
+    theme: 'corporate-blue' | 'forest-green' | 'charcoal' | 'burgundy' | 'brand' | 'custom';
+    sectionStyle: 'cards' | 'minimal';
+    contactPosition: 'sidebar' | 'bottom';
+    customColor?: string;
+    customColorSecondary?: string;
+  }>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -191,7 +199,13 @@ export const cimDocuments = pgTable("cim_documents", {
   // Example document flag - doesn't count towards subscription limits
   isExample: boolean("is_example").default(false).notNull(),
   // Soft delete - marks document as deleted but keeps in database for limit tracking
-  deletedAt: timestamp("deleted_at")
+  deletedAt: timestamp("deleted_at"),
+  // Display settings for share page customization
+  displaySettings: jsonb("display_settings").$type<{
+    theme: 'corporate-blue' | 'forest-green' | 'charcoal' | 'burgundy' | 'brand';
+    sectionStyle: 'cards' | 'flat' | 'minimal';
+    contactPosition: 'sidebar' | 'bottom';
+  }>()
 });
 
 export const uploadedFiles = pgTable("uploaded_files", {
@@ -1448,20 +1462,16 @@ export const WEBHOOK_EVENT_TYPES = [
   'cim.viewed',
   'cim.downloaded',
   // NDA Events
-  'nda.sent',
   'nda.signed',
   'nda.declined',
+  // E-Signature Events
+  'esign.envelope_completed',
   // Contact Events
   'contact.created',
   'contact.updated',
-  'contact.deleted',
   // Message Events
   'message.received',
   'message.sent',
-  // Data Room Events
-  'dataroom.file_uploaded',
-  'dataroom.file_viewed',
-  'dataroom.access_granted',
 ] as const;
 
 export type WebhookEventType = typeof WEBHOOK_EVENT_TYPES[number];
@@ -1543,3 +1553,289 @@ export type InsertWebhook = z.infer<typeof insertWebhookSchema>;
 export type UpdateWebhook = z.infer<typeof updateWebhookSchema>;
 export type WebhookDelivery = typeof webhookDeliveries.$inferSelect;
 export type InsertWebhookDelivery = z.infer<typeof insertWebhookDeliverySchema>;
+
+// ============================================================================
+// INTEGRATIONS SYSTEM - Connections to external apps and automation workflows
+// ============================================================================
+
+// Integration provider types
+export const INTEGRATION_PROVIDERS = [
+  'hubspot',
+  'slack',
+  'zapier',
+  'make',
+  'webhook',
+] as const;
+
+export type IntegrationProvider = typeof INTEGRATION_PROVIDERS[number];
+
+// Connection status types
+export const CONNECTION_STATUSES = [
+  'active',
+  'expired',
+  'error',
+  'disconnected',
+] as const;
+
+export type ConnectionStatus = typeof CONNECTION_STATUSES[number];
+
+// Automation behavior types
+export const AUTOMATION_BEHAVIORS = [
+  'create',
+  'update',
+  'upsert',
+] as const;
+
+export type AutomationBehavior = typeof AUTOMATION_BEHAVIORS[number];
+
+// Run status types
+export const RUN_STATUSES = [
+  'pending',
+  'running',
+  'success',
+  'failed',
+  'skipped',
+] as const;
+
+export type RunStatus = typeof RUN_STATUSES[number];
+
+// Destination types for automations
+export const DESTINATION_TYPES = [
+  // HubSpot destinations
+  'hubspot_contact',
+  'hubspot_deal',
+  'hubspot_company',
+  'hubspot_note',
+  // Slack destinations
+  'slack_message',
+  // Generic destinations
+  'zapier_webhook',
+  'make_webhook',
+  'custom_webhook',
+] as const;
+
+export type DestinationType = typeof DESTINATION_TYPES[number];
+
+// Integration Connections - stores OAuth credentials and connection status
+export const integrationConnections = pgTable("integration_connections", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+
+  // Provider identification
+  provider: text("provider").notNull(), // 'hubspot', 'slack', 'zapier', 'make', 'webhook'
+  providerAccountId: text("provider_account_id"), // External account identifier (e.g., HubSpot portal ID)
+  providerAccountName: text("provider_account_name"), // Display name (e.g., "Acme Corp HubSpot")
+
+  // OAuth credentials (encrypted)
+  accessTokenEncrypted: text("access_token_encrypted"),
+  refreshTokenEncrypted: text("refresh_token_encrypted"),
+  tokenExpiresAt: timestamp("token_expires_at"),
+  scopes: text("scopes").array(), // Granted OAuth scopes
+
+  // For webhook-based integrations (Zapier, Make, custom)
+  webhookUrl: text("webhook_url"),
+  webhookSecret: text("webhook_secret"), // HMAC signing secret
+
+  // Status tracking
+  status: text("status").notNull().default("active"), // 'active', 'expired', 'error', 'disconnected'
+  lastUsedAt: timestamp("last_used_at"),
+  lastError: text("last_error"),
+  errorCount: integer("error_count").default(0).notNull(),
+
+  // Metadata
+  settings: jsonb("settings").default({}).notNull(), // Provider-specific settings
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Integration Automations - stores automation configurations
+export const integrationAutomations = pgTable("integration_automations", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  connectionId: integer("connection_id"), // NULL for direct webhooks
+
+  // Basic info
+  name: text("name").notNull(),
+  description: text("description"),
+  isActive: boolean("is_active").default(true).notNull(),
+
+  // Trigger configuration
+  triggerEvent: text("trigger_event").notNull(), // Event type (e.g., 'nda.signed')
+  triggerCondition: jsonb("trigger_condition"), // Optional filter condition
+
+  // Destination configuration
+  destinationType: text("destination_type").notNull(), // 'hubspot_contact', 'slack_message', 'webhook', etc.
+  destinationConfig: jsonb("destination_config").notNull(), // Type-specific config
+
+  // Behavior configuration (for CRM destinations)
+  behavior: text("behavior").default("upsert"), // 'create', 'update', 'upsert'
+  matchField: text("match_field"), // Field to match on for update/upsert (e.g., 'email')
+
+  // Field mappings
+  fieldMappings: jsonb("field_mappings").default([]).notNull(),
+  // Format: [{ sourceField: "data.signer_email", destField: "email", type: "field" },
+  //          { value: "NDA Signed", destField: "nda_status", type: "constant" }]
+
+  // File attachment config (when applicable)
+  includeFile: boolean("include_file").default(false).notNull(),
+  fileSource: text("file_source"), // 'signed_document', 'cim_pdf', etc.
+  fileDestination: text("file_destination"), // 'contact_attachment', 'deal_attachment', etc.
+
+  // Statistics
+  totalRuns: integer("total_runs").default(0).notNull(),
+  successfulRuns: integer("successful_runs").default(0).notNull(),
+  failedRuns: integer("failed_runs").default(0).notNull(),
+  lastRunAt: timestamp("last_run_at"),
+  lastSuccessAt: timestamp("last_success_at"),
+  lastFailureAt: timestamp("last_failure_at"),
+
+  // Metadata
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Integration Automation Runs - stores execution history
+export const integrationAutomationRuns = pgTable("integration_automation_runs", {
+  id: serial("id").primaryKey(),
+  automationId: integer("automation_id").notNull(),
+  connectionId: integer("connection_id"),
+
+  // Event that triggered this run
+  eventType: text("event_type").notNull(),
+  eventId: text("event_id").notNull(), // Unique event identifier for idempotency
+  eventPayload: jsonb("event_payload").notNull(),
+
+  // Execution details
+  status: text("status").notNull().default("pending"), // 'pending', 'running', 'success', 'failed', 'skipped'
+  skippedReason: text("skipped_reason"), // If skipped due to condition not met
+
+  // Request/Response details
+  requestPayload: jsonb("request_payload"), // What was sent to destination (after field mapping)
+  responseStatus: integer("response_status"), // HTTP status code
+  responseBody: text("response_body"), // Truncated response
+  errorMessage: text("error_message"),
+
+  // External references
+  externalId: text("external_id"), // ID from destination (e.g., HubSpot contact ID)
+  externalUrl: text("external_url"), // Link to record in destination system
+
+  // File handling
+  fileUploaded: boolean("file_uploaded").default(false).notNull(),
+  fileName: text("file_name"),
+  fileSize: integer("file_size"),
+
+  // Retry tracking
+  attemptCount: integer("attempt_count").default(0).notNull(),
+  nextRetryAt: timestamp("next_retry_at"),
+
+  // Timing
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  durationMs: integer("duration_ms"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Zod schemas for integrations
+
+// Field mapping schema
+export const fieldMappingSchema = z.object({
+  type: z.enum(['field', 'constant', 'template']),
+  sourceField: z.string().optional(), // For type: 'field'
+  value: z.string().optional(), // For type: 'constant'
+  template: z.string().optional(), // For type: 'template'
+  destField: z.string(),
+  destFieldLabel: z.string().optional(),
+  required: z.boolean().default(false),
+});
+
+// Trigger condition schema
+export const triggerConditionSchema = z.object({
+  field: z.string(),
+  operator: z.enum([
+    'equals',
+    'not_equals',
+    'contains',
+    'not_contains',
+    'starts_with',
+    'ends_with',
+    'is_empty',
+    'is_not_empty',
+  ]),
+  value: z.string().optional(),
+});
+
+// Connection schemas
+export const insertIntegrationConnectionSchema = createInsertSchema(integrationConnections).pick({
+  provider: true,
+  providerAccountId: true,
+  providerAccountName: true,
+  webhookUrl: true,
+  status: true,
+}).extend({
+  provider: z.enum(INTEGRATION_PROVIDERS as unknown as [string, ...string[]]),
+  providerAccountId: z.string().optional(),
+  providerAccountName: z.string().optional(),
+  webhookUrl: z.string().url().optional(),
+  webhookSecret: z.string().optional(),
+  status: z.enum(CONNECTION_STATUSES as unknown as [string, ...string[]]).default('active'),
+  settings: z.record(z.any()).optional(),
+});
+
+export const updateIntegrationConnectionSchema = insertIntegrationConnectionSchema.partial().extend({
+  status: z.enum(CONNECTION_STATUSES as unknown as [string, ...string[]]).optional(),
+});
+
+// Automation schemas
+export const insertIntegrationAutomationSchema = createInsertSchema(integrationAutomations).pick({
+  name: true,
+  triggerEvent: true,
+  destinationType: true,
+  destinationConfig: true,
+}).extend({
+  name: z.string().min(1, "Automation name is required").max(100),
+  description: z.string().optional(),
+  connectionId: z.number().optional(),
+  triggerEvent: z.enum(WEBHOOK_EVENT_TYPES as unknown as [string, ...string[]]),
+  triggerCondition: triggerConditionSchema.optional(),
+  destinationType: z.enum(DESTINATION_TYPES as unknown as [string, ...string[]]),
+  destinationConfig: z.record(z.any()),
+  behavior: z.enum(AUTOMATION_BEHAVIORS as unknown as [string, ...string[]]).default('upsert'),
+  matchField: z.string().optional(),
+  fieldMappings: z.array(fieldMappingSchema).default([]),
+  includeFile: z.boolean().default(false),
+  fileSource: z.string().optional(),
+  fileDestination: z.string().optional(),
+  isActive: z.boolean().default(true),
+});
+
+export const updateIntegrationAutomationSchema = insertIntegrationAutomationSchema.partial();
+
+// Run schemas
+export const insertIntegrationAutomationRunSchema = createInsertSchema(integrationAutomationRuns).pick({
+  automationId: true,
+  eventType: true,
+  eventId: true,
+  eventPayload: true,
+}).extend({
+  automationId: z.number(),
+  connectionId: z.number().optional(),
+  eventType: z.string(),
+  eventId: z.string(),
+  eventPayload: z.record(z.any()),
+  status: z.enum(RUN_STATUSES as unknown as [string, ...string[]]).default('pending'),
+});
+
+// Type exports for integrations
+export type IntegrationConnection = typeof integrationConnections.$inferSelect;
+export type InsertIntegrationConnection = z.infer<typeof insertIntegrationConnectionSchema>;
+export type UpdateIntegrationConnection = z.infer<typeof updateIntegrationConnectionSchema>;
+
+export type IntegrationAutomation = typeof integrationAutomations.$inferSelect;
+export type InsertIntegrationAutomation = z.infer<typeof insertIntegrationAutomationSchema>;
+export type UpdateIntegrationAutomation = z.infer<typeof updateIntegrationAutomationSchema>;
+
+export type IntegrationAutomationRun = typeof integrationAutomationRuns.$inferSelect;
+export type InsertIntegrationAutomationRun = z.infer<typeof insertIntegrationAutomationRunSchema>;
+
+export type FieldMapping = z.infer<typeof fieldMappingSchema>;
+export type TriggerCondition = z.infer<typeof triggerConditionSchema>;

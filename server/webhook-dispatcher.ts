@@ -67,7 +67,6 @@ function buildTestPayload(eventType: WebhookEventType): Record<string, any> {
         }
       };
 
-    case 'nda.sent':
     case 'nda.signed':
     case 'nda.declined':
       return {
@@ -82,7 +81,6 @@ function buildTestPayload(eventType: WebhookEventType): Record<string, any> {
 
     case 'contact.created':
     case 'contact.updated':
-    case 'contact.deleted':
       return {
         ...basePayload,
         data: {

@@ -127,42 +127,32 @@ export class ImageManager {
     let width: number | undefined;
     let height: number | undefined;
 
-    // Optimize image if requested
+    // Optimize image if requested - use WebP for 25-35% smaller files
     if (optimize && !mimeType.includes('svg')) {
       try {
         const image = sharp(buffer);
         const metadata = await image.metadata();
-        
+
         width = metadata.width;
         height = metadata.height;
-        
+
         // Check if image has transparency
         const hasAlpha = metadata.channels === 4 || metadata.hasAlpha;
-        
-        if (hasAlpha || mimeType === 'image/png') {
-          // Preserve transparency for PNG images
-          processedBuffer = await image
-            .resize(maxWidth, maxHeight, { 
-              fit: 'inside', 
-              withoutEnlargement: true,
-              background: { r: 0, g: 0, b: 0, alpha: 0 }
-            })
-            .png({ quality: 85, force: true })
-            .toBuffer();
-          finalMimeType = 'image/png';
-        } else {
-          // Convert to JPEG for photos without transparency
-          processedBuffer = await image
-            .resize(maxWidth, maxHeight, { 
-              fit: 'inside', 
-              withoutEnlargement: true,
-              background: { r: 255, g: 255, b: 255, alpha: 1 }
-            })
-            .jpeg({ quality: 85 })
-            .toBuffer();
-          finalMimeType = 'image/jpeg';
-        }
-        
+
+        // Use WebP for all images - supports transparency and is 25-35% smaller
+        processedBuffer = await image
+          .resize(maxWidth, maxHeight, {
+            fit: 'inside',
+            withoutEnlargement: true,
+            background: hasAlpha ? { r: 0, g: 0, b: 0, alpha: 0 } : { r: 255, g: 255, b: 255, alpha: 1 }
+          })
+          .webp({
+            quality: 80,
+            alphaQuality: hasAlpha ? 90 : 100
+          })
+          .toBuffer();
+        finalMimeType = 'image/webp';
+
         // Update metadata after processing
         const processedMetadata = await sharp(processedBuffer).metadata();
         width = processedMetadata.width;
