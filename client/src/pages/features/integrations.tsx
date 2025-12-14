@@ -323,7 +323,7 @@ export default function IntegrationsFeaturePage() {
             <Card className="border border-slate-200 shadow-lg hover:shadow-xl transition-shadow duration-300">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <img src="/zapier-icon.svg" alt="Zapier" className="w-12 h-12 object-contain" />
+                  <img src="/zapier-icon.svg" alt="Zapier" loading="lazy" className="w-12 h-12 object-contain" />
                   <div>
                     <h3 className="font-semibold text-lg">Zapier</h3>
                     <p className="text-sm text-slate-500">5,000+ app connections</p>
@@ -339,7 +339,7 @@ export default function IntegrationsFeaturePage() {
             <Card className="border border-slate-200 shadow-lg hover:shadow-xl transition-shadow duration-300">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <img src="/hubspot.png" alt="HubSpot" className="w-12 h-12 object-contain" />
+                  <img src="/hubspot.png" alt="HubSpot" loading="lazy" className="w-12 h-12 object-contain" />
                   <div>
                     <h3 className="font-semibold text-lg">HubSpot</h3>
                     <p className="text-sm text-slate-500">CRM & Marketing</p>
@@ -355,7 +355,7 @@ export default function IntegrationsFeaturePage() {
             <Card className="border border-slate-200 shadow-lg hover:shadow-xl transition-shadow duration-300">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <img src="/salesforce.png" alt="Salesforce" className="w-12 h-12 object-contain" />
+                  <img src="/salesforce.png" alt="Salesforce" loading="lazy" className="w-12 h-12 object-contain" />
                   <div>
                     <h3 className="font-semibold text-lg">Salesforce</h3>
                     <p className="text-sm text-slate-500">Enterprise CRM</p>
@@ -371,7 +371,7 @@ export default function IntegrationsFeaturePage() {
             <Card className="border border-slate-200 shadow-lg hover:shadow-xl transition-shadow duration-300">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <img src="/slack.png" alt="Slack" className="w-12 h-12 object-contain" />
+                  <img src="/slack.png" alt="Slack" loading="lazy" className="w-12 h-12 object-contain" />
                   <div>
                     <h3 className="font-semibold text-lg">Slack</h3>
                     <p className="text-sm text-slate-500">Team Communication</p>
@@ -387,7 +387,7 @@ export default function IntegrationsFeaturePage() {
             <Card className="border border-slate-200 shadow-lg hover:shadow-xl transition-shadow duration-300">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <img src="/makeicon.png" alt="Make" className="w-12 h-12 object-contain" />
+                  <img src="/makeicon.png" alt="Make" loading="lazy" className="w-12 h-12 object-contain" />
                   <div>
                     <h3 className="font-semibold text-lg">Make (Integromat)</h3>
                     <p className="text-sm text-slate-500">Visual Automation</p>

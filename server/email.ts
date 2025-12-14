@@ -1170,9 +1170,6 @@ async function sendEsignInvitationEmail(params: EsignEmailParams): Promise<boole
   const companyName = params.branding?.companyName || 'CIM Share';
   const headerTextColor = getContrastTextColor(primaryColor);
   const buttonTextColor = getContrastTextColor(primaryColor);
-  // Use the app's base URL for the signature icon
-  const baseUrl = process.env.APP_URL || 'https://cimshare.com';
-  const signatureIconUrl = `${baseUrl}/circle.png`;
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -1188,7 +1185,6 @@ async function sendEsignInvitationEmail(params: EsignEmailParams): Promise<boole
         .message-box { background: #e8f4fd; border-left: 4px solid ${primaryColor}; padding: 15px; margin: 20px 0; }
         .cta-section { text-align: center; margin: 30px 0; }
         .cta-button { display: inline-block; background-color: ${primaryColor}; color: ${buttonTextColor}; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; }
-        .signature-icon { width: 48px; height: 48px; margin-bottom: 15px; }
         .footer { padding: 20px 30px; background: #f8f9fa; font-size: 12px; color: #666; }
       </style>
     </head>
@@ -1215,8 +1211,6 @@ async function sendEsignInvitationEmail(params: EsignEmailParams): Promise<boole
           ` : ''}
 
           <div class="cta-section">
-            <img src="${signatureIconUrl}" alt="Sign" class="signature-icon" />
-            <br />
             <a href="${params.signingUrl}" class="cta-button">Review & Sign Document</a>
           </div>
 
@@ -1260,9 +1254,6 @@ async function sendEsignReminderEmail(params: EsignEmailParams): Promise<boolean
   // Reminder header uses amber/orange - calculate contrast for that
   const reminderHeaderColor = '#f59e0b';
   const reminderHeaderTextColor = getContrastTextColor(reminderHeaderColor);
-  // Use the app's base URL for the signature icon
-  const baseUrl = process.env.APP_URL || 'https://cimshare.com';
-  const signatureIconUrl = `${baseUrl}/circle.png`;
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -1278,7 +1269,6 @@ async function sendEsignReminderEmail(params: EsignEmailParams): Promise<boolean
         .document-info { background: #fef3c7; border-radius: 8px; padding: 20px; margin: 20px 0; }
         .cta-section { text-align: center; margin: 30px 0; }
         .cta-button { display: inline-block; background-color: ${primaryColor}; color: ${buttonTextColor}; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; }
-        .signature-icon { width: 48px; height: 48px; margin-bottom: 15px; }
         .footer { padding: 20px 30px; background: #f8f9fa; font-size: 12px; color: #666; }
       </style>
     </head>
@@ -1298,8 +1288,6 @@ async function sendEsignReminderEmail(params: EsignEmailParams): Promise<boolean
           </div>
 
           <div class="cta-section">
-            <img src="${signatureIconUrl}" alt="Sign" class="signature-icon" />
-            <br />
             <a href="${params.signingUrl}" class="cta-button">Review & Sign Now</a>
           </div>
         </div>

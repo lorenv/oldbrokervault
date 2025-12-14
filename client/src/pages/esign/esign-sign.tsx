@@ -722,18 +722,18 @@ export default function EsignSign() {
                                             top: '-2px',
                                             bottom: 'calc(-4px + 5px)', // Stop at corner radius
                                             width: '1px',
-                                            backgroundColor: '#6B7280',
+                                            backgroundColor: '#9CA3AF',
                                           }}
                                         />
-                                        {/* Bottom border - starts after corner */}
+                                        {/* Bottom border - stops halfway, DocuSign style */}
                                         <div
                                           className="absolute"
                                           style={{
                                             left: 'calc(-4px + 5px)', // Start after corner radius
                                             bottom: '-4px',
-                                            right: '0',
+                                            width: '45%',
                                             height: '1px',
-                                            backgroundColor: '#6B7280',
+                                            backgroundColor: '#9CA3AF',
                                           }}
                                         />
                                         {/* Rounded corner connecting left and bottom */}
@@ -744,20 +744,20 @@ export default function EsignSign() {
                                             bottom: '-4px',
                                             width: '10px',
                                             height: '10px',
-                                            border: '1px solid #6B7280',
+                                            border: '1px solid #9CA3AF',
                                             borderTop: 'none',
                                             borderRight: 'none',
                                             borderBottomLeftRadius: '5px',
                                           }}
                                         />
-                                        {/* Unique ID below the bottom border */}
+                                        {/* Unique ID inline with bottom border */}
                                         <div
                                           className="absolute font-mono"
                                           style={{
-                                            left: '-4px',
-                                            bottom: '-14px',
+                                            left: 'calc(-4px + 5px + 45% + 6px)', // Position right after the bottom border
+                                            bottom: '-7px',
                                             fontSize: '7px',
-                                            color: '#6B7280',
+                                            color: '#9CA3AF',
                                             letterSpacing: '0.5px',
                                           }}
                                         >
