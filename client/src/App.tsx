@@ -27,6 +27,8 @@ import TermsOfServicePage from "@/pages/terms-of-service-page";
 import CookiePolicyPage from "@/pages/cookie-policy-page";
 import DataSecurityPage from "@/pages/data-security-page";
 import { SharePage } from "@/pages/share-page";
+import { TeaserPage } from "@/pages/teaser-page";
+import { TeaserEmbedPage } from "@/pages/teaser-embed-page";
 import { NdaRedirectPage } from "@/pages/nda-redirect-page";
 import { UnsubscribePage } from "@/pages/unsubscribe-page";
 import { AcceptCollaborationPage } from "@/pages/accept-collaboration-page";
@@ -76,7 +78,7 @@ const InvestmentBankingPage = lazy(() => import("@/pages/solutions/investment-ba
 function Router() {
   const [location] = useLocation();
   const { user } = useAuth();
-  const isSharePage = location.startsWith('/share/') || location.startsWith('/cims/');
+  const isSharePage = location.startsWith('/share/') || location.startsWith('/cims/') || location.startsWith('/teaser/');
   
   // Track page views when routes change
   useAnalytics();
@@ -128,6 +130,8 @@ function Router() {
             <Route path="/accept-collaboration/:token" component={AcceptCollaborationPage} />
             <Route path="/share/:shareSlug" component={SharePage} />
             <Route path="/cims/:shareSlug" component={SharePage} />
+            <Route path="/teaser/:slug" component={TeaserPage} />
+            <Route path="/teaser/:slug/embed" component={TeaserEmbedPage} />
             <Route path="/nda/redirect/:redirectId" component={NdaRedirectPage} />
             <ProtectedRoute path="/nda-templates" component={NdaTemplatesPage} />
 
