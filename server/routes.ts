@@ -58,6 +58,7 @@ import { simpleParser } from 'mailparser';
 import webhookRoutes from "./routes/webhook-routes";
 import integrationRoutes from "./routes/integration-routes";
 import teaserRoutes from "./routes/teaser-routes";
+import listingsRoutes from "./routes/listings-routes";
 import { dispatchWebhookEvent } from "./webhook-dispatcher";
 import { dispatchIntegrationEvent } from "./integrations";
 
@@ -10999,6 +11000,9 @@ ${finalQuestion}
 
   // Register teaser routes
   app.use('/api/teasers', teaserRoutes);
+
+  // Register listings routes
+  app.use('/api/listings', listingsRoutes);
 
   // Background job: Clean up stale document locks (15+ minutes old)
   async function cleanupStaleLocks() {

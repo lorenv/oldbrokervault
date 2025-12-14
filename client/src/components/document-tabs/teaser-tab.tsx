@@ -54,6 +54,7 @@ import {
   Download,
   Trash2,
   Plus,
+  Star,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -111,6 +112,8 @@ export function DocumentTeaserTab({ cimDocument, user }: DocumentTeaserTabProps)
     isPublished: boolean;
     useCimCoverImage: boolean;
     includeWatermark: boolean;
+    isFeatured: boolean;
+    coverImageUrl: string;
   }>({
     headline: '',
     summary: '',
@@ -125,7 +128,15 @@ export function DocumentTeaserTab({ cimDocument, user }: DocumentTeaserTabProps)
     isPublished: false,
     useCimCoverImage: true,
     includeWatermark: true,
+    isFeatured: false,
+    coverImageUrl: '',
   });
+
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [showUnsplashDialog, setShowUnsplashDialog] = useState(false);
+  const [unsplashQuery, setUnsplashQuery] = useState('');
+  const [unsplashResults, setUnsplashResults] = useState<any[]>([]);
+  const [isSearchingUnsplash, setIsSearchingUnsplash] = useState(false);
 
   // Update local state when teaser data loads
   useEffect(() => {
@@ -144,6 +155,8 @@ export function DocumentTeaserTab({ cimDocument, user }: DocumentTeaserTabProps)
         isPublished: teaser.isPublished || false,
         useCimCoverImage: teaser.useCimCoverImage ?? true,
         includeWatermark: teaser.includeWatermark ?? true,
+        isFeatured: teaser.isFeatured || false,
+        coverImageUrl: teaser.coverImageUrl || '',
       });
     }
   }, [teaser]);
@@ -174,6 +187,31 @@ export function DocumentTeaserTab({ cimDocument, user }: DocumentTeaserTabProps)
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/teasers/cim/${cimDocument.id}`] });
       toast({ title: 'Teaser Updated', description: 'Your changes have been saved.' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  // Toggle featured mutation (for listings page)
+  const toggleFeaturedMutation = useMutation({
+    mutationFn: async (isFeatured: boolean) => {
+      if (!teaser?.id) throw new Error('Teaser not found');
+      const res = await apiRequest('PUT', `/api/listings/teaser/${teaser.id}/featured`, {
+        body: { isFeatured }
+      });
+      if (!res.ok) throw new Error('Failed to update featured status');
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: [`/api/teasers/cim/${cimDocument.id}`] });
+      setEditState(prev => ({ ...prev, isFeatured: data.isFeatured }));
+      toast({
+        title: data.isFeatured ? 'Listing Featured' : 'Featured Removed',
+        description: data.isFeatured
+          ? 'This listing will appear at the top of your public listings page.'
+          : 'This listing has been removed from featured.'
+      });
     },
     onError: (error: any) => {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -219,6 +257,96 @@ export function DocumentTeaserTab({ cimDocument, user }: DocumentTeaserTabProps)
   // Save changes
   const handleSave = () => {
     updateTeaserMutation.mutate(editState);
+  };
+
+  // Cover image upload handler
+  const handleCoverImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast({ title: 'Invalid File', description: 'Please select an image file.', variant: 'destructive' });
+      return;
+    }
+
+    setIsUploadingCover(true);
+    try {
+      // Compress and convert to base64
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const img = document.createElement('img');
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+            const maxWidth = 1200;
+            if (width > maxWidth) {
+              height = (height * maxWidth) / width;
+              width = maxWidth;
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx?.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', 0.85));
+          };
+          img.onerror = reject;
+          img.src = ev.target?.result as string;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      setEditState(prev => ({ ...prev, coverImageUrl: dataUrl, useCimCoverImage: false }));
+      toast({ title: 'Cover Image Updated', description: 'Remember to save your changes.' });
+    } catch (error) {
+      toast({ title: 'Upload Failed', description: 'Failed to process image.', variant: 'destructive' });
+    } finally {
+      setIsUploadingCover(false);
+    }
+  };
+
+  // Unsplash search handler
+  const handleUnsplashSearch = async () => {
+    if (!unsplashQuery.trim()) return;
+    setIsSearchingUnsplash(true);
+    try {
+      const res = await fetch(`/api/unsplash/search?query=${encodeURIComponent(unsplashQuery)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setUnsplashResults(data.results || []);
+      } else {
+        toast({ title: 'Search Failed', description: 'Could not search Unsplash images.', variant: 'destructive' });
+      }
+    } catch (error) {
+      toast({ title: 'Search Failed', description: 'Could not search Unsplash images.', variant: 'destructive' });
+    } finally {
+      setIsSearchingUnsplash(false);
+    }
+  };
+
+  // Select Unsplash image
+  const handleSelectUnsplashImage = (imageUrl: string) => {
+    setEditState(prev => ({ ...prev, coverImageUrl: imageUrl, useCimCoverImage: false }));
+    setShowUnsplashDialog(false);
+    setUnsplashResults([]);
+    setUnsplashQuery('');
+    toast({ title: 'Cover Image Updated', description: 'Remember to save your changes.' });
+  };
+
+  // Use CIM cover image
+  const handleUseCimCover = () => {
+    setEditState(prev => ({ ...prev, coverImageUrl: '', useCimCoverImage: true }));
+    toast({ title: 'Using CIM Cover', description: 'The teaser will use the cover image from your CIM document.' });
+  };
+
+  // Get the effective cover image URL
+  const getEffectiveCoverUrl = () => {
+    if (editState.useCimCoverImage && cimDocument?.coverImageUrl) {
+      return cimDocument.coverImageUrl;
+    }
+    return editState.coverImageUrl || null;
   };
 
   // Toggle publish status
@@ -477,6 +605,164 @@ export function DocumentTeaserTab({ cimDocument, user }: DocumentTeaserTabProps)
                 </>
               )}
             </Button>
+            {editState.isPublished && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => toggleFeaturedMutation.mutate(!editState.isFeatured)}
+                disabled={toggleFeaturedMutation.isPending}
+                className={editState.isFeatured ? "border-amber-400 bg-amber-50 text-amber-700 hover:bg-amber-100" : ""}
+                title={editState.isFeatured ? "Remove from featured listings" : "Feature this listing at the top of your public listings page"}
+              >
+                <Star className={`h-4 w-4 mr-2 ${editState.isFeatured ? "fill-amber-500" : ""}`} />
+                {editState.isFeatured ? "Featured" : "Feature"}
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Cover Image Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ImageIcon className="h-5 w-5" />
+            Cover Image
+          </CardTitle>
+          <CardDescription>
+            Choose a cover image for your teaser. You can use the CIM cover image, upload a custom one, or search Unsplash.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Current Cover Image Preview */}
+          <div className="relative">
+            {getEffectiveCoverUrl() ? (
+              <div className="relative rounded-lg overflow-hidden border">
+                <img
+                  src={getEffectiveCoverUrl()!}
+                  alt="Cover preview"
+                  className="w-full h-48 object-cover"
+                />
+                <div className="absolute top-2 left-2">
+                  <Badge variant="secondary" className="bg-white/90 text-gray-700">
+                    {editState.useCimCoverImage ? 'Using CIM Cover' : 'Custom Cover'}
+                  </Badge>
+                </div>
+              </div>
+            ) : (
+              <div className="w-full h-48 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
+                <div className="text-center text-gray-500">
+                  <ImageIcon className="h-12 w-12 mx-auto mb-2 text-gray-400" />
+                  <p className="text-sm">No cover image selected</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Image Source Options */}
+          <div className="flex flex-wrap gap-2">
+            {cimDocument?.coverImageUrl && (
+              <Button
+                variant={editState.useCimCoverImage ? "default" : "outline"}
+                size="sm"
+                onClick={handleUseCimCover}
+                className={editState.useCimCoverImage ? "bg-gradient-to-r from-slate-600 to-blue-600" : ""}
+              >
+                <Check className={`h-4 w-4 mr-2 ${editState.useCimCoverImage ? '' : 'opacity-0'}`} />
+                Use CIM Cover
+              </Button>
+            )}
+            <div>
+              <input
+                type="file"
+                id="cover-upload"
+                accept="image/*"
+                className="hidden"
+                onChange={handleCoverImageUpload}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => document.getElementById('cover-upload')?.click()}
+                disabled={isUploadingCover}
+              >
+                {isUploadingCover ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <ImageIcon className="h-4 w-4 mr-2" />
+                )}
+                Upload Image
+              </Button>
+            </div>
+            <Dialog open={showUnsplashDialog} onOpenChange={setShowUnsplashDialog}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Search Unsplash
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+                <DialogHeader>
+                  <DialogTitle>Search Unsplash Photos</DialogTitle>
+                  <DialogDescription>
+                    Find free, high-quality photos for your teaser cover.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex gap-2 mb-4">
+                  <Input
+                    placeholder="Search for images..."
+                    value={unsplashQuery}
+                    onChange={(e) => setUnsplashQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleUnsplashSearch()}
+                  />
+                  <Button onClick={handleUnsplashSearch} disabled={isSearchingUnsplash}>
+                    {isSearchingUnsplash ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Search'}
+                  </Button>
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                  {unsplashResults.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      {unsplashResults.map((image: any) => (
+                        <div
+                          key={image.id}
+                          className="relative cursor-pointer group rounded-lg overflow-hidden"
+                          onClick={() => handleSelectUnsplashImage(image.urls.regular)}
+                        >
+                          <img
+                            src={image.urls.small}
+                            alt={image.alt_description || 'Unsplash photo'}
+                            className="w-full h-32 object-cover group-hover:scale-105 transition-transform"
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <span className="text-white text-sm font-medium">Select</span>
+                          </div>
+                          <div className="absolute bottom-1 left-1 right-1">
+                            <p className="text-xs text-white bg-black/50 px-1.5 py-0.5 rounded truncate">
+                              by {image.user?.name}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <p>Search for images above to see results</p>
+                    </div>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
+            {editState.coverImageUrl && !editState.useCimCoverImage && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setEditState(prev => ({ ...prev, coverImageUrl: '' }))}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                <X className="h-4 w-4 mr-1" />
+                Remove
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -1139,7 +1139,7 @@ export default function ESignaturesPage() {
                 </Button>
               </Link>
               <Link href="/pricing">
-                <Button size="lg" variant="outline" className="border-indigo-400 text-indigo-200 hover:bg-indigo-800">
+                <Button size="lg" variant="outline" className="border-indigo-400 text-white hover:bg-indigo-800">
                   View Pricing Plans
                 </Button>
               </Link>

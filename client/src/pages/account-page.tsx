@@ -27,11 +27,12 @@ import { useLocation } from "wouter";
 import { SubscriptionCard } from "@/components/ui/subscription-card";
 import { SecurityDashboard } from "@/components/security-dashboard";
 import { UserManagement } from "@/components/user-management";
-import { User, Phone, Building, Upload, Camera, Shield, Lock, CreditCard, Settings, FileImage, FileText, Globe, Sparkles } from "lucide-react";
+import { User, Phone, Building, Upload, Camera, Shield, Lock, CreditCard, Settings, FileImage, FileText, Globe, Sparkles, LayoutList } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UnifiedPdfTemplateSelector } from "@/components/unified-pdf-template-selector";
 import { DocumentDefaultsSettings } from "@/components/document-defaults-settings";
+import { ListingsSettings } from "@/components/listings-settings";
 
 // Define authorized admin emails
 const AUTHORIZED_ADMIN_EMAILS = [
@@ -81,15 +82,28 @@ export default function AccountPage() {
     const searchParams = new URLSearchParams(window.location.search);
     const tabFromUrl = searchParams.get('tab');
     const sessionId = searchParams.get('session_id');
-    
+
     // If there's a session_id and no tab, default to billing
     // If there's already a tab parameter, use it
     // Otherwise default to account tab
     return tabFromUrl || (sessionId ? 'billing' : 'account');
   };
-  
-  const [activeTab, setActiveTab] = useState(getTabFromUrl());
-  const [profileSubTab, setProfileSubTab] = useState("info");
+
+  // Get subtab from URL (for deep linking to profile sub-tabs like "listings")
+  const getSubTabFromUrl = () => {
+    const searchParams = new URLSearchParams(window.location.search);
+    return searchParams.get('subtab') || "info";
+  };
+
+  const [activeTab, setActiveTab] = useState(() => {
+    // If subtab is specified, we need to go to the profile tab
+    const subtab = getSubTabFromUrl();
+    if (subtab !== "info") {
+      return "profile";
+    }
+    return getTabFromUrl();
+  });
+  const [profileSubTab, setProfileSubTab] = useState(getSubTabFromUrl());
 
   // Listen for URL changes to update active tab (browser back/forward only)
   useEffect(() => {
@@ -621,6 +635,19 @@ export default function AccountPage() {
                   Online CIM Branding
                 </span>
               </button>
+              <button
+                onClick={() => setProfileSubTab("listings")}
+                className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
+                  profileSubTab === "listings"
+                    ? "bg-white text-gray-900 shadow-md ring-1 ring-gray-200/50"
+                    : "text-gray-500 hover:text-gray-700 hover:bg-white/50"
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <LayoutList className="h-4 w-4" />
+                  Public Listings
+                </span>
+              </button>
             </div>
           </div>
 
@@ -926,6 +953,11 @@ export default function AccountPage() {
           {/* Online CIM Branding Sub-tab */}
           {profileSubTab === "defaults" && (
             <DocumentDefaultsSettings user={user} />
+          )}
+
+          {/* Public Listings Sub-tab */}
+          {profileSubTab === "listings" && (
+            <ListingsSettings />
           )}
 
         </TabsContent>

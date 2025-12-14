@@ -133,6 +133,13 @@ export const users = pgTable("users", {
     customColor?: string;
     customColorSecondary?: string;
   }>(),
+  // Public Listings Page settings
+  listingsEnabled: boolean("listings_enabled").default(false).notNull(),
+  listingsSlug: text("listings_slug").unique(),
+  listingsTitle: text("listings_title"),
+  listingsTagline: text("listings_tagline"),
+  listingsBannerUrl: text("listings_banner_url"),
+  listingsLayout: text("listings_layout").default('grid'),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -1922,6 +1929,10 @@ export const teasers = pgTable("teasers", {
   // Analytics
   viewCount: integer("view_count").default(0).notNull(),
   lastViewedAt: timestamp("last_viewed_at"),
+
+  // Featured/pinning for listings page
+  isFeatured: boolean("is_featured").default(false).notNull(),
+  featuredOrder: integer("featured_order").default(0),
 
   // Metadata
   createdAt: timestamp("created_at").defaultNow().notNull(),

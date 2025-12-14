@@ -29,6 +29,7 @@ import DataSecurityPage from "@/pages/data-security-page";
 import { SharePage } from "@/pages/share-page";
 import { TeaserPage } from "@/pages/teaser-page";
 import { TeaserEmbedPage } from "@/pages/teaser-embed-page";
+import { ListingsPage } from "@/pages/listings-page";
 import { NdaRedirectPage } from "@/pages/nda-redirect-page";
 import { UnsubscribePage } from "@/pages/unsubscribe-page";
 import { AcceptCollaborationPage } from "@/pages/accept-collaboration-page";
@@ -78,7 +79,7 @@ const InvestmentBankingPage = lazy(() => import("@/pages/solutions/investment-ba
 function Router() {
   const [location] = useLocation();
   const { user } = useAuth();
-  const isSharePage = location.startsWith('/share/') || location.startsWith('/cims/') || location.startsWith('/teaser/');
+  const isSharePage = location.startsWith('/share/') || location.startsWith('/cims/') || location.startsWith('/teaser/') || location.startsWith('/listings/');
   
   // Track page views when routes change
   useAnalytics();
@@ -132,6 +133,7 @@ function Router() {
             <Route path="/cims/:shareSlug" component={SharePage} />
             <Route path="/teaser/:slug" component={TeaserPage} />
             <Route path="/teaser/:slug/embed" component={TeaserEmbedPage} />
+            <Route path="/listings/:slug" component={ListingsPage} />
             <Route path="/nda/redirect/:redirectId" component={NdaRedirectPage} />
             <ProtectedRoute path="/nda-templates" component={NdaTemplatesPage} />
 

@@ -602,7 +602,7 @@ export default function MessagesFeaturePage() {
                 </Button>
               </Link>
               <Link href="/pricing">
-                <Button size="lg" variant="outline" className="border-slate-400 text-slate-300 hover:bg-slate-800">
+                <Button size="lg" variant="outline" className="border-slate-400 text-white hover:bg-slate-800">
                   View Pricing
                 </Button>
               </Link>
