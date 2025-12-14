@@ -16,8 +16,9 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Settings, LogOut, User, HelpCircle, Plus, Menu, MessageCircle, BarChart3, WandSparkles, Signature, MoreHorizontal, FileCheck, ChevronDown, Users, FileText, Zap, Shield, Database, PenTool, Briefcase, MessageSquare, TrendingUp, Link2, Workflow } from "lucide-react";
+import { Settings, LogOut, User, HelpCircle, Plus, Menu, MessageCircle, BarChart3, WandSparkles, Signature, MoreHorizontal, FileCheck, ChevronDown, ChevronRight, Users, FileText, Zap, Shield, Database, PenTool, Briefcase, MessageSquare, TrendingUp, Link2, Workflow } from "lucide-react";
 import { useState, useRef } from "react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { SupportDialog } from "./support-dialog";
 import { useQuery } from "@tanstack/react-query";
 
@@ -27,12 +28,23 @@ export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [location, setLocation] = useLocation();
   const [featuresOpen, setFeaturesOpen] = useState(false);
+  const [mobileFeaturesOpen, setMobileFeaturesOpen] = useState(false);
+  const [mobileSolutionsOpen, setMobileSolutionsOpen] = useState(false);
   const featuresTimeout = useRef<NodeJS.Timeout | null>(null);
   const isHomePage = location === '/';
 
   // Fetch profile data for profile picture
   const { data: profile } = useQuery({
     queryKey: ["/api/profile"],
+    enabled: !!user,
+  });
+
+  // Fetch listings settings for My Listings Page link
+  const { data: listingsSettings } = useQuery<{
+    listingsEnabled: boolean;
+    listingsSlug: string | null;
+  }>({
+    queryKey: ["/api/listings/settings"],
     enabled: !!user,
   });
 
@@ -391,88 +403,105 @@ export function Navbar() {
                     <SheetTitle>Menu</SheetTitle>
                   </SheetHeader>
                   <div className="flex flex-col gap-2 py-6">
-                    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-2 mb-2">
-                      Features
-                    </div>
-                    <Link href="/features/ai-powered-cim" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button variant="ghost" className="w-full justify-start text-left h-11">
-                        <Zap className="mr-3 h-4 w-4 text-orange-500" />
-                        AI CIM Generator
-                      </Button>
-                    </Link>
-                    <Link href="/features/esignatures" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button variant="ghost" className="w-full justify-start text-left h-11">
-                        <PenTool className="mr-3 h-4 w-4 text-indigo-500" />
-                        eSignatures
-                      </Button>
-                    </Link>
-                    <Link href="/features/sde-analyzer" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button variant="ghost" className="w-full justify-start text-left h-11">
-                        <WandSparkles className="mr-3 h-4 w-4 text-blue-500" />
-                        SDE Analyzer
-                      </Button>
-                    </Link>
-                    <Link href="/features/nda-protection" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button variant="ghost" className="w-full justify-start text-left h-11">
-                        <Shield className="mr-3 h-4 w-4 text-green-500" />
-                        NDA Protection
-                      </Button>
-                    </Link>
-                    <Link href="/features/investor-database" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button variant="ghost" className="w-full justify-start text-left h-11">
-                        <Database className="mr-3 h-4 w-4 text-indigo-500" />
-                        Investor CRM
-                      </Button>
-                    </Link>
-                    <Link href="/features/messages" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button variant="ghost" className="w-full justify-start text-left h-11">
-                        <MessageSquare className="mr-3 h-4 w-4 text-cyan-500" />
-                        Message Center
-                      </Button>
-                    </Link>
-                    <Link href="/features/analytics" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button variant="ghost" className="w-full justify-start text-left h-11">
-                        <TrendingUp className="mr-3 h-4 w-4 text-emerald-500" />
-                        Analytics Dashboard
-                      </Button>
-                    </Link>
-                    <Link href="/features/integrations" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button variant="ghost" className="w-full justify-start text-left h-11">
-                        <Workflow className="mr-3 h-4 w-4 text-blue-600" />
-                        Integrations
-                      </Button>
-                    </Link>
-                    <Link href="/virtual-data-room" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button variant="ghost" className="w-full justify-start text-left h-11">
-                        <img src="/vv.png" alt="" className="mr-3 h-4 w-4 object-contain" />
-                        Virtual Diligence Room
-                      </Button>
-                    </Link>
+                    {/* Collapsible Features Section */}
+                    <Collapsible open={mobileFeaturesOpen} onOpenChange={setMobileFeaturesOpen}>
+                      <CollapsibleTrigger className="flex items-center justify-between w-full px-2 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 rounded-md">
+                        <span className="flex items-center gap-2">
+                          <Zap className="h-4 w-4 text-orange-500" />
+                          Features
+                        </span>
+                        <ChevronDown className={`h-4 w-4 transition-transform ${mobileFeaturesOpen ? 'rotate-180' : ''}`} />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="pl-4 space-y-1 mt-1">
+                        <Link href="/features/ai-powered-cim" onClick={() => setIsMobileMenuOpen(false)}>
+                          <Button variant="ghost" className="w-full justify-start text-left h-10 text-sm">
+                            <Zap className="mr-3 h-4 w-4 text-orange-500" />
+                            AI CIM Generator
+                          </Button>
+                        </Link>
+                        <Link href="/features/esignatures" onClick={() => setIsMobileMenuOpen(false)}>
+                          <Button variant="ghost" className="w-full justify-start text-left h-10 text-sm">
+                            <PenTool className="mr-3 h-4 w-4 text-indigo-500" />
+                            eSignatures
+                          </Button>
+                        </Link>
+                        <Link href="/features/sde-analyzer" onClick={() => setIsMobileMenuOpen(false)}>
+                          <Button variant="ghost" className="w-full justify-start text-left h-10 text-sm">
+                            <WandSparkles className="mr-3 h-4 w-4 text-blue-500" />
+                            SDE Analyzer
+                          </Button>
+                        </Link>
+                        <Link href="/features/nda-protection" onClick={() => setIsMobileMenuOpen(false)}>
+                          <Button variant="ghost" className="w-full justify-start text-left h-10 text-sm">
+                            <Shield className="mr-3 h-4 w-4 text-green-500" />
+                            NDA Protection
+                          </Button>
+                        </Link>
+                        <Link href="/features/investor-database" onClick={() => setIsMobileMenuOpen(false)}>
+                          <Button variant="ghost" className="w-full justify-start text-left h-10 text-sm">
+                            <Database className="mr-3 h-4 w-4 text-indigo-500" />
+                            Investor CRM
+                          </Button>
+                        </Link>
+                        <Link href="/features/messages" onClick={() => setIsMobileMenuOpen(false)}>
+                          <Button variant="ghost" className="w-full justify-start text-left h-10 text-sm">
+                            <MessageSquare className="mr-3 h-4 w-4 text-cyan-500" />
+                            Message Center
+                          </Button>
+                        </Link>
+                        <Link href="/features/analytics" onClick={() => setIsMobileMenuOpen(false)}>
+                          <Button variant="ghost" className="w-full justify-start text-left h-10 text-sm">
+                            <TrendingUp className="mr-3 h-4 w-4 text-emerald-500" />
+                            Analytics Dashboard
+                          </Button>
+                        </Link>
+                        <Link href="/features/integrations" onClick={() => setIsMobileMenuOpen(false)}>
+                          <Button variant="ghost" className="w-full justify-start text-left h-10 text-sm">
+                            <Workflow className="mr-3 h-4 w-4 text-blue-600" />
+                            Integrations
+                          </Button>
+                        </Link>
+                        <Link href="/virtual-data-room" onClick={() => setIsMobileMenuOpen(false)}>
+                          <Button variant="ghost" className="w-full justify-start text-left h-10 text-sm">
+                            <img src="/vv.png" alt="" className="mr-3 h-4 w-4 object-contain" />
+                            Virtual Diligence Room
+                          </Button>
+                        </Link>
+                      </CollapsibleContent>
+                    </Collapsible>
 
-                    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-2 mb-2 mt-4">
-                      Solutions
-                    </div>
-                    <Link href="/solutions/business-brokers" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button variant="ghost" className="w-full justify-start text-left h-11">
-                        <Briefcase className="mr-3 h-4 w-4 text-blue-600" />
-                        For M&A Advisors
-                      </Button>
-                    </Link>
-                    <Link href="/solutions/investment-banking" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button variant="ghost" className="w-full justify-start text-left h-11">
-                        <BarChart3 className="mr-3 h-4 w-4 text-slate-700" />
-                        For Investment Banks
-                      </Button>
-                    </Link>
+                    {/* Collapsible Solutions Section */}
+                    <Collapsible open={mobileSolutionsOpen} onOpenChange={setMobileSolutionsOpen}>
+                      <CollapsibleTrigger className="flex items-center justify-between w-full px-2 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 rounded-md">
+                        <span className="flex items-center gap-2">
+                          <Briefcase className="h-4 w-4 text-blue-600" />
+                          Solutions
+                        </span>
+                        <ChevronDown className={`h-4 w-4 transition-transform ${mobileSolutionsOpen ? 'rotate-180' : ''}`} />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="pl-4 space-y-1 mt-1">
+                        <Link href="/solutions/business-brokers" onClick={() => setIsMobileMenuOpen(false)}>
+                          <Button variant="ghost" className="w-full justify-start text-left h-10 text-sm">
+                            <Briefcase className="mr-3 h-4 w-4 text-blue-600" />
+                            For M&A Advisors
+                          </Button>
+                        </Link>
+                        <Link href="/solutions/investment-banking" onClick={() => setIsMobileMenuOpen(false)}>
+                          <Button variant="ghost" className="w-full justify-start text-left h-10 text-sm">
+                            <BarChart3 className="mr-3 h-4 w-4 text-slate-700" />
+                            For Investment Banks
+                          </Button>
+                        </Link>
+                      </CollapsibleContent>
+                    </Collapsible>
 
-                    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-2 mb-2 mt-4">
-                      Company
-                    </div>
+                    {/* Non-collapsible items */}
                     <Link href="/pricing" onClick={() => setIsMobileMenuOpen(false)}>
                       <Button variant="ghost" className="w-full justify-start text-left h-11" data-testid="link-pricing">
                         Pricing
                       </Button>
                     </Link>
+
                     <div className="pt-4 border-t mt-4 space-y-2">
                       <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
                         <Button variant="outline" className="w-full" data-testid="button-login-mobile">
@@ -531,6 +560,26 @@ export function Navbar() {
                     Account Settings
                   </Link>
                 </DropdownMenuItem>
+                {listingsSettings?.listingsEnabled && listingsSettings?.listingsSlug ? (
+                  <DropdownMenuItem asChild>
+                    <a
+                      href={`/listings/${listingsSettings.listingsSlug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center cursor-pointer w-full"
+                    >
+                      <Link2 className="h-4 w-4 mr-2" />
+                      My Listings Page
+                    </a>
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem asChild>
+                    <Link href="/account?subtab=listings" className="flex items-center cursor-pointer w-full">
+                      <Link2 className="h-4 w-4 mr-2" />
+                      My Listings Page
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 {user.isAdmin && (
                   <DropdownMenuItem onClick={() => setLocation("/admin")} className="cursor-pointer">
                     <User className="h-4 w-4 mr-2" />
@@ -673,6 +722,26 @@ export function Navbar() {
                         Account Settings
                       </Button>
                     </Link>
+                    {listingsSettings?.listingsEnabled && listingsSettings?.listingsSlug ? (
+                      <a
+                        href={`/listings/${listingsSettings.listingsSlug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        <Button variant="ghost" className="w-full justify-start text-left h-12 text-base">
+                          <Link2 className="mr-3 h-5 w-5" />
+                          My Listings Page
+                        </Button>
+                      </a>
+                    ) : (
+                      <Link href="/account?subtab=listings" onClick={() => setIsMobileMenuOpen(false)}>
+                        <Button variant="ghost" className="w-full justify-start text-left h-12 text-base">
+                          <Link2 className="mr-3 h-5 w-5" />
+                          My Listings Page
+                        </Button>
+                      </Link>
+                    )}
                     {user.isAdmin && (
                       <Button
                         variant="ghost"

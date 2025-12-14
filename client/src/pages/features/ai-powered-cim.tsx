@@ -20,7 +20,11 @@ import {
   Download,
   Edit3,
   Users,
-  Shield
+  Shield,
+  ExternalLink,
+  Star,
+  LayoutList,
+  Share2
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { SEOHead } from "@/components/seo-head";
@@ -98,15 +102,76 @@ export default function AiPoweredCimPage() {
             <h2 className="text-3xl font-bold text-slate-900 mb-4">See It In Action</h2>
             <p className="text-lg text-slate-600">Watch how easy it is to create a professional CIM with AI assistance</p>
           </div>
-          <div className="rounded-2xl overflow-hidden shadow-2xl border border-slate-200">
+          <div className="rounded-2xl overflow-hidden shadow-2xl border border-slate-200 mb-12">
             <video
               className="w-full"
               controls
-              poster="/cim-share-logo.png"
+              preload="metadata"
             >
-              <source src="/cim-creation-walkthrough.mp4" type="video/mp4" />
+              <source src="/cim-creation-walkthrough.mp4#t=0.1" type="video/mp4" />
               Your browser does not support the video tag.
             </video>
+          </div>
+
+          {/* Live Examples */}
+          <div className="text-center mb-8">
+            <Badge className="mb-4 bg-green-100 text-green-700 border border-green-200">
+              <Globe className="h-3 w-3 mr-1" />
+              Live Examples
+            </Badge>
+            <h3 className="text-2xl font-bold text-slate-900 mb-3">Explore Real AI-Generated CIMs</h3>
+            <p className="text-slate-600 max-w-2xl mx-auto">
+              See the quality and professionalism of CIMs created with our AI platform. These are real examples you can explore right now.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            {/* Tony's Transmissions Image Card */}
+            <div
+              className="relative overflow-hidden rounded-xl shadow-lg hover:shadow-2xl hover:-translate-y-4 hover:rotate-1 transition-all duration-500 cursor-pointer group"
+              onClick={() => window.open("https://cimshare.com/share/cim-q3bqjm", "_blank")}
+            >
+              <img
+                src="/tonys-transmissions-preview.png"
+                alt="Tony's Transmissions CIM Document Preview"
+                loading="lazy"
+                className="w-full h-auto object-cover group-hover:scale-110 transition-transform duration-500"
+              />
+              <div className="absolute top-4 right-4">
+                <div className="text-sm text-blue-600 font-medium bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-sm">
+                  Live Example
+                </div>
+              </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="absolute bottom-4 left-4 right-4">
+                <p className="text-white text-sm font-medium opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-2 group-hover:translate-y-0 drop-shadow-lg">
+                  Click to view full CIM document →
+                </p>
+              </div>
+            </div>
+
+            {/* Arbor Partners Image Card */}
+            <div
+              className="relative overflow-hidden rounded-xl shadow-lg hover:shadow-2xl hover:-translate-y-4 hover:-rotate-1 transition-all duration-500 cursor-pointer group"
+              onClick={() => window.open("https://cimshare.com/share/cim-2axr79", "_blank")}
+            >
+              <img
+                src="/arbor-partners-preview.png"
+                alt="Arbor Partners CIM Document Preview"
+                loading="lazy"
+                className="w-full h-auto object-cover group-hover:scale-110 transition-transform duration-500"
+              />
+              <div className="absolute top-4 right-4">
+                <div className="text-sm text-green-600 font-medium bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-sm">
+                  Live Example
+                </div>
+              </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="absolute bottom-4 left-4 right-4">
+                <p className="text-white text-sm font-medium opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-2 group-hover:translate-y-0 drop-shadow-lg">
+                  Click to view full CIM document →
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -588,6 +653,127 @@ export default function AiPoweredCimPage() {
         </div>
       </section>
 
+      {/* Teasers & Listings Section */}
+      <section className="container mx-auto px-4 py-20 bg-gradient-to-br from-blue-50 via-white to-slate-50">
+        <div className="text-center mb-12">
+          <Badge className="mb-4 bg-purple-100 text-purple-700 border border-purple-200">
+            <Share2 className="h-3 w-3 mr-1" />
+            Marketing & Distribution
+          </Badge>
+          <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
+            From CIM to Marketing in Seconds
+          </h2>
+          <p className="text-xl text-slate-600 max-w-3xl mx-auto">
+            Our AI doesn't stop at CIM creation. Automatically generate one-page teasers
+            and build your own public listings page to showcase deals.
+          </p>
+        </div>
+
+        <div className="grid lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
+          {/* AI Teasers Card */}
+          <Card className="bg-white shadow-lg border border-slate-200 overflow-hidden">
+            <CardContent className="p-0">
+              <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                    <FileText className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">AI-Generated Teasers</h3>
+                    <p className="text-purple-100 text-sm">One-page marketing summaries</p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-6">
+                <p className="text-slate-600 mb-4">
+                  Automatically generate compelling one-page teasers from your CIM content.
+                  Perfect for initial outreach and sparking buyer interest.
+                </p>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                    <span className="text-slate-700">Auto-generated from CIM data</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                    <span className="text-slate-700">Custom cover images from Unsplash or uploads</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                    <span className="text-slate-700">Public shareable links</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                    <span className="text-slate-700">NDA capture before full CIM access</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Star className="h-5 w-5 text-yellow-500 flex-shrink-0" />
+                    <span className="text-slate-700">Feature top listings for visibility</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Public Listings Page Card */}
+          <Card className="bg-white shadow-lg border border-slate-200 overflow-hidden">
+            <CardContent className="p-0">
+              <div className="bg-gradient-to-r from-slate-700 to-slate-900 p-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                    <LayoutList className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">Public Listings Page</h3>
+                    <p className="text-slate-300 text-sm">Your branded deal showcase</p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-6">
+                <p className="text-slate-600 mb-4">
+                  Create a professional public listings page that aggregates all your published
+                  teasers—essentially your own listings website in minutes.
+                </p>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                    <span className="text-slate-700">Custom URL (yourcompany.cimshare.com)</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                    <span className="text-slate-700">Your logo, banner, and branding</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                    <span className="text-slate-700">Filter by industry, deal type, price range</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                    <span className="text-slate-700">Grid or list layout options</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                    <span className="text-slate-700">SEO-optimized for buyer discovery</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="text-center mt-10">
+          <p className="text-slate-600 mb-4">
+            Turn every CIM into a marketing asset and build your deal pipeline faster.
+          </p>
+          <Link href="/login">
+            <Button size="lg" className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white">
+              <Sparkles className="mr-2 h-5 w-5" />
+              Start Creating Teasers
+            </Button>
+          </Link>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="container mx-auto px-4 py-16">
         <Card className="max-w-4xl mx-auto bg-slate-900 border-0 text-white text-center">
@@ -612,7 +798,7 @@ export default function AiPoweredCimPage() {
                 </Button>
               </Link>
               <Link href="/pricing">
-                <Button size="lg" variant="outline" className="border-slate-400 text-slate-300 hover:bg-slate-800">
+                <Button size="lg" variant="outline" className="border-slate-400 text-white hover:bg-slate-800">
                   View Pricing Plans
                 </Button>
               </Link>

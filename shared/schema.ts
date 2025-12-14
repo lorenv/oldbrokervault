@@ -133,6 +133,13 @@ export const users = pgTable("users", {
     customColor?: string;
     customColorSecondary?: string;
   }>(),
+  // Public Listings Page settings
+  listingsEnabled: boolean("listings_enabled").default(false).notNull(),
+  listingsSlug: text("listings_slug").unique(),
+  listingsTitle: text("listings_title"),
+  listingsTagline: text("listings_tagline"),
+  listingsBannerUrl: text("listings_banner_url"),
+  listingsLayout: text("listings_layout").default('grid'),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -1839,3 +1846,177 @@ export type InsertIntegrationAutomationRun = z.infer<typeof insertIntegrationAut
 
 export type FieldMapping = z.infer<typeof fieldMappingSchema>;
 export type TriggerCondition = z.infer<typeof triggerConditionSchema>;
+
+// ============================================================================
+// TEASER SYSTEM - Public teaser pages for CIM documents
+// ============================================================================
+
+// Predefined industry tags for teasers
+export const TEASER_INDUSTRY_TAGS = [
+  'Aerospace & Defense',
+  'Agriculture',
+  'Automotive',
+  'Business Services',
+  'Construction',
+  'Consumer Products',
+  'E-commerce',
+  'Education',
+  'Energy & Utilities',
+  'Financial Services',
+  'Food & Beverage',
+  'Healthcare',
+  'Hospitality',
+  'Insurance',
+  'Logistics & Transportation',
+  'Manufacturing',
+  'Media & Entertainment',
+  'Professional Services',
+  'Real Estate',
+  'Retail',
+  'SaaS / Software',
+  'Technology',
+  'Telecommunications',
+] as const;
+
+// Predefined deal type tags for teasers
+export const TEASER_DEAL_TYPE_TAGS = [
+  'Acquisition',
+  'Asset Sale',
+  'Buyout',
+  'Divestiture',
+  'Growth Equity',
+  'Management Buyout (MBO)',
+  'Merger',
+  'Minority Investment',
+  'Recapitalization',
+  'Strategic Sale',
+] as const;
+
+// Teasers - public-facing teaser pages for CIM documents
+export const teasers = pgTable("teasers", {
+  id: serial("id").primaryKey(),
+  documentId: integer("document_id").notNull().unique(), // One teaser per CIM
+
+  // Content (AI-generated, editable)
+  headline: text("headline"),
+  summary: text("summary"),
+  industryTags: text("industry_tags").array().default([]),
+  dealTypeTags: text("deal_type_tags").array().default([]),
+
+  // Cover Image (separate from CIM)
+  coverImageUrl: text("cover_image_url"),
+  coverImageAttribution: text("cover_image_attribution"), // For Unsplash credits
+  useCimCoverImage: boolean("use_cim_cover_image").default(true).notNull(),
+
+  // Financials (can override CIM values)
+  showFinancials: boolean("show_financials").default(false).notNull(),
+  revenue: text("revenue"),
+  earnings: text("earnings"),
+  askingPrice: text("asking_price"),
+
+  // Share Settings
+  shareSlug: text("share_slug").unique(), // SEO-friendly URL slug
+  sharePassword: text("share_password"),
+  isPublished: boolean("is_published").default(false).notNull(),
+
+  // PDF Options
+  includeWatermark: boolean("include_watermark").default(true).notNull(),
+
+  // Sync Tracking (for "outdated" status when CIM changes)
+  lastSyncedAt: timestamp("last_synced_at"),
+  cimUpdatedSinceSync: boolean("cim_updated_since_sync").default(false).notNull(),
+
+  // Analytics
+  viewCount: integer("view_count").default(0).notNull(),
+  lastViewedAt: timestamp("last_viewed_at"),
+
+  // Featured/pinning for listings page
+  isFeatured: boolean("is_featured").default(false).notNull(),
+  featuredOrder: integer("featured_order").default(0),
+
+  // Metadata
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+// Teaser Views - analytics tracking for teaser pages
+export const teaserViews = pgTable("teaser_views", {
+  id: serial("id").primaryKey(),
+  teaserId: integer("teaser_id").notNull(),
+
+  // Viewer info
+  viewerIp: text("viewer_ip"),
+  viewerUserAgent: text("viewer_user_agent"),
+  referrer: text("referrer"),
+  sessionId: text("session_id"),
+
+  // Engagement tracking
+  timeSpentSeconds: integer("time_spent_seconds").default(0).notNull(),
+  clickedSignNda: boolean("clicked_sign_nda").default(false).notNull(),
+  clickedContact: boolean("clicked_contact").default(false).notNull(),
+
+  // Timestamp
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
+// User Teaser Tags - custom tags saved per user for reuse
+export const userTeaserTags = pgTable("user_teaser_tags", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  tagType: text("tag_type").notNull(), // 'industry' or 'deal_type'
+  tagValue: text("tag_value").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
+// Zod schemas for teaser system
+export const insertTeaserSchema = createInsertSchema(teasers).pick({
+  documentId: true,
+  headline: true,
+  summary: true,
+}).extend({
+  documentId: z.number().min(1, "Document ID is required"),
+  headline: z.string().optional(),
+  summary: z.string().optional(),
+  industryTags: z.array(z.string()).optional(),
+  dealTypeTags: z.array(z.string()).optional(),
+  coverImageUrl: z.string().nullable().optional(),
+  coverImageAttribution: z.string().nullable().optional(),
+  useCimCoverImage: z.boolean().default(true),
+  showFinancials: z.boolean().default(false),
+  revenue: z.string().nullable().optional(),
+  earnings: z.string().nullable().optional(),
+  askingPrice: z.string().nullable().optional(),
+  shareSlug: z.string().optional(),
+  sharePassword: z.string().nullable().optional(),
+  isPublished: z.boolean().default(false),
+  includeWatermark: z.boolean().default(true),
+});
+
+export const updateTeaserSchema = insertTeaserSchema.partial().omit({ documentId: true });
+
+export const insertTeaserViewSchema = createInsertSchema(teaserViews).pick({
+  teaserId: true,
+}).extend({
+  teaserId: z.number().min(1, "Teaser ID is required"),
+  viewerIp: z.string().optional(),
+  viewerUserAgent: z.string().optional(),
+  referrer: z.string().optional(),
+  sessionId: z.string().optional(),
+});
+
+export const insertUserTeaserTagSchema = createInsertSchema(userTeaserTags).pick({
+  tagType: true,
+  tagValue: true,
+}).extend({
+  tagType: z.enum(['industry', 'deal_type']),
+  tagValue: z.string().min(1, "Tag value is required"),
+});
+
+// Type exports for teaser system
+export type Teaser = typeof teasers.$inferSelect;
+export type InsertTeaser = z.infer<typeof insertTeaserSchema>;
+export type UpdateTeaser = z.infer<typeof updateTeaserSchema>;
+export type TeaserView = typeof teaserViews.$inferSelect;
+export type InsertTeaserView = z.infer<typeof insertTeaserViewSchema>;
+export type UserTeaserTag = typeof userTeaserTags.$inferSelect;
+export type InsertUserTeaserTag = z.infer<typeof insertUserTeaserTagSchema>;

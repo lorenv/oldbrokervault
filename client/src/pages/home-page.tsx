@@ -1185,6 +1185,7 @@ export default function HomePage() {
               <img
                 src="/tonys-transmissions-preview.png"
                 alt="Tony's Transmissions CIM Document Preview"
+                loading="lazy"
                 className="w-full h-auto object-cover group-hover:scale-110 transition-transform duration-500"
               />
               <div className="absolute top-4 right-4">
@@ -1216,6 +1217,7 @@ export default function HomePage() {
               <img
                 src="/arbor-partners-preview.png"
                 alt="Arbor Partners CIM Document Preview"
+                loading="lazy"
                 className="w-full h-auto object-cover group-hover:scale-110 transition-transform duration-500"
               />
               <div className="absolute top-4 right-4">

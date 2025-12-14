@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, BarChart3, Edit, Edit2, FileSignature, Share2, Eye, Users, Calendar, TrendingUp, Check, X, Link as LinkIcon, Copy, Palette } from "lucide-react";
+import { ArrowLeft, BarChart3, Edit, Edit2, FileSignature, Share2, Eye, Users, Calendar, TrendingUp, Check, X, Link as LinkIcon, Copy, Palette, FileText } from "lucide-react";
 import { useCimDocument, useFinancialFiles, useCustomSections, useNdaSignatures } from "@/hooks/use-cim-document";
 import { DocumentSkeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
@@ -20,6 +20,7 @@ import { DocumentEditTab } from "@/components/document-tabs/edit-tab";
 import { DocumentNdaTab } from "@/components/document-tabs/nda-tab";
 import { DocumentShareTab } from "@/components/document-tabs/share-tab";
 import { DocumentAppearanceTab } from "@/components/document-tabs/appearance-tab";
+import { DocumentTeaserTab } from "@/components/document-tabs/teaser-tab";
 import { apiRequest } from "@/lib/queryClient";
 import {
   Tooltip,
@@ -502,6 +503,18 @@ export function DocumentDetailPage() {
                 <span className="hidden sm:inline">Appearance</span>
                 <span className="sm:hidden">Style</span>
               </button>
+              <button
+                onClick={() => handleTabChange('teaser')}
+                className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm whitespace-nowrap rounded-md transition-all ${
+                  activeTab === 'teaser'
+                    ? 'bg-white text-blue-700 shadow-sm border border-blue-200'
+                    : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+                }`}
+              >
+                <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Teaser</span>
+                <span className="sm:hidden">Teaser</span>
+              </button>
             </div>
           </div>
         </div>
@@ -639,6 +652,18 @@ export function DocumentDetailPage() {
                     <Palette className="h-5 w-5 text-pink-500" />
                     <span className="font-medium">Appearance</span>
                   </button>
+
+                  <button
+                    onClick={() => setActiveTab('teaser')}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 text-left rounded-md transition-all duration-200 ${
+                      activeTab === 'teaser'
+                        ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600 pl-2'
+                        : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+                    }`}
+                  >
+                    <FileText className="h-5 w-5 text-emerald-600" />
+                    <span className="font-medium">Teaser</span>
+                  </button>
                 </div>
               </div>
             </nav>
@@ -677,6 +702,13 @@ export function DocumentDetailPage() {
 
             {activeTab === 'appearance' && (
               <DocumentAppearanceTab
+                cimDocument={cimDocument}
+                user={user}
+              />
+            )}
+
+            {activeTab === 'teaser' && (
+              <DocumentTeaserTab
                 cimDocument={cimDocument}
                 user={user}
               />
