@@ -26,6 +26,8 @@ import {
   X,
   LayoutGrid,
   List,
+  CheckCircle2,
+  Clock,
 } from "lucide-react";
 
 interface ListingData {
@@ -45,6 +47,7 @@ interface ListingData {
   isFeatured: boolean;
   cimShareSlug: string;
   ndaProtected: boolean;
+  listingStatus: 'active' | 'under_loi' | 'closed';
 }
 
 interface ListingsData {
@@ -80,6 +83,7 @@ export function ListingsPage() {
   const [sort, setSort] = useState("newest");
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [activeTab, setActiveTab] = useState<"active" | "closed">("active");
 
   // Debounce search input
   useEffect(() => {
@@ -423,36 +427,114 @@ export function ListingsPage() {
 
       {/* Listings Grid/List */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {listingsData.listings.length === 0 ? (
-          <div className="text-center py-16">
-            <p className="text-gray-500 text-lg">
-              {hasActiveFilters
-                ? "No listings match your filters."
-                : "No listings available yet."}
-            </p>
-            {hasActiveFilters && (
-              <Button variant="link" onClick={clearFilters} className="mt-2">
-                Clear filters
-              </Button>
-            )}
-          </div>
-        ) : (
-          <div
-            className={
-              viewMode === "grid"
-                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-                : "flex flex-col gap-4"
-            }
-          >
-            {listingsData.listings.map((listing) => (
-              <ListingCard
-                key={listing.id}
-                listing={listing}
-                viewMode={viewMode}
-              />
-            ))}
-          </div>
-        )}
+        {(() => {
+          // Separate active (including under_loi) and closed listings
+          const activeListings = listingsData.listings.filter(l => l.listingStatus !== 'closed');
+          const closedListings = listingsData.listings.filter(l => l.listingStatus === 'closed');
+
+          return (
+            <>
+              {/* Tabs */}
+              <div className="flex items-center gap-1 mb-6 border-b">
+                <button
+                  onClick={() => setActiveTab("active")}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                    activeTab === "active"
+                      ? "border-blue-600 text-blue-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  Active Listings
+                  {activeListings.length > 0 && (
+                    <Badge variant="secondary" className="ml-2 bg-blue-50 text-blue-700">
+                      {activeListings.length}
+                    </Badge>
+                  )}
+                </button>
+                <button
+                  onClick={() => setActiveTab("closed")}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                    activeTab === "closed"
+                      ? "border-gray-600 text-gray-700"
+                      : "border-transparent text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  <CheckCircle2 className="h-4 w-4 inline mr-1" />
+                  Closed Deals
+                  {closedListings.length > 0 && (
+                    <Badge variant="secondary" className="ml-2 bg-gray-100 text-gray-600">
+                      {closedListings.length}
+                    </Badge>
+                  )}
+                </button>
+              </div>
+
+              {/* Active Tab Content */}
+              {activeTab === "active" && (
+                <>
+                  {activeListings.length === 0 ? (
+                    <div className="text-center py-16">
+                      <p className="text-gray-500 text-lg">
+                        {hasActiveFilters
+                          ? "No active listings match your filters."
+                          : "No active listings available yet."}
+                      </p>
+                      {hasActiveFilters && (
+                        <Button variant="link" onClick={clearFilters} className="mt-2">
+                          Clear filters
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <div
+                      className={
+                        viewMode === "grid"
+                          ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                          : "flex flex-col gap-4"
+                      }
+                    >
+                      {activeListings.map((listing) => (
+                        <ListingCard
+                          key={listing.id}
+                          listing={listing}
+                          viewMode={viewMode}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Closed Tab Content */}
+              {activeTab === "closed" && (
+                <>
+                  {closedListings.length === 0 ? (
+                    <div className="text-center py-16">
+                      <p className="text-gray-500 text-lg">No closed deals yet.</p>
+                    </div>
+                  ) : (
+                    <div
+                      className={
+                        viewMode === "grid"
+                          ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                          : "flex flex-col gap-4"
+                      }
+                    >
+                      {closedListings.map((listing) => (
+                        <ListingCard
+                          key={listing.id}
+                          listing={listing}
+                          viewMode={viewMode}
+                          isClosed
+                        />
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          );
+        })()}
       </main>
 
       {/* Footer - Broker Contact Info */}
@@ -514,18 +596,28 @@ export function ListingsPage() {
 function ListingCard({
   listing,
   viewMode,
+  isClosed = false,
 }: {
   listing: ListingData;
   viewMode: "grid" | "list";
+  isClosed?: boolean;
 }) {
+  const isUnderLOI = listing.listingStatus === 'under_loi';
+  const isDisabled = isClosed || isUnderLOI;
+
   const handleClick = () => {
+    if (isDisabled) return; // Don't navigate for closed or under LOI deals
     window.location.href = `/teaser/${listing.shareSlug}`;
   };
 
   if (viewMode === "list") {
     return (
       <Card
-        className="cursor-pointer hover:shadow-lg transition-shadow overflow-hidden"
+        className={`overflow-hidden transition-shadow ${
+          isDisabled
+            ? "opacity-70 cursor-default"
+            : "cursor-pointer hover:shadow-lg"
+        }`}
         onClick={handleClick}
       >
         <div className="flex flex-col sm:flex-row">
@@ -544,10 +636,22 @@ function ListingCard({
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1">
                 {/* Featured Badge */}
-                {listing.isFeatured && (
+                {listing.isFeatured && !isDisabled && (
                   <Badge className="mb-2 bg-amber-100 text-amber-800 border-amber-200">
                     <Star className="h-3 w-3 mr-1 fill-amber-500" />
                     Featured
+                  </Badge>
+                )}
+                {isUnderLOI && (
+                  <Badge className="mb-2 bg-amber-500 text-white border-amber-600">
+                    <Clock className="h-3 w-3 mr-1" />
+                    Under LOI
+                  </Badge>
+                )}
+                {isClosed && (
+                  <Badge className="mb-2 bg-gray-700 text-white border-gray-600">
+                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                    Closed
                   </Badge>
                 )}
 
@@ -611,7 +715,11 @@ function ListingCard({
   // Grid View
   return (
     <Card
-      className="cursor-pointer hover:shadow-lg transition-shadow overflow-hidden group"
+      className={`overflow-hidden transition-shadow ${
+        isDisabled
+          ? "opacity-70 cursor-default"
+          : "cursor-pointer hover:shadow-lg group"
+      }`}
       onClick={handleClick}
     >
       {/* Cover Image */}
@@ -627,10 +735,22 @@ function ListingCard({
             <Building2 className="h-12 w-12 text-gray-400" />
           </div>
         )}
-        {listing.isFeatured && (
+        {listing.isFeatured && !isDisabled && (
           <Badge className="absolute top-2 left-2 bg-amber-100 text-amber-800 border-amber-200">
             <Star className="h-3 w-3 mr-1 fill-amber-500" />
             Featured
+          </Badge>
+        )}
+        {isUnderLOI && (
+          <Badge className="absolute top-2 left-2 bg-amber-500 text-white border-amber-600">
+            <Clock className="h-3 w-3 mr-1" />
+            Under LOI
+          </Badge>
+        )}
+        {isClosed && (
+          <Badge className="absolute top-2 left-2 bg-gray-700 text-white border-gray-600">
+            <CheckCircle2 className="h-3 w-3 mr-1" />
+            Closed
           </Badge>
         )}
       </div>

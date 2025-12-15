@@ -1934,6 +1934,9 @@ export const teasers = pgTable("teasers", {
   isFeatured: boolean("is_featured").default(false).notNull(),
   featuredOrder: integer("featured_order").default(0),
 
+  // Listing status (Active, Under LOI, Closed)
+  listingStatus: text("listing_status").default("active").notNull(),
+
   // Metadata
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
@@ -1990,6 +1993,7 @@ export const insertTeaserSchema = createInsertSchema(teasers).pick({
   sharePassword: z.string().nullable().optional(),
   isPublished: z.boolean().default(false),
   includeWatermark: z.boolean().default(true),
+  listingStatus: z.enum(["active", "under_loi", "closed"]).default("active"),
 });
 
 export const updateTeaserSchema = insertTeaserSchema.partial().omit({ documentId: true });
