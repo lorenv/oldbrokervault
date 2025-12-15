@@ -489,6 +489,8 @@ router.put('/branding', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('[ESIGN] Error updating branding:', error);
     if (error instanceof z.ZodError) {
+      console.error('[ESIGN] Validation errors:', JSON.stringify(error.errors, null, 2));
+      console.error('[ESIGN] Request body was:', JSON.stringify(req.body, null, 2));
       return res.status(400).json({ error: 'Invalid branding data', details: error.errors });
     }
     res.status(500).json({ error: 'Failed to update branding settings' });
@@ -1474,13 +1476,16 @@ router.post('/envelopes/:id/send', async (req: Request, res: Response) => {
     const now = new Date();
 
     // Send emails to recipients
+    const emailResults: { email: string; success: boolean; error?: string }[] = [];
+
     for (const recipient of recipientsToNotify) {
       // Generate signing URL
       const signingUrl = `${process.env.APP_URL || 'https://cimshare.com'}/esign/sign/${recipient.accessToken}`;
 
-      // Send email
+      // Send email and check result
+      let emailSent = false;
       try {
-        await sendEsignInvitationEmail({
+        emailSent = await sendEsignInvitationEmail({
           recipientEmail: recipient.email,
           recipientName: recipient.name,
           senderName,
@@ -1494,24 +1499,50 @@ router.post('/envelopes/:id/send', async (req: Request, res: Response) => {
             primaryColor: branding.primaryColor || undefined,
           } : undefined,
         });
-        console.log(`[ESIGN] Sent signing invitation to ${recipient.email}`);
+
+        if (emailSent) {
+          console.log(`[ESIGN] ✅ Sent signing invitation to ${recipient.email}`);
+          emailResults.push({ email: recipient.email, success: true });
+        } else {
+          console.error(`[ESIGN] ❌ Failed to send email to ${recipient.email} (sendEmail returned false)`);
+          emailResults.push({ email: recipient.email, success: false, error: 'Email service returned false' });
+        }
       } catch (emailError) {
-        console.error(`[ESIGN] Failed to send email to ${recipient.email}:`, emailError);
+        console.error(`[ESIGN] ❌ Exception sending email to ${recipient.email}:`, emailError);
+        emailResults.push({ email: recipient.email, success: false, error: String(emailError) });
         // Continue with other recipients even if one email fails
       }
 
-      await db
-        .update(esignRecipients)
-        .set({
-          status: 'sent',
-          sentAt: now,
-        })
-        .where(eq(esignRecipients.id, recipient.id));
+      // Only mark as sent if email was actually sent
+      if (emailSent) {
+        await db
+          .update(esignRecipients)
+          .set({
+            status: 'sent',
+            sentAt: now,
+          })
+          .where(eq(esignRecipients.id, recipient.id));
 
-      await logAuditEvent(envelope.id, 'recipient_sent', {
-        recipientEmail: recipient.email,
-        recipientName: recipient.name,
-      }, req, recipient.id);
+        await logAuditEvent(envelope.id, 'recipient_sent', {
+          recipientEmail: recipient.email,
+          recipientName: recipient.name,
+        }, req, recipient.id);
+      } else {
+        // Log the failure
+        await logAuditEvent(envelope.id, 'recipient_email_failed', {
+          recipientEmail: recipient.email,
+          recipientName: recipient.name,
+          error: emailResults[emailResults.length - 1]?.error || 'Unknown error',
+        }, req, recipient.id);
+      }
+    }
+
+    // Log summary of email results
+    const successCount = emailResults.filter(r => r.success).length;
+    const failCount = emailResults.filter(r => !r.success).length;
+    console.log(`[ESIGN] Email send summary: ${successCount} succeeded, ${failCount} failed`);
+    if (failCount > 0) {
+      console.log(`[ESIGN] Failed emails:`, emailResults.filter(r => !r.success));
     }
 
     // Update envelope status
@@ -1569,9 +1600,17 @@ router.post('/envelopes/:id/send', async (req: Request, res: Response) => {
       }
     }
 
+    // Include email results in response
+    const successfulEmails = emailResults.filter(r => r.success).map(r => r.email);
+    const failedEmails = emailResults.filter(r => !r.success);
+
     res.json({
-      success: true,
-      sentTo: recipientsToNotify.map(r => r.email),
+      success: successfulEmails.length > 0,
+      sentTo: successfulEmails,
+      failedEmails: failedEmails.length > 0 ? failedEmails : undefined,
+      warning: failedEmails.length > 0
+        ? `${failedEmails.length} of ${recipientsToNotify.length} emails failed to send. You may need to send reminders to: ${failedEmails.map(f => f.email).join(', ')}`
+        : undefined,
     });
   } catch (error) {
     console.error('[ESIGN] Error sending envelope:', error);

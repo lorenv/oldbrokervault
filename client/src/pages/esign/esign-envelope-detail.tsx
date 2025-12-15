@@ -168,8 +168,24 @@ export default function EsignEnvelopeDetail() {
         body: { reason },
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/esign/envelopes", envelopeId] });
+    onSuccess: (_, reason) => {
+      // Immediately update the local cache for instant UI feedback
+      queryClient.setQueryData(["/api/esign/envelopes", envelopeId], (oldData: any) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          envelope: {
+            ...oldData.envelope,
+            status: 'voided',
+            voidedAt: new Date().toISOString(),
+            voidReason: reason,
+          },
+        };
+      });
+      // Also refetch to ensure data is in sync with server
+      queryClient.refetchQueries({ queryKey: ["/api/esign/envelopes", envelopeId] });
+      // Invalidate the dashboard list as well
+      queryClient.invalidateQueries({ queryKey: ["/api/esign/envelopes"] });
       toast({
         title: "Envelope voided",
         description: "The envelope has been voided and signers notified.",
