@@ -134,14 +134,14 @@ export default function PricingPage() {
   const plans = [
     {
       id: "free",
-      name: "Free Trial",
+      name: "Free",
       price: "$0",
       description: "Perfect for trying out CIM Share",
       features: [
-        "1 CIM document (trial only)",
+        "1 CIM document",
+        "Unlimited eSignatures",
         "Basic export options",
         "Standard support",
-        "7-day trial period",
       ],
       current: user?.subscriptionStatus === "free",
       icon: <Sparkles className="h-6 w-6" />,
@@ -156,18 +156,18 @@ export default function PricingPage() {
       description: "Perfect for individual professionals",
       features: [
         "3 CIM documents per year",
-        "Unlimited regenerations",
-        "PDF export",
+        "Unlimited eSignatures",
         "NDA management & sharing",
-        "E-signature templates",
+        "Investor CRM",
+        "Public listings page",
         "Email support",
-        "Custom branding options",
       ],
       current: user?.subscriptionStatus === "starter" || user?.subscriptionStatus === "starter_monthly",
       icon: <Sprout className="h-6 w-6" />,
       color: "border-green-500",
       popular: false,
       subtext: billingPeriod === "annual" ? "$50/month billed annually" : null,
+      highlightFeature: "3 CIM documents per year",
     },
     {
       id: billingPeriod === "monthly" ? "pro_monthly" : "pro",
@@ -177,12 +177,11 @@ export default function PricingPage() {
       description: "Everything you need for your business",
       features: [
         "10 CIM documents per year",
-        "Unlimited regenerations",
-        "PDF export",
+        "Unlimited eSignatures",
         "NDA management & sharing",
-        "E-signature templates",
+        "Investor CRM",
+        "Public listings page",
         "Priority email support",
-        "Custom branding options",
       ],
       current: user?.subscriptionStatus === "pro" || user?.subscriptionStatus === "pro_monthly" || user?.subscriptionStatus === "standard",
       icon: <Zap className="h-6 w-6" />,
@@ -190,6 +189,7 @@ export default function PricingPage() {
       popular: true,
       badge: "Most Popular",
       subtext: billingPeriod === "annual" ? "$83/month billed annually" : null,
+      highlightFeature: "10 CIM documents per year",
     },
     {
       id: "enterprise",
@@ -199,7 +199,7 @@ export default function PricingPage() {
       description: "Tailored solutions for large organizations",
       features: [
         "Unlimited CIM documents",
-        "Everything in Pro",
+        "Unlimited eSignatures",
         "Dedicated account manager",
         "Custom integrations",
         "Advanced security features",
@@ -210,6 +210,7 @@ export default function PricingPage() {
       icon: <Shield className="h-6 w-6" />,
       color: "border-purple-500",
       popular: false,
+      highlightFeature: "Unlimited CIM documents",
     },
   ];
 
@@ -311,14 +312,19 @@ export default function PricingPage() {
                 
                 <CardContent className="px-6 pb-6">
                   <ul className="space-y-3">
-                    {plan.features.map((feature, i) => (
-                      <li key={i} className="flex items-start gap-3">
-                        <div className="rounded-full p-1 bg-green-100 mt-0.5">
-                          <Check className="h-3 w-3 text-green-600" />
-                        </div>
-                        <span className="text-sm text-slate-700">{feature}</span>
-                      </li>
-                    ))}
+                    {plan.features.map((feature, i) => {
+                      const isHighlight = (plan as any).highlightFeature === feature;
+                      return (
+                        <li key={i} className="flex items-start gap-3">
+                          <div className={`rounded-full p-1 mt-0.5 ${isHighlight ? 'bg-blue-100' : 'bg-green-100'}`}>
+                            <Check className={`h-3 w-3 ${isHighlight ? 'text-blue-600' : 'text-green-600'}`} />
+                          </div>
+                          <span className={`text-sm ${isHighlight ? 'font-semibold text-slate-900' : 'text-slate-700'}`}>
+                            {feature}
+                          </span>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </CardContent>
                 

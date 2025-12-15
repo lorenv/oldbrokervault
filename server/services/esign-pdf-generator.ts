@@ -293,9 +293,12 @@ function generateSignatureId(envelopeId: string, fieldId: number, completedAt: D
 
 /**
  * Draws a signature or initials with a DocuSign-style frame:
- * - L-shaped border (left side + bottom) OUTSIDE the signature area
- * - Unique identifier displayed below the bottom border
- * - Thin rounded corners on the L-shaped border
+ * - "eSigned by" label above the signature
+ * - L-shaped border (left side + partial bottom) OUTSIDE the signature area
+ * - Bottom border stops at ~45% width
+ * - Unique identifier inline at the end of the bottom border
+ * - Thin rounded corner on the L-shaped border
+ * - Subtle grey color to de-emphasize the frame
  */
 async function drawSignatureWithFrame(
   pdfDoc: PDFDocument,
@@ -314,11 +317,11 @@ async function drawSignatureWithFrame(
   const isInitials = field.type === 'initials';
   const padding = 4;
 
-  // Frame styling - DocuSign uses a subtle blue/gray color
-  const frameColor = rgb(0.4, 0.45, 0.5);  // Subtle gray-blue
-  const frameLineWidth = 1;
-  const idFontSize = 6;
-  const idSpacing = 3; // Space between bottom border and ID text
+  // Frame styling - subtle grey to de-emphasize (matches #9CA3AF from client)
+  const frameColor = rgb(0.61, 0.64, 0.69);
+  const frameLineWidth = 0.75;
+  const idFontSize = 5;
+  const labelFontSize = 5;
 
   // Generate unique signature ID using cryptographic hash
   const signatureId = generateSignatureId(envelopeId, field.id, field.completedAt);
@@ -329,6 +332,16 @@ async function drawSignatureWithFrame(
   // Frame offset - how far outside the signature area the frame extends
   const frameOffset = 3;
   const cornerRadius = 4; // Radius for the rounded corner
+  const bottomBorderWidth = width * 0.45; // Bottom border stops at 45% width
+
+  // Draw "eSigned by" label above the signature (top-left)
+  page.drawText('eSigned by', {
+    x: x - frameOffset,
+    y: y + height + 2,
+    size: labelFontSize,
+    font: helveticaFont,
+    color: frameColor,
+  });
 
   // Draw L-shaped border OUTSIDE the signature area with rounded corner at bottom-left
   // The left vertical line stops at the corner radius, then curves into the bottom horizontal line
@@ -341,10 +354,10 @@ async function drawSignatureWithFrame(
     color: frameColor,
   });
 
-  // Bottom horizontal line (from after the curve to the right edge)
+  // Bottom horizontal line - stops at 45% width (DocuSign style)
   page.drawLine({
     start: { x: x - frameOffset + cornerRadius, y: y - frameOffset },
-    end: { x: x + width, y: y - frameOffset },
+    end: { x: x - frameOffset + cornerRadius + bottomBorderWidth, y: y - frameOffset },
     thickness: frameLineWidth,
     color: frameColor,
   });
@@ -377,6 +390,16 @@ async function drawSignatureWithFrame(
     });
   }
 
+  // Draw unique identifier INLINE at the end of the bottom border
+  const idX = x - frameOffset + cornerRadius + bottomBorderWidth + 4; // 4px gap after bottom border
+  page.drawText(signatureId, {
+    x: idX,
+    y: y - frameOffset - (idFontSize / 3), // Vertically centered with bottom border
+    size: idFontSize,
+    font: helveticaFont,
+    color: frameColor,
+  });
+
   // Draw the signature/initials content in the original area
   if (field.value.startsWith('data:image')) {
     // Image signature
@@ -390,28 +413,29 @@ async function drawSignatureWithFrame(
       height - (padding * 2)
     );
   } else {
-    // Text-based signature
-    const fontSize = Math.min(height * 0.6, isInitials ? 18 : 24);
+    // Text-based signature - scale font to fit both height and width
+    let fontSize = Math.min(height * 0.6, isInitials ? 18 : 24);
+    const availableWidth = width - (padding * 2);
+
+    // Measure text width and scale down if needed
+    const textWidth = handwritingFont.widthOfTextAtSize(field.value, fontSize);
+    if (textWidth > availableWidth) {
+      // Scale down font size to fit width, with minimum of 8pt for readability
+      fontSize = Math.max(8, fontSize * (availableWidth / textWidth));
+    }
+
+    // Center the text horizontally
+    const finalTextWidth = handwritingFont.widthOfTextAtSize(field.value, fontSize);
+    const textX = x + padding + (availableWidth - finalTextWidth) / 2;
+
     page.drawText(field.value, {
-      x: x + padding,
+      x: textX,
       y: y + (height / 2) - (fontSize / 3),
       size: fontSize,
       font: handwritingFont,
       color: rgb(0.05, 0.05, 0.3),
     });
   }
-
-  // Draw unique identifier BELOW the bottom border line
-  const idText = signatureId;
-  const idTextColor = rgb(0.45, 0.45, 0.45);
-
-  page.drawText(idText, {
-    x: x - frameOffset,
-    y: y - frameOffset - idSpacing - idFontSize,
-    size: idFontSize,
-    font: helveticaFont,
-    color: idTextColor,
-  });
 }
 
 /**

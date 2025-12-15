@@ -691,12 +691,20 @@ export default function EsignSign() {
                                             />
                                           ) : (
                                             // Text signature - scale font size based on field height
-                                            // field.height is percentage of page, page is 612x792 base scaled by zoom
-                                            // Calculate pixel height and use ~55% for font size
+                                            // and scale down horizontally if name is too long (DocuSign-style)
                                             (() => {
+                                              const basePageWidth = 612 * zoom;
                                               const basePageHeight = 792 * zoom;
+                                              const fieldPixelWidth = (field.width / 100) * basePageWidth;
                                               const fieldPixelHeight = (field.height / 100) * basePageHeight;
                                               const fontSize = Math.max(12, Math.min(fieldPixelHeight * 0.55, field.type === 'initials' ? 28 : 42));
+                                              // Estimate text width: cursive fonts average ~0.55 of fontSize per character
+                                              const estimatedTextWidth = (field.value?.length || 0) * fontSize * 0.55;
+                                              const availableWidth = fieldPixelWidth - 8; // Account for padding
+                                              // Scale down if text is too wide, minimum 0.4 to keep readable
+                                              const scaleX = estimatedTextWidth > availableWidth
+                                                ? Math.max(0.4, availableWidth / estimatedTextWidth)
+                                                : 1;
                                               return (
                                                 <span
                                                   style={{
@@ -705,6 +713,9 @@ export default function EsignSign() {
                                                     fontSize: `${fontSize}px`,
                                                     lineHeight: 1,
                                                     whiteSpace: 'nowrap',
+                                                    transform: scaleX < 1 ? `scaleX(${scaleX})` : undefined,
+                                                    transformOrigin: 'center center',
+                                                    display: 'inline-block',
                                                   }}
                                                 >
                                                   {field.value}
@@ -712,6 +723,19 @@ export default function EsignSign() {
                                               );
                                             })()
                                           )}
+                                        </div>
+                                        {/* "eSigned by" label above the signature */}
+                                        <div
+                                          className="absolute font-sans"
+                                          style={{
+                                            left: '-4px',
+                                            top: '-12px',
+                                            fontSize: '7px',
+                                            color: '#9CA3AF',
+                                            letterSpacing: '0.3px',
+                                          }}
+                                        >
+                                          eSigned by
                                         </div>
                                         {/* L-shaped frame OUTSIDE the signature area with rounded corner */}
                                         {/* Left border - stops at corner */}
