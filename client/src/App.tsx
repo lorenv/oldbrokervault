@@ -10,6 +10,7 @@ import { lazy, Suspense, useEffect } from "react";
 import { initGA } from "./lib/analytics";
 import { useAnalytics } from "./hooks/use-analytics";
 import HomePage from "@/pages/home-page";
+import HomePageNew from "@/pages/home-page-new";
 import DashboardPage from "@/pages/dashboard-page";
 import LoginPage from "@/pages/login-page";
 import AdminPage from "@/pages/admin-page";
@@ -91,6 +92,7 @@ function Router() {
         <div className={isSharePage ? "" : "flex-1"}>
           <Switch>
             <Route path="/" component={HomePage} />
+            <Route path="/home-new" component={HomePageNew} />
             <Route path="/marketing" component={MarketingHomePage} />
             <ProtectedRoute path="/dashboard" component={DashboardPage} />
             <ProtectedRoute path="/documents" component={DocumentsPage} />

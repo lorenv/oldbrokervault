@@ -1164,12 +1164,11 @@ export default function HomePage() {
               See CIM Share in Action
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Explore real examples of professional CIM documents created with
-              our platform
+              Explore live examples of our platform - from public listings to teasers to full CIMs
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
             {/* Tony's Transmissions Image Card */}
             <div
               className={`relative overflow-hidden rounded-lg shadow-lg hover:shadow-2xl hover:-translate-y-4 hover:rotate-1 transition-all duration-500 cursor-pointer group ${
@@ -1229,6 +1228,78 @@ export default function HomePage() {
               <div className="absolute bottom-4 left-4 right-4">
                 <p className="text-white text-sm font-medium opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-2 group-hover:translate-y-0 drop-shadow-lg">
                   Click to view full CIM document →
+                </p>
+              </div>
+            </div>
+
+            {/* Public Listings Page Card */}
+            <div
+              className={`relative overflow-hidden rounded-lg shadow-lg hover:shadow-2xl hover:-translate-y-4 hover:rotate-1 transition-all duration-500 cursor-pointer group ${
+                isVisible("example-3")
+                  ? "translate-y-0 opacity-100"
+                  : "translate-y-8 opacity-0"
+              }`}
+              data-animate-id="example-3"
+              style={{ transitionDelay: "300ms" }}
+              onClick={() =>
+                window.open("https://cimshare.com/listings/dealve-inc", "_blank")
+              }
+            >
+              <div className="aspect-[4/3] bg-gradient-to-br from-cyan-500 via-blue-500 to-indigo-600 flex flex-col items-center justify-center p-6 group-hover:scale-105 transition-transform duration-500">
+                <Globe className="w-16 h-16 text-white/90 mb-4" />
+                <h3 className="text-white font-bold text-lg text-center mb-2">Public Listings Page</h3>
+                <p className="text-white/80 text-sm text-center">Browse deals in a branded marketplace</p>
+              </div>
+              <div className="absolute top-4 right-4">
+                <div className="text-sm text-cyan-600 font-medium bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-sm animate-pulse-slow">
+                  Live Example
+                </div>
+              </div>
+              <div className="absolute top-4 left-4">
+                <div className="text-xs text-white font-bold bg-green-500 px-2 py-1 rounded-full shadow-sm">
+                  NEW
+                </div>
+              </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="absolute bottom-4 left-4 right-4">
+                <p className="text-white text-sm font-medium opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-2 group-hover:translate-y-0 drop-shadow-lg">
+                  Click to view listings page →
+                </p>
+              </div>
+            </div>
+
+            {/* Teaser Example Card */}
+            <div
+              className={`relative overflow-hidden rounded-lg shadow-lg hover:shadow-2xl hover:-translate-y-4 hover:-rotate-1 transition-all duration-500 cursor-pointer group ${
+                isVisible("example-4")
+                  ? "translate-y-0 opacity-100"
+                  : "translate-y-8 opacity-0"
+              }`}
+              data-animate-id="example-4"
+              style={{ transitionDelay: "400ms" }}
+              onClick={() =>
+                window.open("https://cimshare.com/teaser/prominent-food-beverage-business-with-strong-marke-2ea50f", "_blank")
+              }
+            >
+              <div className="aspect-[4/3] bg-gradient-to-br from-purple-500 via-pink-500 to-rose-500 flex flex-col items-center justify-center p-6 group-hover:scale-105 transition-transform duration-500">
+                <FileText className="w-16 h-16 text-white/90 mb-4" />
+                <h3 className="text-white font-bold text-lg text-center mb-2">AI-Generated Teaser</h3>
+                <p className="text-white/80 text-sm text-center">Anonymous preview before NDA</p>
+              </div>
+              <div className="absolute top-4 right-4">
+                <div className="text-sm text-purple-600 font-medium bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-sm animate-pulse-slow">
+                  Live Example
+                </div>
+              </div>
+              <div className="absolute top-4 left-4">
+                <div className="text-xs text-white font-bold bg-green-500 px-2 py-1 rounded-full shadow-sm">
+                  NEW
+                </div>
+              </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="absolute bottom-4 left-4 right-4">
+                <p className="text-white text-sm font-medium opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-2 group-hover:translate-y-0 drop-shadow-lg">
+                  Click to view teaser →
                 </p>
               </div>
             </div>
