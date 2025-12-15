@@ -34,6 +34,12 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   FileText,
   Sparkles,
   Copy,
@@ -114,6 +120,7 @@ export function DocumentTeaserTab({ cimDocument, user }: DocumentTeaserTabProps)
     includeWatermark: boolean;
     isFeatured: boolean;
     coverImageUrl: string;
+    listingStatus: 'active' | 'under_loi' | 'closed';
   }>({
     headline: '',
     summary: '',
@@ -130,6 +137,7 @@ export function DocumentTeaserTab({ cimDocument, user }: DocumentTeaserTabProps)
     includeWatermark: true,
     isFeatured: false,
     coverImageUrl: '',
+    listingStatus: 'active',
   });
 
   const [isUploadingCover, setIsUploadingCover] = useState(false);
@@ -157,6 +165,7 @@ export function DocumentTeaserTab({ cimDocument, user }: DocumentTeaserTabProps)
         includeWatermark: teaser.includeWatermark ?? true,
         isFeatured: teaser.isFeatured || false,
         coverImageUrl: teaser.coverImageUrl || '',
+        listingStatus: teaser.listingStatus || 'active',
       });
     }
   }, [teaser]);
@@ -557,68 +566,163 @@ export function DocumentTeaserTab({ cimDocument, user }: DocumentTeaserTabProps)
       {/* Status & Actions Header */}
       <Card>
         <CardContent className="flex items-center justify-between py-4">
-          <div className="flex items-center gap-4">
-            <Badge
-              variant={status === 'published' ? 'default' : 'outline'}
-              className={
-                status === 'published'
-                  ? 'bg-green-100 text-green-800 border-green-200'
-                  : status === 'outdated'
-                  ? 'bg-amber-100 text-amber-800 border-amber-200'
-                  : 'bg-gray-100 text-gray-800 border-gray-200'
-              }
-            >
-              {status === 'published' ? 'Published' : status === 'outdated' ? 'Outdated' : 'Draft'}
-            </Badge>
-            {teaser.viewCount > 0 && (
-              <span className="text-sm text-gray-500">
-                {teaser.viewCount} view{teaser.viewCount !== 1 ? 's' : ''}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => window.open(getTeaserUrl(), '_blank')}
-              disabled={!editState.shareSlug}
-            >
-              <Eye className="h-4 w-4 mr-2" />
-              Preview
-            </Button>
-            <Button
-              variant={editState.isPublished ? 'outline' : 'default'}
-              size="sm"
-              onClick={handleTogglePublish}
-              disabled={updateTeaserMutation.isPending}
-              className={!editState.isPublished ? "bg-gradient-to-r from-slate-600 to-blue-600 hover:from-slate-700 hover:to-blue-700 text-white" : ""}
-            >
-              {editState.isPublished ? (
-                <>
-                  <EyeOff className="h-4 w-4 mr-2" />
-                  Unpublish
-                </>
-              ) : (
-                <>
-                  <Globe className="h-4 w-4 mr-2" />
-                  Publish
-                </>
+          <TooltipProvider>
+            <div className="flex items-center gap-4">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge
+                    variant={status === 'published' ? 'default' : 'outline'}
+                    className={`cursor-help ${
+                      status === 'published'
+                        ? 'bg-green-100 text-green-800 border-green-200'
+                        : status === 'outdated'
+                        ? 'bg-amber-100 text-amber-800 border-amber-200'
+                        : 'bg-gray-100 text-gray-800 border-gray-200'
+                    }`}
+                  >
+                    {status === 'published' ? 'Published' : status === 'outdated' ? 'Outdated' : 'Draft'}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs">
+                    {status === 'published'
+                      ? 'This teaser is live and visible to anyone with the link'
+                      : status === 'outdated'
+                      ? 'The CIM has been updated since this teaser was last synced'
+                      : 'This teaser is not yet published'}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+
+              {/* Listing Status Dropdown */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    <Select
+                      value={editState.listingStatus}
+                      onValueChange={(value: 'active' | 'under_loi' | 'closed') => {
+                        setEditState(prev => ({ ...prev, listingStatus: value }));
+                        updateTeaserMutation.mutate({ listingStatus: value });
+                      }}
+                    >
+                      <SelectTrigger className="w-[130px] h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">
+                          <span className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-green-500" />
+                            Active
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="under_loi">
+                          <span className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-amber-500" />
+                            Under LOI
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="closed">
+                          <span className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-gray-500" />
+                            Closed
+                          </span>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs">Set the deal status: Active (available), Under LOI (in negotiations), or Closed (no longer available)</p>
+                </TooltipContent>
+              </Tooltip>
+
+              {teaser.viewCount > 0 && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-sm text-gray-500 cursor-help">
+                      {teaser.viewCount} view{teaser.viewCount !== 1 ? 's' : ''}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Total number of times this teaser has been viewed</p>
+                  </TooltipContent>
+                </Tooltip>
               )}
-            </Button>
-            {editState.isPublished && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => toggleFeaturedMutation.mutate(!editState.isFeatured)}
-                disabled={toggleFeaturedMutation.isPending}
-                className={editState.isFeatured ? "border-amber-400 bg-amber-50 text-amber-700 hover:bg-amber-100" : ""}
-                title={editState.isFeatured ? "Remove from featured listings" : "Feature this listing at the top of your public listings page"}
-              >
-                <Star className={`h-4 w-4 mr-2 ${editState.isFeatured ? "fill-amber-500" : ""}`} />
-                {editState.isFeatured ? "Featured" : "Feature"}
-              </Button>
-            )}
-          </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(getTeaserUrl(), '_blank')}
+                    disabled={!editState.shareSlug}
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    Preview
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Open the public teaser page in a new tab to see how it looks to visitors</p>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={editState.isPublished ? 'outline' : 'default'}
+                    size="sm"
+                    onClick={handleTogglePublish}
+                    disabled={updateTeaserMutation.isPending}
+                    className={!editState.isPublished ? "bg-gradient-to-r from-slate-600 to-blue-600 hover:from-slate-700 hover:to-blue-700 text-white" : ""}
+                  >
+                    {editState.isPublished ? (
+                      <>
+                        <EyeOff className="h-4 w-4 mr-2" />
+                        Unpublish
+                      </>
+                    ) : (
+                      <>
+                        <Globe className="h-4 w-4 mr-2" />
+                        Publish
+                      </>
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs">
+                    {editState.isPublished
+                      ? 'Remove this teaser from public view. The link will no longer work.'
+                      : 'Make this teaser publicly accessible via its unique link'}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+
+              {editState.isPublished && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toggleFeaturedMutation.mutate(!editState.isFeatured)}
+                      disabled={toggleFeaturedMutation.isPending}
+                      className={editState.isFeatured ? "border-amber-400 bg-amber-50 text-amber-700 hover:bg-amber-100" : ""}
+                    >
+                      <Star className={`h-4 w-4 mr-2 ${editState.isFeatured ? "fill-amber-500" : ""}`} />
+                      {editState.isFeatured ? "Featured" : "Feature"}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">
+                      {editState.isFeatured
+                        ? 'Remove from featured listings on your public listings page'
+                        : 'Pin this listing to the top of your public listings page'}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </div>
+          </TooltipProvider>
         </CardContent>
       </Card>
 

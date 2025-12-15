@@ -508,6 +508,7 @@ router.get('/public/:slug', async (req: Request, res: Response) => {
           isFeatured: t.isFeatured,
           cimShareSlug: t.cimShareSlug,
           ndaProtected: t.ndaProtected,
+          listingStatus: (t as any).listingStatus || 'active',
         };
       }),
       // Available filter options (for dropdowns)

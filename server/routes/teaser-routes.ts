@@ -962,41 +962,57 @@ router.get('/public/:slug/export/pdf', async (req, res) => {
 
     // Add financials if enabled
     if (teaser.showFinancials && (teaser.revenue || teaser.earnings || teaser.askingPrice)) {
+      // Check if we need a new page (leave room for financials + contact section)
+      if (yPosition > 550) {
+        doc.addPage();
+        yPosition = 50;
+      }
+
       // Draw financial boxes
-      const boxWidth = 160;
-      const boxHeight = 60;
-      const boxSpacing = 20;
-      let boxX = 50;
-
-      doc.strokeColor('#e0e0e0');
-      doc.lineWidth(1);
-
       const financials = [
         { label: 'Revenue', value: teaser.revenue },
         { label: 'Earnings', value: teaser.earnings },
         { label: 'Asking Price', value: teaser.askingPrice },
       ].filter(f => f.value);
 
-      financials.forEach((fin, index) => {
-        // Draw box
-        doc.roundedRect(boxX, yPosition, boxWidth, boxHeight, 5).stroke();
+      const numBoxes = financials.length;
+      const totalWidth = 510; // Full width minus margins
+      const boxSpacing = 15;
+      const boxWidth = numBoxes > 0 ? (totalWidth - (boxSpacing * (numBoxes - 1))) / numBoxes : 160;
+      const boxHeight = 55;
+      let boxX = 50;
 
-        // Add label
+      doc.strokeColor('#e5e7eb');
+      doc.lineWidth(1);
+
+      financials.forEach((fin) => {
+        // Draw box with light fill
+        doc.save();
+        doc.fillColor('#f9fafb');
+        doc.roundedRect(boxX, yPosition, boxWidth, boxHeight, 6).fill();
+        doc.restore();
+
+        // Draw border
+        doc.roundedRect(boxX, yPosition, boxWidth, boxHeight, 6).stroke();
+
+        // Add label (positioned explicitly)
         doc.fontSize(9);
         doc.font('Helvetica');
-        doc.fillColor('#666666');
-        doc.text(fin.label, boxX + 10, yPosition + 10, { width: boxWidth - 20, align: 'center' });
+        doc.fillColor('#6b7280');
+        const labelY = yPosition + 12;
+        doc.text(fin.label, boxX, labelY, { width: boxWidth, align: 'center' });
 
-        // Add value
-        doc.fontSize(16);
+        // Add value (positioned explicitly)
+        doc.fontSize(15);
         doc.font('Helvetica-Bold');
-        doc.fillColor('#1a1a1a');
-        doc.text(fin.value || '', boxX + 10, yPosition + 28, { width: boxWidth - 20, align: 'center' });
+        doc.fillColor('#111827');
+        const valueY = yPosition + 28;
+        doc.text(fin.value || '', boxX, valueY, { width: boxWidth, align: 'center' });
 
         boxX += boxWidth + boxSpacing;
       });
 
-      yPosition += boxHeight + 30;
+      yPosition += boxHeight + 25;
     }
 
     // Add horizontal line
