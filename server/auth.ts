@@ -349,6 +349,41 @@ export function setupAuth(app: Express) {
           const finalLogoPath = await objectStorageImageManager.saveBusinessImage(logoBuffer, logoFilename, user.id.toString());
           updateData.businessLogo = finalLogoPath;
           user.businessLogo = finalLogoPath;
+
+          // Sync logo and brand colors to e-signature branding settings
+          try {
+            const { extractBrandColors } = await import("./services/brand-color-extractor");
+            const { db } = await import("./db");
+            const { userBranding } = await import("../shared/schema");
+
+            // Extract brand colors from the logo
+            const extractedColors = await extractBrandColors(logoBuffer);
+            const primaryColor = extractedColors.primary || "#0072CE";
+
+            // Add cache-busting timestamp to logo URL for e-signature branding
+            const logoUrlWithCacheBust = `${finalLogoPath}?t=${Date.now()}`;
+
+            // Create e-signature branding record with logo and extracted colors
+            await db.insert(userBranding).values({
+              userId: user.id,
+              logoUrl: logoUrlWithCacheBust,
+              primaryColor: primaryColor,
+              companyName: businessName || null,
+            });
+
+            // Also save brand colors to user profile
+            updateData.brandColors = extractedColors.colors;
+
+            console.log(`[Registration] Synced business logo to e-signature branding for user ${user.id}`, {
+              logoUrl: logoUrlWithCacheBust,
+              primaryColor,
+              companyName: businessName || null,
+              brandColors: extractedColors.colors
+            });
+          } catch (brandingError) {
+            console.error(`[Registration] Failed to sync logo to e-signature branding for user ${user.id}:`, brandingError);
+            // Don't fail registration if branding sync fails
+          }
         } catch (logoError) {
           console.error('Failed to save business logo:', logoError);
         }

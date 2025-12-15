@@ -1341,9 +1341,16 @@ export const insertUserBrandingSchema = createInsertSchema(userBranding).pick({
   emailFromName: true
 }).extend({
   logoUrl: z.string().nullable().optional(),
-  primaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid hex color").optional(),
-  companyName: z.string().optional(),
-  emailFromName: z.string().optional()
+  // Allow empty string, null, or valid hex color - transform empty to undefined
+  primaryColor: z.string().nullable().optional().transform(val => {
+    if (!val || val === '') return undefined;
+    // Validate hex format if provided
+    if (!/^#[0-9A-Fa-f]{6}$/.test(val)) return undefined;
+    return val;
+  }),
+  // Allow empty strings, transform to null for database storage
+  companyName: z.string().nullable().optional().transform(val => val === '' ? null : val),
+  emailFromName: z.string().nullable().optional().transform(val => val === '' ? null : val)
 });
 
 export const insertEsignTemplateSchema = createInsertSchema(esignTemplates).pick({

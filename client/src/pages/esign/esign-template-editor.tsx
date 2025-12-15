@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useRoute } from "wouter";
-import { DndContext, DragEndEvent, DragOverlay, useSensor, useSensors, PointerSensor, TouchSensor, useDroppable, useDraggable, DragMoveEvent, closestCenter } from "@dnd-kit/core";
+import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, useSensor, useSensors, PointerSensor, TouchSensor, useDroppable, useDraggable, DragMoveEvent, closestCenter } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
@@ -221,13 +221,22 @@ function DraggableField({
     startHeight: number;
     startFieldX: number;
     startFieldY: number;
+    canvasRect: DOMRect;
   } | null>(null);
+  const fieldRef = useRef<HTMLDivElement>(null);
 
-  // Handle resize
+  // Handle resize - uses displayed canvas dimensions for accurate scaling
   const handleResizeStart = (e: React.MouseEvent, handle: ResizeHandle) => {
     e.stopPropagation();
     e.preventDefault();
     setIsResizing(true);
+
+    // Get the canvas element (parent of the field)
+    const canvasElement = fieldRef.current?.parentElement;
+    const canvasRect = canvasElement?.getBoundingClientRect();
+
+    if (!canvasRect) return;
+
     resizeStartRef.current = {
       handle,
       startX: e.clientX,
@@ -236,14 +245,21 @@ function DraggableField({
       startHeight: field.height,
       startFieldX: field.x,
       startFieldY: field.y,
+      canvasRect,
     };
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
       if (!resizeStartRef.current) return;
 
-      const { handle, startX, startY, startWidth, startHeight, startFieldX, startFieldY } = resizeStartRef.current;
-      const deltaX = ((moveEvent.clientX - startX) / zoom) / 612 * 100; // Convert to percentage
-      const deltaY = ((moveEvent.clientY - startY) / zoom) / canvasHeight * 100;
+      const { handle, startX, startY, startWidth, startHeight, startFieldX, startFieldY, canvasRect } = resizeStartRef.current;
+
+      // Use actual displayed canvas dimensions for consistent scaling
+      const displayedWidth = canvasRect.width;
+      const displayedHeight = canvasRect.height;
+
+      // Convert mouse movement to percentage of canvas
+      const deltaX = ((moveEvent.clientX - startX) / displayedWidth) * 100;
+      const deltaY = ((moveEvent.clientY - startY) / displayedHeight) * 100;
 
       let newWidth = startWidth;
       let newHeight = startHeight;
@@ -308,15 +324,19 @@ function DraggableField({
   // Calculate dynamic font size
   const fontSize = field.fontSize || calculateFontSize(field.height, canvasHeight);
 
-  // Resize handle styles - only bottom-right corner
-  const handleStyle = "absolute w-2.5 h-2.5 bg-white border-2 border-blue-500 rounded-sm";
-  const handles: { position: ResizeHandle; className: string; cursor: string }[] = [
-    { position: 'se', className: '-bottom-1 -right-1', cursor: 'nwse-resize' },
+  // Resize handle styles - bottom-right, bottom, and right handles like canvas-overlay
+  const handles: { position: ResizeHandle; className: string; cursor: string; style?: React.CSSProperties }[] = [
+    { position: 'se', className: 'absolute -bottom-1 -right-1 w-3 h-3 bg-blue-500 border border-white rounded', cursor: 'nwse-resize' },
+    { position: 's', className: 'absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-2 bg-blue-500 border border-white rounded', cursor: 's-resize' },
+    { position: 'e', className: 'absolute -right-1 top-1/2 -translate-y-1/2 w-2 h-3 bg-blue-500 border border-white rounded', cursor: 'e-resize' },
   ];
 
   return (
     <div
-      ref={setNodeRef}
+      ref={(node) => {
+        setNodeRef(node);
+        (fieldRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+      }}
       style={style}
       {...(isResizing ? {} : attributes)}
       {...(isResizing ? {} : listeners)}
@@ -357,7 +377,7 @@ function DraggableField({
       {isSelected && handles.map(({ position, className, cursor }) => (
         <div
           key={position}
-          className={`${handleStyle} ${className}`}
+          className={className}
           style={{ cursor }}
           onMouseDown={(e) => handleResizeStart(e, position)}
         />
@@ -543,6 +563,10 @@ export default function EsignTemplateEditor() {
   const [mobileFieldType, setMobileFieldType] = useState<string | null>(null);
   const [isTapToPlaceMode, setIsTapToPlaceMode] = useState(false);
 
+  // Track active dragging item for DragOverlay visual feedback
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const [activeDragData, setActiveDragData] = useState<{ type: string; fromPalette: boolean; field?: TemplateField } | null>(null);
+
   // Track canvas refs for accurate drop positioning
   const canvasRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const lastPointerPosition = useRef<{ x: number; y: number } | null>(null);
@@ -567,6 +591,25 @@ export default function EsignTemplateEditor() {
       },
     })
   );
+
+  // Handle drag start - track the active item for DragOverlay
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const { active } = event;
+    setActiveDragId(active.id.toString());
+
+    if (active.data.current?.fromPalette) {
+      setActiveDragData({
+        type: active.data.current.type,
+        fromPalette: true,
+      });
+    } else if (active.data.current?.field) {
+      setActiveDragData({
+        type: active.data.current.field.type,
+        fromPalette: false,
+        field: active.data.current.field,
+      });
+    }
+  }, []);
 
   // Track pointer position during drag for accurate drop placement
   const handleDragMove = useCallback((event: DragMoveEvent) => {
@@ -833,6 +876,10 @@ export default function EsignTemplateEditor() {
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over, activatorEvent } = event;
 
+    // Clear active drag state
+    setActiveDragId(null);
+    setActiveDragData(null);
+
     if (!over || !activeRecipientId) {
       lastPointerPosition.current = null;
       return;
@@ -1001,7 +1048,7 @@ export default function EsignTemplateEditor() {
   }
 
   return (
-    <DndContext sensors={sensors} onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
       <div className="min-h-screen bg-gray-100">
         {/* Header */}
         <div className="bg-white border-b shadow-sm sticky top-0 z-50">
@@ -1687,6 +1734,39 @@ export default function EsignTemplateEditor() {
           </>
         )}
       </div>
+
+      {/* DragOverlay - shows visual feedback of the dragged item following the cursor */}
+      <DragOverlay dropAnimation={null}>
+        {activeDragId && activeDragData && (
+          <div
+            className="rounded border-2 flex items-center justify-center gap-1 text-white font-medium shadow-lg pointer-events-none"
+            style={{
+              backgroundColor: activeRecipientId
+                ? recipients.find(r => r.id === activeRecipientId)?.color || '#888'
+                : '#888',
+              opacity: 0.9,
+              width: activeDragData.field
+                ? `${activeDragData.field.width * 6.12}px`
+                : `${(FIELD_TYPES.find(f => f.type === activeDragData.type)?.defaultSize.width || 20) * 6.12}px`,
+              height: activeDragData.field
+                ? `${activeDragData.field.height * 7.92}px`
+                : `${(FIELD_TYPES.find(f => f.type === activeDragData.type)?.defaultSize.height || 4) * 7.92}px`,
+              fontSize: '12px',
+            }}
+          >
+            {(() => {
+              const fieldConfig = FIELD_TYPES.find(f => f.type === activeDragData.type);
+              const Icon = fieldConfig?.icon || Type;
+              return (
+                <>
+                  <Icon className="h-3 w-3 flex-shrink-0" />
+                  <span className="truncate">{fieldConfig?.label}</span>
+                </>
+              );
+            })()}
+          </div>
+        )}
+      </DragOverlay>
     </DndContext>
   );
 }
