@@ -11,6 +11,32 @@ interface ErrorReportOptions {
 
 let isReporting = false;
 
+// Patterns for third-party errors we want to ignore
+const IGNORED_ERROR_PATTERNS = [
+  'chrome-extension://',
+  'moz-extension://',
+  'safari-extension://',
+  'licdn.com',
+  'linkedin',
+  'facebook.net',
+  'google-analytics.com',
+  'googletagmanager.com',
+  'doubleclick.net',
+  'hotjar.com',
+];
+
+function shouldIgnoreError(error: Error | string, filename?: string): boolean {
+  const errorString = error instanceof Error
+    ? `${error.message} ${error.stack || ''}`
+    : String(error);
+
+  const combined = `${errorString} ${filename || ''}`.toLowerCase();
+
+  return IGNORED_ERROR_PATTERNS.some(pattern =>
+    combined.includes(pattern.toLowerCase())
+  );
+}
+
 export async function reportError(options: ErrorReportOptions): Promise<void> {
   // Prevent recursive error reporting
   if (isReporting) return;
@@ -50,8 +76,11 @@ export async function reportError(options: ErrorReportOptions): Promise<void> {
 export function setupGlobalErrorHandlers(): void {
   // Handle uncaught errors
   window.addEventListener('error', (event) => {
+    const error = event.error || event.message;
+    if (shouldIgnoreError(error, event.filename)) return;
+
     reportError({
-      error: event.error || event.message,
+      error,
       additionalInfo: {
         filename: event.filename,
         lineno: event.lineno,
@@ -66,6 +95,8 @@ export function setupGlobalErrorHandlers(): void {
     const error = event.reason instanceof Error
       ? event.reason
       : new Error(String(event.reason));
+
+    if (shouldIgnoreError(error)) return;
 
     reportError({
       error,

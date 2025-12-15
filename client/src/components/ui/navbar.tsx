@@ -562,15 +562,25 @@ export function Navbar() {
                 </DropdownMenuItem>
                 {listingsSettings?.listingsEnabled && listingsSettings?.listingsSlug ? (
                   <DropdownMenuItem asChild>
-                    <a
-                      href={`/listings/${listingsSettings.listingsSlug}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center cursor-pointer w-full"
-                    >
-                      <Link2 className="h-4 w-4 mr-2" />
-                      My Listings Page
-                    </a>
+                    <div className="flex items-center justify-between w-full">
+                      <a
+                        href={`/listings/${listingsSettings.listingsSlug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center cursor-pointer flex-1"
+                      >
+                        <Link2 className="h-4 w-4 mr-2" />
+                        My Listings Page
+                      </a>
+                      <Link
+                        href="/account?subtab=listings"
+                        className="p-1 hover:bg-gray-100 rounded ml-2"
+                        title="Listings Settings"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Settings className="h-3.5 w-3.5 text-gray-500 hover:text-gray-700" />
+                      </Link>
+                    </div>
                   </DropdownMenuItem>
                 ) : (
                   <DropdownMenuItem asChild>
@@ -723,17 +733,28 @@ export function Navbar() {
                       </Button>
                     </Link>
                     {listingsSettings?.listingsEnabled && listingsSettings?.listingsSlug ? (
-                      <a
-                        href={`/listings/${listingsSettings.listingsSlug}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        <Button variant="ghost" className="w-full justify-start text-left h-12 text-base">
-                          <Link2 className="mr-3 h-5 w-5" />
-                          My Listings Page
-                        </Button>
-                      </a>
+                      <div className="flex items-center w-full">
+                        <a
+                          href={`/listings/${listingsSettings.listingsSlug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className="flex-1"
+                        >
+                          <Button variant="ghost" className="w-full justify-start text-left h-12 text-base">
+                            <Link2 className="mr-3 h-5 w-5" />
+                            My Listings Page
+                          </Button>
+                        </a>
+                        <Link
+                          href="/account?subtab=listings"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className="p-2 hover:bg-gray-100 rounded mr-2"
+                          title="Listings Settings"
+                        >
+                          <Settings className="h-5 w-5 text-gray-500" />
+                        </Link>
+                      </div>
                     ) : (
                       <Link href="/account?subtab=listings" onClick={() => setIsMobileMenuOpen(false)}>
                         <Button variant="ghost" className="w-full justify-start text-left h-12 text-base">

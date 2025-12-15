@@ -483,24 +483,33 @@ router.get('/public/:slug', async (req: Request, res: Response) => {
         bannerUrl: user.listingsBannerUrl,
         layout: user.listingsLayout,
       },
-      listings: filteredTeasers.map(t => ({
-        id: t.id,
-        shareSlug: t.shareSlug,
-        headline: t.headline,
-        summary: t.summary,
-        industryTags: t.industryTags,
-        dealTypeTags: t.dealTypeTags,
-        coverImageUrl: t.coverImageUrl,
-        showFinancials: t.showFinancials,
-        financials: t.showFinancials ? {
-          revenue: t.revenue,
-          earnings: t.earnings,
-          askingPrice: t.askingPrice,
-        } : null,
-        isFeatured: t.isFeatured,
-        cimShareSlug: t.cimShareSlug,
-        ndaProtected: t.ndaProtected,
-      })),
+      listings: filteredTeasers.map(t => {
+        // Get the document for this teaser to check for CIM cover image
+        const doc = results.find(r => r.teaser.id === t.id)?.document;
+        // If useCimCoverImage is true, use the CIM document's cover image
+        const effectiveCoverImageUrl = t.useCimCoverImage && doc?.coverImageUrl
+          ? doc.coverImageUrl
+          : t.coverImageUrl;
+
+        return {
+          id: t.id,
+          shareSlug: t.shareSlug,
+          headline: t.headline,
+          summary: t.summary,
+          industryTags: t.industryTags,
+          dealTypeTags: t.dealTypeTags,
+          coverImageUrl: effectiveCoverImageUrl,
+          showFinancials: t.showFinancials,
+          financials: t.showFinancials ? {
+            revenue: t.revenue,
+            earnings: t.earnings,
+            askingPrice: t.askingPrice,
+          } : null,
+          isFeatured: t.isFeatured,
+          cimShareSlug: t.cimShareSlug,
+          ndaProtected: t.ndaProtected,
+        };
+      }),
       // Available filter options (for dropdowns)
       filterOptions: {
         industries: [...new Set(results.flatMap(r => r.teaser.industryTags || []))],

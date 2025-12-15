@@ -737,13 +737,13 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
-            {/* Free Trial */}
+            {/* Free */}
             <Card className="relative border-2 border-gray-200 hover:shadow-xl transition-all duration-300">
               <CardHeader className="pb-4">
                 <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center mb-4">
                   <Sparkles className="w-6 h-6 text-gray-600" />
                 </div>
-                <CardTitle className="text-xl">Free Trial</CardTitle>
+                <CardTitle className="text-xl">Free</CardTitle>
                 <div className="mt-4">
                   <span className="text-3xl font-bold">$0</span>
                 </div>
@@ -753,15 +753,15 @@ export default function HomePage() {
                 <ul className="space-y-2 text-sm">
                   <li className="flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span>1 CIM document (trial only)</span>
+                    <span>1 CIM document</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>Unlimited eSignatures</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
                     <span>Basic export options</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span>7-day trial period</span>
                   </li>
                 </ul>
                 <Button
@@ -769,7 +769,7 @@ export default function HomePage() {
                   variant="outline"
                   onClick={() => handlePricingClick('free')}
                 >
-                  Start Free Trial
+                  Get Started Free
                 </Button>
               </CardContent>
             </Card>
@@ -797,20 +797,20 @@ export default function HomePage() {
                 <p className="text-sm text-gray-600 mb-4">For individual professionals</p>
                 <ul className="space-y-2 text-sm">
                   <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span>3 CIM documents per year</span>
+                    <CheckCircle className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                    <span className="font-semibold">3 CIM documents per year</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span>Unlimited regenerations</span>
+                    <span>Unlimited eSignatures</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span>NDA management</span>
+                    <span>Investor CRM</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span>Custom branding</span>
+                    <span>Public listings page</span>
                   </li>
                 </ul>
                 <Button
@@ -818,7 +818,7 @@ export default function HomePage() {
                   variant="outline"
                   onClick={() => handlePricingClick(billingPeriod === "monthly" ? "starter_monthly" : "starter")}
                 >
-                  Start with Starter Plan
+                  Choose Starter
                 </Button>
               </CardContent>
             </Card>
@@ -851,27 +851,27 @@ export default function HomePage() {
                 <p className="text-sm text-gray-600 mb-4">Everything for your business</p>
                 <ul className="space-y-2 text-sm">
                   <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span>10 CIM documents per year</span>
+                    <CheckCircle className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                    <span className="font-semibold">10 CIM documents per year</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span>Unlimited regenerations</span>
+                    <span>Unlimited eSignatures</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>Investor CRM</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
                     <span>Priority support</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span>All features included</span>
                   </li>
                 </ul>
                 <Button
                   className="w-full mt-6"
                   onClick={() => handlePricingClick(billingPeriod === "monthly" ? "pro_monthly" : "pro")}
                 >
-                  Choose Pro Plan
+                  Choose Pro
                 </Button>
               </CardContent>
             </Card>
@@ -891,8 +891,12 @@ export default function HomePage() {
                 <p className="text-sm text-gray-600 mb-4">For large organizations</p>
                 <ul className="space-y-2 text-sm">
                   <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                    <span className="font-semibold">Unlimited CIMs</span>
+                  </li>
+                  <li className="flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span>Unlimited CIMs</span>
+                    <span>Unlimited eSignatures</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
@@ -901,10 +905,6 @@ export default function HomePage() {
                   <li className="flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
                     <span>Custom integrations</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span>Team training</span>
                   </li>
                 </ul>
                 <Button

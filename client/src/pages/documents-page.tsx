@@ -154,6 +154,7 @@ export default function DocumentsPage() {
 
   // Filter options
   const filterOptions = [
+    { id: 'has-published-teaser', label: 'Published Teaser', icon: Globe, color: 'emerald' },
     { id: 'nda-protected', label: 'NDA Protected', icon: Shield, color: 'purple' },
     { id: 'has-signatures', label: 'Has Signatures', icon: Users, color: 'blue' },
     { id: 'created-this-week', label: 'Created This Week', icon: Calendar, color: 'green' },
@@ -344,6 +345,7 @@ export default function DocumentsPage() {
                 const Icon = filter.icon;
                 const isActive = activeFilters.includes(filter.id);
                 const colorClasses = {
+                  emerald: isActive ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : 'bg-white text-emerald-600 border-emerald-200 hover:bg-emerald-50',
                   purple: isActive ? 'bg-purple-100 text-purple-700 border-purple-300' : 'bg-white text-purple-600 border-purple-200 hover:bg-purple-50',
                   blue: isActive ? 'bg-blue-100 text-blue-700 border-blue-300' : 'bg-white text-blue-600 border-blue-200 hover:bg-blue-50',
                   green: isActive ? 'bg-green-100 text-green-700 border-green-300' : 'bg-white text-green-600 border-green-200 hover:bg-green-50',

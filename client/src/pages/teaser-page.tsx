@@ -23,7 +23,10 @@ import {
   Target,
   Loader2,
   ExternalLink,
+  Download,
+  Send,
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface TeaserData {
   headline: string;
@@ -53,13 +56,48 @@ interface TeaserData {
 export function TeaserPage() {
   const [matched, params] = useRoute("/teaser/:slug");
   const slug = params?.slug;
+  const { toast } = useToast();
 
   const [password, setPassword] = useState("");
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [passwordError, setPasswordError] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
   const startTimeRef = useRef<number>(Date.now());
   const heartbeatRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Download teaser as PDF
+  const handleDownloadPdf = async () => {
+    if (!slug) return;
+    setIsDownloading(true);
+    try {
+      const response = await fetch(`/api/teasers/public/${slug}/export/pdf`);
+      if (!response.ok) throw new Error('Failed to download PDF');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `teaser-${slug}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast({ title: 'PDF Downloaded', description: 'The teaser has been downloaded as a PDF.' });
+    } catch (error) {
+      toast({ title: 'Download Failed', description: 'Could not download the PDF. Please try again.', variant: 'destructive' });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  // Share teaser via email
+  const handleShareEmail = () => {
+    if (!teaser) return;
+    const teaserUrl = window.location.href;
+    const subject = encodeURIComponent(`${teaser.headline} - Business Opportunity`);
+    const body = encodeURIComponent(`I thought you might be interested in this opportunity:\n\n${teaser.headline}\n\nView the full teaser here: ${teaserUrl}`);
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  };
 
   // Check if teaser exists and needs password
   const { data: checkData, isLoading: checkLoading, error: checkError } = useQuery({
@@ -325,10 +363,37 @@ export function TeaserPage() {
                 </div>
               )}
 
-              {/* Headline */}
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
-                {teaser.headline}
-              </h1>
+              {/* Headline and Actions */}
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                  {teaser.headline}
+                </h1>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleShareEmail}
+                    title="Share via Email"
+                    className="h-9 w-9"
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleDownloadPdf}
+                    disabled={isDownloading}
+                    title="Download PDF"
+                    className="h-9 w-9"
+                  >
+                    {isDownloading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
 
               {/* Tags */}
               <div className="flex flex-wrap gap-2 mb-6">
