@@ -2709,14 +2709,18 @@ router.post('/sign/:token/complete', async (req: Request, res: Response) => {
             ipAddress: s.ipAddress,
             location: s.location,
           })),
-          auditLog.map(a => ({
-            action: a.action,
-            actorName: null,
-            actorEmail: null,
-            createdAt: a.timestamp,
-            ipAddress: a.ipAddress,
-            location: a.location,
-          }))
+          auditLog.map(a => {
+            // Find the recipient who performed this action (if any)
+            const actor = a.recipientId ? allRecipients.find(r => r.id === a.recipientId) : null;
+            return {
+              action: a.action,
+              actorName: actor?.name || null,
+              actorEmail: actor?.email || null,
+              createdAt: a.timestamp,
+              ipAddress: a.ipAddress,
+              location: a.location,
+            };
+          })
         );
 
         // Combine signed PDF with certificate

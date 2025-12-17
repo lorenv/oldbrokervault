@@ -112,7 +112,7 @@ export default function EsignSign() {
   const [showDeclineModal, setShowDeclineModal] = useState(false);
   const [showConsentDialog, setShowConsentDialog] = useState(false);
   const [declineReason, setDeclineReason] = useState("");
-  const [signatureTab, setSignatureTab] = useState<'draw' | 'type'>('draw');
+  const [signatureTab, setSignatureTab] = useState<'draw' | 'type'>('type');
   const [typedSignature, setTypedSignature] = useState("");
   const [hasConsented, setHasConsented] = useState(false);
   const [consentedAt, setConsentedAt] = useState<string | null>(null);
@@ -1215,15 +1215,31 @@ export default function EsignSign() {
 
                 <Tabs value={signatureTab} onValueChange={(v) => setSignatureTab(v as 'draw' | 'type')}>
                   <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="draw">
-                      <Pen className="h-4 w-4 mr-2" />
-                      Draw
-                    </TabsTrigger>
                     <TabsTrigger value="type">
                       <Type className="h-4 w-4 mr-2" />
                       Type
                     </TabsTrigger>
+                    <TabsTrigger value="draw">
+                      <Pen className="h-4 w-4 mr-2" />
+                      Draw
+                    </TabsTrigger>
                   </TabsList>
+
+                  <TabsContent value="type" className="mt-4">
+                    <Input
+                      value={typedSignature}
+                      onChange={(e) => setTypedSignature(e.target.value)}
+                      placeholder="Type your name"
+                      className="text-2xl h-14"
+                      style={{ fontFamily: 'cursive' }}
+                    />
+                    <div
+                      className="mt-4 p-4 border rounded-lg bg-white text-center"
+                      style={{ fontFamily: 'cursive' }}
+                    >
+                      <span className="text-3xl">{typedSignature || 'Preview'}</span>
+                    </div>
+                  </TabsContent>
 
                   <TabsContent value="draw" className="mt-4">
                     <div className="border rounded-lg bg-white">
@@ -1245,22 +1261,6 @@ export default function EsignSign() {
                     <Button variant="ghost" size="sm" className="mt-2" onClick={clearCanvas}>
                       Clear
                     </Button>
-                  </TabsContent>
-
-                  <TabsContent value="type" className="mt-4">
-                    <Input
-                      value={typedSignature}
-                      onChange={(e) => setTypedSignature(e.target.value)}
-                      placeholder="Type your name"
-                      className="text-2xl h-14"
-                      style={{ fontFamily: 'cursive' }}
-                    />
-                    <div
-                      className="mt-4 p-4 border rounded-lg bg-white text-center"
-                      style={{ fontFamily: 'cursive' }}
-                    >
-                      <span className="text-3xl">{typedSignature || 'Preview'}</span>
-                    </div>
                   </TabsContent>
                 </Tabs>
 
