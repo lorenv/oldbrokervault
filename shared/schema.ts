@@ -1057,8 +1057,8 @@ export const insertContentStyleTemplateSchema = createInsertSchema(contentStyleT
   isDefault: true
 }).extend({
   name: z.string().min(1, "Template name is required"),
-  sectionDirections: z.record(z.string().min(1)), // Object with string values
-  formattingProfile: z.enum(["balanced", "professional", "memo", "robust"]),
+  sectionDirections: z.record(z.string()), // Object with string values (allow empty for flexibility)
+  formattingProfile: z.enum(["balanced", "professional", "memo", "robust", "conversational"]),
   isDefault: z.boolean().default(false)
 });
 

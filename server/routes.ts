@@ -1783,8 +1783,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }).refine(s => !s.ndaProtected || s.ndaTemplateId !== null, {
         message: 'Template required when NDA is enabled'
       }).optional();
-      
-      
+
+
       let ndaSettings = { ndaProtected: false, ndaTemplateId: null, ndaApprovalRequired: false };
       try {
         if (req.body.ndaSettings) {
@@ -1792,6 +1792,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } else {
         }
       } catch (error) {
+      }
+
+      // Extract custom style config if provided
+      const customStyleConfigSchema = z.object({
+        name: z.string(),
+        wordCountTarget: z.number(),
+        useBullets: z.boolean(),
+        useNumberedLists: z.boolean(),
+        useTables: z.boolean(),
+        toneDescription: z.string()
+      }).optional();
+
+      let customStyleConfig = null;
+      try {
+        if (req.body.customStyleConfig) {
+          customStyleConfig = customStyleConfigSchema.parse(req.body.customStyleConfig);
+          console.log('🎨 Custom style config received:', customStyleConfig?.toneDescription?.substring(0, 50));
+        }
+      } catch (error) {
+        console.error('Custom style config parsing error:', error);
       }
       
       // Now parse the main schema (this will strip out unknown fields like ndaSettings)
@@ -1876,7 +1896,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           data.websiteUrl,
           data.sectionDirections,
           data.formattingProfile,
-          websiteData // Pass pre-fetched data
+          websiteData, // Pass pre-fetched data
+          customStyleConfig
         );
 
         // Now wait for logo extraction (should already be done or nearly done)
@@ -1959,7 +1980,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         data.websiteUrl,
         data.sectionDirections,
         data.formattingProfile,
-        websiteData // Pass pre-fetched data - no duplicate API call
+        websiteData, // Pass pre-fetched data - no duplicate API call
+        customStyleConfig
       );
 
       console.log("=== FLEXIBLE CIM ANALYSIS RESULT ===");
@@ -2484,7 +2506,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           parsedBody.sectionDirections = [];
         }
       }
-      
+
+      // Parse customStyleConfig from FormData string
+      let customStyleConfig = null;
+      if (req.body.customStyleConfig && typeof req.body.customStyleConfig === 'string') {
+        try {
+          customStyleConfig = JSON.parse(req.body.customStyleConfig);
+          console.log("🎨 Custom style config parsed from FormData:", customStyleConfig?.toneDescription?.substring(0, 50));
+        } catch (error) {
+          console.error("Failed to parse customStyleConfig:", error);
+        }
+      }
+
       // Debug: Log what we're sending to schema validation
       console.log("=== SCHEMA VALIDATION DEBUG ===");
       console.log("coverImagePosition type:", typeof parsedBody.coverImagePosition);
@@ -2588,7 +2621,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         data.websiteUrl,
         data.sectionDirections,
         data.formattingProfile,
-        websiteData // Pass pre-fetched data
+        websiteData, // Pass pre-fetched data
+        customStyleConfig
       );
 
       // Handle selected images early in the process - always download if provided
@@ -10765,13 +10799,32 @@ ${finalQuestion}
 
   app.post("/api/content-style-templates", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     try {
-      const template = await storage.createContentStyleTemplate(req.user!.id, req.body);
+      console.log("[ContentStyleTemplate] Creating template for user:", req.user!.id);
+      console.log("[ContentStyleTemplate] Request body:", JSON.stringify(req.body, null, 2));
+
+      // Validate the request body
+      const { insertContentStyleTemplateSchema } = await import("@shared/schema");
+      const validatedData = insertContentStyleTemplateSchema.parse(req.body);
+
+      console.log("[ContentStyleTemplate] Validated data:", JSON.stringify(validatedData, null, 2));
+
+      const template = await storage.createContentStyleTemplate(req.user!.id, validatedData);
+      console.log("[ContentStyleTemplate] Template created successfully:", template.id);
       res.status(201).json(template);
-    } catch (error) {
-      console.error("Error creating content style template:", error);
-      res.status(500).json({ error: "Failed to create template" });
+    } catch (error: any) {
+      console.error("[ContentStyleTemplate] Error creating template:", error);
+
+      // Check if it's a Zod validation error
+      if (error.name === 'ZodError') {
+        return res.status(400).json({
+          error: "Validation failed",
+          details: error.errors
+        });
+      }
+
+      res.status(500).json({ error: "Failed to create template", message: error.message });
     }
   });
 
