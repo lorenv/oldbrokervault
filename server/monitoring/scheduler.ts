@@ -29,10 +29,13 @@ let lastQuickReport: SystemHealthReport | null = null;
 let alertsSentToday: Map<string, number> = new Map();
 
 // Default intervals
-const QUICK_CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
-const FULL_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+const QUICK_CHECK_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes (quick check for critical services)
+const FULL_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000; // 4 hours (full comprehensive check)
 const DAILY_REPORT_HOUR = 9; // 9 AM UTC
 const MAX_ALERTS_PER_CHECK_TYPE = 3; // Max alerts per day per check type
+
+// Default admin email for alerts
+const DEFAULT_ADMIN_EMAIL = 'robertkale20@gmail.com';
 
 /**
  * Format a health report for logging/alerting
@@ -369,4 +372,22 @@ export async function triggerHealthCheck(full: boolean = false): Promise<SystemH
     lastQuickReport = report;
     return report;
   }
+}
+
+/**
+ * Auto-start monitoring with default configuration
+ * Called from server startup
+ */
+export function autoStartMonitoring(): void {
+  // Only start if not already running
+  if (isRunning) {
+    return;
+  }
+
+  console.log('🔄 Auto-starting health monitoring with email alerts...');
+
+  startMonitoring({
+    enabled: true,
+    emailRecipients: [DEFAULT_ADMIN_EMAIL],
+  });
 }

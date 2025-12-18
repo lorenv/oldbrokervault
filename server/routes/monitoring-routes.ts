@@ -25,6 +25,7 @@ import {
   checkSendGridHealth,
   checkStorageHealth,
   checkPerplexityHealth,
+  checkAnthropicHealth,
   checkEnvironmentHealth,
 } from '../monitoring/health-checks';
 import {
@@ -318,6 +319,10 @@ export function registerMonitoringRoutes(app: Express) {
           break;
         case 'perplexity':
           result = await checkPerplexityHealth();
+          break;
+        case 'anthropic':
+        case 'claude':
+          result = await checkAnthropicHealth();
           break;
         case 'environment':
         case 'env':

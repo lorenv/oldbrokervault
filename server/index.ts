@@ -279,11 +279,22 @@ async function startServer() {
   console.log(`🚀 Starting server on ${HOST}:${PORT}...`);
   
   return new Promise((resolve, reject) => {
-    const server = app.listen(PORT, HOST, () => {
+    const server = app.listen(PORT, HOST, async () => {
       log(`✅ Server successfully started on ${HOST}:${PORT}`);
       log('✅ Health checks responding immediately');
       console.log('🎯 Server is listening on:', server.address());
       console.log('🚀 Application ready for deployment health checks');
+
+      // Auto-start health monitoring with email alerts (delayed to avoid blocking startup)
+      setTimeout(async () => {
+        try {
+          const { autoStartMonitoring } = await import('./monitoring/scheduler');
+          autoStartMonitoring();
+        } catch (err) {
+          console.warn('⚠️ Could not start health monitoring:', err);
+        }
+      }, 10000); // Start monitoring 10 seconds after server is ready
+
       resolve(server);
     });
 
