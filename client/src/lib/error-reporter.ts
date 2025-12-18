@@ -23,6 +23,7 @@ const IGNORED_ERROR_PATTERNS = [
   'googletagmanager.com',
   'doubleclick.net',
   'hotjar.com',
+  'Object Not Found Matching Id',  // SignalR errors from external embeds/widgets
 ];
 
 function shouldIgnoreError(error: Error | string, filename?: string): boolean {

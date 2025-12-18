@@ -256,6 +256,130 @@ export async function checkCIMGenerationHealth(): Promise<HealthCheckResult> {
 }
 
 /**
+ * Check Anthropic/Claude API health
+ */
+export async function checkAnthropicHealth(): Promise<HealthCheckResult> {
+  const startTime = Date.now();
+  const name = 'Anthropic Claude API';
+
+  // Models to check - primary and fallback
+  // claude-sonnet-4-20250514 is Claude Sonnet 4 (stable)
+  const PRIMARY_MODEL = 'claude-sonnet-4-20250514';
+  const FALLBACK_MODEL = 'claude-3-5-sonnet-20241022';
+
+  try {
+    const apiKey = process.env.ANTHROPIC_API_KEY2 || process.env.ANTHROPIC_API_KEY;
+
+    if (!apiKey) {
+      return {
+        name,
+        status: 'degraded',
+        message: 'ANTHROPIC_API_KEY not configured (optional for CIM generation)',
+        timestamp: new Date(),
+      };
+    }
+
+    // Test with a minimal API call
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: PRIMARY_MODEL,
+        max_tokens: 10,
+        messages: [{ role: 'user', content: 'Reply with only: OK' }],
+      }),
+      signal: AbortSignal.timeout(THRESHOLDS.api.timeoutMs),
+    });
+
+    const latencyMs = Date.now() - startTime;
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: { message: 'Unknown error' } }));
+      const errorMessage = errorData.error?.message || `Status ${response.status}`;
+
+      // Check if it's a model not found error
+      if (errorMessage.includes('model') || errorMessage.includes('not found') || response.status === 404) {
+        // Try fallback model
+        console.log(`[HEALTH] Primary model ${PRIMARY_MODEL} failed, trying fallback...`);
+
+        const fallbackResponse = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: FALLBACK_MODEL,
+            max_tokens: 10,
+            messages: [{ role: 'user', content: 'Reply with only: OK' }],
+          }),
+          signal: AbortSignal.timeout(THRESHOLDS.api.timeoutMs),
+        });
+
+        if (fallbackResponse.ok) {
+          return {
+            name,
+            status: 'degraded',
+            message: `Primary model ${PRIMARY_MODEL} unavailable, using fallback ${FALLBACK_MODEL}`,
+            latencyMs: Date.now() - startTime,
+            details: {
+              primaryModel: PRIMARY_MODEL,
+              fallbackModel: FALLBACK_MODEL,
+              primaryError: errorMessage,
+            },
+            timestamp: new Date(),
+          };
+        }
+
+        return {
+          name,
+          status: 'unhealthy',
+          message: `Both primary (${PRIMARY_MODEL}) and fallback (${FALLBACK_MODEL}) models failed`,
+          latencyMs: Date.now() - startTime,
+          details: { primaryError: errorMessage },
+          timestamp: new Date(),
+        };
+      }
+
+      return {
+        name,
+        status: 'unhealthy',
+        message: `API error: ${errorMessage}`,
+        latencyMs,
+        timestamp: new Date(),
+      };
+    }
+
+    return {
+      name,
+      status: latencyMs > THRESHOLDS.api.slowResponseMs ? 'degraded' : 'healthy',
+      message: latencyMs > THRESHOLDS.api.slowResponseMs
+        ? `API responding slowly (${latencyMs}ms)`
+        : `Anthropic API healthy (model: ${PRIMARY_MODEL})`,
+      latencyMs,
+      details: {
+        model: PRIMARY_MODEL,
+        fallbackModel: FALLBACK_MODEL,
+      },
+      timestamp: new Date(),
+    };
+  } catch (error) {
+    return {
+      name,
+      status: 'unhealthy',
+      message: `Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      latencyMs: Date.now() - startTime,
+      timestamp: new Date(),
+    };
+  }
+}
+
+/**
  * Check Perplexity API health (fallback AI provider)
  */
 export async function checkPerplexityHealth(): Promise<HealthCheckResult> {
@@ -659,6 +783,7 @@ export async function runAllHealthChecks(): Promise<SystemHealthReport> {
     dbCheck,
     openaiCheck,
     cimCheck,
+    anthropicCheck,
     perplexityCheck,
     stripeCheck,
     sendgridCheck,
@@ -668,6 +793,7 @@ export async function runAllHealthChecks(): Promise<SystemHealthReport> {
     checkDatabaseHealth(),
     checkOpenAIHealth(),
     checkCIMGenerationHealth(),
+    checkAnthropicHealth(),
     checkPerplexityHealth(),
     checkStripeHealth(),
     checkSendGridHealth(),
@@ -679,6 +805,7 @@ export async function runAllHealthChecks(): Promise<SystemHealthReport> {
     dbCheck,
     openaiCheck,
     cimCheck,
+    anthropicCheck,
     perplexityCheck,
     stripeCheck,
     sendgridCheck,

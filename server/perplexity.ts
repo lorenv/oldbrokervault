@@ -448,29 +448,51 @@ WRITING STYLE EXAMPLE (do NOT use these specific numbers - they are illustrative
 
 CRITICAL: Never reference "the transcript" or "business owner's notes" in the output - just write naturally about the business.`;
 
-  // Use Claude Sonnet 3.5 for CIM generation - better quality business writing
+  // Use Claude Sonnet for CIM generation - better quality business writing
   // Fallback to OpenAI GPT-4o if Anthropic key not available, then Perplexity
   const useAnthropic = !!process.env.ANTHROPIC_API_KEY2;
   const useOpenAI = !useAnthropic && !!process.env.OPENAI_API_KEY;
 
+  // Claude model configuration with fallback
+  // claude-sonnet-4-20250514 is Claude Sonnet 4 (stable)
+  const PRIMARY_MODEL = 'claude-sonnet-4-20250514';
+  const FALLBACK_MODEL = 'claude-3-5-sonnet-20241022';
+
   let content: string;
 
   if (useAnthropic) {
-    // Use Claude Sonnet 3.5 for high-quality CIM writing
+    // Use Claude Sonnet for high-quality CIM writing
     const anthropic = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY2,
     });
 
-    console.log(`Using Anthropic Claude Sonnet 3.5 for CIM generation`);
+    console.log(`Using Anthropic Claude for CIM generation (primary: ${PRIMARY_MODEL})`);
 
-    const response = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 8000,
-      system: systemPrompt,
-      messages: [
-        { role: 'user', content: userPrompt }
-      ],
-    });
+    let response;
+    try {
+      response = await anthropic.messages.create({
+        model: PRIMARY_MODEL,
+        max_tokens: 8000,
+        system: systemPrompt,
+        messages: [
+          { role: 'user', content: userPrompt }
+        ],
+      });
+    } catch (primaryError: any) {
+      console.warn(`Primary model ${PRIMARY_MODEL} failed, trying fallback: ${primaryError.message}`);
+
+      // Try fallback model
+      response = await anthropic.messages.create({
+        model: FALLBACK_MODEL,
+        max_tokens: 8000,
+        system: systemPrompt,
+        messages: [
+          { role: 'user', content: userPrompt }
+        ],
+      });
+
+      console.log(`Successfully used fallback model ${FALLBACK_MODEL}`);
+    }
 
     // Extract text content from Claude response
     const textContent = response.content.find(c => c.type === 'text');

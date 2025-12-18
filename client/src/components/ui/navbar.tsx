@@ -16,7 +16,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Settings, LogOut, User, HelpCircle, Plus, Menu, MessageCircle, BarChart3, WandSparkles, Signature, MoreHorizontal, FileCheck, ChevronDown, ChevronRight, Users, FileText, Zap, Shield, Database, PenTool, Briefcase, MessageSquare, TrendingUp, Link2, Workflow } from "lucide-react";
+import { Settings, LogOut, User, HelpCircle, Plus, Menu, MessageCircle, BarChart3, WandSparkles, Signature, MoreHorizontal, FileCheck, ChevronDown, ChevronRight, Users, FileText, Zap, Shield, Database, PenTool, Briefcase, MessageSquare, TrendingUp, Link2, Workflow, LayoutGrid } from "lucide-react";
 import { useState, useRef } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { SupportDialog } from "./support-dialog";
@@ -569,7 +569,7 @@ export function Navbar() {
                         rel="noopener noreferrer"
                         className="flex items-center cursor-pointer flex-1"
                       >
-                        <Link2 className="h-4 w-4 mr-2" />
+                        <LayoutGrid className="h-4 w-4 mr-2" />
                         My Listings Page
                       </a>
                       <Link
@@ -585,7 +585,7 @@ export function Navbar() {
                 ) : (
                   <DropdownMenuItem asChild>
                     <Link href="/account?subtab=listings" className="flex items-center cursor-pointer w-full">
-                      <Link2 className="h-4 w-4 mr-2" />
+                      <LayoutGrid className="h-4 w-4 mr-2" />
                       My Listings Page
                     </Link>
                   </DropdownMenuItem>
@@ -742,7 +742,7 @@ export function Navbar() {
                           className="flex-1"
                         >
                           <Button variant="ghost" className="w-full justify-start text-left h-12 text-base">
-                            <Link2 className="mr-3 h-5 w-5" />
+                            <LayoutGrid className="mr-3 h-5 w-5" />
                             My Listings Page
                           </Button>
                         </a>
@@ -758,7 +758,7 @@ export function Navbar() {
                     ) : (
                       <Link href="/account?subtab=listings" onClick={() => setIsMobileMenuOpen(false)}>
                         <Button variant="ghost" className="w-full justify-start text-left h-12 text-base">
-                          <Link2 className="mr-3 h-5 w-5" />
+                          <LayoutGrid className="mr-3 h-5 w-5" />
                           My Listings Page
                         </Button>
                       </Link>

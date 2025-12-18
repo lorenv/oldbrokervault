@@ -1301,15 +1301,49 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
 
                     <div className="space-y-3 mt-4">
                       <Label className="text-xs text-muted-foreground">Financial Documents (Optional)</Label>
-                      <div className="border-2 border-dashed border-muted rounded-lg p-4">
-                        <div className="text-center">
+                      <div
+                        className="border-2 border-dashed border-muted rounded-lg p-4 transition-colors hover:border-blue-300 cursor-pointer"
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          e.currentTarget.classList.add('border-blue-500', 'bg-blue-50');
+                        }}
+                        onDragLeave={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          e.currentTarget.classList.remove('border-blue-500', 'bg-blue-50');
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          e.currentTarget.classList.remove('border-blue-500', 'bg-blue-50');
+                          const files = e.dataTransfer.files;
+                          if (files && files.length > 0) {
+                            const validFiles = Array.from(files).filter(file => {
+                              const ext = file.name.toLowerCase().split('.').pop();
+                              return ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png'].includes(ext || '');
+                            });
+                            if (validFiles.length > 0) {
+                              setFinancialFiles(prev => [...prev, ...validFiles]);
+                            }
+                          }
+                        }}
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <div className="text-center pointer-events-none">
                           <Upload className="mx-auto h-6 w-6 text-muted-foreground mb-2" />
-                          <div className="flex gap-2 justify-center mb-2">
+                          <p className="text-sm text-muted-foreground mb-2">
+                            Drag & drop files here, or click to browse
+                          </p>
+                          <div className="flex gap-2 justify-center mb-2 pointer-events-auto">
                             <Button
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => fileInputRef.current?.click()}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                fileInputRef.current?.click();
+                              }}
                               className="gap-2"
                             >
                               <File className="h-4 w-4" />
@@ -1319,7 +1353,10 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => setIsSDEModalOpen(true)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setIsSDEModalOpen(true);
+                              }}
                               className="gap-2 border-blue-200 hover:bg-blue-50"
                             >
                               <Sparkles className="h-4 w-4 text-blue-600" />

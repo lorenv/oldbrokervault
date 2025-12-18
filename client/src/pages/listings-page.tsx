@@ -208,7 +208,7 @@ export function ListingsPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Banner Image */}
       {listingsData.settings.bannerUrl && (
-        <div className="h-48 md:h-64 w-full overflow-hidden relative">
+        <div className="h-48 md:h-64 w-full overflow-hidden relative animate-in fade-in duration-700">
           <img
             src={listingsData.settings.bannerUrl}
             alt="Banner"
@@ -252,7 +252,7 @@ export function ListingsPage() {
 
       {/* Title & Tagline */}
       <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             {listingsData.settings.title || `${listingsData.broker.businessName} Listings`}
           </h1>
@@ -493,11 +493,12 @@ export function ListingsPage() {
                           : "flex flex-col gap-4"
                       }
                     >
-                      {activeListings.map((listing) => (
+                      {activeListings.map((listing, index) => (
                         <ListingCard
                           key={listing.id}
                           listing={listing}
                           viewMode={viewMode}
+                          animationDelay={index * 100}
                         />
                       ))}
                     </div>
@@ -520,12 +521,13 @@ export function ListingsPage() {
                           : "flex flex-col gap-4"
                       }
                     >
-                      {closedListings.map((listing) => (
+                      {closedListings.map((listing, index) => (
                         <ListingCard
                           key={listing.id}
                           listing={listing}
                           viewMode={viewMode}
                           isClosed
+                          animationDelay={index * 100}
                         />
                       ))}
                     </div>
@@ -597,10 +599,12 @@ function ListingCard({
   listing,
   viewMode,
   isClosed = false,
+  animationDelay = 0,
 }: {
   listing: ListingData;
   viewMode: "grid" | "list";
   isClosed?: boolean;
+  animationDelay?: number;
 }) {
   const isUnderLOI = listing.listingStatus === 'under_loi';
   const isDisabled = isClosed || isUnderLOI;
@@ -610,14 +614,18 @@ function ListingCard({
     window.location.href = `/teaser/${listing.shareSlug}`;
   };
 
+  // Cap animation delay to prevent too long waits
+  const cappedDelay = Math.min(animationDelay, 500);
+
   if (viewMode === "list") {
     return (
       <Card
-        className={`overflow-hidden transition-shadow ${
+        className={`overflow-hidden transition-all animate-in fade-in slide-in-from-bottom-4 duration-500 ${
           isDisabled
             ? "opacity-70 cursor-default"
             : "cursor-pointer hover:shadow-lg"
         }`}
+        style={{ animationDelay: `${cappedDelay}ms`, animationFillMode: 'backwards' }}
         onClick={handleClick}
       >
         <div className="flex flex-col sm:flex-row">
@@ -715,11 +723,12 @@ function ListingCard({
   // Grid View
   return (
     <Card
-      className={`overflow-hidden transition-shadow ${
+      className={`overflow-hidden transition-all animate-in fade-in slide-in-from-bottom-4 duration-500 ${
         isDisabled
           ? "opacity-70 cursor-default"
           : "cursor-pointer hover:shadow-lg group"
       }`}
+      style={{ animationDelay: `${cappedDelay}ms`, animationFillMode: 'backwards' }}
       onClick={handleClick}
     >
       {/* Cover Image */}

@@ -86,16 +86,6 @@ const stageConfig = {
   }
 };
 
-// Fisher-Yates shuffle algorithm
-function shuffleArray<T>(array: T[]): T[] {
-  const shuffled = [...array];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled;
-}
-
 export function CimGenerationProgress({
   stage,
   hasFinancials = false,
@@ -103,23 +93,30 @@ export function CimGenerationProgress({
   showAsModal = false
 }: CimGenerationProgressProps) {
   const [currentProgress, setCurrentProgress] = useState(0);
-  const [currentTipIndex, setCurrentTipIndex] = useState(0);
   const [showCelebration, setShowCelebration] = useState(false);
   const targetProgress = stageConfig[stage].progress;
 
-  // Shuffle tips once on mount so users see different tips each time
-  const shuffledTips = useMemo(() => shuffleArray(HELPFUL_TIPS), []);
+  // Pick a random starting tip index
+  const [currentTipIndex, setCurrentTipIndex] = useState(() =>
+    Math.floor(Math.random() * HELPFUL_TIPS.length)
+  );
 
-  // Rotate tips every 20 seconds
+  // Pick a random tip every 20 seconds (avoiding the current one)
   useEffect(() => {
     if (!showAsModal) return;
 
     const tipInterval = setInterval(() => {
-      setCurrentTipIndex((prev) => (prev + 1) % shuffledTips.length);
+      setCurrentTipIndex((prev) => {
+        let newIndex;
+        do {
+          newIndex = Math.floor(Math.random() * HELPFUL_TIPS.length);
+        } while (newIndex === prev && HELPFUL_TIPS.length > 1);
+        return newIndex;
+      });
     }, 20000);
 
     return () => clearInterval(tipInterval);
-  }, [showAsModal, shuffledTips.length]);
+  }, [showAsModal]);
 
   // When we reach complete stage, wait for progress bar to hit 100%, then show celebration
   useEffect(() => {
@@ -170,24 +167,23 @@ export function CimGenerationProgress({
     }));
   }, []);
 
-  // Get relevant stages based on content type
-  const getRelevantStages = (): CimGenerationStage[] => {
-    const baseStages: CimGenerationStage[] = [
+  // Lock in the stages at mount time to prevent jumping around during generation
+  // This ensures the checklist order stays stable throughout the process
+  const relevantStages = useMemo((): CimGenerationStage[] => {
+    // Always include all potential stages in a fixed order
+    // The server sends stages in this order, so we should match it
+    const allStages: CimGenerationStage[] = [
       "initializing",
       "processing_transcript",
+      "analyzing_website",      // Always include - may or may not be triggered
       "analyzing_content",
-      "generating_document"
+      "generating_document",
+      "processing_financials",  // Always include - shows progress even if no financials
+      "finalizing",
+      "complete"
     ];
-    
-    if (hasFinancials) {
-      baseStages.push("processing_financials");
-    }
-    
-    baseStages.push("finalizing", "complete");
-    return baseStages;
-  };
-
-  const relevantStages = getRelevantStages();
+    return allStages;
+  }, []); // Empty deps - lock stages at mount time
   const currentStageIndex = relevantStages.indexOf(stage);
   const CurrentIcon = stageConfig[stage].icon;
 
@@ -381,7 +377,7 @@ export function CimGenerationProgress({
                   key={currentTipIndex}
                   className="text-sm text-gray-600 dark:text-gray-400 mt-1 animate-in fade-in duration-700"
                 >
-                  {shuffledTips[currentTipIndex]}
+                  {HELPFUL_TIPS[currentTipIndex]}
                 </p>
               </div>
             </div>
