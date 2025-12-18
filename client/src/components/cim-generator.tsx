@@ -49,7 +49,7 @@ import { DraggableImagePositioner } from "./draggable-image-positioner";
 import { UnsplashIcon } from "@/components/ui/unsplash-icon";
 import { TemplatesLibrary } from "./templates-library";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { FormattingProfileSelector } from "./formatting-profile-selector";
+import { FormattingProfileSelector, type CustomStyleConfig } from "./formatting-profile-selector";
 import type { FormattingProfile } from "@shared/formatting-config";
 import { ContentStyleSection } from "./content-style-section";
 import { SDEAnalyzerModal } from "./sde-analyzer-modal";
@@ -175,6 +175,7 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
   // Content & Style state
   const [selectedFormattingProfile, setSelectedFormattingProfile] = useState<FormattingProfile>('balanced');
   const [sectionDirections, setSectionDirections] = useState(DEFAULT_SECTION_LINES);
+  const [customStyleConfig, setCustomStyleConfig] = useState<CustomStyleConfig | null>(null);
 
   // Cover image state
   const [selectedCoverImage, setSelectedCoverImage] = useState<string | null>(null);
@@ -503,6 +504,11 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
         formData.append('purpose', data.purpose || "business_overview");
         formData.append('audience', data.audience || "investors");
 
+        // Add custom style config if active
+        if (customStyleConfig) {
+          formData.append('customStyleConfig', JSON.stringify(customStyleConfig));
+        }
+
         if (hasWebsiteUrl) {
           if (enableWebsiteAnalysis) {
             formData.append('websiteUrl', data.websiteUrl!);
@@ -594,7 +600,8 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
             tone: selectedFormattingProfile,
             purpose: data.purpose || "business_overview",
             audience: data.audience || "investors",
-            ndaSettings
+            ndaSettings,
+            ...(customStyleConfig && { customStyleConfig })
           };
 
           // Start API call immediately (runs in background while stage timers progress)
@@ -618,15 +625,44 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
         }));
       }
 
-      // API has completed - now smoothly transition through final stages
-      setGenerationStage("processing_financials");
-      await new Promise(resolve => setTimeout(resolve, 400));
+      // Clear all pending stage timers since API is done
+      stageTimersRef.current.forEach(timer => clearTimeout(timer));
+      stageTimersRef.current = [];
 
-      setGenerationStage("finalizing");
-      await new Promise(resolve => setTimeout(resolve, 400));
+      // API has completed - smoothly walk through remaining stages in sequence
+      // This ensures the checklist flows naturally without jumping
+      const stageOrder: CimGenerationStage[] = [
+        "initializing",
+        "processing_transcript",
+        "analyzing_website",
+        "analyzing_content",
+        "generating_document",
+        "processing_financials",
+        "finalizing",
+        "complete"
+      ];
 
-      // Show completion stage with checkmark animation
-      setGenerationStage("complete");
+      // Find current stage index
+      const currentStageIndex = stageOrder.indexOf(generationStage || "initializing");
+
+      // Walk through each remaining stage with a brief delay for smooth UX
+      for (let i = currentStageIndex + 1; i < stageOrder.length; i++) {
+        const stage = stageOrder[i];
+
+        // Skip to generating_document quickly if we're on early stages
+        // This ensures we show progress without excessive waiting
+        if (i < stageOrder.indexOf("generating_document")) {
+          setGenerationStage(stage);
+          await new Promise(resolve => setTimeout(resolve, 150)); // Quick transition
+        } else {
+          // For final stages, give a bit more time for visual feedback
+          setGenerationStage(stage);
+          if (stage !== "complete") {
+            await new Promise(resolve => setTimeout(resolve, 400));
+          }
+        }
+      }
+
       setWebsiteAnalysisStage(null);
 
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/recent"] });
@@ -1417,6 +1453,8 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
               setSelectedFormattingProfile(profile);
               form.setValue("formattingProfile", profile);
             }}
+            customStyleConfig={customStyleConfig}
+            onCustomStyleConfigChange={setCustomStyleConfig}
           />
           </div>
 

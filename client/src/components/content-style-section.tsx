@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Plus, X, Settings2, Save, FolderOpen, Trash2, Edit2 } from "lucide-react";
-import { FormattingProfileSelector } from "./formatting-profile-selector";
+import { FormattingProfileSelector, type CustomStyleConfig } from "./formatting-profile-selector";
 import type { FormattingProfile } from "@shared/formatting-config";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -37,6 +37,8 @@ interface ContentStyleSectionProps {
   onSectionDirectionsChange: (directions: SectionLine[]) => void;
   formattingProfile: FormattingProfile;
   onFormattingProfileChange: (profile: FormattingProfile) => void;
+  customStyleConfig?: CustomStyleConfig | null;
+  onCustomStyleConfigChange?: (config: CustomStyleConfig | null) => void;
 }
 
 interface ContentStyleTemplate {
@@ -52,7 +54,9 @@ export function ContentStyleSection({
   sectionDirections,
   onSectionDirectionsChange,
   formattingProfile,
-  onFormattingProfileChange
+  onFormattingProfileChange,
+  customStyleConfig,
+  onCustomStyleConfigChange
 }: ContentStyleSectionProps) {
   const { toast } = useToast();
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
@@ -65,7 +69,17 @@ export function ContentStyleSection({
   const { data: templates = [], refetch: refetchTemplates } = useQuery<ContentStyleTemplate[]>({
     queryKey: ['/api/content-style-templates'],
     queryFn: () => apiRequest("GET", "/api/content-style-templates").then(res => res.json()),
+    staleTime: 0, // Always consider data stale to ensure fresh fetches
+    refetchOnMount: true,
   });
+
+  // Refetch templates when load dialog opens
+  const handleOpenLoadDialog = (open: boolean) => {
+    setLoadDialogOpen(open);
+    if (open) {
+      refetchTemplates();
+    }
+  };
 
   // Save template mutation
   const saveTemplateMutation = useMutation({
@@ -185,7 +199,7 @@ export function ContentStyleSection({
         
         {/* Template Actions */}
         <div className="flex items-center gap-2">
-          <Dialog open={loadDialogOpen} onOpenChange={setLoadDialogOpen}>
+          <Dialog open={loadDialogOpen} onOpenChange={handleOpenLoadDialog}>
             <DialogTrigger asChild>
               <Button variant="ghost" size="sm" className="text-sm bg-white/20 hover:bg-white/30 text-white border border-white/20 hover:border-white/40 backdrop-blur-sm">
                 <FolderOpen className="h-4 w-4 mr-1" />
@@ -386,6 +400,8 @@ export function ContentStyleSection({
           <FormattingProfileSelector
             value={formattingProfile}
             onChange={onFormattingProfileChange}
+            customStyleConfig={customStyleConfig}
+            onCustomStyleConfigChange={onCustomStyleConfigChange}
           />
         </div>
       </div>

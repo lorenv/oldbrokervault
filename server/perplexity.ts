@@ -24,7 +24,7 @@ const ANTI_HALLUCINATION_RULES = `
 const FACTUAL_TEMPERATURE = 0.05;
 
 import { generateAiFormattingInstructions, type FormattingProfile } from "@shared/formatting-config";
-import { enhancePromptWithFormatting, createCimSystemPrompt, logFormattingValidation, processAiGeneratedContent } from "./formatting-utils";
+import { enhancePromptWithFormatting, createCimSystemPrompt, logFormattingValidation, processAiGeneratedContent, generateCustomStyleInstructions, type CustomStyleConfig } from "./formatting-utils";
 
 // New flexible document structure for free-form CIM generation
 type FlexibleCimDocument = {
@@ -234,22 +234,29 @@ Provide detailed, factual information found on the website. Include specific num
 
 // New flexible CIM generation function
 async function generateFlexibleCim(
-  transcript: string, 
-  customDirections: string, 
+  transcript: string,
+  customDirections: string,
   purpose: string,
   tone: string,
   audience: string,
   financials?: any,
   websiteData?: string,
   sectionDirections?: Array<{id: string; content: string}>,
-  formattingProfile?: FormattingProfile
+  formattingProfile?: FormattingProfile,
+  customStyleConfig?: CustomStyleConfig | null
 ): Promise<FlexibleCimDocument> {
-  
-  // Use provided formattingProfile or convert tone to FormattingProfile and get AI instructions
+
+  // Use provided formattingProfile or convert tone to FormattingProfile
   const effectiveFormattingProfile: FormattingProfile = formattingProfile || (tone as FormattingProfile);
-  const formatInstructions = generateAiFormattingInstructions(effectiveFormattingProfile);
-  
-  console.log(`🎨 FORMATTING SYSTEM ACTIVE - Profile: ${effectiveFormattingProfile}`);
+
+  // Use custom style config if provided, otherwise use standard formatting profile
+  const formatInstructions = customStyleConfig
+    ? generateCustomStyleInstructions(customStyleConfig)
+    : generateAiFormattingInstructions(effectiveFormattingProfile);
+
+  const styleLabel = customStyleConfig ? 'custom' : effectiveFormattingProfile;
+
+  console.log(`🎨 FORMATTING SYSTEM ACTIVE - Profile: ${styleLabel}${customStyleConfig ? ` (Custom: ${customStyleConfig.toneDescription.substring(0, 50)}...)` : ''}`);
   console.log(`📝 AI Formatting Instructions Applied: ${formatInstructions.substring(0, 200)}...`);
 
   // Map purpose to content focus
@@ -278,7 +285,7 @@ ${ANTI_HALLUCINATION_RULES}
 
 ANALYSIS PARAMETERS:
 - Purpose: ${purpose} - ${purposeFocus}
-- Length Style: ${tone} - ${formatInstructions}
+- Writing Style: ${styleLabel}${customStyleConfig ? ` (Custom: ${customStyleConfig.toneDescription.substring(0, 100)}...)` : ''}
 - Audience: ${audience} - ${audienceStyle}
 
 CUSTOM DIRECTIONS:
@@ -1088,12 +1095,13 @@ export async function generateFlexibleCimDocument(
   financials?: any,
   websiteData?: string,
   sectionDirections?: Array<{id: string; content: string}>,
-  formattingProfile?: FormattingProfile
+  formattingProfile?: FormattingProfile,
+  customStyleConfig?: CustomStyleConfig | null
 ): Promise<FlexibleCimDocument> {
   try {
     console.log("Generating flexible CIM document");
-    console.log("Parameters:", { purpose, tone, audience, hasFinancials: !!financials, hasWebsiteData: !!websiteData });
-    
+    console.log("Parameters:", { purpose, tone, audience, hasFinancials: !!financials, hasWebsiteData: !!websiteData, hasCustomStyle: !!customStyleConfig });
+
     const result = await generateFlexibleCim(
       transcript,
       customDirections,
@@ -1103,9 +1111,10 @@ export async function generateFlexibleCimDocument(
       financials,
       websiteData,
       sectionDirections,
-      formattingProfile
+      formattingProfile,
+      customStyleConfig
     );
-    
+
     console.log("Successfully generated flexible CIM document");
     return result;
   } catch (error) {
@@ -1151,7 +1160,8 @@ export async function generateCimWithWebsiteAnalysis(
   websiteUrl?: string,
   sectionDirections?: Array<{id: string; content: string}>,
   formattingProfile?: FormattingProfile,
-  prefetchedWebsiteData?: string | null // New parameter for pre-fetched data
+  prefetchedWebsiteData?: string | null, // New parameter for pre-fetched data
+  customStyleConfig?: CustomStyleConfig | null
 ): Promise<FlexibleCimDocument> {
   try {
     console.log('🧠 Generating CIM with optional website analysis');
@@ -1198,7 +1208,7 @@ export async function generateCimWithWebsiteAnalysis(
     // Use formattingProfile if provided, otherwise fall back to tone
     const effectiveTone = formattingProfile || tone;
 
-    const result = await generateFlexibleCim(transcript, enhancedDirections, purpose, effectiveTone, audience, financials, websiteData || undefined, sectionDirections, formattingProfile);
+    const result = await generateFlexibleCim(transcript, enhancedDirections, purpose, effectiveTone, audience, financials, websiteData || undefined, sectionDirections, formattingProfile, customStyleConfig);
     console.log('✅ CIM generation with website analysis successful');
     return result;
   } catch (error) {

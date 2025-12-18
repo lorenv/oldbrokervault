@@ -5,6 +5,59 @@
 
 import { generateAiFormattingInstructions, validateFormattingCompliance, convertToFormattingProfile, type FormattingProfile } from "@shared/formatting-config";
 
+// Custom style configuration type (mirrors frontend)
+export interface CustomStyleConfig {
+  name: string;
+  wordCountTarget: number;
+  useBullets: boolean;
+  useNumberedLists: boolean;
+  useTables: boolean;
+  toneDescription: string;
+}
+
+/**
+ * Generates AI formatting instructions from custom style config
+ */
+export function generateCustomStyleInstructions(config: CustomStyleConfig): string {
+  const formatElements: string[] = ['bold text (<strong>)', 'italic text (<em>)', 'paragraphs (<p>)'];
+
+  if (config.useBullets) formatElements.push('bullet lists (<ul><li>)');
+  if (config.useNumberedLists) formatElements.push('numbered lists (<ol><li>)');
+  if (config.useTables) formatElements.push('tables (<table>, <tr>, <td>, <th>)');
+
+  const wordCountGuidance = config.wordCountTarget <= 600
+    ? 'Keep content brief and concise.'
+    : config.wordCountTarget <= 900
+    ? 'Write concisely with key details.'
+    : config.wordCountTarget <= 1200
+    ? 'Provide standard level of detail.'
+    : config.wordCountTarget <= 1500
+    ? 'Include detailed explanations and context.'
+    : 'Provide comprehensive, in-depth analysis with thorough explanations.';
+
+  return `
+HTML FORMATTING RULES FOR CUSTOM STYLE:
+- Available formatting elements: ${formatElements.join(', ')}
+- Target word count: ~${config.wordCountTarget} words. ${wordCountGuidance}
+${!config.useBullets ? '- DO NOT use bullet lists (<ul>)' : '- Use bullet points for key information when appropriate'}
+${!config.useNumberedLists ? '- DO NOT use numbered lists (<ol>)' : '- Use numbered lists for sequential or ordered information'}
+${!config.useTables ? '- DO NOT use tables for data presentation' : '- Use tables when presenting structured data or comparisons'}
+
+WRITING VOICE & TONE:
+${config.toneDescription}
+
+Apply the above voice and tone instructions consistently throughout all content.
+
+CRITICAL FORMATTING REQUIREMENTS:
+- Use only HTML tags, NEVER markdown formatting (**bold** or *italic*)
+- All paragraphs must be wrapped in <p> tags
+- Use proper opening and closing tags for all elements
+- Keep formatting consistent throughout all sections
+- Use natural language with proper apostrophes (') and quotes (")
+- Ensure all HTML is well-formed and valid
+`;
+}
+
 /**
  * Maps legacy tone parameters to new formatting profiles
  */
@@ -89,9 +142,15 @@ export function createCimSystemPrompt(
   purpose: string = 'business_overview',
   audience: string = 'investors',
   customDirections: string = '',
-  formattingProfile: FormattingProfile = 'professional'
+  formattingProfile: FormattingProfile = 'professional',
+  customStyleConfig?: CustomStyleConfig | null
 ): string {
-  const formatInstructions = generateAiFormattingInstructions(formattingProfile);
+  // Use custom style instructions if provided, otherwise use standard formatting profile
+  const formatInstructions = customStyleConfig
+    ? generateCustomStyleInstructions(customStyleConfig)
+    : generateAiFormattingInstructions(formattingProfile);
+
+  const styleLabel = customStyleConfig ? 'custom' : formattingProfile;
   
   // Map purpose to content focus
   let purposeFocus = '';
@@ -116,7 +175,7 @@ export function createCimSystemPrompt(
 ANALYSIS PARAMETERS:
 - Purpose: ${purpose} - ${purposeFocus}
 - Audience: ${audience} - ${audienceStyle}
-- Formatting Style: ${formattingProfile}
+- Formatting Style: ${styleLabel}${customStyleConfig ? ` (Custom: ${customStyleConfig.toneDescription.substring(0, 50)}...)` : ''}
 
 ${customDirections ? `CUSTOM DIRECTIONS:
 ${customDirections}` : ''}
@@ -126,7 +185,7 @@ ${formatInstructions}
 CONTENT REQUIREMENTS:
 1. Create a comprehensive CIM document following the specific formatting requirements above
 2. Extract and organize information from the provided data according to the custom directions
-3. Apply the ${formattingProfile} formatting style consistently throughout
+3. Apply the ${styleLabel} formatting style consistently throughout
 4. Write for ${audience} using the appropriate communication style
 5. Focus on ${purpose} as the primary objective
 6. Include specific details, metrics, and facts from the provided information
@@ -143,15 +202,15 @@ Return ONLY a valid JSON object with the following structure:
   "sections": [
     {
       "id": "unique-id",
-      "title": "Section Title", 
-      "content": "Rich text content using HTML tags according to ${formattingProfile} profile",
+      "title": "Section Title",
+      "content": "Rich text content using HTML tags according to ${styleLabel} profile",
       "order": 1,
       "type": "text"
     }
   ],
   "metadata": {
     "purpose": "${purpose}",
-    "tone": "${formattingProfile}",
+    "tone": "${styleLabel}",
     "audience": "${audience}",
     "customDirections": "summary of directions used",
     "wordCount": 0,
