@@ -6808,7 +6808,7 @@ ${finalQuestion}
 
       // Dispatch cim.published event when document is made public
       if (isPublic && !doc.shareEnabled) {
-        const baseUrl = process.env.PUBLIC_URL || 'https://cb1f9736-4a0a-4a40-80bd-c08d8761dbaa-00-1y6o4mf3nu2bh.riker.replit.dev';
+        const baseUrl = process.env.BASE_URL || 'https://cimshare.com';
         const shareUrl = updatedDoc.customSlug
           ? `${baseUrl}/share/${updatedDoc.customSlug}`
           : `${baseUrl}/share/${updatedDoc.shareSlug}`;

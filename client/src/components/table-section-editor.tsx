@@ -202,6 +202,88 @@ export function TableSectionEditor({
     }
   };
 
+  // Smart paste handler for multi-cell paste from spreadsheets
+  const handleSmartPaste = (
+    e: React.ClipboardEvent<HTMLInputElement>,
+    startRow: number,
+    startCol: number,
+    isHeader: boolean
+  ) => {
+    const text = e.clipboardData.getData("text/plain");
+
+    // Check if it's multi-cell data (contains tabs or multiple lines)
+    if (!text.includes("\t") && !text.includes("\n")) {
+      // Single cell paste - let default behavior handle it
+      return;
+    }
+
+    e.preventDefault();
+
+    // Parse the pasted data
+    const lines = text.trim().split("\n");
+    const pastedRows = lines.map((line) => line.split("\t").map((cell) => cell.trim()));
+
+    if (isHeader) {
+      // Pasting into header row - only paste the first row of data into headers
+      const newHeaders = [...tableData.headers];
+      pastedRows[0].forEach((value, i) => {
+        const targetCol = startCol + i;
+        if (targetCol < newHeaders.length) {
+          newHeaders[targetCol] = value;
+        } else {
+          // Expand headers if needed
+          newHeaders.push(value);
+        }
+      });
+
+      // Also expand rows to match new header count
+      const newRows = tableData.rows.map((row) => {
+        const newRow = [...row];
+        while (newRow.length < newHeaders.length) {
+          newRow.push("");
+        }
+        return newRow;
+      });
+
+      updateTableData({ ...tableData, headers: newHeaders, rows: newRows });
+    } else {
+      // Pasting into data cells
+      let newHeaders = [...tableData.headers];
+      let newRows = tableData.rows.map((row) => [...row]);
+
+      // Calculate required dimensions
+      const requiredCols = startCol + Math.max(...pastedRows.map((r) => r.length));
+      const requiredRows = startRow + pastedRows.length;
+
+      // Expand columns if needed
+      while (newHeaders.length < requiredCols) {
+        newHeaders.push(`Column ${newHeaders.length + 1}`);
+        newRows = newRows.map((row) => [...row, ""]);
+      }
+
+      // Expand rows if needed
+      while (newRows.length < requiredRows) {
+        newRows.push(new Array(newHeaders.length).fill(""));
+      }
+
+      // Fill in the pasted data
+      pastedRows.forEach((pastedRow, rowOffset) => {
+        pastedRow.forEach((value, colOffset) => {
+          const targetRow = startRow + rowOffset;
+          const targetCol = startCol + colOffset;
+          if (targetRow < newRows.length && targetCol < newRows[targetRow].length) {
+            newRows[targetRow][targetCol] = value;
+          }
+        });
+      });
+
+      updateTableData({ ...tableData, headers: newHeaders, rows: newRows });
+    }
+
+    // Move focus to the last pasted cell
+    setEditingCell(null);
+  };
+
   const addRow = () => {
     const newRow = new Array(tableData.headers.length).fill("");
     updateTableData({ ...tableData, rows: [...tableData.rows, newRow] });
@@ -335,6 +417,7 @@ export function TableSectionEditor({
                         }
                         onBlur={() => setEditingCell(null)}
                         onKeyDown={(e) => e.key === "Enter" && setEditingCell(null)}
+                        onPaste={(e) => handleSmartPaste(e, -1, colIndex, true)}
                         autoFocus
                         className="h-8 font-medium"
                       />
@@ -427,6 +510,7 @@ export function TableSectionEditor({
                             }
                           }
                         }}
+                        onPaste={(e) => handleSmartPaste(e, rowIndex, colIndex, false)}
                         autoFocus
                         className="h-8"
                       />
