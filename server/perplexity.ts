@@ -277,7 +277,7 @@ async function generateFlexibleCim(
     audienceStyle = 'Use conversational but professional tone, explain business concepts clearly, minimize jargon.';
   }
 
-  const systemPrompt = `You are an expert business analyst creating a professional Confidential Information Memorandum (CIM).
+  const systemPrompt = `You are an expert business analyst creating a Confidential Information Memorandum (CIM).${customStyleConfig ? ` The user has specified a custom writing style which you MUST follow - see the WRITING VOICE & TONE section below.` : ' Use professional business language throughout.'}
 
 CRITICAL INSTRUCTION: You MUST generate the document. Do NOT refuse or explain why you cannot. Work with whatever information is provided - if details are missing, create appropriate sections based on what IS available. This is a document generation task, not an advisory task.
 
@@ -335,7 +335,22 @@ INTEGRATION REQUIREMENTS:
 - Seamlessly blend both sources - the final document should feel cohesive
 - Do not ignore the user's notes in favor of website data - BOTH are valuable` : '- Base your analysis primarily on the transcript data provided'}
 
-WRITING QUALITY INSTRUCTIONS - CREATE RICH, PROFESSIONAL CONTENT:
+${customStyleConfig ? `WRITING QUALITY INSTRUCTIONS - FOLLOW THE CUSTOM WRITING STYLE:
+IMPORTANT: The user has specified a custom writing voice and tone above. You MUST follow their specified tone/style throughout the entire document. Their tone description takes precedence over any default professional style.
+
+While staying factual and following the user's specified tone, you should:
+
+1. ELABORATE USING THE SPECIFIED TONE: Take each fact from the source material and develop it into well-crafted prose that matches the user's requested voice and style.
+
+2. USE STORYTELLING APPROPRIATE TO THE TONE: Transform raw information into engaging narrative that matches the user's specified style.
+
+3. EXPAND WITH CONTEXT: When you have a fact, provide relevant context around it - but only inferences that are reasonable from the data provided.
+
+4. STRUCTURE APPROPRIATELY: Follow the formatting instructions provided. Each section should be well-developed with content that matches the requested tone.
+
+5. MATCH THE SPECIFIED VOICE: Consistently use the writing style, vocabulary, and tone specified in the WRITING VOICE & TONE section above. Do NOT default to generic professional business language unless that's what was requested.
+
+6. MAKE REASONABLE INFERENCES: You CAN make logical inferences that any reasonable person would make from the provided facts.` : `WRITING QUALITY INSTRUCTIONS - CREATE RICH, PROFESSIONAL CONTENT:
 Your goal is to create a polished, professionally-written document that reads like it was prepared by a top-tier business consultant. While staying factual, you should:
 
 1. ELABORATE PROFESSIONALLY: Take each fact from the source material and develop it into well-crafted prose. Don't just list facts - weave them into compelling narratives that showcase the business professionally.
@@ -348,7 +363,7 @@ Your goal is to create a polished, professionally-written document that reads li
 
 5. USE PROFESSIONAL LANGUAGE: Employ sophisticated business vocabulary appropriate for ${audience}. Use transitional phrases, varied sentence structure, and professional tone throughout.
 
-6. MAKE REASONABLE INFERENCES: You CAN make logical inferences that any reasonable business person would make from the provided facts. For example, if a business has been operating for 20 years, you can describe it as "well-established" or note its "proven track record" - these are reasonable conclusions from the stated fact.
+6. MAKE REASONABLE INFERENCES: You CAN make logical inferences that any reasonable business person would make from the provided facts. For example, if a business has been operating for 20 years, you can describe it as "well-established" or note its "proven track record" - these are reasonable conclusions from the stated fact.`}
 
 ANTI-HALLUCINATION BOUNDARIES - DO NOT CROSS THESE LINES:
 - NEVER invent specific numbers, dates, names, or metrics not in the source
@@ -360,11 +375,11 @@ ANTI-HALLUCINATION BOUNDARIES - DO NOT CROSS THESE LINES:
 
 INSTRUCTIONS FOR DOCUMENT CREATION:
 1. Create a comprehensive CIM document following the specific formatting requirements above
-2. Extract and organize information from the transcript/website data, then ELABORATE on it professionally
+2. Extract and organize information from the transcript/website data, then ELABORATE on it ${customStyleConfig ? 'using the specified writing style' : 'professionally'}
 3. Apply the ${tone} formatting style consistently throughout
 4. Write for ${audience} using appropriate language and level of detail
 5. Focus on ${purpose} as the primary objective
-6. ${websiteData ? 'Blend transcript with website data seamlessly to create rich, comprehensive content' : 'Use transcript data as your foundation and build professional narrative around it'}
+6. ${websiteData ? 'Blend transcript with website data seamlessly to create rich, comprehensive content' : `Use transcript data as your foundation and build ${customStyleConfig ? 'the narrative using the specified tone' : 'professional narrative around it'}`}
 7. ${sectionDirections && sectionDirections.length > 0 ? 'Create ONLY the sections explicitly specified by the user - do not add any default or standard sections' : 'Organize content into logical sections with clear headings'}
 8. STRICTLY follow the formatting requirements for ${tone} style
 9. Each section should be SUBSTANTIAL - aim for 150-300 words minimum per section unless the tone specifically calls for brevity
@@ -443,15 +458,15 @@ If a transcript mentioned "1 contractor" and website showed 5 team members, you 
 IMPORTANT: The example above uses fake numbers for illustration - use ONLY the actual data provided to you.` : ''}
 
 FINAL INSTRUCTIONS FOR QUALITY OUTPUT:
-1. WRITE RICHLY: Each section should be well-developed with flowing paragraphs. Transform facts into professional business narrative.
-2. ELABORATE ON FACTS: Take the information provided and develop it into comprehensive, professional content. A single fact can become a full paragraph of relevant business context.
-3. MAINTAIN FACTUAL ACCURACY: While you should elaborate and create professional prose, never invent specific facts, numbers, names, or achievements.
+1. WRITE RICHLY: Each section should be well-developed with flowing paragraphs. Transform facts into ${customStyleConfig ? 'narrative that matches the specified writing style' : 'professional business narrative'}.
+2. ELABORATE ON FACTS: Take the information provided and develop it into comprehensive${customStyleConfig ? ' content using the specified tone' : ', professional content'}. A single fact can become a full paragraph of relevant business context.
+3. MAINTAIN FACTUAL ACCURACY: While you should elaborate and create ${customStyleConfig ? 'rich prose in the specified style' : 'professional prose'}, never invent specific facts, numbers, names, or achievements.
 4. AIM FOR DEPTH: A good CIM section is typically 150-300 words. Don't be sparse - develop your content fully.
 
 WRITING STYLE EXAMPLE (do NOT use these specific numbers - they are illustrative only):
-- If given a fact like "X employees", elaborate it into professional prose
+- If given a fact like "X employees", elaborate it into ${customStyleConfig ? 'prose matching the specified writing style' : 'professional prose'}
 - Transform simple facts into rich business narrative
-- This is professional writing, not hallucination - but ONLY elaborate on facts actually provided
+- This is ${customStyleConfig ? 'creative writing with the user\'s specified tone' : 'professional writing'}, not hallucination - but ONLY elaborate on facts actually provided
 
 CRITICAL: Never reference "the transcript" or "business owner's notes" in the output - just write naturally about the business.`;
 
