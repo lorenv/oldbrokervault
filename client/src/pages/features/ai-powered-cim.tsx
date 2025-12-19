@@ -102,15 +102,15 @@ export default function AiPoweredCimPage() {
             <h2 className="text-3xl font-bold text-slate-900 mb-4">See It In Action</h2>
             <p className="text-lg text-slate-600">Watch how easy it is to create a professional CIM with AI assistance</p>
           </div>
-          <div className="rounded-2xl overflow-hidden shadow-2xl border border-slate-200 mb-12">
-            <video
-              className="w-full"
-              controls
-              preload="metadata"
-            >
-              <source src="/cim-creation-walkthrough.mp4#t=0.1" type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
+          <div className="rounded-2xl overflow-hidden shadow-2xl border border-slate-200 mb-12 bg-slate-900 aspect-video">
+            <iframe
+              className="w-full h-full"
+              src="https://www.youtube.com/embed/0sAqXGDRUHQ"
+              title="CIM Creation Walkthrough"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
           </div>
 
           {/* Live Examples */}
@@ -119,12 +119,12 @@ export default function AiPoweredCimPage() {
               <Globe className="h-3 w-3 mr-1" />
               Live Examples
             </Badge>
-            <h3 className="text-2xl font-bold text-slate-900 mb-3">Explore Real AI-Generated CIMs</h3>
+            <h3 className="text-2xl font-bold text-slate-900 mb-3">Explore Real AI-Generated Content</h3>
             <p className="text-slate-600 max-w-2xl mx-auto">
-              See the quality and professionalism of CIMs created with our AI platform. These are real examples you can explore right now.
+              See the quality and professionalism of CIMs, teasers, and listings created with our AI platform. These are real examples you can explore right now.
             </p>
           </div>
-          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
             {/* Tony's Transmissions Image Card */}
             <div
               className="relative overflow-hidden rounded-xl shadow-lg hover:shadow-2xl hover:-translate-y-4 hover:rotate-1 transition-all duration-500 cursor-pointer group"
@@ -169,6 +169,62 @@ export default function AiPoweredCimPage() {
               <div className="absolute bottom-4 left-4 right-4">
                 <p className="text-white text-sm font-medium opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-2 group-hover:translate-y-0 drop-shadow-lg">
                   Click to view full CIM document →
+                </p>
+              </div>
+            </div>
+
+            {/* Public Listings Page Card */}
+            <div
+              className="relative overflow-hidden rounded-xl shadow-lg hover:shadow-2xl hover:-translate-y-4 hover:rotate-1 transition-all duration-500 cursor-pointer group"
+              onClick={() => window.open("https://cimshare.com/listings/dealve-inc", "_blank")}
+            >
+              <div className="aspect-[4/3] bg-gradient-to-br from-cyan-500 via-blue-500 to-indigo-600 flex flex-col items-center justify-center p-6 group-hover:scale-105 transition-transform duration-500">
+                <Globe className="w-16 h-16 text-white/90 mb-4" />
+                <h3 className="text-white font-bold text-lg text-center mb-2">Public Listings Page</h3>
+                <p className="text-white/80 text-sm text-center">Browse deals in a branded marketplace</p>
+              </div>
+              <div className="absolute top-4 right-4">
+                <div className="text-sm text-cyan-600 font-medium bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-sm">
+                  Live Example
+                </div>
+              </div>
+              <div className="absolute top-4 left-4">
+                <div className="text-xs text-white font-bold bg-green-500 px-2 py-1 rounded-full shadow-sm">
+                  NEW
+                </div>
+              </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="absolute bottom-4 left-4 right-4">
+                <p className="text-white text-sm font-medium opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-2 group-hover:translate-y-0 drop-shadow-lg">
+                  Click to view listings page →
+                </p>
+              </div>
+            </div>
+
+            {/* Teaser Example Card */}
+            <div
+              className="relative overflow-hidden rounded-xl shadow-lg hover:shadow-2xl hover:-translate-y-4 hover:-rotate-1 transition-all duration-500 cursor-pointer group"
+              onClick={() => window.open("https://cimshare.com/teaser/prominent-food-beverage-business-with-strong-marke-2ea50f", "_blank")}
+            >
+              <div className="aspect-[4/3] bg-gradient-to-br from-purple-500 via-pink-500 to-rose-500 flex flex-col items-center justify-center p-6 group-hover:scale-105 transition-transform duration-500">
+                <FileText className="w-16 h-16 text-white/90 mb-4" />
+                <h3 className="text-white font-bold text-lg text-center mb-2">AI-Generated Teaser</h3>
+                <p className="text-white/80 text-sm text-center">Anonymous preview before NDA</p>
+              </div>
+              <div className="absolute top-4 right-4">
+                <div className="text-sm text-purple-600 font-medium bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-sm">
+                  Live Example
+                </div>
+              </div>
+              <div className="absolute top-4 left-4">
+                <div className="text-xs text-white font-bold bg-green-500 px-2 py-1 rounded-full shadow-sm">
+                  NEW
+                </div>
+              </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="absolute bottom-4 left-4 right-4">
+                <p className="text-white text-sm font-medium opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-2 group-hover:translate-y-0 drop-shadow-lg">
+                  Click to view teaser →
                 </p>
               </div>
             </div>
@@ -798,7 +854,7 @@ export default function AiPoweredCimPage() {
                 </Button>
               </Link>
               <Link href="/pricing">
-                <Button size="lg" variant="outline" className="border-slate-400 text-white hover:bg-slate-800">
+                <Button size="lg" className="bg-slate-200 text-slate-800 border border-slate-300 hover:bg-slate-300">
                   View Pricing Plans
                 </Button>
               </Link>

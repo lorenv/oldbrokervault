@@ -573,7 +573,7 @@ export default function SdeAnalyzerPage() {
                 </Button>
               </Link>
               <Link href="/pricing">
-                <Button size="lg" variant="outline" className="border-slate-400 text-white hover:bg-slate-800">
+                <Button size="lg" className="bg-slate-200 text-slate-800 border border-slate-300 hover:bg-slate-300">
                   View Pricing Plans
                 </Button>
               </Link>

@@ -720,7 +720,7 @@ export default function IntegrationsFeaturePage() {
                 </Button>
               </Link>
               <a href="https://cimshare.documentationai.com/webhooks" target="_blank" rel="noopener noreferrer">
-                <Button size="lg" variant="outline" className="border-blue-400 text-blue-200 hover:bg-blue-800">
+                <Button size="lg" className="bg-slate-200 text-slate-800 border border-slate-300 hover:bg-slate-300">
                   View API Documentation
                 </Button>
               </a>
