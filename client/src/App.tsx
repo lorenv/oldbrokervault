@@ -76,6 +76,7 @@ const AnalyticsFeaturePage = lazy(() => import("@/pages/features/analytics"));
 const IntegrationsFeaturePage = lazy(() => import("@/pages/features/integrations"));
 const BusinessBrokersPage = lazy(() => import("@/pages/solutions/business-brokers"));
 const InvestmentBankingPage = lazy(() => import("@/pages/solutions/investment-banking"));
+const ResourcesPage = lazy(() => import("@/pages/resources-page"));
 
 function Router() {
   const [location] = useLocation();
@@ -202,6 +203,12 @@ function Router() {
             <Route path="/solutions/investment-banking">
               <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
                 <InvestmentBankingPage />
+              </Suspense>
+            </Route>
+            {/* Resources Page */}
+            <Route path="/resources">
+              <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+                <ResourcesPage />
               </Suspense>
             </Route>
             <Route component={NotFound} />
