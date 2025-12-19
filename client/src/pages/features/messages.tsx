@@ -109,6 +109,26 @@ export default function MessagesFeaturePage() {
         </div>
       </section>
 
+      {/* Video Walkthrough */}
+      <section className="container mx-auto px-4 pb-12">
+        <div className="max-w-2xl mx-auto text-center">
+          <p className="text-sm text-slate-600 mb-4">See it in action</p>
+          <div className="rounded-xl overflow-hidden shadow-lg border border-slate-200">
+            <iframe
+              width="100%"
+              height="315"
+              src="https://www.youtube.com/embed/CNJvDmFTwYU?si=dESosUmGrp0cCeUk"
+              title="Message Center Walkthrough"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allowFullScreen
+              className="aspect-video"
+            />
+          </div>
+        </div>
+      </section>
+
       {/* Key Benefits */}
       <section className="container mx-auto px-4 py-16 bg-slate-50">
         <div className="max-w-6xl mx-auto">
@@ -602,7 +622,7 @@ export default function MessagesFeaturePage() {
                 </Button>
               </Link>
               <Link href="/pricing">
-                <Button size="lg" variant="outline" className="border-slate-400 text-white hover:bg-slate-800">
+                <Button size="lg" className="bg-slate-200 text-slate-800 border border-slate-300 hover:bg-slate-300">
                   View Pricing
                 </Button>
               </Link>
