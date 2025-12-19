@@ -13,10 +13,13 @@ interface YouTubeLiteProps {
  */
 export function YouTubeLite({ videoId, title, className = "" }: YouTubeLiteProps) {
   const [isLoaded, setIsLoaded] = useState(false);
+  const [thumbnailError, setThumbnailError] = useState(false);
 
   // YouTube thumbnail URL - use maxresdefault for best quality, fallback to hqdefault
-  const thumbnailUrl = `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`;
-  const fallbackThumbnailUrl = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+  // maxresdefault only exists for videos uploaded at 1080p or higher
+  const thumbnailUrl = thumbnailError
+    ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
+    : `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`;
 
   if (isLoaded) {
     return (
@@ -26,7 +29,7 @@ export function YouTubeLite({ videoId, title, className = "" }: YouTubeLiteProps
           title={title}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
-          className="absolute inset-0 w-full h-full rounded-2xl"
+          className="absolute inset-0 w-full h-full"
         />
       </div>
     );
@@ -40,18 +43,16 @@ export function YouTubeLite({ videoId, title, className = "" }: YouTubeLiteProps
       aria-label={`Play video: ${title}`}
     >
       {/* Thumbnail with fallback */}
-      <picture>
-        <source srcSet={thumbnailUrl} type="image/jpeg" />
-        <img
-          src={fallbackThumbnailUrl}
-          alt={title}
-          loading="lazy"
-          className="absolute inset-0 w-full h-full object-cover rounded-2xl"
-        />
-      </picture>
+      <img
+        src={thumbnailUrl}
+        alt={title}
+        loading="lazy"
+        onError={() => setThumbnailError(true)}
+        className="absolute inset-0 w-full h-full object-cover"
+      />
 
       {/* Dark overlay */}
-      <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors duration-300 rounded-2xl" />
+      <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors duration-300" />
 
       {/* Play button */}
       <div className="absolute inset-0 flex items-center justify-center">

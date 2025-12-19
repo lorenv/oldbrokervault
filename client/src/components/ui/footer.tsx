@@ -5,7 +5,7 @@ export function Footer() {
     <footer className="bg-gray-900 text-white">
       {/* Content */}
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-7 gap-8">
           {/* Company Info */}
           <div className="col-span-2 space-y-4">
             <div className="flex items-center space-x-2">
@@ -51,6 +51,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/features/integrations" className="text-gray-400 hover:text-white transition-colors">
+                  Integrations
+                </Link>
+              </li>
+              <li>
                 <Link href="/virtual-data-room" className="text-gray-400 hover:text-white transition-colors">
                   Virtual Data Room
                 </Link>
@@ -72,6 +77,33 @@ export function Footer() {
                   For Investment Banks
                 </Link>
               </li>
+              <li>
+                <Link href="/virtual-data-room" className="text-gray-400 hover:text-white transition-colors">
+                  For Lenders
+                </Link>
+              </li>
+              <li>
+                <Link href="/virtual-data-room" className="text-gray-400 hover:text-white transition-colors">
+                  For Loan Brokers
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Resources */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Resources</h3>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <Link href="/resources" className="text-gray-400 hover:text-white transition-colors">
+                  Resources
+                </Link>
+              </li>
+              <li>
+                <a href="https://cimshare.documentationai.com/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
+                  Documentation
+                </a>
+              </li>
             </ul>
           </div>
 
@@ -88,11 +120,6 @@ export function Footer() {
                 <Link href="/contact" className="text-gray-400 hover:text-white transition-colors">
                   Contact Us
                 </Link>
-              </li>
-              <li>
-                <a href="https://cimshare.documentationai.com/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
-                  Documentation
-                </a>
               </li>
               <li>
                 <Link href="/login" className="text-gray-400 hover:text-white transition-colors">
