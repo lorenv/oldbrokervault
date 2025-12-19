@@ -57,7 +57,9 @@
       "Bash(timeout 15 npm run dev:*)",
       "Bash(python3:*)",
       "Bash(timeout 12 npm run dev:*)",
-      "Bash(npm ls:*)"
+      "Bash(npm ls:*)",
+      "Bash(pgrep:*)",
+      "Bash(openssl rand:*)"
     ],
     "deny": [],
     "ask": [],

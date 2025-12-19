@@ -184,7 +184,6 @@ export function Navbar() {
                       SDE Analyzer
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Link href="/nda-templates" className="flex items-center cursor-pointer w-full">
                       <FileCheck className="h-4 w-4 mr-2" />
