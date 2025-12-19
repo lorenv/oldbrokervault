@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Image, Type, Trash2, GripVertical, Code } from "lucide-react";
+import { Plus, Image, Type, Trash2, GripVertical, Code, TableIcon } from "lucide-react";
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import StarterKit from '@tiptap/starter-kit';
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { sanitizeHtml } from "@/lib/sanitize";
+import { TableSectionEditor, TableSectionDisplay, TableData } from "./table-section-editor";
 
 interface InsertableSectionProps {
   afterSection: string;
@@ -27,7 +28,7 @@ interface InsertableSectionProps {
 
 interface CustomSectionProps {
   id: number;
-  type: 'text' | 'image' | 'html';
+  type: 'text' | 'image' | 'html' | 'table';
   title?: string;
   content?: string;
   imageUrl?: string;
@@ -148,6 +149,43 @@ export function InsertableSection({ afterSection, docId, onSectionAdded }: Inser
     }
   };
 
+  const handleAddTable = async () => {
+    setShowDialog(false);
+    try {
+      const defaultTableData: TableData = {
+        headers: ["Column 1", "Column 2", "Column 3"],
+        rows: [["", "", ""]],
+        settings: {
+          hasHeaderRow: true,
+          striped: true,
+          bordered: false,
+          alignment: "left"
+        }
+      };
+
+      const response = await apiRequest('POST', `/api/cim/${docId}/custom-section/table`, {
+        body: {
+          content: JSON.stringify(defaultTableData),
+          afterSection: afterSection
+        }
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Table section added",
+          description: "Your new table section has been added to the CIM",
+        });
+        onSectionAdded();
+      }
+    } catch (error) {
+      toast({
+        title: "Failed to add table section",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div 
       className="relative group"
@@ -184,7 +222,7 @@ export function InsertableSection({ afterSection, docId, onSectionAdded }: Inser
               Choose the type of content to add
             </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-4 gap-4">
             <Button
               variant="outline"
               className="h-20 flex flex-col gap-2"
@@ -201,6 +239,14 @@ export function InsertableSection({ afterSection, docId, onSectionAdded }: Inser
             >
               <Image className="h-6 w-6" />
               <span className="text-sm">{isUploading ? "Uploading..." : "Image"}</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-20 flex flex-col gap-2"
+              onClick={handleAddTable}
+            >
+              <TableIcon className="h-6 w-6" />
+              <span className="text-sm">Table</span>
             </Button>
             <Button
               variant="outline"
@@ -338,11 +384,43 @@ export function CustomSection({ id, type, title, content, imageUrl, imageUrls, o
               </div>
             </div>
           ) : (
-            <div 
+            <div
               className="cursor-pointer min-h-[2rem]"
               onClick={() => setIsEditing(true)}
               dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) || '<p>Click to edit text...</p>' }}
             />
+          )}
+        </div>
+      )}
+
+      {/* Table Section Display */}
+      {type === 'table' && content && (
+        <div>
+          {isEditing ? (
+            <div className="border rounded-md p-3">
+              <TableSectionEditor
+                initialData={JSON.parse(content) as TableData}
+                onChange={(data) => onUpdate(id, JSON.stringify(data))}
+                mode="edit"
+              />
+              <div className="flex justify-end gap-2 mt-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditing(false)}
+                >
+                  Done
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div
+              className="cursor-pointer"
+              onClick={() => setIsEditing(true)}
+            >
+              <TableSectionDisplay data={JSON.parse(content) as TableData} />
+              <p className="text-xs text-gray-400 mt-2 text-center">Click to edit table</p>
+            </div>
           )}
         </div>
       )}

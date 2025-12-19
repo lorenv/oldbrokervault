@@ -5508,6 +5508,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create table section
+  app.post("/api/cim/:id/custom-section/table", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const cimId = parseInt(req.params.id);
+      const cim = await storage.getCimDocument(cimId);
+
+      if (!cim || cim.userId !== req.user.id) {
+        return res.sendStatus(404);
+      }
+
+      const { title, content, afterSection } = req.body;
+
+      // Validate that content is valid JSON table data
+      try {
+        const tableData = JSON.parse(content);
+        if (!tableData.headers || !tableData.rows || !tableData.settings) {
+          return res.status(400).json({ message: "Invalid table data structure" });
+        }
+      } catch (e) {
+        return res.status(400).json({ message: "Invalid JSON table data" });
+      }
+
+      const section = await storage.createCustomSection({
+        cimDocumentId: cimId,
+        type: 'table',
+        title: title || 'Table',
+        content: content,
+        insertAfterSection: afterSection || 'end'
+      });
+
+      res.json(section);
+    } catch (error) {
+      console.error("Error creating table section:", error);
+      res.status(500).json({ message: "Failed to create table section" });
+    }
+  });
+
   app.put("/api/custom-section/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
