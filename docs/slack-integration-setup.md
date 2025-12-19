@@ -26,7 +26,7 @@ SLACK_SIGNING_SECRET=<your-slack-signing-secret>
 
 **Redirect URL:**
 ```
-https://cb1f9736-4a0a-4a40-80bd-c08d8761dbaa-00-1y6o4mf3nu2bh.riker.replit.dev/api/integrations/oauth/callback/slack
+https://cimshare.com/api/integrations/oauth/callback/slack
 ```
 
 ### 2. Where to find credentials (Slack App → Basic Information)

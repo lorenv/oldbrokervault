@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, X, Type, Image, Upload, Search, Code } from "lucide-react";
+import { Plus, X, Type, Image, Upload, Search, Code, TableIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { TableSectionEditor, TableData } from "./table-section-editor";
 
 interface AddCustomSectionProps {
   docId: number;
@@ -28,12 +29,13 @@ const sectionOptions = [
 
 export function AddCustomSection({ docId, onSectionAdded }: AddCustomSectionProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [sectionType, setSectionType] = useState<'text' | 'image' | 'html' | null>(null);
+  const [sectionType, setSectionType] = useState<'text' | 'image' | 'html' | 'table' | null>(null);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [customCss, setCustomCss] = useState("");
   const [insertAfter, setInsertAfter] = useState("");
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [tableData, setTableData] = useState<TableData | null>(null);
   const [showUnsplashDialog, setShowUnsplashDialog] = useState(false);
   const [unsplashQuery, setUnsplashQuery] = useState("");
   const [unsplashResults, setUnsplashResults] = useState<any[]>([]);
@@ -78,6 +80,15 @@ export function AddCustomSection({ docId, onSectionAdded }: AddCustomSectionProp
       return;
     }
 
+    if (sectionType === 'table' && (!tableData || tableData.rows.length === 0)) {
+      toast({
+        title: "Missing Table Data",
+        description: "Please add data to the table",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const payload = {
@@ -87,6 +98,7 @@ export function AddCustomSection({ docId, onSectionAdded }: AddCustomSectionProp
         ...(sectionType === 'text' && { content: content.trim() }),
         ...(sectionType === 'image' && { imageUrls: selectedImages }),
         ...(sectionType === 'html' && { content: content.trim(), customCss: customCss.trim() }),
+        ...(sectionType === 'table' && { content: JSON.stringify(tableData) }),
       };
 
       await apiRequest("POST", `/api/cim/${docId}/custom-sections`, { body: payload });
@@ -103,6 +115,7 @@ export function AddCustomSection({ docId, onSectionAdded }: AddCustomSectionProp
       setInsertAfter("");
       setSectionType(null);
       setSelectedImages([]);
+      setTableData(null);
       setIsOpen(false);
 
       // Notify parent component
@@ -124,6 +137,7 @@ export function AddCustomSection({ docId, onSectionAdded }: AddCustomSectionProp
     setInsertAfter("");
     setSectionType(null);
     setSelectedImages([]);
+    setTableData(null);
     setIsOpen(false);
   };
 
@@ -261,7 +275,7 @@ export function AddCustomSection({ docId, onSectionAdded }: AddCustomSectionProp
           {!sectionType && (
             <div>
               <Label>Section Type</Label>
-              <div className="grid grid-cols-3 gap-4 mt-2">
+              <div className="grid grid-cols-4 gap-4 mt-2">
                 <Button
                   variant="outline"
                   className="h-20 flex flex-col gap-2 hover:bg-blue-50"
@@ -281,6 +295,14 @@ export function AddCustomSection({ docId, onSectionAdded }: AddCustomSectionProp
                 <Button
                   variant="outline"
                   className="h-20 flex flex-col gap-2 hover:bg-blue-50"
+                  onClick={() => setSectionType('table')}
+                >
+                  <TableIcon className="h-6 w-6" />
+                  <span className="text-sm">Table Section</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-20 flex flex-col gap-2 hover:bg-blue-50"
                   onClick={() => setSectionType('html')}
                 >
                   <Code className="h-6 w-6" />
@@ -296,10 +318,12 @@ export function AddCustomSection({ docId, onSectionAdded }: AddCustomSectionProp
               <div className="flex items-center gap-2 p-2 bg-blue-100 rounded-lg">
                 {sectionType === 'text' ? <Type className="h-4 w-4" /> :
                  sectionType === 'image' ? <Image className="h-4 w-4" /> :
+                 sectionType === 'table' ? <TableIcon className="h-4 w-4" /> :
                  <Code className="h-4 w-4" />}
                 <span className="text-sm font-medium">
                   {sectionType === 'text' ? 'Text Section' :
                    sectionType === 'image' ? 'Image Section' :
+                   sectionType === 'table' ? 'Table Section' :
                    'HTML Section'}
                 </span>
                 <Button
@@ -437,6 +461,16 @@ export function AddCustomSection({ docId, onSectionAdded }: AddCustomSectionProp
                       className="mt-1 min-h-[120px] resize-y font-mono text-sm"
                     />
                   </div>
+                </div>
+              )}
+
+              {/* Table Section Fields */}
+              {sectionType === 'table' && (
+                <div className="space-y-4">
+                  <TableSectionEditor
+                    onChange={(data) => setTableData(data)}
+                    mode="create"
+                  />
                 </div>
               )}
 

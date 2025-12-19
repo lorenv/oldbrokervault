@@ -3773,8 +3773,124 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             const rows = Math.ceil(customSection.imageUrls.length / imagesPerRow);
             const totalImageHeight = rows * imageHeight + (rows - 1) * verticalMargin;
             doc.y = currentY + totalImageHeight;
+          } else if (customSection.type === 'table' && customSection.content) {
+            // Handle custom table sections
+            try {
+              const tableData = JSON.parse(customSection.content);
+              const { headers, rows: tableRows, settings } = tableData;
+
+              if (headers && tableRows) {
+                const pageMargin = 50;
+                const tableWidth = doc.page.width - (pageMargin * 2);
+                const colCount = headers.length;
+                const colWidth = tableWidth / colCount;
+                const rowHeight = 25;
+                const headerHeight = 30;
+                const cellPadding = 5;
+
+                let startX = pageMargin;
+                let currentY = doc.y;
+
+                // Check if we need a new page for the table
+                const estimatedTableHeight = headerHeight + (tableRows.length * rowHeight) + 20;
+                if (currentY + estimatedTableHeight > doc.page.height - 80) {
+                  doc.addPage();
+                  currentY = 50;
+                }
+
+                // Draw header row
+                if (settings?.hasHeaderRow !== false) {
+                  // Header background
+                  doc.rect(startX, currentY, tableWidth, headerHeight)
+                     .fill('#f3f4f6');
+
+                  // Header text
+                  doc.fillColor('#000000')
+                     .font('Helvetica-Bold')
+                     .fontSize(10);
+
+                  headers.forEach((header: string, i: number) => {
+                    const cellX = startX + (i * colWidth) + cellPadding;
+                    doc.text(header || '', cellX, currentY + 8, {
+                      width: colWidth - (cellPadding * 2),
+                      align: settings?.alignment || 'left'
+                    });
+                  });
+
+                  // Header border
+                  doc.strokeColor('#d1d5db')
+                     .lineWidth(0.5)
+                     .rect(startX, currentY, tableWidth, headerHeight)
+                     .stroke();
+
+                  // Draw vertical lines for header
+                  for (let i = 1; i < colCount; i++) {
+                    doc.moveTo(startX + (i * colWidth), currentY)
+                       .lineTo(startX + (i * colWidth), currentY + headerHeight)
+                       .stroke();
+                  }
+
+                  currentY += headerHeight;
+                }
+
+                // Draw data rows
+                doc.font('Helvetica').fontSize(10);
+
+                tableRows.forEach((row: string[], rowIndex: number) => {
+                  // Check if we need a new page
+                  if (currentY + rowHeight > doc.page.height - 80) {
+                    doc.addPage();
+                    currentY = 50;
+                  }
+
+                  // Striped background
+                  if (settings?.striped && rowIndex % 2 === 1) {
+                    doc.rect(startX, currentY, tableWidth, rowHeight)
+                       .fill('#f9fafb');
+                    doc.fillColor('#000000');
+                  }
+
+                  // Cell text
+                  row.forEach((cell: string, i: number) => {
+                    const cellX = startX + (i * colWidth) + cellPadding;
+                    doc.text(cell || '', cellX, currentY + 6, {
+                      width: colWidth - (cellPadding * 2),
+                      align: settings?.alignment || 'left'
+                    });
+                  });
+
+                  // Row border
+                  if (settings?.bordered) {
+                    doc.strokeColor('#d1d5db')
+                       .lineWidth(0.5)
+                       .rect(startX, currentY, tableWidth, rowHeight)
+                       .stroke();
+
+                    // Vertical lines
+                    for (let i = 1; i < colCount; i++) {
+                      doc.moveTo(startX + (i * colWidth), currentY)
+                         .lineTo(startX + (i * colWidth), currentY + rowHeight)
+                         .stroke();
+                    }
+                  } else {
+                    // Just bottom border
+                    doc.strokeColor('#e5e7eb')
+                       .lineWidth(0.5)
+                       .moveTo(startX, currentY + rowHeight)
+                       .lineTo(startX + tableWidth, currentY + rowHeight)
+                       .stroke();
+                  }
+
+                  currentY += rowHeight;
+                });
+
+                doc.y = currentY;
+              }
+            } catch (error) {
+              console.error("Error rendering table section to PDF:", error);
+            }
           }
-          
+
           doc.moveDown(2);
         }
       }

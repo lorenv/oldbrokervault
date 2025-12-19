@@ -26,7 +26,8 @@ import {
   Code,
   ChevronDown,
   ChevronUp,
-  Save
+  Save,
+  Table2
 } from "lucide-react";
 import { OwnerFinancialsSection } from "./owner-financials-section";
 import { CoverImageManager } from "./cover-image-manager";
@@ -35,6 +36,7 @@ import { DocumentExport } from "./document-export";
 import { useCustomSections } from "@/hooks/use-cim-document";
 import { EnhancedInlineEditor } from "./enhanced-inline-editor";
 import { sanitizeHtml } from "@/lib/sanitize";
+import { TableSectionDisplay, TableSectionEditor, type TableData } from "./table-section-editor";
 
 import ReactMarkdown from 'react-markdown';
 import {
@@ -1285,6 +1287,36 @@ export function CimDisplay({
                               />
                             )}
                           </div>
+                        ) : customSection.type === 'table' && customSection.content ? (
+                          <div className="w-full">
+                            {!isSharedView ? (
+                              <TableSectionEditor
+                                initialData={JSON.parse(customSection.content) as TableData}
+                                onChange={async (data) => {
+                                  try {
+                                    const response = await apiRequest("PUT", `/api/custom-section/${customSection.id}`, {
+                                      body: {
+                                        content: JSON.stringify(data)
+                                      }
+                                    });
+
+                                    if (response.ok) {
+                                      setCustomSections(prev => prev.map(s =>
+                                        s.id === customSection.id ? { ...s, content: JSON.stringify(data) } : s
+                                      ));
+                                    }
+                                  } catch (error) {
+                                    toast({ title: "Save Failed", description: "Failed to save table changes.", variant: "destructive" });
+                                  }
+                                }}
+                                mode="edit"
+                              />
+                            ) : (
+                              <TableSectionDisplay
+                                data={JSON.parse(customSection.content) as TableData}
+                              />
+                            )}
+                          </div>
                         ) : null}
                       </CardContent>
                     </Card>
@@ -1459,6 +1491,60 @@ export function CimDisplay({
                       </div>
                       <span className="text-xs text-muted-foreground">
                         Add custom HTML and CSS code (forms, embeds, etc.)
+                      </span>
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      className="h-auto p-4 flex flex-col items-start gap-2"
+                      disabled={isAddingSectionLoading}
+                      onClick={async () => {
+                        try {
+                          setIsAddingSectionLoading(true);
+                          const defaultTableData = {
+                            headers: ["Column 1", "Column 2", "Column 3"],
+                            rows: [["", "", ""]],
+                            settings: {
+                              hasHeaderRow: true,
+                              striped: true,
+                              bordered: false,
+                              alignment: "left"
+                            }
+                          };
+                          const response = await apiRequest('POST', `/api/cim/${docId}/custom-section/table`, {
+                            body: {
+                              content: JSON.stringify(defaultTableData),
+                              afterSection: 'end'
+                            }
+                          });
+
+                          if (response.ok) {
+                            queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}/custom-sections`] });
+                            queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });
+                            queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
+                            toast({
+                              title: "Table Section Added",
+                              description: "Your new table section has been added to the document.",
+                            });
+                            setAddSectionDialogOpen(false);
+                          }
+                        } catch (error) {
+                          toast({
+                            title: "Failed to Add Section",
+                            description: "Please try again.",
+                            variant: "destructive",
+                          });
+                        } finally {
+                          setIsAddingSectionLoading(false);
+                        }
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Table2 className="h-4 w-4" />
+                        <span className="font-medium">Table Section</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        Add a data table (paste from Excel or build manually)
                       </span>
                     </Button>
                   </div>

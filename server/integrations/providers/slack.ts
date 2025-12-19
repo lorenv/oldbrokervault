@@ -26,7 +26,7 @@ import type {
 const SLACK_CLIENT_ID = process.env.SLACK_CLIENT_ID || '';
 const SLACK_CLIENT_SECRET = process.env.SLACK_CLIENT_SECRET || '';
 const SLACK_REDIRECT_URI = process.env.SLACK_REDIRECT_URI ||
-  `${process.env.PUBLIC_URL || 'https://cb1f9736-4a0a-4a40-80bd-c08d8761dbaa-00-1y6o4mf3nu2bh.riker.replit.dev'}/api/integrations/oauth/callback/slack`;
+  `${process.env.BASE_URL || 'https://cimshare.com'}/api/integrations/oauth/callback/slack`;
 
 // Required scopes for posting messages, reading channels, and uploading files
 // chat:write.public allows posting to public channels without joining first
