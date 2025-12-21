@@ -9,6 +9,10 @@ import { ErrorBoundary } from "@/components/error-boundary";
 import { lazy, Suspense, useEffect } from "react";
 import { initGA } from "./lib/analytics";
 import { useAnalytics } from "./hooks/use-analytics";
+import { useAuth } from "@/hooks/use-auth";
+import { AppLayout } from "@/components/layout/app-layout";
+
+// Page imports
 import HomePage from "@/pages/home-page";
 import HomePageNew from "@/pages/home-page-new";
 import DashboardPage from "@/pages/dashboard-page";
@@ -16,11 +20,8 @@ import LoginPage from "@/pages/login-page";
 import AdminPage from "@/pages/admin-page";
 import DocumentsPage from "@/pages/documents-page";
 import AnalyticsPage from "@/pages/analytics-page";
-import AccountPage from "@/pages/account-page";
-import ProfilePage from "@/pages/profile-page";
 import PricingPage from "@/pages/pricing-page";
 import CheckoutSuccess from "@/pages/checkout-success";
-
 import ContactPage from "@/pages/contact-page";
 import EulaPage from "@/pages/eula-page";
 import PrivacyPolicyPage from "@/pages/privacy-policy-page";
@@ -41,18 +42,22 @@ import PremiumDashboard from "@/pages/premium-dashboard";
 import InvestorDatabasePage from "@/pages/investor-database-page";
 import { DocumentDetailPage } from "@/pages/document-detail-page";
 import NdaTemplatesPage from "@/pages/nda-templates-page";
-import NdaTemplateEditorPage from "@/pages/nda-template-editor-page";
 import EnhancedNdaSigningPage from "@/pages/enhanced-nda-signing-page";
 import SignDocumentPage from "@/pages/sign-document";
 import Messages from "@/pages/messages";
 import EnhancedTemplateEditorPage from "@/pages/enhanced-template-editor-page";
 import { GetStartedChecklist } from "@/components/get-started-checklist";
-import { useAuth } from "@/hooks/use-auth";
 import MarketingHomePage from "@/pages/marketing-home-page";
 import VirtualDataRoomPage from "@/pages/virtual-data-room-page";
 import SDEAnalyzerPage from "@/pages/sde-analyzer-page";
-import WebhooksPage from "@/pages/webhooks-page";
 import IntegrationsPage from "@/pages/integrations-page";
+
+// New settings pages
+import ListingsSettingsPage from "@/pages/listings-settings-page";
+import AccountSettingsPage from "@/pages/settings/account-settings-page";
+import BillingPage from "@/pages/settings/billing-page";
+import PdfBrandingPage from "@/pages/settings/pdf-branding-page";
+import OnlineBrandingPage from "@/pages/settings/online-branding-page";
 
 // E-Signature Pages
 import EsignDashboard from "@/pages/esign/esign-dashboard";
@@ -78,13 +83,98 @@ const BusinessBrokersPage = lazy(() => import("@/pages/solutions/business-broker
 const InvestmentBankingPage = lazy(() => import("@/pages/solutions/investment-banking"));
 const ResourcesPage = lazy(() => import("@/pages/resources-page"));
 
-function Router() {
-  const [location] = useLocation();
+// Routes that should use the sidebar layout (authenticated app routes)
+const authenticatedRoutes = [
+  '/dashboard',
+  '/documents',
+  '/analytics',
+  '/premium',
+  '/investor-database',
+  '/sde-analyzer',
+  '/messages',
+  '/esign',
+  '/account',
+  '/profile',
+  '/integrations',
+  '/nda-templates',
+  '/template-editor',
+  '/admin',
+  '/listings-settings',
+  '/settings',
+];
+
+// Check if current route should use sidebar layout
+function shouldUseSidebarLayout(location: string, user: any): boolean {
+  if (!user) return false;
+  return authenticatedRoutes.some(route =>
+    location === route || location.startsWith(route + '/')
+  );
+}
+
+// Authenticated routes with sidebar layout
+function AuthenticatedRouter() {
   const { user } = useAuth();
+
+  return (
+    <AppLayout>
+      <Switch>
+        <ProtectedRoute path="/dashboard" component={DashboardPage} />
+        <ProtectedRoute path="/documents" component={DocumentsPage} />
+        <ProtectedRoute path="/documents/:id" component={DocumentDetailPage} />
+        <ProtectedRoute path="/analytics" component={AnalyticsPage} />
+        <ProtectedRoute path="/premium" component={PremiumDashboard} />
+        <ProtectedRoute path="/investor-database" component={InvestorDatabasePage} />
+        <ProtectedRoute path="/sde-analyzer" component={SDEAnalyzerPage} />
+        <ProtectedRoute path="/messages" component={Messages} />
+
+        {/* E-Signature Routes */}
+        <ProtectedRoute path="/esign" component={EsignDashboard} />
+        <ProtectedRoute path="/esign/templates" component={EsignTemplates} />
+        <ProtectedRoute path="/esign/templates/new" component={EsignTemplateEditor} />
+        <ProtectedRoute path="/esign/templates/:id/edit" component={EsignTemplateEditor} />
+        <ProtectedRoute path="/esign/send" component={EsignSend} />
+        <ProtectedRoute path="/esign/envelope/:id" component={EsignEnvelopeDetail} />
+        <ProtectedRoute path="/esign/correct/:id" component={EsignCorrect} />
+        <ProtectedRoute path="/esign/settings" component={EsignSettings} />
+
+        {/* Listings Settings (main nav) */}
+        <ProtectedRoute path="/listings-settings" component={ListingsSettingsPage} />
+
+        {/* Settings Routes (sidebar settings section) */}
+        <ProtectedRoute path="/settings/account" component={AccountSettingsPage} />
+        <ProtectedRoute path="/settings/billing" component={BillingPage} />
+        <ProtectedRoute path="/settings/pdf-branding" component={PdfBrandingPage} />
+        <ProtectedRoute path="/settings/online-branding" component={OnlineBrandingPage} />
+
+        {/* Legacy account route - redirect to new settings */}
+        <ProtectedRoute path="/account" component={AccountSettingsPage} />
+        <ProtectedRoute path="/profile" component={AccountSettingsPage} />
+
+        <ProtectedRoute path="/integrations" component={IntegrationsPage} />
+        <ProtectedRoute path="/nda-templates" component={NdaTemplatesPage} />
+
+        {/* Template editor routes */}
+        <ProtectedRoute path="/template-editor" component={EnhancedTemplateEditorPage} />
+        <ProtectedRoute path="/template-editor/:id" component={EnhancedTemplateEditorPage} />
+
+        {/* Legacy NDA template routes */}
+        <ProtectedRoute path="/nda-templates/create" component={EnhancedTemplateEditorPage} />
+        <ProtectedRoute path="/nda-templates/:id/edit" component={EnhancedTemplateEditorPage} />
+        <ProtectedRoute path="/nda-templates/edit/:id" component={EnhancedTemplateEditorPage} />
+
+        <ProtectedRoute path="/admin" component={AdminPage} requireAdmin={true} />
+
+        <Route component={NotFound} />
+      </Switch>
+      {user && <GetStartedChecklist />}
+    </AppLayout>
+  );
+}
+
+// Public routes with navbar/footer
+function PublicRouter() {
+  const [location] = useLocation();
   const isSharePage = location.startsWith('/share/') || location.startsWith('/cims/') || location.startsWith('/teaser/') || location.startsWith('/listings/');
-  
-  // Track page views when routes change
-  useAnalytics();
 
   return (
     <>
@@ -95,27 +185,6 @@ function Router() {
             <Route path="/" component={HomePage} />
             <Route path="/home-new" component={HomePageNew} />
             <Route path="/marketing" component={MarketingHomePage} />
-            <ProtectedRoute path="/dashboard" component={DashboardPage} />
-            <ProtectedRoute path="/documents" component={DocumentsPage} />
-            <ProtectedRoute path="/documents/:id" component={DocumentDetailPage} />
-            <ProtectedRoute path="/analytics" component={AnalyticsPage} />
-            <ProtectedRoute path="/premium" component={PremiumDashboard} />
-            <ProtectedRoute path="/investor-database" component={InvestorDatabasePage} />
-            <ProtectedRoute path="/sde-analyzer" component={SDEAnalyzerPage} />
-            <ProtectedRoute path="/messages" component={Messages} />
-            {/* E-Signature Routes */}
-            <ProtectedRoute path="/esign" component={EsignDashboard} />
-            <ProtectedRoute path="/esign/templates" component={EsignTemplates} />
-            <ProtectedRoute path="/esign/templates/new" component={EsignTemplateEditor} />
-            <ProtectedRoute path="/esign/templates/:id/edit" component={EsignTemplateEditor} />
-            <ProtectedRoute path="/esign/send" component={EsignSend} />
-            <ProtectedRoute path="/esign/envelope/:id" component={EsignEnvelopeDetail} />
-            <ProtectedRoute path="/esign/correct/:id" component={EsignCorrect} />
-            <ProtectedRoute path="/esign/settings" component={EsignSettings} />
-            <ProtectedRoute path="/account" component={AccountPage} />
-            <ProtectedRoute path="/profile" component={AccountPage} />
-            <ProtectedRoute path="/webhooks" component={WebhooksPage} />
-            <ProtectedRoute path="/integrations" component={IntegrationsPage} />
             <Route path="/pricing" component={PricingPage} />
             <Route path="/virtual-data-room" component={VirtualDataRoomPage} />
             <Route path="/checkout-success" component={CheckoutSuccess} />
@@ -125,34 +194,27 @@ function Router() {
             <Route path="/terms-of-service" component={TermsOfServicePage} />
             <Route path="/cookie-policy" component={CookiePolicyPage} />
             <Route path="/data-security" component={DataSecurityPage} />
-            <ProtectedRoute path="/admin" component={AdminPage} requireAdmin={true} />
             <Route path="/login" component={LoginPage} />
             <Route path="/auth" component={LoginPage} />
             <Route path="/reset-password" component={LoginPage} />
             <Route path="/unsubscribe" component={UnsubscribePage} />
             <Route path="/invitation/:token" component={InvitationLandingPage} />
             <Route path="/accept-collaboration/:token" component={AcceptCollaborationPage} />
+
+            {/* Share/Public pages (no navbar) */}
             <Route path="/share/:shareSlug" component={SharePage} />
             <Route path="/cims/:shareSlug" component={SharePage} />
             <Route path="/teaser/:slug" component={TeaserPage} />
             <Route path="/teaser/:slug/embed" component={TeaserEmbedPage} />
             <Route path="/listings/:slug" component={ListingsPage} />
             <Route path="/nda/redirect/:redirectId" component={NdaRedirectPage} />
-            <ProtectedRoute path="/nda-templates" component={NdaTemplatesPage} />
-
-            {/* Main template editor routes - using EnhancedTemplateEditorPage */}
-            <ProtectedRoute path="/template-editor" component={EnhancedTemplateEditorPage} />
-            <ProtectedRoute path="/template-editor/:id" component={EnhancedTemplateEditorPage} />
-
-            {/* Legacy routes - redirect to main template editor */}
-            <ProtectedRoute path="/nda-templates/create" component={EnhancedTemplateEditorPage} />
-            <ProtectedRoute path="/nda-templates/:id/edit" component={EnhancedTemplateEditorPage} />
-            <ProtectedRoute path="/nda-templates/edit/:id" component={EnhancedTemplateEditorPage} />
             <Route path="/share/:shareSlug/sign-nda" component={EnhancedNdaSigningPage} />
             <Route path="/sign/:accessToken" component={SignDocumentPage} />
+
             {/* E-Signature Guest Signing and Verification */}
             <Route path="/esign/sign/:token" component={EsignSign} />
             <Route path="/esign/verify/:envelopeId" component={EsignVerify} />
+
             {/* SEO Feature Pages */}
             <Route path="/features/nda-protection">
               <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
@@ -194,6 +256,7 @@ function Router() {
                 <IntegrationsFeaturePage />
               </Suspense>
             </Route>
+
             {/* SEO Solution Pages */}
             <Route path="/solutions/business-brokers">
               <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
@@ -205,20 +268,38 @@ function Router() {
                 <InvestmentBankingPage />
               </Suspense>
             </Route>
+
             {/* Resources Page */}
             <Route path="/resources">
               <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
                 <ResourcesPage />
               </Suspense>
             </Route>
+
             <Route component={NotFound} />
           </Switch>
         </div>
         {!isSharePage && <Footer />}
-        {!isSharePage && user && <GetStartedChecklist />}
       </div>
     </>
   );
+}
+
+function Router() {
+  const [location] = useLocation();
+  const { user } = useAuth();
+
+  // Track page views when routes change
+  useAnalytics();
+
+  // Determine which router to use based on auth state and route
+  const useSidebar = shouldUseSidebarLayout(location, user);
+
+  if (useSidebar) {
+    return <AuthenticatedRouter />;
+  }
+
+  return <PublicRouter />;
 }
 
 function App() {

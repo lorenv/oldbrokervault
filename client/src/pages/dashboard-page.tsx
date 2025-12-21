@@ -4,7 +4,6 @@ import { CimGenerator } from "@/components/cim-generator";
 
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SubscriptionCard } from "@/components/ui/subscription-card";
 import { AnalyticsOverviewCard } from "@/components/analytics-overview-card";
 import { FileText, Clock, ArrowRight, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -207,19 +206,6 @@ export default function DashboardPage() {
 
             {/* Analytics Overview Card */}
             <AnalyticsOverviewCard />
-
-            {/* Subscription Card */}
-            <SubscriptionCard
-              status={user?.subscriptionStatus}
-              endsAt={user?.subscriptionEndsAt ? new Date(user.subscriptionEndsAt).toISOString() : null}
-              monthlyUsage={user?.monthlyUsage}
-              monthlyDocumentsCreated={user?.monthlyDocumentsCreated}
-              monthlyRegenerationsUsed={user?.monthlyRegenerationsUsed}
-              subtle={true}
-              hideProButtons={true}
-              hideActiveUntil={true}
-              hideRegenerations={true}
-            />
           </div>
           </div>
         </div>

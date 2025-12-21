@@ -16,6 +16,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useToast } from "@/hooks/use-toast";
 import { InvestorHeatMap } from "@/components/investor-heat-map";
 import { ContactDetailModal } from "@/components/contact-detail-modal";
+import { PageHeader } from "@/components/layout/page-header";
 import {
   Search,
   Download,
@@ -807,23 +808,14 @@ export default function InvestorDatabasePage() {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 border-b border-slate-200 shadow-lg">
-          <div className="container mx-auto px-4 py-8">
-            <div>
-              <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
-                <Users className="h-8 w-8" />
-                Investor Database
-              </h1>
-              <p className="text-slate-200">
-                Manage and track your investor contacts across all documents
-              </p>
-            </div>
-          </div>
-        </div>
+      <div className="p-6">
+        <PageHeader
+          title="CRM"
+          description="Manage and track your investor contacts across all documents"
+          icon={<Users className="h-5 w-5" />}
+        />
 
-        <main className="container mx-auto px-4 py-8 space-y-6">
+        <div className="space-y-6">
       {/* Collapsible Heat Map */}
       <Collapsible open={isHeatMapOpen} onOpenChange={setIsHeatMapOpen}>
         <Card className="border-0 shadow-lg bg-white/95 backdrop-blur-sm">
@@ -1520,7 +1512,7 @@ export default function InvestorDatabasePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-        </main>
+        </div>
       </div>
     </TooltipProvider>
   );

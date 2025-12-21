@@ -282,6 +282,51 @@ router.put('/teaser/:teaserId/order', async (req: Request, res: Response) => {
   }
 });
 
+// Get active listings (teasers on the public listings page) for the authenticated user
+router.get('/active', async (req: Request, res: Response) => {
+  try {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    // Get teasers that are published and belong to this user's documents
+    const results = await db
+      .select({
+        teaser: teasers,
+        document: cimDocuments,
+      })
+      .from(teasers)
+      .innerJoin(cimDocuments, eq(teasers.documentId, cimDocuments.id))
+      .where(and(
+        eq(cimDocuments.userId, req.user.id),
+        eq(teasers.isPublished, true)
+      ))
+      .orderBy(desc(teasers.updatedAt));
+
+    const activeListings = results.map(r => {
+      // Get the effective cover image URL
+      const effectiveCoverImageUrl = r.teaser.useCimCoverImage && r.document?.coverImageUrl
+        ? r.document.coverImageUrl
+        : r.teaser.coverImageUrl;
+
+      return {
+        id: r.document.id,
+        shareSlug: r.teaser.shareSlug,
+        headline: r.teaser.headline,
+        summary: r.teaser.summary,
+        coverImageUrl: effectiveCoverImageUrl,
+        listingStatus: (r.teaser as any).listingStatus || 'active',
+        updatedAt: r.teaser.updatedAt,
+      };
+    });
+
+    res.json(activeListings);
+  } catch (error) {
+    console.error('Error fetching active listings:', error);
+    res.status(500).json({ error: 'Failed to fetch active listings' });
+  }
+});
+
 // ============================================================================
 // PUBLIC ROUTES - Listings page viewing
 // ============================================================================
