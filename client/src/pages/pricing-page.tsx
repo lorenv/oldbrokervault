@@ -200,6 +200,7 @@ export default function PricingPage() {
       features: [
         "Unlimited CIM documents",
         "Unlimited eSignatures",
+        "BizBuySell management",
         "Dedicated account manager",
         "Custom integrations",
         "Advanced security features",

@@ -210,13 +210,24 @@ export function ContactDetailModal({ contact, open, onOpenChange }: ContactDetai
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
               <div>
                 <Label className="text-sm font-medium text-gray-600">Name</Label>
-                <p className="text-base font-semibold mt-1">{viewingContact.name}</p>
+                <Input
+                  value={viewingContact.name}
+                  onChange={(e) => setViewingContact({...viewingContact, name: e.target.value})}
+                  className="mt-1"
+                  placeholder="Contact name"
+                />
               </div>
 
               <div>
                 <Label className="text-sm font-medium text-gray-600">Email</Label>
                 <div className="flex items-center gap-2 mt-1">
-                  <p className="text-base font-mono">{viewingContact.email}</p>
+                  <Input
+                    type="email"
+                    value={viewingContact.email}
+                    onChange={(e) => setViewingContact({...viewingContact, email: e.target.value})}
+                    className="flex-1"
+                    placeholder="email@example.com"
+                  />
                   <Button
                     variant="ghost"
                     size="sm"
@@ -227,42 +238,57 @@ export function ContactDetailModal({ contact, open, onOpenChange }: ContactDetai
                         description: "Email address copied to clipboard"
                       });
                     }}
-                    className="h-6 w-6 p-0"
+                    className="h-9 w-9 p-0"
                   >
-                    <Copy className="h-3 w-3" />
+                    <Copy className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
 
               <div>
                 <Label className="text-sm font-medium text-gray-600">Company</Label>
-                <p className="text-base mt-1">
-                  {(() => {
+                <Input
+                  value={viewingContact.company || ''}
+                  onChange={(e) => setViewingContact({...viewingContact, company: e.target.value})}
+                  className="mt-1"
+                  placeholder={(() => {
                     const domain = viewingContact.email.split('@')[1];
                     const personalDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com', 'aol.com', 'protonmail.com', 'hey.com'];
-                    return personalDomains.includes(domain.toLowerCase()) ? 'Personal Email' : domain;
+                    return personalDomains.includes(domain?.toLowerCase()) ? 'Enter company name...' : domain || 'Enter company name...';
                   })()}
-                </p>
+                />
+                {!viewingContact.company && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Inferred: {(() => {
+                      const domain = viewingContact.email.split('@')[1];
+                      const personalDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com', 'aol.com', 'protonmail.com', 'hey.com'];
+                      return personalDomains.includes(domain?.toLowerCase()) ? 'Personal Email' : domain;
+                    })()}
+                  </p>
+                )}
               </div>
 
               <div>
                 <Label className="text-sm font-medium text-gray-600">Location</Label>
-                <p className="text-base mt-1">
-                  {viewingContact.location || 'Unknown'}
-                  {viewingContact.isPotentialVpn && (
-                    <span className="text-amber-600 text-sm ml-2">• VPN detected</span>
-                  )}
-                </p>
+                <Input
+                  value={viewingContact.location || ''}
+                  onChange={(e) => setViewingContact({...viewingContact, location: e.target.value})}
+                  className="mt-1"
+                  placeholder="City, State/Country"
+                />
+                {viewingContact.isPotentialVpn && (
+                  <p className="text-xs text-amber-600 mt-1">VPN detected</p>
+                )}
               </div>
 
               <div>
                 <Label className="text-sm font-medium text-gray-600">First Seen</Label>
-                <p className="text-base mt-1">{viewingContact.firstSeenAt ? new Date(viewingContact.firstSeenAt).toLocaleDateString() : 'Unknown'}</p>
+                <p className="text-base mt-2">{viewingContact.firstSeenAt ? new Date(viewingContact.firstSeenAt).toLocaleDateString() : 'Unknown'}</p>
               </div>
 
               <div>
                 <Label className="text-sm font-medium text-gray-600">Last Activity</Label>
-                <p className="text-base mt-1">{viewingContact.lastSeenAt ? new Date(viewingContact.lastSeenAt).toLocaleDateString() : 'Never'}</p>
+                <p className="text-base mt-2">{viewingContact.lastSeenAt ? new Date(viewingContact.lastSeenAt).toLocaleDateString() : 'Never'}</p>
               </div>
             </div>
           </div>
@@ -544,6 +570,10 @@ export function ContactDetailModal({ contact, open, onOpenChange }: ContactDetai
               updateMutation.mutate({
                 id: viewingContact.id,
                 data: {
+                  name: viewingContact.name,
+                  email: viewingContact.email,
+                  company: viewingContact.company || null,
+                  location: viewingContact.location || null,
                   status: viewingContact.status,
                   notes: viewingContact.notes || '',
                   tags: viewingContact.tags || [],

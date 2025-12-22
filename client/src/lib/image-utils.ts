@@ -130,7 +130,136 @@ export async function removeWhiteBackground(
 }
 
 /**
- * Process a logo: detect if it has a white background and remove it if so.
+ * Detects the dominant background color from image corners.
+ * Returns the RGB values and whether the corners are consistent.
+ */
+async function detectBackgroundColor(imageUrl: string): Promise<{
+  r: number;
+  g: number;
+  b: number;
+  isConsistent: boolean;
+}> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve({ r: 255, g: 255, b: 255, isConsistent: false });
+        return;
+      }
+
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+
+      // Sample corners
+      const corners = [
+        ctx.getImageData(0, 0, 1, 1).data,
+        ctx.getImageData(img.width - 1, 0, 1, 1).data,
+        ctx.getImageData(0, img.height - 1, 1, 1).data,
+        ctx.getImageData(img.width - 1, img.height - 1, 1, 1).data,
+      ];
+
+      // Calculate average color
+      let avgR = 0, avgG = 0, avgB = 0;
+      for (const corner of corners) {
+        avgR += corner[0];
+        avgG += corner[1];
+        avgB += corner[2];
+      }
+      avgR = Math.round(avgR / 4);
+      avgG = Math.round(avgG / 4);
+      avgB = Math.round(avgB / 4);
+
+      // Check consistency (all corners should be similar)
+      const tolerance = 30;
+      const isConsistent = corners.every(corner =>
+        Math.abs(corner[0] - avgR) < tolerance &&
+        Math.abs(corner[1] - avgG) < tolerance &&
+        Math.abs(corner[2] - avgB) < tolerance
+      );
+
+      resolve({ r: avgR, g: avgG, b: avgB, isConsistent });
+    };
+    img.onerror = () => resolve({ r: 255, g: 255, b: 255, isConsistent: false });
+    img.src = imageUrl;
+  });
+}
+
+/**
+ * Removes any solid background color from an image based on corner detection.
+ * More aggressive than white-only removal.
+ */
+export async function removeAnyBackground(
+  imageUrl: string,
+  tolerance: number = 35
+): Promise<string> {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const bgColor = await detectBackgroundColor(imageUrl);
+
+      if (!bgColor.isConsistent) {
+        // Background is not consistent, don't process
+        resolve(imageUrl);
+        return;
+      }
+
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Could not get canvas context'));
+          return;
+        }
+
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+
+        // Process each pixel
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+
+          // Calculate color distance from background
+          const distance = Math.sqrt(
+            Math.pow(r - bgColor.r, 2) +
+            Math.pow(g - bgColor.g, 2) +
+            Math.pow(b - bgColor.b, 2)
+          );
+
+          if (distance < tolerance) {
+            // Make it fully transparent
+            data[i + 3] = 0;
+          } else if (distance < tolerance + 8) {
+            // Narrow anti-aliasing zone to preserve text edges
+            const alpha = Math.min(255, (distance - tolerance) * 30);
+            data[i + 3] = Math.round(alpha);
+          }
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = imageUrl;
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+/**
+ * Process a logo: detect background color and remove it.
+ * Works with any solid color background, not just white.
  * Returns the processed image URL (or original if no processing needed).
  */
 export async function processLogoForDarkBackground(imageUrl: string): Promise<{
@@ -138,13 +267,25 @@ export async function processLogoForDarkBackground(imageUrl: string): Promise<{
   wasProcessed: boolean;
 }> {
   try {
-    const hasLight = await hasLightBackground(imageUrl);
+    // Use conservative tolerance to preserve text and fine details
+    // Lower tolerance = only remove pixels very close to background color
+    const processedUrl = await removeAnyBackground(imageUrl, 18);
 
-    if (hasLight) {
-      const processedUrl = await removeWhiteBackground(imageUrl, 25);
+    // Check if we actually made changes
+    if (processedUrl !== imageUrl) {
       return {
         processedUrl,
-        wasProcessed: processedUrl !== imageUrl
+        wasProcessed: true
+      };
+    }
+
+    // Fallback to white-only removal for edge cases (also conservative)
+    const hasLight = await hasLightBackground(imageUrl);
+    if (hasLight) {
+      const whiteRemoved = await removeWhiteBackground(imageUrl, 12);
+      return {
+        processedUrl: whiteRemoved,
+        wasProcessed: whiteRemoved !== imageUrl
       };
     }
 
