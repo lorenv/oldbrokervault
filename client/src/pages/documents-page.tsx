@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CimDocument } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Lock, Copy, Globe, Search, Trash2, FileDown, Clock, Share2, Mail, Loader2, PenTool, Eye, ChevronLeft, ChevronRight, Plus, Copy as DuplicateIcon, Link as LinkIcon, MoreVertical, Edit, LayoutGrid, List, Shield, Users, Calendar, X, ArrowUpDown, ArrowUp, ArrowDown, Filter } from "lucide-react";
+import { FileText, Download, Lock, Copy, Globe, Search, Trash2, FileDown, Clock, Share2, Mail, Loader2, PenTool, Eye, ChevronLeft, ChevronRight, Plus, Copy as DuplicateIcon, Link as LinkIcon, MoreVertical, Edit, LayoutGrid, List, Shield, Users, Calendar, X, ArrowUpDown, ArrowUp, ArrowDown, Filter, FolderOpen } from "lucide-react";
 import { Link } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useState, useEffect, useMemo } from "react";
@@ -288,18 +288,30 @@ export default function DocumentsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
-      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
-        <div className="flex flex-col gap-4 mb-6">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">My CIM Documents</h1>
-            <Link href="/dashboard" className="w-full sm:w-auto">
-              <Button className="w-full sm:w-auto flex items-center justify-center gap-2 text-sm sm:text-base shadow-lg hover:shadow-xl transition-all duration-200 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-0">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
+      <main className="container mx-auto px-6 py-6">
+        {/* Header matching PageHeader style */}
+        <div className="-mx-6 -mt-6 px-6 py-5 mb-6 bg-gradient-to-r from-white via-slate-50/80 to-blue-50/50 border-b border-slate-200/80">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex-shrink-0 p-2.5 bg-gradient-to-br from-slate-700 to-slate-800 rounded-xl shadow-md">
+                <FolderOpen className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-semibold text-slate-800 tracking-tight">My CIMs</h1>
+                <p className="text-slate-500 mt-0.5 text-sm">Manage and share your CIM documents</p>
+              </div>
+            </div>
+            <Link href="/dashboard">
+              <Button className="flex items-center gap-2 bg-slate-700 hover:bg-slate-800 text-white shadow-md">
                 <Plus className="h-4 w-4" />
-                <span>Create New CIM</span>
+                <span className="hidden sm:inline">Create New CIM</span>
               </Button>
             </Link>
           </div>
+        </div>
+
+        <div className="flex flex-col gap-4 mb-6">
           
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">

@@ -26,6 +26,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { User, Phone, Building, Upload, Camera, Lock, Globe, Settings } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/layout/page-header";
+import { processLogoForDarkBackground } from "@/lib/image-utils";
 
 const profileSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -174,6 +175,23 @@ export default function AccountSettingsPage() {
           return;
         }
         finalDataUrl = moreCompressed;
+      }
+
+      // For business logos, try to remove white background for better dark sidebar display
+      if (field === 'businessLogo') {
+        try {
+          const { processedUrl, wasProcessed } = await processLogoForDarkBackground(finalDataUrl);
+          finalDataUrl = processedUrl;
+          if (wasProcessed) {
+            toast({
+              title: "Background Removed",
+              description: "White background was automatically removed for better display.",
+            });
+          }
+        } catch (e) {
+          // If processing fails, continue with original image
+          console.log('Logo background processing skipped:', e);
+        }
       }
 
       const updatedForm = { ...profileForm, [field]: finalDataUrl };

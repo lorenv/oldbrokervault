@@ -132,6 +132,8 @@ export function AppSidebar() {
             className={`text-[10px] px-1.5 rounded-full ${
               item.badge === "Upgrade"
                 ? "bg-amber-500 text-white"
+                : item.badge === "Beta"
+                ? "bg-slate-500/60 text-white/90 font-normal"
                 : "bg-blue-500 text-white"
             }`}
           >
@@ -145,24 +147,25 @@ export function AppSidebar() {
   return (
     <>
       <Sidebar collapsible="icon">
-        {/* Logo Header - user's company logo or CIM Share logo fallback */}
-        <SidebarHeader className="border-b border-sidebar-border/50">
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton size="lg" asChild tooltip={(profile as any)?.businessName || "CIM Share"}>
-                <Link href="/dashboard" className="flex items-center justify-center py-1">
-                  <div className="bg-white rounded-lg p-2">
-                    <img
-                      src={(profile as any)?.businessLogo || "/cim-share-logo.png"}
-                      alt={(profile as any)?.businessName || "CIM Share"}
-                      className="h-8 max-w-[140px] object-contain"
-                    />
-                  </div>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarHeader>
+        {/* Logo Header - aligned with page header */}
+        <Link href="/dashboard" className="block">
+          <div
+            className={`bg-white hover:bg-slate-50 transition-all flex items-center justify-center ${
+              isCollapsed ? 'p-2 min-h-[52px]' : 'py-6 px-4 min-h-[80px]'
+            }`}
+            style={{
+              borderBottom: `2px solid ${(profile as any)?.brandColors?.[0] || '#e2e8f0'}`
+            }}
+          >
+            <img
+              src={(profile as any)?.businessLogo || "/cim-share-logo.png"}
+              alt={(profile as any)?.businessName || "CIM Share"}
+              className={`object-contain transition-all ${
+                isCollapsed ? 'h-6 max-w-[40px]' : 'h-12 max-w-[180px]'
+              }`}
+            />
+          </div>
+        </Link>
 
         <SidebarContent>
           {/* Main Navigation */}
