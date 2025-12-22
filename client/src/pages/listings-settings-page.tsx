@@ -14,6 +14,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useBrandColor } from "@/hooks/use-brand-color";
+import { BrandedButton } from "@/components/ui/branded-button";
 import {
   Loader2,
   Copy,
@@ -84,6 +86,7 @@ interface ActiveListing {
 
 export default function ListingsSettingsPage() {
   const { toast } = useToast();
+  const { brandColor } = useBrandColor();
   const queryClient = useQueryClient();
 
   const [enabled, setEnabled] = useState(false);
@@ -304,7 +307,7 @@ export default function ListingsSettingsPage() {
   const listingsUrl = `${window.location.origin}/listings/${slug}`;
 
   return (
-    <div className="p-6">
+    <div className="px-4 md:px-6 py-4 md:py-6 overflow-x-hidden">
       <PageHeader
         title="Public Listings Page"
         description="Create a public page that showcases all your published teasers in one place."
@@ -313,25 +316,34 @@ export default function ListingsSettingsPage() {
 
       {/* Preview Button - Prominent */}
       {enabled && slug && !slugError && (
-        <Card className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+        <Card
+          className="mb-6 border"
+          style={{
+            background: brandColor ? `linear-gradient(to right, ${brandColor}10, ${brandColor}20)` : 'linear-gradient(to right, #eff6ff, #eef2ff)',
+            borderColor: brandColor ? `${brandColor}40` : '#bfdbfe'
+          }}
+        >
           <CardContent className="py-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Eye className="h-5 w-5 text-blue-600" />
+                <div
+                  className="p-2 rounded-lg"
+                  style={{ backgroundColor: brandColor ? `${brandColor}20` : '#dbeafe' }}
+                >
+                  <Eye className="h-5 w-5" style={{ color: brandColor || '#2563eb' }} />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="font-medium text-gray-900">Your listings page is live!</p>
-                  <p className="text-sm text-gray-600">{listingsUrl}</p>
+                  <p className="text-sm text-gray-600 truncate">{listingsUrl}</p>
                 </div>
               </div>
-              <Button
+              <BrandedButton
                 onClick={() => window.open(listingsUrl, "_blank")}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="flex-shrink-0"
               >
                 <ExternalLink className="h-4 w-4 mr-2" />
                 Preview Listings Page
-              </Button>
+              </BrandedButton>
             </div>
           </CardContent>
         </Card>
@@ -362,6 +374,7 @@ export default function ListingsSettingsPage() {
                   id="enabled"
                   checked={enabled}
                   onCheckedChange={setEnabled}
+                  checkedColor={brandColor || undefined}
                 />
               </div>
 
@@ -512,10 +525,10 @@ export default function ListingsSettingsPage() {
 
               {/* Save Button */}
               <div className="pt-4 border-t">
-                <Button
+                <BrandedButton
                   onClick={handleSave}
                   disabled={updateMutation.isPending || !!slugError}
-                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  className="w-full"
                 >
                   {updateMutation.isPending ? (
                     <>
@@ -525,7 +538,7 @@ export default function ListingsSettingsPage() {
                   ) : (
                     "Save Settings"
                   )}
-                </Button>
+                </BrandedButton>
               </div>
             </CardContent>
           </Card>

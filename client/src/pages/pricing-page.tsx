@@ -346,7 +346,7 @@ export default function PricingPage() {
                           size="lg"
                           onClick={() => setShowSignupModal(true)}
                         >
-                          Start Free Trial
+                          Start for Free
                         </Button>
                       ) : (
                         <Button
@@ -408,54 +408,6 @@ export default function PricingPage() {
           ))}
         </div>
 
-        {/* Features Comparison Section */}
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Why Choose CIM Share?</h2>
-            <p className="text-lg text-muted-foreground">
-              Trusted by businesses worldwide for professional CIM document generation
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16 max-w-2xl mx-auto">
-            <div className="text-center">
-              <div className="inline-flex p-3 rounded-full bg-blue-100 mb-4">
-                <Zap className="h-6 w-6 text-blue-600" />
-              </div>
-              <h3 className="font-semibold mb-2">Lightning Fast</h3>
-              <p className="text-sm text-muted-foreground">
-                Generate professional CIMs in minutes, not hours
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="inline-flex p-3 rounded-full bg-green-100 mb-4">
-                <Shield className="h-6 w-6 text-green-600" />
-              </div>
-              <h3 className="font-semibold mb-2">Bank-Level Security</h3>
-              <p className="text-sm text-muted-foreground">
-                Your data is encrypted and secure at all times
-              </p>
-            </div>
-          </div>
-
-          {/* FAQ or Contact Section */}
-          <div className="bg-slate-50 rounded-2xl p-8 text-center">
-            <h3 className="text-2xl font-bold mb-4">Need Help Choosing?</h3>
-            <p className="text-muted-foreground mb-6">
-              Our team is here to help you find the perfect plan for your business needs
-            </p>
-            <div className="flex gap-4 justify-center">
-              <Button variant="outline" size="lg" onClick={() => window.location.href = '/contact'}>
-                Contact Support
-              </Button>
-              {!user && (
-                <Button size="lg" onClick={() => window.location.href = '/login?tab=register'}>
-                  Start Free Trial
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Signup Modal */}

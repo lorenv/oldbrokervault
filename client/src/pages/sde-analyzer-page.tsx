@@ -385,8 +385,8 @@ export default function SDEAnalyzerPage() {
   const usage = analysesData?.usage || usageData?.usage;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
-      <div className="container mx-auto px-6 py-6 max-w-7xl">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 overflow-x-hidden">
+      <div className="container mx-auto px-4 md:px-6 py-4 md:py-6 max-w-7xl">
         <PageHeader
           title="SDE Analyzer"
           description="Upload Excel files to generate professional SDE Sheets with AI-powered analysis"

@@ -1309,7 +1309,7 @@ export default function IntegrationsPage() {
 
   // Main view with tabs
   return (
-    <div className="container mx-auto px-6 py-6 max-w-4xl">
+    <div className="container mx-auto px-4 md:px-6 py-4 md:py-6 overflow-x-hidden">
       <PageHeader
         title="Integrations"
         description="Connect external apps and automate workflows based on events"

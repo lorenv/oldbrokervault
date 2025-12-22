@@ -48,9 +48,9 @@ export default function DashboardPage() {
   const welcomeMessage = firstName ? `Welcome back, ${firstName}!` : 'Welcome back!';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 overflow-x-hidden">
       {/* Get Started Checklist moved to App.tsx for global visibility */}
-      <main className="container mx-auto px-6 py-6">
+      <main className="container mx-auto px-4 md:px-6 py-4 md:py-6">
         {/* Welcome Header - Only show when in 'choice' mode */}
         {cimMode === 'choice' && (
           <PageHeader

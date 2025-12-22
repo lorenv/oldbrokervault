@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import { BrandedButton } from "@/components/ui/branded-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -159,8 +160,8 @@ export default function EsignDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
-      <main className="container mx-auto px-6 py-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 overflow-x-hidden">
+      <main className="container mx-auto px-4 md:px-6 py-4 md:py-6">
         <PageHeader
           title="E-Signatures"
           description="Send documents for signature and track their progress"
@@ -170,6 +171,7 @@ export default function EsignDashboard() {
               <Button
                 variant="outline"
                 size="sm"
+                className="text-slate-700 border-slate-300"
                 onClick={() => setLocation("/esign/settings")}
               >
                 <Palette className="h-4 w-4 sm:mr-2" />
@@ -178,19 +180,19 @@ export default function EsignDashboard() {
               <Button
                 variant="outline"
                 size="sm"
+                className="text-slate-700 border-slate-300"
                 onClick={() => setLocation("/esign/templates")}
               >
                 <FileText className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Templates</span>
               </Button>
-              <Button
+              <BrandedButton
                 size="sm"
-                className="bg-slate-700 hover:bg-slate-800 text-white"
                 onClick={() => setLocation("/esign/send")}
               >
                 <Plus className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Send Document</span>
-              </Button>
+              </BrandedButton>
             </div>
           }
         />

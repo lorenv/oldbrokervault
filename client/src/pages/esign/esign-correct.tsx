@@ -665,7 +665,7 @@ export default function EsignCorrect() {
               <Button
                 onClick={() => setShowConfirmDialog(true)}
                 disabled={!isValid || saveMutation.isPending}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-slate-700 hover:bg-slate-800"
               >
                 {saveMutation.isPending ? (
                   <>

@@ -4,7 +4,7 @@ import { FileImage } from "lucide-react";
 
 export default function PdfBrandingPage() {
   return (
-    <div className="p-6">
+    <div className="px-4 md:px-6 py-4 md:py-6 overflow-x-hidden">
       <PageHeader
         title="PDF Branding"
         description="Customize the appearance of your exported PDF documents"

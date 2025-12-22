@@ -92,7 +92,7 @@ export default function IntegrationsFeaturePage() {
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
-              <a href="https://cimshare.documentationai.com/webhooks" target="_blank" rel="noopener noreferrer">
+              <a href="https://cimshare.documentationai.com/integrations" target="_blank" rel="noopener noreferrer">
                 <Button size="lg" variant="outline" className="border-slate-300 hover:bg-slate-50 hover:scale-105 transition-all duration-300">
                   <Code className="mr-2 h-4 w-4" />
                   View API Docs
@@ -719,7 +719,7 @@ export default function IntegrationsFeaturePage() {
                   Set Up Integrations
                 </Button>
               </Link>
-              <a href="https://cimshare.documentationai.com/webhooks" target="_blank" rel="noopener noreferrer">
+              <a href="https://cimshare.documentationai.com/integrations" target="_blank" rel="noopener noreferrer">
                 <Button size="lg" className="bg-slate-200 text-slate-800 border border-slate-300 hover:bg-slate-300">
                   View API Documentation
                 </Button>

@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
+import { BrandedButton } from '@/components/ui/branded-button';
+import { useBrandColor } from '@/hooks/use-brand-color';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
@@ -169,6 +171,7 @@ export function EnhancedMessageCenter() {
   const [ccEmails, setCcEmails] = useState(''); // CC recipients (comma-separated)
   const [showCcField, setShowCcField] = useState(false);
   const [editorKey, setEditorKey] = useState(0); // Key to force RichTextEditor reset
+  const { brandColor, needsDarkText } = useBrandColor();
 
   // Template management state
   const [templates, setTemplates] = useState<MessageTemplate[]>(() => loadTemplates());
@@ -716,7 +719,13 @@ export function EnhancedMessageCenter() {
                         </div>
                         <div className="flex flex-col items-end gap-1 flex-shrink-0">
                           {thread.unreadCount > 0 && (
-                            <Badge className="bg-blue-600 text-white text-xs px-1.5 py-0">
+                            <Badge
+                              className="text-xs px-1.5 py-0"
+                              style={brandColor ? {
+                                backgroundColor: brandColor,
+                                color: needsDarkText ? '#1e293b' : '#ffffff'
+                              } : { backgroundColor: '#2563eb', color: '#ffffff' }}
+                            >
                               {thread.unreadCount}
                             </Badge>
                           )}
@@ -1148,14 +1157,14 @@ export function EnhancedMessageCenter() {
                       </span>
                     </div>
 
-                    <Button
+                    <BrandedButton
                       onClick={handleSendMessage}
                       disabled={(!newMessage.trim() && !richContent.trim()) || sendMessageMutation.isPending}
-                      className="flex items-center gap-2 w-full sm:w-auto bg-slate-700 hover:bg-slate-800 text-white"
+                      className="flex items-center gap-2 w-full sm:w-auto"
                     >
                       <Send className="h-4 w-4" />
                       {sendMessageMutation.isPending ? 'Sending...' : 'Send Reply'}
-                    </Button>
+                    </BrandedButton>
                   </div>
                 </div>
               </div>

@@ -62,7 +62,7 @@ const mainNavItems: NavItem[] = [
   { label: "Create CIM", icon: Plus, href: "/dashboard", matchPaths: ["/dashboard"] },
   { label: "My CIMs", icon: FileText, href: "/documents", matchPaths: ["/documents"] },
   { label: "CRM", icon: Users, href: "/investor-database", matchPaths: ["/investor-database"] },
-  { label: "Sign", icon: Signature, href: "/esign", matchPaths: ["/esign"] },
+  { label: "E-Signatures", icon: Signature, href: "/esign", matchPaths: ["/esign"] },
 ];
 
 // Secondary navigation items (after gap)
@@ -87,8 +87,6 @@ export function AppSidebar() {
   const { user, logoutMutation } = useAuth();
   const [location] = useLocation();
   const [isSupportOpen, setIsSupportOpen] = useState(false);
-  const { state, toggleSidebar, isMobile } = useSidebar();
-  const isCollapsed = state === "collapsed";
 
   // Check if user is on free tier (show upgrade badge on Billing)
   const isFreeTier = !user?.subscriptionStatus || user.subscriptionStatus === 'free';
@@ -110,6 +108,20 @@ export function AppSidebar() {
     return location === item.href || location.startsWith(item.href + "/");
   };
 
+  // Get sidebar context
+  const { state, toggleSidebar, isMobile, setOpenMobile } = useSidebar();
+  const isCollapsed = state === "collapsed";
+
+  // Close mobile drawer when navigating
+  const handleNavClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
+
+  // Get brand color from profile
+  const brandColor = (profile as any)?.brandColors?.[0];
+
   // Render a navigation item
   const renderNavItem = (item: NavItem) => {
     const active = isActive(item);
@@ -121,9 +133,16 @@ export function AppSidebar() {
           asChild
           isActive={active}
           tooltip={item.label}
+          className={active && brandColor ? "!bg-opacity-20" : ""}
+          style={active && brandColor ? {
+            backgroundColor: `${brandColor}25`,
+            borderLeft: `3px solid ${brandColor}`,
+            marginLeft: '-3px',
+            paddingLeft: 'calc(0.5rem + 3px)',
+          } : undefined}
         >
-          <Link href={item.href}>
-            <Icon className="h-4 w-4" />
+          <Link href={item.href} onClick={handleNavClick}>
+            <Icon className="h-4 w-4" style={active && brandColor ? { color: brandColor } : undefined} />
             <span>{item.label}</span>
           </Link>
         </SidebarMenuButton>
@@ -151,10 +170,11 @@ export function AppSidebar() {
         <Link href="/dashboard" className="block">
           <div
             className={`bg-white hover:bg-slate-50 transition-all flex items-center justify-center ${
-              isCollapsed ? 'p-2 min-h-[52px]' : 'py-6 px-4 min-h-[80px]'
+              isCollapsed ? 'p-2 min-h-[52px]' : 'py-[22px] px-4'
             }`}
             style={{
-              borderBottom: `2px solid ${(profile as any)?.brandColors?.[0] || '#e2e8f0'}`
+              borderBottom: `2px solid ${(profile as any)?.brandColors?.[0] || '#e2e8f0'}`,
+              boxShadow: `inset 0 -6px 12px -8px ${(profile as any)?.brandColors?.[0] || '#94a3b8'}40`
             }}
           >
             <img
@@ -258,7 +278,7 @@ export function AppSidebar() {
                   {user?.isAdmin && (
                     <>
                       <DropdownMenuItem asChild>
-                        <Link href="/admin" className="flex items-center cursor-pointer w-full">
+                        <Link href="/admin" onClick={handleNavClick} className="flex items-center cursor-pointer w-full">
                           <Shield className="h-4 w-4 mr-2" />
                           Admin Panel
                         </Link>

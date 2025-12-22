@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
+import { BrandedButton } from "@/components/ui/branded-button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -808,7 +809,7 @@ export default function InvestorDatabasePage() {
 
   return (
     <TooltipProvider>
-      <div className="p-6">
+      <div className="px-4 md:px-6 py-4 md:py-6 overflow-x-hidden">
         <PageHeader
           title="CRM"
           description="Manage and track your investor contacts across all documents"
@@ -975,7 +976,7 @@ export default function InvestorDatabasePage() {
                   <Tag className="h-4 w-4" />
                   Advanced Filters
                 </h3>
-                <Button onClick={addFilterRule} size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                <Button onClick={addFilterRule} size="sm" variant="outline" className="text-slate-700 border-slate-300">
                   <Plus className="h-3 w-3 mr-1" />
                   Add Filter
                 </Button>
@@ -1078,14 +1079,12 @@ export default function InvestorDatabasePage() {
               <Badge className="bg-indigo-100 text-indigo-700 ml-2">{contacts.length}</Badge>
             </CardTitle>
             <div className="flex gap-2">
-              <Button
+              <BrandedButton
                 onClick={() => setShowAddContactDialog(true)}
-                variant="default"
-                className="bg-green-600 hover:bg-green-700"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Contact
-              </Button>
+              </BrandedButton>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -1115,6 +1114,7 @@ export default function InvestorDatabasePage() {
               <p className="text-sm">Try syncing from your NDA signatures or adjust your filters</p>
             </div>
           ) : (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-gradient-to-r from-gray-50 to-white hover:from-gray-100 hover:to-gray-50">
@@ -1226,6 +1226,7 @@ export default function InvestorDatabasePage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>

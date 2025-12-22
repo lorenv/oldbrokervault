@@ -59,7 +59,7 @@ export default function BillingPage() {
   };
 
   return (
-    <div className="p-6">
+    <div className="px-4 md:px-6 py-4 md:py-6 overflow-x-hidden">
       <PageHeader
         title="Billing & Subscription"
         description="Manage your subscription plan and billing details"

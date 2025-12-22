@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, Plus, Edit, Trash2, Calendar, Grid3X3, List, Eye, MoreVertical, Users } from 'lucide-react';
+import { FileText, Plus, Edit, Trash2, Calendar, Grid3X3, List, Eye, MoreVertical, Users, FileCheck } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { apiRequest } from '@/lib/queryClient';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { PageHeader } from '@/components/layout/page-header';
 
 interface NdaTemplate {
   id: number;
@@ -87,7 +88,7 @@ export default function NdaTemplatesPage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto px-4 md:px-6 py-4 md:py-6">
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
@@ -96,16 +97,15 @@ export default function NdaTemplatesPage() {
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">NDA Templates</h1>
-            <p className="text-gray-600 mt-2">Create and manage your NDA templates with signature fields</p>
-          </div>
-          <div className="flex items-center gap-3">
-            {/* View Toggle */}
-            <div className="flex items-center border border-gray-200 rounded-lg p-1 bg-gray-50">
+    <div className="container mx-auto px-4 md:px-6 py-4 md:py-6 overflow-x-hidden">
+      <PageHeader
+        title="NDA Templates"
+        description="Create and manage your NDA templates with signature fields"
+        icon={<FileCheck className="h-5 w-5" />}
+        actions={
+          <div className="flex items-center gap-2">
+            {/* View Toggle - hidden on very small screens */}
+            <div className="hidden sm:flex items-center border border-gray-200 rounded-lg p-1 bg-gray-50">
               <Button
                 variant="ghost"
                 size="sm"
@@ -124,16 +124,18 @@ export default function NdaTemplatesPage() {
               </Button>
             </div>
 
-            <Button 
+            <Button
               onClick={() => setLocation('/nda-templates/create')}
+              size="sm"
               className="flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
-              Add New Template
+              <span className="hidden sm:inline">Add New Template</span>
+              <span className="sm:hidden">New</span>
             </Button>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Templates Display */}
       {templates.length === 0 ? (

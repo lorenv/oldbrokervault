@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { PanelRight, PanelBottom, Globe } from "lucide-react";
+import { PanelRight, PanelBottom } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
@@ -63,20 +63,7 @@ export function DocumentDefaultsSettings({ user }: DocumentDefaultsSettingsProps
 
   return (
     <Card className="border-0 shadow-md bg-white rounded-xl overflow-hidden">
-      <CardHeader className="bg-gradient-to-r from-pink-500 to-rose-500 pb-4 pt-5 px-5">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-white/20 rounded-lg">
-            <Globe className="h-4 w-4 text-white" />
-          </div>
-          <div>
-            <CardTitle className="text-base font-semibold text-white">Online CIM Branding</CardTitle>
-            <CardDescription className="text-pink-100 mt-0.5 text-sm">
-              Set default appearance for CIMs viewed from share links
-            </CardDescription>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-6 pt-5 px-5 pb-5">
+      <CardContent className="space-y-6 p-5">
         {/* Color Theme */}
         <div className="space-y-3">
           <Label className="text-sm font-medium">Default Color Theme</Label>

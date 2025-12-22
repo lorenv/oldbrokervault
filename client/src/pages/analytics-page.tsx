@@ -471,7 +471,7 @@ export default function AnalyticsPage() {
 
   if (isLoading) {
     return (
-      <div className="p-6">
+      <div className="px-4 md:px-6 py-4 md:py-6 overflow-x-hidden">
         <PageHeader
           title="Analytics"
           description="Track performance across all your CIM documents"
@@ -490,7 +490,7 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="p-6">
+    <div className="px-4 md:px-6 py-4 md:py-6 overflow-x-hidden">
       <PageHeader
         title="Analytics"
         description="Track performance across all your CIM documents"
