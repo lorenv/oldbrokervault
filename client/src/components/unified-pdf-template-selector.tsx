@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -371,40 +371,18 @@ export function UnifiedPdfTemplateSelector() {
   if (templatesLoading) {
     return (
       <Card className="border-0 shadow-md bg-white rounded-xl overflow-hidden">
-        <CardHeader className="bg-gradient-to-r from-slate-600 to-slate-700 pb-4 pt-5 px-5">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-white/20 rounded-lg">
-              <FileImage className="h-4 w-4 text-white" />
-            </div>
-            <div>
-              <CardTitle className="text-base font-semibold text-white">PDF Templates</CardTitle>
-              <CardDescription className="text-slate-200 mt-0.5 text-sm">
-                Loading templates...
-              </CardDescription>
-            </div>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
-        </CardHeader>
+        </CardContent>
       </Card>
     );
   }
 
   return (
     <Card className="border-0 shadow-md bg-white rounded-xl overflow-hidden">
-      <CardHeader className="bg-gradient-to-r from-slate-600 to-slate-700 pb-4 pt-5 px-5">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-white/20 rounded-lg">
-            <FileImage className="h-4 w-4 text-white" />
-          </div>
-          <div>
-            <CardTitle className="text-base font-semibold text-white">PDF Templates</CardTitle>
-            <CardDescription className="text-slate-200 mt-0.5 text-sm">
-              Choose a template style for your CIM PDF exports
-            </CardDescription>
-          </div>
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-6 pt-5 px-5 pb-5">
+      <CardContent className="space-y-6 p-5">
         {/* PDF Branding Color Picker */}
         {canUseBranded && (
           <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">

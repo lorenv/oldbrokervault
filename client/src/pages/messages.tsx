@@ -1,15 +1,16 @@
 import { EnhancedMessageCenter } from "@/components/enhanced-message-center";
+import { PageHeader } from "@/components/layout/page-header";
+import { MessageCircle } from "lucide-react";
 
 export default function Messages() {
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-4 md:mb-6">
-          <h1 className="text-xl md:text-2xl font-bold text-gray-900">Message Center</h1>
-          <p className="text-sm md:text-base text-gray-600 mt-1">
-            Manage all communications with CIM inquirers in one place. Email replies sync automatically.
-          </p>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 overflow-x-hidden">
+      <div className="container mx-auto px-4 md:px-6 py-4 md:py-6">
+        <PageHeader
+          title="Messages"
+          description="Manage communications with CIM inquirers. Email replies sync automatically."
+          icon={<MessageCircle className="h-5 w-5" />}
+        />
         <EnhancedMessageCenter />
       </div>
     </div>

@@ -4,11 +4,11 @@ import { CimGenerator } from "@/components/cim-generator";
 
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SubscriptionCard } from "@/components/ui/subscription-card";
 import { AnalyticsOverviewCard } from "@/components/analytics-overview-card";
-import { FileText, Clock, ArrowRight, Mail } from "lucide-react";
+import { FileText, Clock, ArrowRight, Mail, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
+import { PageHeader } from "@/components/layout/page-header";
 
 
 export default function DashboardPage() {
@@ -48,26 +48,17 @@ export default function DashboardPage() {
   const welcomeMessage = firstName ? `Welcome back, ${firstName}!` : 'Welcome back!';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 overflow-x-hidden">
       {/* Get Started Checklist moved to App.tsx for global visibility */}
-      {/* Welcome Header - Only show when in 'choice' mode */}
-      {cimMode === 'choice' && (
-        <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 border-b border-slate-200 shadow-lg">
-          <div className="container mx-auto px-4 py-12">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-4xl font-bold text-white mb-3">
-                  {welcomeMessage}
-                </h1>
-                <p className="text-slate-200 text-lg font-medium">Create professional CIM documents with AI-powered analysis</p>
-              </div>
-
-            </div>
-          </div>
-        </div>
-      )}
-
-      <main className="container mx-auto px-2 lg:px-4 py-8">
+      <main className="container mx-auto px-4 md:px-6 py-4 md:py-6">
+        {/* Welcome Header - Only show when in 'choice' mode */}
+        {cimMode === 'choice' && (
+          <PageHeader
+            title={welcomeMessage}
+            description="Create professional CIM documents with AI-powered analysis"
+            icon={<Sparkles className="h-5 w-5" />}
+          />
+        )}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-6">
           {/* Main Content Area */}
           <div className={cimMode === 'choice' ? 'lg:col-span-9' : 'lg:col-span-12'}>
@@ -207,19 +198,6 @@ export default function DashboardPage() {
 
             {/* Analytics Overview Card */}
             <AnalyticsOverviewCard />
-
-            {/* Subscription Card */}
-            <SubscriptionCard
-              status={user?.subscriptionStatus}
-              endsAt={user?.subscriptionEndsAt ? new Date(user.subscriptionEndsAt).toISOString() : null}
-              monthlyUsage={user?.monthlyUsage}
-              monthlyDocumentsCreated={user?.monthlyDocumentsCreated}
-              monthlyRegenerationsUsed={user?.monthlyRegenerationsUsed}
-              subtle={true}
-              hideProButtons={true}
-              hideActiveUntil={true}
-              hideRegenerations={true}
-            />
           </div>
           </div>
         </div>

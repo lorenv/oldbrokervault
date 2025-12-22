@@ -46,7 +46,7 @@ export function RichTextEditor({
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[100px] p-3',
+        class: 'prose prose-sm max-w-none focus:outline-none min-h-[100px] p-3 text-sm text-slate-700',
       },
     },
   });
@@ -55,14 +55,14 @@ export function RichTextEditor({
     return null;
   }
 
-  const ToolbarButton = ({ 
-    onClick, 
-    isActive, 
-    children, 
-    title 
-  }: { 
-    onClick: () => void; 
-    isActive?: boolean; 
+  const ToolbarButton = ({
+    onClick,
+    isActive,
+    children,
+    title
+  }: {
+    onClick: () => void;
+    isActive?: boolean;
     children: React.ReactNode;
     title: string;
   }) => (
@@ -71,8 +71,8 @@ export function RichTextEditor({
       size="sm"
       onClick={onClick}
       className={cn(
-        "h-8 px-2",
-        isActive && "bg-muted"
+        "h-8 px-2 text-slate-600 hover:text-slate-800 hover:bg-slate-100",
+        isActive && "bg-slate-200 text-slate-900"
       )}
       title={title}
     >
@@ -81,9 +81,9 @@ export function RichTextEditor({
   );
 
   return (
-    <div className={cn("border rounded-lg", className)}>
+    <div className={cn("border border-slate-200 rounded-lg bg-white", className)}>
       {editable && (
-        <div className="border-b p-2 flex flex-wrap gap-1">
+        <div className="border-b border-slate-200 p-2 flex flex-wrap gap-1 bg-slate-50">
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleBold().run()}
             isActive={editor.isActive('bold')}
@@ -156,7 +156,7 @@ export function RichTextEditor({
             <Code className="h-4 w-4" />
           </ToolbarButton>
 
-          <div className="w-px h-6 bg-border mx-1" />
+          <div className="w-px h-6 bg-slate-300 mx-1" />
 
           <ToolbarButton
             onClick={() => editor.chain().focus().undo().run()}

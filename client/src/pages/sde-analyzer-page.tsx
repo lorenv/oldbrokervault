@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useLocation } from 'wouter';
+import { PageHeader } from '@/components/layout/page-header';
 
 interface Analysis {
   id: number;
@@ -384,24 +385,15 @@ export default function SDEAnalyzerPage() {
   const usage = analysesData?.usage || usageData?.usage;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 border-b border-slate-200 shadow-lg mb-6">
-        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-16">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-bold text-white mb-3">
-                SDE Analyzer
-              </h1>
-              <p className="text-slate-200 text-lg font-medium">
-                Upload Excel files to generate professional SDE Sheets with AI-powered analysis
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 overflow-x-hidden">
+      <div className="container mx-auto px-4 md:px-6 py-4 md:py-6 max-w-7xl">
+        <PageHeader
+          title="SDE Analyzer"
+          description="Upload Excel files to generate professional SDE Sheets with AI-powered analysis"
+          icon={<FileSpreadsheet className="h-5 w-5" />}
+        />
 
-      <div className="container mx-auto px-4 md:px-8 lg:px-12 max-w-7xl pt-12 pb-12 space-y-8">
+      <div className="space-y-8">
 
       {/* Beta Notice */}
       <div className="flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
@@ -628,6 +620,7 @@ export default function SDEAnalyzerPage() {
           )}
         </CardContent>
       </Card>
+      </div>
       </div>
     </div>
   );

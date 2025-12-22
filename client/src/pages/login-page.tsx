@@ -88,11 +88,12 @@ export default function LoginPage() {
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [resetToken, setResetToken] = useState<string | null>(null);
   const [emailSent, setEmailSent] = useState(false);
-  
+
   // Get tab from URL parameters
   const urlParams = new URLSearchParams(window.location.search);
   const tabFromUrl = urlParams.get('tab');
   const defaultTab = tabFromUrl === 'register' ? 'register' : 'login';
+  const [activeTab, setActiveTab] = useState(defaultTab);
 
   // Forgot password mutation
   const forgotPasswordMutation = useMutation({
@@ -309,24 +310,6 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Social Proof */}
-          <div className="border-t border-blue-800 pt-8">
-            <div className="flex items-center space-x-8">
-              <div>
-                <p className="text-3xl font-bold text-white">10,000+</p>
-                <p className="text-blue-300 text-sm">Documents Created</p>
-              </div>
-              <div>
-                <p className="text-3xl font-bold text-white">500+</p>
-                <p className="text-blue-300 text-sm">Companies Trust Us</p>
-              </div>
-              <div>
-                <p className="text-3xl font-bold text-white">99.9%</p>
-                <p className="text-blue-300 text-sm">Uptime Guaranteed</p>
-              </div>
-            </div>
-          </div>
-
           {/* Bottom Features */}
           <div className="mt-12 flex flex-wrap gap-4">
             <div className="flex items-center space-x-2 text-blue-300">
@@ -356,13 +339,17 @@ export default function LoginPage() {
 
           <Card className="shadow-2xl border-0">
             <CardHeader className="space-y-1 pb-6">
-              <CardTitle className="text-2xl font-bold text-center">Welcome Back</CardTitle>
+              <CardTitle className="text-2xl font-bold text-center">
+                {activeTab === 'register' ? 'Create an Account' : 'Welcome Back'}
+              </CardTitle>
               <CardDescription className="text-center">
-                Enter your credentials to access your account
+                {activeTab === 'register'
+                  ? 'Get started with your free account'
+                  : 'Enter your credentials to access your account'}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue={defaultTab} className="space-y-6">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
                 <TabsList className="grid w-full grid-cols-2 bg-slate-100">
                   <TabsTrigger 
                     value="login" 

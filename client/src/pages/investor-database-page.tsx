@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
+import { BrandedButton } from "@/components/ui/branded-button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +17,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useToast } from "@/hooks/use-toast";
 import { InvestorHeatMap } from "@/components/investor-heat-map";
 import { ContactDetailModal } from "@/components/contact-detail-modal";
+import { PageHeader } from "@/components/layout/page-header";
 import {
   Search,
   Download,
@@ -807,23 +809,14 @@ export default function InvestorDatabasePage() {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 border-b border-slate-200 shadow-lg">
-          <div className="container mx-auto px-4 py-8">
-            <div>
-              <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
-                <Users className="h-8 w-8" />
-                Investor Database
-              </h1>
-              <p className="text-slate-200">
-                Manage and track your investor contacts across all documents
-              </p>
-            </div>
-          </div>
-        </div>
+      <div className="px-4 md:px-6 py-4 md:py-6 overflow-x-hidden">
+        <PageHeader
+          title="CRM"
+          description="Manage and track your investor contacts across all documents"
+          icon={<Users className="h-5 w-5" />}
+        />
 
-        <main className="container mx-auto px-4 py-8 space-y-6">
+        <div className="space-y-6">
       {/* Collapsible Heat Map */}
       <Collapsible open={isHeatMapOpen} onOpenChange={setIsHeatMapOpen}>
         <Card className="border-0 shadow-lg bg-white/95 backdrop-blur-sm">
@@ -983,7 +976,7 @@ export default function InvestorDatabasePage() {
                   <Tag className="h-4 w-4" />
                   Advanced Filters
                 </h3>
-                <Button onClick={addFilterRule} size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                <Button onClick={addFilterRule} size="sm" variant="outline" className="text-slate-700 border-slate-300">
                   <Plus className="h-3 w-3 mr-1" />
                   Add Filter
                 </Button>
@@ -1086,14 +1079,12 @@ export default function InvestorDatabasePage() {
               <Badge className="bg-indigo-100 text-indigo-700 ml-2">{contacts.length}</Badge>
             </CardTitle>
             <div className="flex gap-2">
-              <Button
+              <BrandedButton
                 onClick={() => setShowAddContactDialog(true)}
-                variant="default"
-                className="bg-green-600 hover:bg-green-700"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Contact
-              </Button>
+              </BrandedButton>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -1123,6 +1114,7 @@ export default function InvestorDatabasePage() {
               <p className="text-sm">Try syncing from your NDA signatures or adjust your filters</p>
             </div>
           ) : (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-gradient-to-r from-gray-50 to-white hover:from-gray-100 hover:to-gray-50">
@@ -1234,6 +1226,7 @@ export default function InvestorDatabasePage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -1520,7 +1513,7 @@ export default function InvestorDatabasePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-        </main>
+        </div>
       </div>
     </TooltipProvider>
   );

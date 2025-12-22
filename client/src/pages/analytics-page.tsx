@@ -3,13 +3,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye, FileSignature, UserCheck, FileText, TrendingUp, TrendingDown, Download, RefreshCw, Check, X, CheckCheck, MapPin, Copy, Clock } from "lucide-react";
+import { Eye, FileSignature, UserCheck, FileText, TrendingUp, TrendingDown, Download, RefreshCw, Check, X, CheckCheck, MapPin, Copy, Clock, BarChart3 } from "lucide-react";
 import { Line, LineChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { format, subDays, eachDayOfInterval } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { InvestorHeatMap } from "@/components/investor-heat-map";
 import { ContactDetailModal } from "@/components/contact-detail-modal";
+import { PageHeader } from "@/components/layout/page-header";
 
 export default function AnalyticsPage() {
   const [dateRange, setDateRange] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
@@ -470,55 +471,45 @@ export default function AnalyticsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
-        <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 border-b border-slate-200 shadow-lg">
-          <div className="container mx-auto px-4 py-12">
-            <h1 className="text-4xl font-bold text-white mb-3">Analytics Dashboard</h1>
-            <p className="text-slate-200 text-lg font-medium">Track performance across all your CIM documents</p>
+      <div className="px-4 md:px-6 py-4 md:py-6 overflow-x-hidden">
+        <PageHeader
+          title="Analytics"
+          description="Track performance across all your CIM documents"
+          icon={<BarChart3 className="h-5 w-5" />}
+        />
+        <div className="animate-pulse space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="h-32 bg-gray-200 rounded-lg"></div>
+            ))}
           </div>
+          <div className="h-96 bg-gray-200 rounded-lg"></div>
         </div>
-        <main className="container mx-auto px-4 py-8">
-          <div className="animate-pulse space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              {[1, 2, 3, 4].map(i => (
-                <div key={i} className="h-32 bg-gray-200 rounded-lg"></div>
-              ))}
-            </div>
-            <div className="h-96 bg-gray-200 rounded-lg"></div>
-          </div>
-        </main>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 border-b border-slate-200 shadow-lg">
-        <div className="container mx-auto px-4 py-12">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-bold text-white mb-3">Analytics Dashboard</h1>
-              <p className="text-slate-200 text-lg font-medium">Track performance across all your CIM documents</p>
-            </div>
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => refetch()}
-                className="bg-white/10 text-white border-white/20 hover:bg-white/20"
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Refresh
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div className="px-4 md:px-6 py-4 md:py-6 overflow-x-hidden">
+      <PageHeader
+        title="Analytics"
+        description="Track performance across all your CIM documents"
+        icon={<BarChart3 className="h-5 w-5" />}
+        actions={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refetch()}
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        }
+      />
 
-      <main className="container mx-auto px-4 py-8">
+      <div className="space-y-6">
         {/* Key Metrics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {/* Total Views */}
           <Card className="bg-white shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
             <CardHeader className="pb-3">
@@ -603,7 +594,7 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Chart Section */}
-        <Card className="bg-white shadow-md border border-gray-200 mb-8">
+        <Card className="bg-white shadow-md border border-gray-200">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-xl font-bold">Activity Over Time</CardTitle>
@@ -888,7 +879,7 @@ export default function AnalyticsPage() {
         </Card>
 
         {/* Signature Location Map */}
-        <Card className="bg-white shadow-md border border-gray-200 mt-8">
+        <Card className="bg-white shadow-md border border-gray-200">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-xl font-bold flex items-center gap-2">
@@ -926,7 +917,7 @@ export default function AnalyticsPage() {
         </Card>
 
         {/* Document Performance Table - Top 5 */}
-        <Card className="bg-white shadow-md border border-gray-200 mt-8">
+        <Card className="bg-white shadow-md border border-gray-200">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-xl font-bold">Most Active Documents</CardTitle>
@@ -1032,7 +1023,7 @@ export default function AnalyticsPage() {
             </div>
           </CardContent>
         </Card>
-      </main>
+      </div>
 
       {/* Contact Detail Modal */}
       <ContactDetailModal

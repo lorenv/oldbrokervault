@@ -2,16 +2,19 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CimDocument } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Lock, Copy, Globe, Search, Trash2, FileDown, Clock, Share2, Mail, Loader2, PenTool, Eye, ChevronLeft, ChevronRight, Plus, Copy as DuplicateIcon, Link as LinkIcon, MoreVertical, Edit, LayoutGrid, List, Shield, Users, Calendar, X, ArrowUpDown, ArrowUp, ArrowDown, Filter } from "lucide-react";
+import { BrandedButton } from "@/components/ui/branded-button";
+import { FileText, Download, Lock, Copy, Globe, Search, Trash2, FileDown, Clock, Share2, Mail, Loader2, PenTool, Eye, ChevronLeft, ChevronRight, Plus, Copy as DuplicateIcon, Link as LinkIcon, MoreVertical, Edit, LayoutGrid, List, Shield, Users, Calendar, X, ArrowUpDown, ArrowUp, ArrowDown, Filter, FolderOpen } from "lucide-react";
 import { Link } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { useBrandColor } from "@/hooks/use-brand-color";
 import { Input } from "@/components/ui/input";
 import { apiRequest } from "@/lib/queryClient";
 import { getBaseUrlWithSubdomain } from "@/lib/url-utils";
 import { EmailShareDialog } from "@/components/email-share-dialog";
+import { PageHeader } from "@/components/layout/page-header";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +22,12 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { format } from 'date-fns'; // Import format function
 
 // Define interface for CIM documents with analysis
@@ -51,6 +60,7 @@ export default function DocumentsPage() {
 
   const { user } = useAuth();
   const { toast } = useToast();
+  const { brandColor } = useBrandColor();
   const queryClient = useQueryClient();
 
   // Fetch user limits for duplicate validation
@@ -288,18 +298,23 @@ export default function DocumentsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
-      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
-        <div className="flex flex-col gap-4 mb-6">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">My CIM Documents</h1>
-            <Link href="/dashboard" className="w-full sm:w-auto">
-              <Button className="w-full sm:w-auto flex items-center justify-center gap-2 text-sm sm:text-base shadow-lg hover:shadow-xl transition-all duration-200 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-0">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 overflow-x-hidden">
+      <main className="container mx-auto px-4 md:px-6 py-4 md:py-6">
+        <PageHeader
+          title="My CIMs"
+          description="Manage and share your CIM documents"
+          icon={<FolderOpen className="h-5 w-5" />}
+          actions={
+            <Link href="/dashboard">
+              <BrandedButton className="flex items-center gap-2">
                 <Plus className="h-4 w-4" />
-                <span>Create New CIM</span>
-              </Button>
+                <span className="hidden sm:inline">Create New CIM</span>
+              </BrandedButton>
             </Link>
-          </div>
+          }
+        />
+
+        <div className="flex flex-col gap-4 mb-6">
           
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
@@ -437,7 +452,10 @@ export default function DocumentsPage() {
           <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {documents?.map((doc) => (
               <Card key={doc.id} className="group relative hover:shadow-2xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 border border-gray-100 shadow-lg bg-white overflow-hidden">
-                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div
+                  className="absolute top-0 left-0 right-0 h-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                  style={{ background: brandColor ? `linear-gradient(to right, ${brandColor}, ${brandColor}aa)` : 'linear-gradient(to right, #3b82f6, #6366f1, #8b5cf6)' }}
+                ></div>
                 <Link href={`/documents/${doc.id}?tab=analytics`} className="block">
                   <div className="cursor-pointer">
                     <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-6">
@@ -509,57 +527,79 @@ export default function DocumentsPage() {
                         {/* Action buttons - horizontal layout */}
                         <div className="flex items-center gap-1">
                           {/* Quick action buttons - hidden on mobile/tablet, visible on desktop */}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="hidden lg:flex h-7 w-7 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all duration-200"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              window.open(`/share/${doc.shareSlug}`, '_blank');
-                            }}
-                            title="Preview CIM"
-                          >
-                            <Eye className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="hidden lg:flex h-7 w-7 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all duration-200"
-                            onClick={async (e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              if (doc.shareSlug) {
-                                navigator.clipboard.writeText(`${window.location.hostname === "localhost" ? window.location.origin : "https://cimshare.com"}/share/${doc.shareSlug}`);
-                                toast({
-                                  title: "Share link copied",
-                                  description: "The share link has been copied to your clipboard"
-                                });
-                              } else {
-                                toast({
-                                  title: "No Share Link Available",
-                                  description: "This document doesn't have sharing enabled",
-                                  variant: "destructive"
-                                });
-                              }
-                            }}
-                            title="Copy Share Link"
-                          >
-                            <LinkIcon className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="hidden lg:flex h-7 w-7 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all duration-200"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              window.location.href = `/documents/${doc.id}?tab=edit`;
-                            }}
-                            title="Edit CIM"
-                          >
-                            <Edit className="h-3 w-3" />
-                          </Button>
+                          <TooltipProvider delayDuration={0}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="hidden lg:flex h-7 w-7 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all duration-200"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    window.location.href = `/documents/${doc.id}?tab=edit`;
+                                  }}
+                                >
+                                  <Edit className="h-3 w-3" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom" className="bg-slate-800 text-white px-3 py-1.5 text-sm font-medium">
+                                Edit CIM
+                              </TooltipContent>
+                            </Tooltip>
+
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="hidden lg:flex h-7 w-7 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all duration-200"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    window.open(`/share/${doc.shareSlug}`, '_blank');
+                                  }}
+                                >
+                                  <Eye className="h-3 w-3" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom" className="bg-slate-800 text-white px-3 py-1.5 text-sm font-medium">
+                                Preview CIM
+                              </TooltipContent>
+                            </Tooltip>
+
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="hidden lg:flex h-7 w-7 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all duration-200"
+                                  onClick={async (e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    if (doc.shareSlug) {
+                                      navigator.clipboard.writeText(`${window.location.hostname === "localhost" ? window.location.origin : "https://cimshare.com"}/share/${doc.shareSlug}`);
+                                      toast({
+                                        title: "Share link copied",
+                                        description: "The share link has been copied to your clipboard"
+                                      });
+                                    } else {
+                                      toast({
+                                        title: "No Share Link Available",
+                                        description: "This document doesn't have sharing enabled",
+                                        variant: "destructive"
+                                      });
+                                    }
+                                  }}
+                                >
+                                  <LinkIcon className="h-3 w-3" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom" className="bg-slate-800 text-white px-3 py-1.5 text-sm font-medium">
+                                Copy Share Link
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
 
                           {/* More options dropdown - always visible */}
                           <DropdownMenu>
@@ -787,57 +827,79 @@ export default function DocumentsPage() {
 
                         {/* Action buttons */}
                         <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="hidden lg:flex h-8 w-8 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all duration-200"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              window.open(`/share/${doc.shareSlug}`, '_blank');
-                            }}
-                            title="Preview CIM"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="hidden lg:flex h-8 w-8 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all duration-200"
-                            onClick={async (e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              if (doc.shareSlug) {
-                                navigator.clipboard.writeText(`${window.location.hostname === "localhost" ? window.location.origin : "https://cimshare.com"}/share/${doc.shareSlug}`);
-                                toast({
-                                  title: "Share link copied",
-                                  description: "The share link has been copied to your clipboard"
-                                });
-                              } else {
-                                toast({
-                                  title: "No Share Link Available",
-                                  description: "This document doesn't have sharing enabled",
-                                  variant: "destructive"
-                                });
-                              }
-                            }}
-                            title="Copy Share Link"
-                          >
-                            <LinkIcon className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="hidden lg:flex h-8 w-8 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all duration-200"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              window.location.href = `/documents/${doc.id}?tab=edit`;
-                            }}
-                            title="Edit CIM"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
+                          <TooltipProvider delayDuration={0}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="hidden lg:flex h-8 w-8 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all duration-200"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    window.location.href = `/documents/${doc.id}?tab=edit`;
+                                  }}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom" className="bg-slate-800 text-white px-3 py-1.5 text-sm font-medium">
+                                Edit CIM
+                              </TooltipContent>
+                            </Tooltip>
+
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="hidden lg:flex h-8 w-8 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all duration-200"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    window.open(`/share/${doc.shareSlug}`, '_blank');
+                                  }}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom" className="bg-slate-800 text-white px-3 py-1.5 text-sm font-medium">
+                                Preview CIM
+                              </TooltipContent>
+                            </Tooltip>
+
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="hidden lg:flex h-8 w-8 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all duration-200"
+                                  onClick={async (e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    if (doc.shareSlug) {
+                                      navigator.clipboard.writeText(`${window.location.hostname === "localhost" ? window.location.origin : "https://cimshare.com"}/share/${doc.shareSlug}`);
+                                      toast({
+                                        title: "Share link copied",
+                                        description: "The share link has been copied to your clipboard"
+                                      });
+                                    } else {
+                                      toast({
+                                        title: "No Share Link Available",
+                                        description: "This document doesn't have sharing enabled",
+                                        variant: "destructive"
+                                      });
+                                    }
+                                  }}
+                                >
+                                  <LinkIcon className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom" className="bg-slate-800 text-white px-3 py-1.5 text-sm font-medium">
+                                Copy Share Link
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
 
                           {/* More options dropdown */}
                           <DropdownMenu>
@@ -1006,10 +1068,10 @@ export default function DocumentsPage() {
               <p className="text-gray-800 font-semibold text-lg mb-2">No CIM documents yet</p>
               <p className="text-gray-600 mb-6">Get started by creating your first CIM</p>
               <Link href="/dashboard">
-                <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md hover:shadow-lg transition-all duration-200">
+                <BrandedButton>
                   <Plus className="h-4 w-4 mr-2" />
                   Create Your First CIM
-                </Button>
+                </BrandedButton>
               </Link>
             </div>
           </div>

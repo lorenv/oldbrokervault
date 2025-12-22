@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import { BrandedButton } from "@/components/ui/branded-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -33,6 +34,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { PageHeader } from "@/components/layout/page-header";
 
 type EnvelopeStatus = 'draft' | 'sent' | 'completed' | 'voided' | 'declined';
 
@@ -158,25 +160,18 @@ export default function EsignDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 border-b border-slate-200 shadow-lg">
-        <div className="container mx-auto px-4 py-6 md:py-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-white mb-1 md:mb-2 flex items-center gap-2 md:gap-3">
-                <FileSignature className="h-6 w-6 md:h-8 md:w-8" />
-                E-Signatures
-              </h1>
-              <p className="text-slate-200 text-sm md:text-base">
-                Send documents for signature and track their progress
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2 md:gap-3">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 overflow-x-hidden">
+      <main className="container mx-auto px-4 md:px-6 py-4 md:py-6">
+        <PageHeader
+          title="E-Signatures"
+          description="Send documents for signature and track their progress"
+          icon={<FileSignature className="h-5 w-5" />}
+          actions={
+            <div className="flex flex-wrap gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                className="text-slate-700 border-slate-300"
                 onClick={() => setLocation("/esign/settings")}
               >
                 <Palette className="h-4 w-4 sm:mr-2" />
@@ -185,26 +180,22 @@ export default function EsignDashboard() {
               <Button
                 variant="outline"
                 size="sm"
-                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                className="text-slate-700 border-slate-300"
                 onClick={() => setLocation("/esign/templates")}
               >
                 <FileText className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Templates</span>
               </Button>
-              <Button
+              <BrandedButton
                 size="sm"
-                className="bg-blue-600 hover:bg-blue-700 text-white"
                 onClick={() => setLocation("/esign/send")}
               >
                 <Plus className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Send Document</span>
-              </Button>
+              </BrandedButton>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <main className="container mx-auto px-4 py-8">
+          }
+        />
         {/* Stats Cards - Click to filter */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <Card

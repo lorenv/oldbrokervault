@@ -307,6 +307,7 @@ export function InvestorHeatMap({ contacts }: InvestorHeatMapProps) {
             zoom={4}
             style={{ height: '100%', width: '100%', background: '#f5f5f5' }}
             ref={mapRef}
+            scrollWheelZoom={false}
           >
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'

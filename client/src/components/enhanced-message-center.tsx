@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
+import { BrandedButton } from '@/components/ui/branded-button';
+import { useBrandColor } from '@/hooks/use-brand-color';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
@@ -169,6 +171,7 @@ export function EnhancedMessageCenter() {
   const [ccEmails, setCcEmails] = useState(''); // CC recipients (comma-separated)
   const [showCcField, setShowCcField] = useState(false);
   const [editorKey, setEditorKey] = useState(0); // Key to force RichTextEditor reset
+  const { brandColor, needsDarkText } = useBrandColor();
 
   // Template management state
   const [templates, setTemplates] = useState<MessageTemplate[]>(() => loadTemplates());
@@ -512,178 +515,166 @@ export function EnhancedMessageCenter() {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row min-h-[600px] max-h-[90vh] bg-white rounded-lg shadow-lg overflow-hidden">
+    <div className="flex flex-col lg:flex-row h-[calc(100vh-180px)] bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       {/* Thread List */}
-      <div className={`${selectedThread ? 'hidden lg:flex' : 'flex'} w-full lg:w-1/3 border-b lg:border-b-0 lg:border-r border-gray-200 flex-col`}>
-        <div className="p-3 md:p-4 border-b border-gray-200">
-          <div className="flex flex-col gap-3 mb-4">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-              <h2 className="text-lg md:text-xl font-semibold">Messages</h2>
-              <div className="flex gap-2">
+      <div className={`${selectedThread ? 'hidden lg:flex' : 'flex'} w-full lg:w-[340px] xl:w-[380px] border-b lg:border-b-0 lg:border-r border-slate-200 flex-col bg-slate-50`}>
+        <div className="p-4 border-b border-slate-200 bg-white">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex gap-2">
+              <Button
+                variant={isMultiSelectMode ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => setIsMultiSelectMode(!isMultiSelectMode)}
+                className="flex items-center gap-1.5 text-sm text-slate-700 border-slate-300"
+              >
+                <CheckCircle className="h-4 w-4" />
+                <span className="hidden sm:inline">
+                  {isMultiSelectMode ? 'Cancel' : 'Select'}
+                </span>
+              </Button>
+              <Button
+                variant={showArchived ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => setShowArchived(!showArchived)}
+                className="flex items-center gap-1.5 text-sm text-slate-700 border-slate-300"
+              >
+                {showArchived ? (
+                  <>
+                    <ArchiveRestore className="h-4 w-4" />
+                    <span>Active</span>
+                  </>
+                ) : (
+                  <>
+                    <Archive className="h-4 w-4" />
+                    <span>Archived</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {/* Multi-select toolbar */}
+          {isMultiSelectMode && (
+            <div className="flex flex-col sm:flex-row gap-2 p-3 mt-3 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="flex items-center gap-2 flex-1">
+                <span className="text-sm font-medium text-blue-700">
+                  {selectedThreads.size} selected
+                </span>
+                {threads && selectedThreads.size < threads.length && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={selectAllThreads}
+                    className="text-blue-600 hover:text-blue-700 h-auto p-1 text-sm"
+                  >
+                    Select All ({threads.length})
+                  </Button>
+                )}
+                {selectedThreads.size > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearSelection}
+                    className="text-blue-600 hover:text-blue-700 h-auto p-1 text-sm"
+                  >
+                    Clear
+                  </Button>
+                )}
+              </div>
+              {selectedThreads.size > 0 && (
                 <Button
-                  variant="outline"
                   size="sm"
-                  onClick={() => setIsMultiSelectMode(!isMultiSelectMode)}
+                  onClick={() => handleBulkArchive(!showArchived)}
+                  disabled={bulkArchiveMutation.isPending}
                   className="flex items-center gap-1 text-sm"
-                >
-                  <CheckCircle className="h-4 w-4" />
-                  <span className="hidden sm:inline">
-                    {isMultiSelectMode ? 'Cancel' : 'Select'}
-                  </span>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowArchived(!showArchived)}
-                  className="flex items-center gap-1 md:gap-2 text-sm"
                 >
                   {showArchived ? (
                     <>
-                      <ArchiveRestore className="h-3 w-3 md:h-4 md:w-4" />
-                      <span>Active</span>
+                      <ArchiveRestore className="h-4 w-4" />
+                      <span>Reactivate</span>
                     </>
                   ) : (
                     <>
-                      <Archive className="h-3 w-3 md:h-4 md:w-4" />
-                      <span>Archived</span>
+                      <Archive className="h-4 w-4" />
+                      <span>Archive</span>
                     </>
                   )}
                 </Button>
-              </div>
+              )}
             </div>
+          )}
+        </div>
 
-            {/* Multi-select toolbar */}
-            {isMultiSelectMode && (
-              <div className="flex flex-col sm:flex-row gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <div className="flex items-center gap-2 flex-1">
-                  <span className="text-sm font-medium text-blue-700">
-                    {selectedThreads.size} selected
-                  </span>
-                  {threads && selectedThreads.size < threads.length && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={selectAllThreads}
-                      className="text-blue-600 hover:text-blue-700 h-auto p-1 text-sm"
-                    >
-                      Select All ({threads.length})
-                    </Button>
-                  )}
-                  {selectedThreads.size > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={clearSelection}
-                      className="text-blue-600 hover:text-blue-700 h-auto p-1 text-sm"
-                    >
-                      Clear
-                    </Button>
-                  )}
-                </div>
-                {selectedThreads.size > 0 && (
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => handleBulkArchive(!showArchived)}
-                      disabled={bulkArchiveMutation.isPending}
-                      className="flex items-center gap-1 text-sm"
-                    >
-                      {showArchived ? (
-                        <>
-                          <ArchiveRestore className="h-4 w-4" />
-                          <span>Reactivate</span>
-                        </>
-                      ) : (
-                        <>
-                          <Archive className="h-4 w-4" />
-                          <span>Archive</span>
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                )}
-              </div>
+        {/* Search and Filter Section */}
+        <div className="p-3 space-y-3 border-b border-slate-200 bg-white">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+              type="text"
+              placeholder="Search conversations..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 pr-8 bg-slate-50 border-slate-200 text-slate-700 placeholder:text-slate-400"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
             )}
           </div>
 
-          {/* Search */}
-          <div className="mb-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                type="text"
-                placeholder="Search by name, email, or message..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-8"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          </div>
-
           {/* CIM Document Filter */}
-          <div className="mb-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Filter className="h-4 w-4 text-gray-500" />
-              <span className="text-sm font-medium text-gray-700">Filter by CIM Document</span>
-            </div>
-            <div className="flex gap-2 items-center">
-              <Select value={selectedCimFilter} onValueChange={setSelectedCimFilter}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="All CIM documents" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All CIM documents ({threads?.length || 0})</SelectItem>
-                  {cimDocuments?.map((cim) => (
-                    <SelectItem key={cim.id} value={cim.id.toString()}>
-                      {cim.title} ({cim.messageCount})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {selectedCimFilter !== 'all' && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSelectedCimFilter('all')}
-                  className="px-2"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-          </div>
-
-          {/* Enhanced email sync indicator */}
-          <div className="flex items-center gap-2 text-xs md:text-sm text-gray-600 bg-blue-50 p-2 rounded">
-            <Mail className="h-3 w-3 md:h-4 md:w-4" />
-            <span className="text-xs md:text-sm">Email replies sync automatically</span>
+          <div className="flex gap-2 items-center">
+            <Filter className="h-4 w-4 text-slate-400 flex-shrink-0" />
+            <Select value={selectedCimFilter} onValueChange={setSelectedCimFilter}>
+              <SelectTrigger className="flex-1 bg-slate-50 border-slate-200 text-slate-700">
+                <SelectValue placeholder="All CIM documents" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All CIMs ({threads?.length || 0})</SelectItem>
+                {cimDocuments?.map((cim) => (
+                  <SelectItem key={cim.id} value={cim.id.toString()}>
+                    {cim.title} ({cim.messageCount})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedCimFilter !== 'all' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedCimFilter('all')}
+                className="px-2 text-slate-500 hover:text-slate-700"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
 
         <ScrollArea className="flex-1">
           {filteredThreads.length === 0 ? (
-            <div className="p-4 text-center text-gray-500">
-              {searchQuery ? 'No messages match your search' : showArchived ? 'No archived messages' : 'No messages yet'}
+            <div className="p-6 text-center">
+              <MessageCircle className="h-10 w-10 text-slate-300 mx-auto mb-3" />
+              <p className="text-slate-500 text-sm">
+                {searchQuery ? 'No messages match your search' : showArchived ? 'No archived messages' : 'No messages yet'}
+              </p>
             </div>
           ) : (
             <div className="p-2">
               {filteredThreads.map((thread) => (
-                <Card
+                <div
                   key={thread.id}
-                  className={`mb-2 cursor-pointer transition-colors ${
+                  className={`mb-1.5 p-3 rounded-lg cursor-pointer transition-all border ${
                     selectedThreads.has(thread.id)
-                      ? 'bg-green-50 border-green-200'
+                      ? 'bg-green-50 border-green-300 shadow-sm'
                       : selectedThread?.id === thread.id
-                      ? 'bg-blue-50 border-blue-200'
-                      : 'hover:bg-gray-50'
+                      ? 'bg-white border-blue-300 shadow-sm'
+                      : 'bg-white border-transparent hover:border-slate-200 hover:shadow-sm'
                   }`}
                   onClick={(e) => {
                     if (isMultiSelectMode) {
@@ -694,65 +685,64 @@ export function EnhancedMessageCenter() {
                     }
                   }}
                 >
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      {/* Multi-select checkbox */}
-                      {isMultiSelectMode && (
-                        <div 
-                          className="flex-shrink-0 mt-1"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleThreadSelection(thread.id);
-                          }}
-                        >
-                          <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-                            selectedThreads.has(thread.id)
-                              ? 'bg-green-500 border-green-500'
-                              : 'border-gray-300 hover:border-gray-400'
-                          }`}>
-                            {selectedThreads.has(thread.id) && (
-                              <CheckCircle className="h-3 w-3 text-white" />
-                            )}
-                          </div>
+                  <div className="flex items-start gap-3">
+                    {/* Multi-select checkbox */}
+                    {isMultiSelectMode && (
+                      <div
+                        className="flex-shrink-0 mt-0.5"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleThreadSelection(thread.id);
+                        }}
+                      >
+                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                          selectedThreads.has(thread.id)
+                            ? 'bg-green-500 border-green-500'
+                            : 'border-slate-300 hover:border-slate-400'
+                        }`}>
+                          {selectedThreads.has(thread.id) && (
+                            <CheckCircle className="h-3 w-3 text-white" />
+                          )}
                         </div>
-                      )}
-                      
-                      <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex-1 min-w-0 pr-2">
-                        <h3 className="font-semibold text-sm truncate">
-                          {thread.cimTitle ? `${thread.cimTitle} | ${thread.inquirerName}` : thread.subject}
-                        </h3>
-                        <p className="text-sm text-gray-600 truncate">
-                          {thread.inquirerEmail}
-                        </p>
-                      </div>
-                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                        {thread.unreadCount > 0 && (
-                          <Badge variant="destructive" className="text-xs">
-                            {thread.unreadCount}
-                          </Badge>
-                        )}
-                        <span className="text-xs text-gray-500 whitespace-nowrap">
-                          {formatDistanceToNow(new Date(thread.lastMessageAt), { addSuffix: true })}
-                        </span>
-                      </div>
-                    </div>
-
-                    {thread.lastMessage && (
-                      <div className="flex items-start gap-2 mt-2">
-                        <div className="flex-shrink-0">
-                          {getMessageIcon(thread.lastMessage)}
-                        </div>
-                        <p className="text-sm text-gray-600 line-clamp-2 flex-1 min-w-0 break-words">
-                          {cleanHtmlTags(thread.lastMessage.content, false)}
-                        </p>
                       </div>
                     )}
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium text-sm text-slate-800 truncate">
+                            {thread.inquirerName}
+                          </h3>
+                          <p className="text-xs text-slate-500 truncate">
+                            {thread.cimTitle || thread.subject}
+                          </p>
+                        </div>
+                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                          {thread.unreadCount > 0 && (
+                            <Badge
+                              className="text-xs px-1.5 py-0"
+                              style={brandColor ? {
+                                backgroundColor: brandColor,
+                                color: needsDarkText ? '#1e293b' : '#ffffff'
+                              } : { backgroundColor: '#2563eb', color: '#ffffff' }}
+                            >
+                              {thread.unreadCount}
+                            </Badge>
+                          )}
+                          <span className="text-xs text-slate-400">
+                            {formatDistanceToNow(new Date(thread.lastMessageAt), { addSuffix: true })}
+                          </span>
+                        </div>
                       </div>
+
+                      {thread.lastMessage && (
+                        <p className="text-xs text-slate-500 line-clamp-2 mt-1.5">
+                          {cleanHtmlTags(thread.lastMessage.content, false)}
+                        </p>
+                      )}
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               ))}
             </div>
           )}
@@ -760,30 +750,64 @@ export function EnhancedMessageCenter() {
       </div>
 
       {/* Message Details */}
-      <div className={`${selectedThread ? 'flex' : 'hidden lg:flex'} flex-1 flex-col`}>
+      <div className={`${selectedThread ? 'flex' : 'hidden lg:flex'} flex-1 flex-col bg-slate-50`}>
         {selectedThread ? (
           <>
             {/* Header with Contact Info */}
-            <div className="p-3 md:p-4 border-b border-gray-200 bg-gray-50">
+            <div className="p-4 border-b border-slate-200 bg-white">
               {/* Mobile back button */}
-              <div className="lg:hidden mb-2">
+              <div className="lg:hidden mb-3">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setSelectedThread(null)}
-                  className="p-1 h-auto text-sm"
+                  className="p-0 h-auto text-sm text-slate-600 hover:text-slate-800"
                 >
-                  ← Back to Messages
+                  ← Back
                 </Button>
               </div>
 
               <div className="flex justify-between items-start gap-3">
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-base md:text-lg font-semibold truncate">{selectedThread.subject}</h3>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center text-white font-medium text-sm flex-shrink-0">
+                      {selectedThread.inquirerName.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="text-base font-semibold text-slate-800 truncate">{selectedThread.inquirerName}</h3>
+                      <div className="flex items-center gap-2 text-sm text-slate-500">
+                        <span className="truncate">{selectedThread.inquirerEmail}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 w-5 p-0 text-slate-400 hover:text-slate-600"
+                          onClick={() => {
+                            navigator.clipboard.writeText(selectedThread.inquirerEmail);
+                            toast({ title: 'Email copied' });
+                          }}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                   {selectedThread.cimTitle && (
-                    <p className="text-xs text-gray-500 truncate mb-2">
-                      Re: {selectedThread.cimTitle}
-                    </p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <span className="text-xs text-slate-400">CIM:</span>
+                      {selectedThread.shareSlug ? (
+                        <a
+                          href={`/share/${selectedThread.shareSlug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1 font-medium"
+                        >
+                          {selectedThread.cimTitle}
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      ) : (
+                        <span className="text-xs text-slate-600 font-medium truncate">{selectedThread.cimTitle}</span>
+                      )}
+                    </div>
                   )}
                 </div>
                 <Button
@@ -794,74 +818,28 @@ export function EnhancedMessageCenter() {
                     archive: !showArchived
                   })}
                   disabled={archiveMutation.isPending}
-                  className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 flex-shrink-0"
+                  className="flex items-center gap-1.5 text-sm text-slate-600 border-slate-300"
                 >
                   {showArchived ? (
                     <>
-                      <ArchiveRestore className="h-3 w-3 md:h-4 md:w-4" />
+                      <ArchiveRestore className="h-4 w-4" />
                       <span className="hidden sm:inline">Reactivate</span>
                     </>
                   ) : (
                     <>
-                      <Archive className="h-3 w-3 md:h-4 md:w-4" />
+                      <Archive className="h-4 w-4" />
                       <span className="hidden sm:inline">Archive</span>
                     </>
                   )}
                 </Button>
               </div>
-
-              {/* Contact Info Panel */}
-              <div className="mt-3 p-3 bg-white rounded-lg border border-gray-200">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm font-medium text-gray-700">Contact Information</span>
-                  </div>
-                  {selectedThread.shareSlug && (
-                    <a
-                      href={`/share/${selectedThread.shareSlug}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline"
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                      View CIM
-                    </a>
-                  )}
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <span className="text-gray-500">Name:</span>
-                    <span className="ml-2 font-medium">{selectedThread.inquirerName}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-gray-500">Email:</span>
-                    <span className="ml-2 font-medium truncate">{selectedThread.inquirerEmail}</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0 flex-shrink-0"
-                      onClick={() => {
-                        navigator.clipboard.writeText(selectedThread.inquirerEmail);
-                        toast({ title: 'Email copied to clipboard' });
-                      }}
-                    >
-                      <Copy className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-                <div className="mt-2 pt-2 border-t border-gray-100">
-                  <span className="text-xs text-gray-500">Thread email: </span>
-                  <span className="text-xs text-gray-600">{selectedThread.threadEmailAddress}</span>
-                </div>
-              </div>
             </div>
 
             {/* Messages */}
-            <ScrollArea className="flex-1 p-2 md:p-4">
+            <ScrollArea className="flex-1 p-4">
               {messagesLoading ? (
                 <div className="flex justify-center items-center h-32">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-slate-600"></div>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -1000,14 +978,14 @@ export function EnhancedMessageCenter() {
 
             {/* Reply Box with Rich Text Editor */}
             {!showArchived && (
-              <div className="p-3 md:p-4 border-t border-gray-200 bg-gray-50">
+              <div className="p-4 border-t border-slate-200 bg-white">
                 <div className="space-y-3">
                   {/* Templates and CC Row */}
                   <div className="flex flex-wrap items-center gap-2">
                     {/* Templates Dropdown */}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm" className="flex items-center gap-1">
+                        <Button variant="outline" size="sm" className="flex items-center gap-1.5 text-slate-600 border-slate-300">
                           <ClipboardList className="h-4 w-4" />
                           <span className="hidden sm:inline">Templates</span>
                           <ChevronDown className="h-3 w-3" />
@@ -1077,7 +1055,7 @@ export function EnhancedMessageCenter() {
                       variant={showCcField ? "secondary" : "outline"}
                       size="sm"
                       onClick={() => setShowCcField(!showCcField)}
-                      className="flex items-center gap-1"
+                      className="flex items-center gap-1.5 text-slate-600 border-slate-300"
                     >
                       <Mail className="h-4 w-4" />
                       <span>CC</span>
@@ -1148,13 +1126,8 @@ export function EnhancedMessageCenter() {
                     </div>
                   )}
                   
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                    <div className="flex items-center gap-2">
-                      <div className="text-xs sm:text-sm text-gray-500 flex items-center gap-1 sm:gap-2">
-                        <Mail className="h-3 w-3 sm:h-4 sm:w-4" />
-                        <span className="truncate">Reply will be sent via email</span>
-                      </div>
-                      
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                    <div className="flex items-center gap-3">
                       <input
                         ref={fileInputRef}
                         type="file"
@@ -1171,33 +1144,40 @@ export function EnhancedMessageCenter() {
                       />
                       <Button
                         type="button"
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
                         onClick={() => fileInputRef.current?.click()}
-                        className="h-8 px-2"
+                        className="text-slate-600 border-slate-300"
                       >
-                        <Paperclip className="h-4 w-4" />
+                        <Paperclip className="h-4 w-4 mr-1.5" />
+                        Attach
                       </Button>
+                      <span className="text-xs text-slate-400 hidden sm:inline">
+                        Sent via email
+                      </span>
                     </div>
-                    
-                    <Button
+
+                    <BrandedButton
                       onClick={handleSendMessage}
                       disabled={(!newMessage.trim() && !richContent.trim()) || sendMessageMutation.isPending}
-                      className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto text-sm"
+                      className="flex items-center gap-2 w-full sm:w-auto"
                     >
-                      <Send className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <Send className="h-4 w-4" />
                       {sendMessageMutation.isPending ? 'Sending...' : 'Send Reply'}
-                    </Button>
+                    </BrandedButton>
                   </div>
                 </div>
               </div>
             )}
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-gray-500 p-4">
+          <div className="flex-1 flex items-center justify-center p-8">
             <div className="text-center">
-              <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-sm md:text-base">Select a conversation to view messages</p>
+              <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
+                <MessageCircle className="h-8 w-8 text-slate-400" />
+              </div>
+              <p className="text-slate-600 font-medium">Select a conversation</p>
+              <p className="text-slate-400 text-sm mt-1">Choose a message thread to view</p>
             </div>
           </div>
         )}

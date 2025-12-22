@@ -130,7 +130,7 @@ export default function EsignTemplates() {
               </Button>
               <Button
                 size="sm"
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-slate-700 hover:bg-slate-800 text-white"
                 onClick={() => setLocation("/esign/templates/new")}
               >
                 <Plus className="h-4 w-4 sm:mr-2" />
@@ -282,7 +282,7 @@ export default function EsignTemplates() {
                       <div className="flex items-center gap-2 mt-4 pt-3 border-t">
                         <Button
                           size="sm"
-                          className="flex-1 bg-blue-600 hover:bg-blue-700"
+                          className="flex-1 bg-slate-700 hover:bg-slate-800"
                           onClick={(e) => {
                             e.stopPropagation();
                             setLocation(`/esign/send?template=${template.id}`);
