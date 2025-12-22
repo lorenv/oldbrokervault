@@ -287,10 +287,25 @@ function PublicRouter() {
 
 function Router() {
   const [location] = useLocation();
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
 
   // Track page views when routes change
   useAnalytics();
+
+  // Check if this is a route that requires authentication
+  const isAuthenticatedRoute = authenticatedRoutes.some(route =>
+    location === route || location.startsWith(route + '/')
+  );
+
+  // Show loading state for authenticated routes while auth is loading
+  // This prevents the 404 flash before auth state is determined
+  if (isLoading && isAuthenticatedRoute) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
 
   // Determine which router to use based on auth state and route
   const useSidebar = shouldUseSidebarLayout(location, user);

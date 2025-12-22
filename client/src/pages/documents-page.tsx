@@ -1097,7 +1097,7 @@ export default function DocumentsPage() {
                 size="sm"
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={currentPage === 1 || documentsLoading}
-                className="hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-all duration-200"
+                className="text-gray-700 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-all duration-200"
               >
                 <ChevronLeft className="h-4 w-4" />
                 Previous
@@ -1123,7 +1123,7 @@ export default function DocumentsPage() {
                       size="sm"
                       onClick={() => setCurrentPage(pageNum)}
                       disabled={documentsLoading}
-                      className={currentPage === pageNum ? "bg-blue-600 hover:bg-blue-700 shadow-md" : "hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-all duration-200"}
+                      className={currentPage === pageNum ? "bg-blue-600 hover:bg-blue-700 shadow-md" : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-all duration-200"}
                     >
                       {pageNum}
                     </Button>
@@ -1136,7 +1136,7 @@ export default function DocumentsPage() {
                 size="sm"
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                 disabled={currentPage === totalPages || documentsLoading}
-                className="hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-all duration-200"
+                className="text-gray-700 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-all duration-200"
               >
                 Next
                 <ChevronRight className="h-4 w-4" />

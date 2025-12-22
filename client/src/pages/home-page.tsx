@@ -332,7 +332,7 @@ export default function HomePage() {
               Trusted by Leading Business Advisors
             </p>
           </div>
-          <div className="relative">
+          <div className="relative overflow-hidden">
             <div className="flex animate-carousel">
               {/* First set of logos */}
               <div className="flex items-center gap-3 sm:gap-6 md:gap-3 min-w-full px-2 sm:px-8 md:justify-around">
@@ -897,6 +897,10 @@ export default function HomePage() {
                   <li className="flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
                     <span>Unlimited eSignatures</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>BizBuySell management</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />

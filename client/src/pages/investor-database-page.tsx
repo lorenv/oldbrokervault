@@ -37,10 +37,134 @@ import {
   X,
   Eye,
   HelpCircle,
-  MapPin
+  MapPin,
+  Check,
+  ChevronsUpDown,
+  Trash2,
+  Mail,
+  MoreHorizontal,
+  LayoutGrid,
+  List,
+  AlertCircle,
+  ExternalLink,
+  Merge,
+  GripVertical,
+  Settings,
+  ChevronLeft
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "@/components/ui/alert-dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import type { InvestorContact } from "@shared/schema";
+
+// CIM Multi-Select Component
+function CimMultiSelect({
+  value,
+  onChange,
+  cimDocuments
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  cimDocuments: any[]
+}) {
+  const [cimSearch, setCimSearch] = useState('');
+  const [open, setOpen] = useState(false);
+  const selectedIds = value ? value.split(',').filter(Boolean) : [];
+  const filteredDocs = cimDocuments?.filter((doc: any) =>
+    doc.title.toLowerCase().includes(cimSearch.toLowerCase())
+  ) || [];
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          className="flex-1 justify-between h-9 font-normal"
+        >
+          {selectedIds.length > 0 ? (
+            <span className="truncate">
+              {selectedIds.length === 1
+                ? cimDocuments?.find((doc: any) => doc.id.toString() === selectedIds[0])?.title || 'Select CIM...'
+                : `${selectedIds.length} CIMs selected`}
+            </span>
+          ) : (
+            <span className="text-muted-foreground">Select CIM...</span>
+          )}
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[300px] p-2" align="start">
+        <div className="space-y-2">
+          <Input
+            placeholder="Search CIM documents..."
+            value={cimSearch}
+            onChange={(e) => setCimSearch(e.target.value)}
+            className="h-8"
+          />
+          <ScrollArea className="h-[200px]">
+            <div className="space-y-1">
+              {filteredDocs.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">No CIM found</p>
+              ) : (
+                filteredDocs.map((doc: any) => {
+                  const isSelected = selectedIds.includes(doc.id.toString());
+                  return (
+                    <div
+                      key={doc.id}
+                      className="flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-accent"
+                      onClick={() => {
+                        const newSelectedIds = isSelected
+                          ? selectedIds.filter(id => id !== doc.id.toString())
+                          : [...selectedIds, doc.id.toString()];
+                        onChange(newSelectedIds.join(','));
+                      }}
+                    >
+                      <Checkbox checked={isSelected} />
+                      <span className="text-sm truncate flex-1">{doc.title}</span>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </ScrollArea>
+          {selectedIds.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full text-xs"
+              onClick={() => onChange('')}
+            >
+              Clear selection
+            </Button>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 interface DocumentInfo {
   documentId: number;
@@ -126,9 +250,12 @@ export default function InvestorDatabasePage() {
   // Search and filter state
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [cimFilter, setCimFilter] = useState('all');
+  const [cimFilter, setCimFilter] = useState<string[]>([]); // Multi-select CIM filter
+  const [cimFilterSearch, setCimFilterSearch] = useState('');
+  const [cimFilterOpen, setCimFilterOpen] = useState(false);
   const [sortBy, setSortBy] = useState('lastSeenAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
   const [advancedFilters, setAdvancedFilters] = useState<FilterRule[]>([{
     id: 'default',
     field: 'status',
@@ -175,6 +302,54 @@ export default function InvestorDatabasePage() {
   // Collapsible state for heat map
   const [isHeatMapOpen, setIsHeatMapOpen] = useState(true);
 
+  // Column visibility state (persisted to localStorage)
+  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
+    const saved = localStorage.getItem('investor-database-columns');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return {};
+      }
+    }
+    return {
+      name: true,
+      email: true,
+      company: true,
+      status: true,
+      followUp: true,
+      notes: true,
+      tags: true,
+      ndas: true
+    };
+  });
+
+  // Column definitions for customization
+  const columnDefinitions = [
+    { id: 'name', label: 'Name', sortable: true, sortKey: 'name', required: true },
+    { id: 'email', label: 'Email', sortable: true, sortKey: 'email' },
+    { id: 'company', label: 'Company', sortable: false },
+    { id: 'status', label: 'Status', sortable: true, sortKey: 'status' },
+    { id: 'followUp', label: 'Follow-up', sortable: true, sortKey: 'nextFollowUpDate' },
+    { id: 'notes', label: 'Notes', sortable: false },
+    { id: 'tags', label: 'Tags', sortable: false },
+    { id: 'ndas', label: 'NDAs', sortable: true, sortKey: 'totalNdaSignatures' }
+  ];
+
+  // Save column visibility to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('investor-database-columns', JSON.stringify(columnVisibility));
+  }, [columnVisibility]);
+
+  const toggleColumnVisibility = (columnId: string) => {
+    setColumnVisibility(prev => ({
+      ...prev,
+      [columnId]: !prev[columnId]
+    }));
+  };
+
+  const visibleColumnCount = Object.values(columnVisibility).filter(Boolean).length;
+
   // Manual add contact state
   const [showAddContactDialog, setShowAddContactDialog] = useState(false);
   const [addContactForm, setAddContactForm] = useState({
@@ -186,6 +361,11 @@ export default function InvestorDatabasePage() {
     location: '',
     nextFollowUpDate: ''
   });
+
+  // Bulk action state
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showBulkTagDialog, setShowBulkTagDialog] = useState(false);
+  const [bulkTagInput, setBulkTagInput] = useState('');
 
   // Fetch custom tags
   const { data: customTags = [] } = useQuery<Array<{id: number, name: string, color: string}>>({
@@ -252,15 +432,37 @@ export default function InvestorDatabasePage() {
       case 'last_activity': return contact.lastSeenAt || null;
       case 'next_follow_up_date': return contact.nextFollowUpDate || null;
       case 'cim_document': {
-        // Get the CIM document titles for this contact
-        const documentTitles = contact.documents?.map(doc => doc.documentTitle).join(', ') || '';
-        return documentTitles;
+        // Return array of CIM document IDs for this contact
+        return contact.documents?.map(doc => doc.cimDocumentId.toString()) || [];
       }
       default: return '';
     }
   };
 
   const evaluateFilter = (value: any, operator: string, filterValue: string): boolean => {
+    // Handle array values (e.g., CIM document IDs)
+    if (Array.isArray(value)) {
+      const filterIds = filterValue.split(',').filter(Boolean);
+      if (filterIds.length === 0) return true;
+
+      switch (operator) {
+        case 'is':
+        case 'contains':
+          // Check if any of the contact's values match any of the filter values
+          return value.some(v => filterIds.includes(v));
+        case 'is_not':
+        case 'not_contains':
+          // Check that none of the contact's values match the filter values
+          return !value.some(v => filterIds.includes(v));
+        case 'is_empty':
+          return value.length === 0;
+        case 'is_not_empty':
+          return value.length > 0;
+        default:
+          return true;
+      }
+    }
+
     const strValue = String(value || '').toLowerCase();
     const filterStr = filterValue.toLowerCase();
 
@@ -268,7 +470,9 @@ export default function InvestorDatabasePage() {
       case 'contains': return strValue.includes(filterStr);
       case 'not_contains': return !strValue.includes(filterStr);
       case 'equals': return strValue === filterStr;
+      case 'is': return strValue === filterStr;
       case 'not_equals': return strValue !== filterStr;
+      case 'is_not': return strValue !== filterStr;
       case 'starts_with': return strValue.startsWith(filterStr);
       case 'ends_with': return strValue.endsWith(filterStr);
       case 'is_empty': return !value || value === '';
@@ -369,7 +573,7 @@ export default function InvestorDatabasePage() {
       
       if (searchTerm) params.append('search', searchTerm);
       if (statusFilter !== 'all') params.append('status', statusFilter);
-      if (cimFilter !== 'all') params.append('cimDocumentId', cimFilter);
+      if (cimFilter.length > 0) params.append('cimDocumentIds', cimFilter.join(','));
       
       const response = await fetch(`/api/investor-contacts?${params}`, {
         credentials: 'include'
@@ -410,27 +614,38 @@ export default function InvestorDatabasePage() {
     // Sort contacts
     filtered.sort((a, b) => {
       let aValue: any, bValue: any;
-      
+
       switch (sortBy) {
         case 'name':
-          aValue = a.name || '';
-          bValue = b.name || '';
+          aValue = a.name?.toLowerCase() || '';
+          bValue = b.name?.toLowerCase() || '';
           break;
         case 'email':
-          aValue = a.email || '';
-          bValue = b.email || '';
+          aValue = a.email?.toLowerCase() || '';
+          bValue = b.email?.toLowerCase() || '';
           break;
         case 'totalNdaSignatures':
           aValue = a.totalNdaSignatures || 0;
           bValue = b.totalNdaSignatures || 0;
           break;
+        case 'status':
+          // Sort by status order in statusOptions
+          const statusOrder = ['new', 'contacted', 'interested', 'under_review', 'declined', 'closed'];
+          aValue = statusOrder.indexOf(a.status) ?? 99;
+          bValue = statusOrder.indexOf(b.status) ?? 99;
+          break;
+        case 'nextFollowUpDate':
+          // Sort null dates to end
+          aValue = a.nextFollowUpDate ? new Date(a.nextFollowUpDate).getTime() : (sortOrder === 'asc' ? Infinity : -Infinity);
+          bValue = b.nextFollowUpDate ? new Date(b.nextFollowUpDate).getTime() : (sortOrder === 'asc' ? Infinity : -Infinity);
+          break;
         case 'lastSeenAt':
         default:
-          aValue = a.lastSeenAt || 0;
-          bValue = b.lastSeenAt || 0;
+          aValue = a.lastSeenAt ? new Date(a.lastSeenAt).getTime() : 0;
+          bValue = b.lastSeenAt ? new Date(b.lastSeenAt).getTime() : 0;
           break;
       }
-      
+
       if (sortOrder === 'asc') {
         return aValue > bValue ? 1 : -1;
       } else {
@@ -589,6 +804,115 @@ export default function InvestorDatabasePage() {
       });
     }
   });
+
+  // Bulk delete mutation
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (contactIds: number[]) => {
+      const response = await fetch('/api/investor-contacts/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contactIds }),
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('Failed to delete contacts');
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/investor-contacts'] });
+      setSelectedContacts([]);
+      setSelectAll(false);
+      setShowDeleteDialog(false);
+      toast({
+        title: "Contacts Deleted",
+        description: `${data.deleted} contact(s) have been deleted.`
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Delete Failed",
+        description: "Failed to delete selected contacts.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Bulk update status mutation
+  const bulkUpdateStatusMutation = useMutation({
+    mutationFn: async ({ contactIds, status }: { contactIds: number[]; status: string }) => {
+      const response = await fetch('/api/investor-contacts/bulk-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contactIds, updates: { status } }),
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('Failed to update contacts');
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/investor-contacts'] });
+      toast({
+        title: "Status Updated",
+        description: `${data.updated} contact(s) have been updated.`
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Update Failed",
+        description: "Failed to update contact status.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Bulk add tag mutation
+  const bulkAddTagMutation = useMutation({
+    mutationFn: async ({ contactIds, tag }: { contactIds: number[]; tag: string }) => {
+      const response = await fetch('/api/investor-contacts/bulk-add-tag', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contactIds, tag }),
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('Failed to add tag');
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/investor-contacts'] });
+      setShowBulkTagDialog(false);
+      setBulkTagInput('');
+      toast({
+        title: "Tag Added",
+        description: `Tag added to ${data.updated} contact(s).`
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Failed to Add Tag",
+        description: "Failed to add tag to selected contacts.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Copy emails handler
+  const handleCopyEmails = () => {
+    const selectedEmails = contacts
+      .filter(c => selectedContacts.includes(c.id))
+      .map(c => c.email)
+      .join(', ');
+
+    navigator.clipboard.writeText(selectedEmails);
+    toast({
+      title: "Emails Copied",
+      description: `${selectedContacts.length} email address(es) copied to clipboard.`
+    });
+  };
 
   // Handle select all functionality
   useEffect(() => {
@@ -799,11 +1123,68 @@ export default function InvestorDatabasePage() {
   const getTagColor = (tagName: string) => {
     const customTag = customTags.find(tag => tag.name === tagName);
     if (customTag) return customTag.color;
-    
+
     // Generate consistent color for unknown tags
     const hash = tagName.split('').reduce((acc, char) => char.charCodeAt(0) + acc, 0);
     return tagColors[hash % tagColors.length];
   };
+
+  // Get row color based on follow-up date
+  const getFollowUpRowStyle = (followUpDate: Date | string | null) => {
+    if (!followUpDate) return '';
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const followUp = new Date(followUpDate);
+    followUp.setHours(0, 0, 0, 0);
+
+    const diffDays = Math.ceil((followUp.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return 'bg-red-50 border-l-4 border-l-red-400'; // Overdue
+    if (diffDays === 0) return 'bg-orange-50 border-l-4 border-l-orange-400'; // Due today
+    if (diffDays <= 7) return 'bg-yellow-50 border-l-4 border-l-yellow-400'; // Due this week
+    return '';
+  };
+
+  // Highlight search term in text
+  const highlightSearchTerm = (text: string, term: string) => {
+    if (!term || !text) return text;
+    const regex = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    const parts = text.split(regex);
+    return parts.map((part, i) =>
+      regex.test(part) ? <mark key={i} className="bg-yellow-200 px-0.5 rounded">{part}</mark> : part
+    );
+  };
+
+  // Compose email handler
+  const handleComposeEmail = () => {
+    const selectedEmails = contacts
+      .filter(c => selectedContacts.includes(c.id))
+      .map(c => c.email)
+      .join(',');
+
+    window.location.href = `mailto:${selectedEmails}`;
+  };
+
+  // Detect potential duplicate contacts
+  const getDuplicateContacts = useMemo(() => {
+    const emailMap = new Map<string, number[]>();
+    contacts.forEach(contact => {
+      const email = contact.email.toLowerCase();
+      if (!emailMap.has(email)) {
+        emailMap.set(email, []);
+      }
+      emailMap.get(email)!.push(contact.id);
+    });
+
+    const duplicates: number[] = [];
+    emailMap.forEach((ids) => {
+      if (ids.length > 1) {
+        duplicates.push(...ids);
+      }
+    });
+    return duplicates;
+  }, [contacts]);
 
 
 
@@ -841,53 +1222,47 @@ export default function InvestorDatabasePage() {
         </Card>
       </Collapsible>
 
-      {/* Stats Cards with gradient backgrounds */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-blue-50 to-white">
+      {/* Stats Cards with gradient backgrounds - compact version */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <Card className="relative overflow-hidden border-0 shadow-md bg-gradient-to-br from-blue-50 to-white">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent" />
-          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-blue-900">Total Contacts</CardTitle>
+          <CardContent className="relative p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-blue-700 mb-0.5">Total Contacts</p>
+              <div className="text-2xl font-bold text-blue-900">{contacts.length}</div>
+            </div>
             <div className="p-2 bg-blue-100 rounded-lg">
               <Users className="h-4 w-4 text-blue-600" />
             </div>
-          </CardHeader>
-          <CardContent className="relative">
-            <div className="text-3xl font-bold text-blue-900">{contacts.length}</div>
-            <p className="text-xs text-blue-600 mt-1">Active investor relationships</p>
           </CardContent>
         </Card>
-        
-        <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-green-50 to-white">
+
+        <Card className="relative overflow-hidden border-0 shadow-md bg-gradient-to-br from-green-50 to-white">
           <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent" />
-          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-green-900">Total Signatures</CardTitle>
+          <CardContent className="relative p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-green-700 mb-0.5">Total Signatures</p>
+              <div className="text-2xl font-bold text-green-900">
+                {contacts.reduce((sum, c) => sum + c.totalNdaSignatures, 0)}
+              </div>
+            </div>
             <div className="p-2 bg-green-100 rounded-lg">
               <FileText className="h-4 w-4 text-green-600" />
             </div>
-          </CardHeader>
-          <CardContent className="relative">
-            <div className="text-3xl font-bold text-green-900">
-              {contacts.reduce((sum, c) => sum + c.totalNdaSignatures, 0)}
-            </div>
-            <p className="text-xs text-green-600 mt-1">Documents signed</p>
           </CardContent>
         </Card>
-        
+
         <Card
-          className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-orange-50 to-white cursor-pointer hover:shadow-xl transition-all transform hover:scale-105"
+          className="relative overflow-hidden border-0 shadow-md bg-gradient-to-br from-orange-50 to-white cursor-pointer hover:shadow-lg transition-all"
           onClick={() => {
-            // Filter to show only contacts that need follow-up
-            const needsFollowUpContacts = contacts.filter(c => 
+            const needsFollowUpContacts = contacts.filter(c =>
               c.nextFollowUpDate && new Date(c.nextFollowUpDate) <= new Date()
             );
-            
+
             if (needsFollowUpContacts.length > 0) {
-              // Set a filter to show only follow-up contacts
               setSearchTerm('');
               setStatusFilter('all');
-              setCimFilter('all');
-              
-              // Use advanced filters to show only follow-up contacts
+              setCimFilter([]);
               setAdvancedFilters([{
                 id: Date.now().toString(),
                 field: 'next_follow_up_date',
@@ -899,95 +1274,241 @@ export default function InvestorDatabasePage() {
           }}
         >
           <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-transparent" />
-          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-orange-900">Needs Follow-up</CardTitle>
+          <CardContent className="relative p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-orange-700 mb-0.5">Needs Follow-up</p>
+              <div className="text-2xl font-bold text-orange-900">
+                {contacts.filter(c => c.nextFollowUpDate && new Date(c.nextFollowUpDate) <= new Date()).length}
+              </div>
+            </div>
             <div className="p-2 bg-orange-100 rounded-lg">
               <Calendar className="h-4 w-4 text-orange-600" />
             </div>
-          </CardHeader>
-          <CardContent className="relative">
-            <div className="text-3xl font-bold text-orange-900">
-              {contacts.filter(c => c.nextFollowUpDate && new Date(c.nextFollowUpDate) <= new Date()).length}
-            </div>
-            <p className="text-xs text-orange-600 mt-1">Click to filter • Due today</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filters and Search */}
-      <Card className="border-0 shadow-lg bg-white/95 backdrop-blur-sm">
-        <CardHeader className="bg-gradient-to-r from-gray-50 to-white border-b">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Filter className="h-5 w-5 text-indigo-600" />
-            <span>Search & Filter</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
+      {/* Search, Filters & View Toggle - Professional B2B Style */}
+      <Card className="border border-gray-200 shadow-sm bg-white">
+        <CardContent className="p-4">
+          {/* Main Filter Row */}
+          <div className="flex flex-col lg:flex-row gap-3">
+            {/* Search Input */}
+            <div className="flex-1 min-w-[200px]">
               <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Search by name or email..."
+                  placeholder="Search contacts..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9"
+                  className="pl-9 h-9 bg-gray-50 border-gray-200 focus:bg-white"
                 />
               </div>
             </div>
-            
-            <div className="w-48">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  {statusOptions.map(status => (
-                    <SelectItem key={status.value} value={status.value}>
+
+            {/* Status Filter */}
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[150px] h-9 bg-gray-50 border-gray-200">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                {statusOptions.map(status => (
+                  <SelectItem key={status.value} value={status.value}>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${status.color}`} />
                       {status.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* CIM Filter - Multi-select with search */}
+            <Popover open={cimFilterOpen} onOpenChange={setCimFilterOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-[180px] h-9 justify-between bg-gray-50 border-gray-200 font-normal"
+                >
+                  {cimFilter.length === 0 ? (
+                    <span className="text-gray-500">All CIMs</span>
+                  ) : cimFilter.length === 1 ? (
+                    <span className="truncate">
+                      {cimDocuments?.find((d: any) => d.id.toString() === cimFilter[0])?.title || '1 CIM'}
+                    </span>
+                  ) : (
+                    <span>{cimFilter.length} CIMs</span>
+                  )}
+                  <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[280px] p-2" align="start">
+                <div className="space-y-2">
+                  <Input
+                    placeholder="Search CIM documents..."
+                    value={cimFilterSearch}
+                    onChange={(e) => setCimFilterSearch(e.target.value)}
+                    className="h-8"
+                  />
+                  <ScrollArea className="h-[200px]">
+                    <div className="space-y-1">
+                      {cimDocuments?.filter((doc: any) =>
+                        doc.title.toLowerCase().includes(cimFilterSearch.toLowerCase())
+                      ).map((doc: any) => {
+                        const isSelected = cimFilter.includes(doc.id.toString());
+                        return (
+                          <div
+                            key={doc.id}
+                            className="flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-gray-100"
+                            onClick={() => {
+                              setCimFilter(prev =>
+                                isSelected
+                                  ? prev.filter(id => id !== doc.id.toString())
+                                  : [...prev, doc.id.toString()]
+                              );
+                            }}
+                          >
+                            <Checkbox checked={isSelected} />
+                            <span className="text-sm truncate flex-1">{doc.title}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                  {cimFilter.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-xs"
+                      onClick={() => setCimFilter([])}
+                    >
+                      Clear selection
+                    </Button>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {/* View Toggle */}
+            <div className="flex items-center border border-gray-200 rounded-md bg-gray-50 p-0.5">
+              <Button
+                variant={viewMode === 'table' ? 'secondary' : 'ghost'}
+                size="sm"
+                className="h-7 px-2"
+                onClick={() => setViewMode('table')}
+              >
+                <List className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'kanban' ? 'secondary' : 'ghost'}
+                size="sm"
+                className="h-7 px-2"
+                onClick={() => setViewMode('kanban')}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
             </div>
-            
-            <div className="w-48">
-              <Select value={cimFilter} onValueChange={setCimFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Filter by CIM" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All CIM Documents</SelectItem>
-                  {cimDocuments?.map((doc: any) => (
-                    <SelectItem key={doc.id} value={doc.id.toString()}>
-                      {doc.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+
+            {/* Advanced Filter Toggle */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 bg-gray-50 border-gray-200"
+              onClick={addFilterRule}
+            >
+              <Filter className="h-4 w-4 mr-1" />
+              Add Filter
+            </Button>
           </div>
 
-          {/* Advanced Filters */}
-            <div className="mt-4 p-4 border-2 border-dashed border-indigo-200 rounded-lg bg-gradient-to-r from-indigo-50/50 to-blue-50/50">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-indigo-900 flex items-center gap-2">
-                  <Tag className="h-4 w-4" />
-                  Advanced Filters
-                </h3>
-                <Button onClick={addFilterRule} size="sm" variant="outline" className="text-slate-700 border-slate-300">
-                  <Plus className="h-3 w-3 mr-1" />
-                  Add Filter
-                </Button>
+          {/* Active Filters Chips */}
+          {(searchTerm || statusFilter !== 'all' || cimFilter.length > 0 || advancedFilters.some(f => f.value)) && (
+            <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+              <span className="text-xs text-gray-500 font-medium">Active filters:</span>
+
+              {searchTerm && (
+                <Badge variant="secondary" className="gap-1 pr-1">
+                  Search: "{searchTerm}"
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-4 w-4 p-0 hover:bg-gray-300"
+                    onClick={() => setSearchTerm('')}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </Badge>
+              )}
+
+              {statusFilter !== 'all' && (
+                <Badge variant="secondary" className="gap-1 pr-1">
+                  Status: {statusOptions.find(s => s.value === statusFilter)?.label}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-4 w-4 p-0 hover:bg-gray-300"
+                    onClick={() => setStatusFilter('all')}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </Badge>
+              )}
+
+              {cimFilter.length > 0 && (
+                <Badge variant="secondary" className="gap-1 pr-1">
+                  CIM: {cimFilter.length} selected
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-4 w-4 p-0 hover:bg-gray-300"
+                    onClick={() => setCimFilter([])}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </Badge>
+              )}
+
+              {advancedFilters.filter(f => f.value).map(filter => (
+                <Badge key={filter.id} variant="secondary" className="gap-1 pr-1">
+                  {filterFields.find(f => f.value === filter.field)?.label}: {filter.value.substring(0, 15)}{filter.value.length > 15 ? '...' : ''}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-4 w-4 p-0 hover:bg-gray-300"
+                    onClick={() => removeFilterRule(filter.id)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </Badge>
+              ))}
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-xs text-gray-500"
+                onClick={() => {
+                  setSearchTerm('');
+                  setStatusFilter('all');
+                  setCimFilter([]);
+                  setAdvancedFilters([]);
+                }}
+              >
+                Clear all
+              </Button>
+            </div>
+          )}
+
+          {/* Advanced Filters Section */}
+          {advancedFilters.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-gray-100">
+              <div className="flex items-center gap-2 mb-2">
+                <Filter className="h-4 w-4 text-gray-400" />
+                <span className="text-sm font-medium text-gray-700">Advanced Filters</span>
               </div>
-              
-              {advancedFilters.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No filters applied. Click "Add Filter" to get started.</p>
-              ) : (
-                <div className="space-y-2">
-                  {advancedFilters.map((filter, index) => (
-                    <div key={filter.id} className="flex items-center gap-2 p-2 bg-background rounded border">
+              <div className="space-y-2">
+                {advancedFilters.map((filter, index) => (
+                  <div key={filter.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-md border border-gray-200">
                       {index > 0 && (
                         <Select 
                           value={filter.logicOperator || 'AND'} 
@@ -1044,28 +1565,54 @@ export default function InvestorDatabasePage() {
                       </Select>
                       
                       {!['is_empty', 'is_not_empty'].includes(filter.operator) && (
-                        <Input
-                          placeholder="Value..."
-                          value={filter.value}
-                          onChange={(e) => updateFilterRule(filter.id, { value: e.target.value })}
-                          className="flex-1"
-                        />
+                        filter.field === 'cim_document' ? (
+                          // Multi-select for CIM documents with search
+                          <CimMultiSelect
+                            value={filter.value}
+                            onChange={(value) => updateFilterRule(filter.id, { value })}
+                            cimDocuments={cimDocuments || []}
+                          />
+                        ) : filter.field === 'status' ? (
+                          // Single select for status
+                          <Select
+                            value={filter.value}
+                            onValueChange={(value) => updateFilterRule(filter.id, { value })}
+                          >
+                            <SelectTrigger className="flex-1">
+                              <SelectValue placeholder="Select status..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {statusOptions.map(status => (
+                                <SelectItem key={status.value} value={status.value}>
+                                  {status.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Input
+                            placeholder="Value..."
+                            value={filter.value}
+                            onChange={(e) => updateFilterRule(filter.id, { value: e.target.value })}
+                            className="flex-1"
+                          />
+                        )
                       )}
                       
-                      <Button
-                        onClick={() => removeFilterRule(filter.id)}
-                        size="sm"
-                        variant="ghost"
-                        className="bg-red-100 hover:bg-red-200 text-red-600 hover:text-red-800 h-8 w-8 p-0 rounded font-bold"
-                        title="Remove filter"
-                      >
-                        ✕
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    <Button
+                      onClick={() => removeFilterRule(filter.id)}
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 w-8 p-0 text-gray-400 hover:text-red-600 hover:bg-red-50"
+                      title="Remove filter"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
             </div>
+          )}
         </CardContent>
       </Card>
 
@@ -1078,29 +1625,150 @@ export default function InvestorDatabasePage() {
               <span>Contacts</span>
               <Badge className="bg-indigo-100 text-indigo-700 ml-2">{contacts.length}</Badge>
             </CardTitle>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap items-center">
+              {/* Column Visibility Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-9">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Columns
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {columnDefinitions.map(col => (
+                    <DropdownMenuCheckboxItem
+                      key={col.id}
+                      checked={columnVisibility[col.id] !== false}
+                      onCheckedChange={() => toggleColumnVisibility(col.id)}
+                      disabled={col.required}
+                    >
+                      {col.label}
+                      {col.required && <span className="text-xs text-gray-400 ml-1">(required)</span>}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => setColumnVisibility({
+                      name: true,
+                      email: true,
+                      company: true,
+                      status: true,
+                      followUp: true,
+                      notes: true,
+                      tags: true,
+                      ndas: true
+                    })}
+                  >
+                    Reset to default
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
               <BrandedButton
                 onClick={() => setShowAddContactDialog(true)}
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Contact
               </BrandedButton>
-              <Tooltip>
-                <TooltipTrigger asChild>
+
+              {/* Bulk Actions - only show when contacts are selected */}
+              {selectedContacts.length > 0 && (
+                <>
                   <Button
-                    onClick={handleExport}
-                    disabled={isLoading || selectedContacts.length === 0}
-                    variant={selectedContacts.length > 0 ? "default" : "outline"}
-                    className={selectedContacts.length > 0 ? "bg-indigo-600 hover:bg-indigo-700" : ""}
+                    onClick={handleCopyEmails}
+                    variant="outline"
+                    size="default"
                   >
-                    <Download className="h-4 w-4 mr-2" />
-                    Export Selected ({selectedContacts.length})
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy Emails
                   </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Export selected contacts to CSV format</p>
-                </TooltipContent>
-              </Tooltip>
+
+                  <Button
+                    onClick={handleComposeEmail}
+                    variant="outline"
+                    size="default"
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Compose Email
+                  </Button>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline">
+                        <MoreHorizontal className="h-4 w-4 mr-2" />
+                        Actions ({selectedContacts.length})
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem onClick={handleExport}>
+                        <Download className="h-4 w-4 mr-2" />
+                        Export to CSV
+                      </DropdownMenuItem>
+
+                      <DropdownMenuSeparator />
+
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Update Status
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent>
+                          {statusOptions.map(status => (
+                            <DropdownMenuItem
+                              key={status.value}
+                              onClick={() => bulkUpdateStatusMutation.mutate({
+                                contactIds: selectedContacts,
+                                status: status.value
+                              })}
+                            >
+                              <div className={`w-2 h-2 rounded-full ${status.color} mr-2`} />
+                              {status.label}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
+
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>
+                          <Tag className="h-4 w-4 mr-2" />
+                          Add Tag
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent>
+                          {customTags.map(tag => (
+                            <DropdownMenuItem
+                              key={tag.id}
+                              onClick={() => bulkAddTagMutation.mutate({
+                                contactIds: selectedContacts,
+                                tag: tag.name
+                              })}
+                            >
+                              <div className={`w-2 h-2 rounded-full ${tag.color} mr-2`} />
+                              {tag.name}
+                            </DropdownMenuItem>
+                          ))}
+                          {customTags.length > 0 && <DropdownMenuSeparator />}
+                          <DropdownMenuItem onClick={() => setShowBulkTagDialog(true)}>
+                            <Plus className="h-4 w-4 mr-2" />
+                            Create New Tag...
+                          </DropdownMenuItem>
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
+
+                      <DropdownMenuSeparator />
+
+                      <DropdownMenuItem
+                        onClick={() => setShowDeleteDialog(true)}
+                        className="text-red-600 focus:text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete Selected
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -1108,17 +1776,48 @@ export default function InvestorDatabasePage() {
           {isLoading ? (
             <div className="text-center py-8">Loading contacts...</div>
           ) : contacts.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No contacts found</p>
-              <p className="text-sm">Try syncing from your NDA signatures or adjust your filters</p>
+            <div className="text-center py-12 text-muted-foreground">
+              <Users className="h-16 w-16 mx-auto mb-4 opacity-30" />
+              <p className="text-lg font-medium text-gray-700">No contacts found</p>
+              {(searchTerm || statusFilter !== 'all' || cimFilter.length > 0 || advancedFilters.some(f => f.value)) ? (
+                <div className="mt-4 space-y-2">
+                  <p className="text-sm text-gray-500">No contacts match your current filters.</p>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSearchTerm('');
+                      setStatusFilter('all');
+                      setCimFilter([]);
+                      setAdvancedFilters([]);
+                    }}
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Clear all filters
+                  </Button>
+                </div>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  <p className="text-sm text-gray-500">Get started by adding contacts manually or syncing from NDA signatures.</p>
+                  <div className="flex justify-center gap-3">
+                    <BrandedButton onClick={() => setShowAddContactDialog(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Contact
+                    </BrandedButton>
+                    <Button variant="outline" onClick={() => refetch()}>
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Sync from NDAs
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-gradient-to-r from-gray-50 to-white hover:from-gray-100 hover:to-gray-50">
-                  <TableHead className="w-12">
+          ) : viewMode === 'table' ? (
+            <>
+            <div className="overflow-x-auto w-full max-h-[600px] overflow-y-auto">
+            <Table className="w-full table-fixed">
+              <TableHeader className="sticky top-0 z-10 bg-white shadow-sm">
+                <TableRow className="bg-gray-50 border-b">
+                  <TableHead className="w-[50px]">
                     <Checkbox
                       checked={selectAll}
                       onCheckedChange={(checked) => {
@@ -1129,103 +1828,367 @@ export default function InvestorDatabasePage() {
                       }}
                     />
                   </TableHead>
-                  <TableHead 
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => handleSort('name')}
-                  >
-                    <div className="flex items-center gap-2">
-                      Name
-                      {getSortIcon('name')}
-                    </div>
-                  </TableHead>
-                  <TableHead 
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => handleSort('email')}
-                  >
-                    <div className="flex items-center gap-2">
-                      Email
-                      {getSortIcon('email')}
-                    </div>
-                  </TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Tags</TableHead>
-                  <TableHead 
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => handleSort('totalNdaSignatures')}
-                  >
-                    <div className="flex items-center gap-2">
-                      NDAs
-                      {getSortIcon('totalNdaSignatures')}
-                    </div>
-                  </TableHead>
-                  <TableHead 
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => handleSort('lastSeenAt')}
-                  >
-                    <div className="flex items-center gap-2">
-                      Last Seen
-                      {getSortIcon('lastSeenAt')}
-                    </div>
-                  </TableHead>
-
+                  {columnVisibility.name !== false && (
+                    <TableHead
+                      className="cursor-pointer hover:bg-gray-100 transition-colors w-[15%]"
+                      onClick={() => handleSort('name')}
+                    >
+                      <div className="flex items-center gap-2">
+                        Name
+                        {getSortIcon('name')}
+                      </div>
+                    </TableHead>
+                  )}
+                  {columnVisibility.email !== false && (
+                    <TableHead
+                      className="cursor-pointer hover:bg-gray-100 transition-colors w-[18%]"
+                      onClick={() => handleSort('email')}
+                    >
+                      <div className="flex items-center gap-2">
+                        Email
+                        {getSortIcon('email')}
+                      </div>
+                    </TableHead>
+                  )}
+                  {columnVisibility.company !== false && (
+                    <TableHead className="w-[12%]">Company</TableHead>
+                  )}
+                  {columnVisibility.status !== false && (
+                    <TableHead
+                      className="cursor-pointer hover:bg-gray-100 transition-colors w-[10%]"
+                      onClick={() => handleSort('status')}
+                    >
+                      <div className="flex items-center gap-2">
+                        Status
+                        {getSortIcon('status')}
+                      </div>
+                    </TableHead>
+                  )}
+                  {columnVisibility.followUp !== false && (
+                    <TableHead
+                      className="cursor-pointer hover:bg-gray-100 transition-colors w-[10%]"
+                      onClick={() => handleSort('nextFollowUpDate')}
+                    >
+                      <div className="flex items-center gap-2">
+                        Follow-up
+                        {getSortIcon('nextFollowUpDate')}
+                      </div>
+                    </TableHead>
+                  )}
+                  {columnVisibility.notes !== false && (
+                    <TableHead className="w-[15%]">Notes</TableHead>
+                  )}
+                  {columnVisibility.tags !== false && (
+                    <TableHead className="w-[12%]">Tags</TableHead>
+                  )}
+                  {columnVisibility.ndas !== false && (
+                    <TableHead
+                      className="cursor-pointer hover:bg-gray-100 transition-colors w-[6%] text-center"
+                      onClick={() => handleSort('totalNdaSignatures')}
+                    >
+                      <div className="flex items-center justify-center gap-1">
+                        NDAs
+                        {getSortIcon('totalNdaSignatures')}
+                      </div>
+                    </TableHead>
+                  )}
+                  <TableHead className="w-[50px] text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {contacts.map((contact, index) => (
-                  <TableRow
-                    key={contact.id}
-                    className={`cursor-pointer hover:bg-indigo-50/50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'} ${selectedContacts.includes(contact.id) ? "ring-2 ring-indigo-500 bg-indigo-50/30" : ""}`}
-                    onClick={() => {
-                      setViewingContact(contact);
-                      setIsContactModalOpen(true);
-                    }}
-                  >
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <Checkbox
-                        checked={selectedContacts.includes(contact.id)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setSelectedContacts([...selectedContacts, contact.id]);
-                          } else {
-                            setSelectedContacts(selectedContacts.filter(id => id !== contact.id));
-                          }
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-medium">{contact.name}</span>
-                    </TableCell>
-                    <TableCell>{contact.email}</TableCell>
-                    <TableCell>
-                      <span className="text-sm text-muted-foreground">
-                        {contact.location || 'Unknown'}
-                      </span>
-                    </TableCell>
-                    <TableCell>{getStatusBadge(contact.status)}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1 flex-wrap">
-                        {contact.tags.slice(0, 2).map((tag, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">
-                            {tag}
-                          </Badge>
-                        ))}
-                        {contact.tags.length > 2 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{contact.tags.length - 2}
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>{contact.totalNdaSignatures}</TableCell>
-                    <TableCell>
-                      {contact.lastSeenAt ? new Date(contact.lastSeenAt).toLocaleDateString() : 'Never'}
-                    </TableCell>
+                {contacts
+                  .slice((currentPage - 1) * pageSize, currentPage * pageSize)
+                  .map((contact, index) => {
+                  const followUpStyle = getFollowUpRowStyle(contact.nextFollowUpDate);
+                  const isDuplicate = getDuplicateContacts.includes(contact.id);
 
-                  </TableRow>
-                ))}
+                  return (
+                    <TableRow
+                      key={contact.id}
+                      className={`cursor-pointer transition-colors group ${followUpStyle || (index % 2 === 0 ? 'bg-white' : 'bg-gray-50/30')} ${selectedContacts.includes(contact.id) ? "ring-2 ring-indigo-500 bg-indigo-50/30" : ""} hover:bg-indigo-50/50`}
+                      onClick={() => {
+                        setViewingContact(contact);
+                        setIsContactModalOpen(true);
+                      }}
+                    >
+                      <TableCell onClick={(e) => e.stopPropagation()} className="w-[50px]">
+                        <Checkbox
+                          checked={selectedContacts.includes(contact.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedContacts([...selectedContacts, contact.id]);
+                            } else {
+                              setSelectedContacts(selectedContacts.filter(id => id !== contact.id));
+                            }
+                          }}
+                        />
+                      </TableCell>
+                      {columnVisibility.name !== false && (
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium truncate">{highlightSearchTerm(contact.name, searchTerm)}</span>
+                            {isDuplicate && (
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <AlertCircle className="h-4 w-4 text-amber-500 flex-shrink-0" />
+                                </TooltipTrigger>
+                                <TooltipContent>Potential duplicate contact</TooltipContent>
+                              </Tooltip>
+                            )}
+                          </div>
+                        </TableCell>
+                      )}
+                      {columnVisibility.email !== false && (
+                        <TableCell>
+                          <span className="text-sm truncate block">{highlightSearchTerm(contact.email, searchTerm)}</span>
+                        </TableCell>
+                      )}
+                      {columnVisibility.company !== false && (
+                        <TableCell>
+                          <span className="text-sm text-muted-foreground truncate block">
+                            {contact.company || contact.inferredCompany || '—'}
+                          </span>
+                        </TableCell>
+                      )}
+                      {columnVisibility.status !== false && (
+                        <TableCell>{getStatusBadge(contact.status)}</TableCell>
+                      )}
+                      {columnVisibility.followUp !== false && (
+                        <TableCell>
+                          {contact.nextFollowUpDate ? (
+                            <div className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                              <span className="text-sm">
+                                {new Date(contact.nextFollowUpDate).toLocaleDateString()}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-gray-400">—</span>
+                          )}
+                        </TableCell>
+                      )}
+                      {columnVisibility.notes !== false && (
+                        <TableCell>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-sm text-muted-foreground truncate block max-w-[200px] cursor-default">
+                                {contact.notes ? (contact.notes.length > 40 ? contact.notes.substring(0, 40) + '...' : contact.notes) : '—'}
+                              </span>
+                            </TooltipTrigger>
+                            {contact.notes && contact.notes.length > 40 && (
+                              <TooltipContent className="max-w-[300px]">
+                                <p className="text-sm whitespace-pre-wrap">{contact.notes}</p>
+                              </TooltipContent>
+                            )}
+                          </Tooltip>
+                        </TableCell>
+                      )}
+                      {columnVisibility.tags !== false && (
+                        <TableCell>
+                          <div className="flex gap-1 flex-wrap">
+                            {contact.tags.slice(0, 2).map((tag, idx) => (
+                              <Badge key={idx} variant="outline" className="text-xs">
+                                {tag}
+                              </Badge>
+                            ))}
+                            {contact.tags.length > 2 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{contact.tags.length - 2}
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                      )}
+                      {columnVisibility.ndas !== false && (
+                        <TableCell className="text-center">{contact.totalNdaSignatures}</TableCell>
+                      )}
+                      <TableCell onClick={(e) => e.stopPropagation()} className="w-[50px]">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => {
+                              setViewingContact(contact);
+                              setIsContactModalOpen(true);
+                            }}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => {
+                              navigator.clipboard.writeText(contact.email);
+                              toast({ title: "Email copied" });
+                            }}>
+                              <Copy className="h-4 w-4 mr-2" />
+                              Copy Email
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => {
+                              window.location.href = `mailto:${contact.email}`;
+                            }}>
+                              <Mail className="h-4 w-4 mr-2" />
+                              Send Email
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuSub>
+                              <DropdownMenuSubTrigger>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Change Status
+                              </DropdownMenuSubTrigger>
+                              <DropdownMenuSubContent>
+                                {statusOptions.map(status => (
+                                  <DropdownMenuItem
+                                    key={status.value}
+                                    onClick={() => bulkUpdateStatusMutation.mutate({
+                                      contactIds: [contact.id],
+                                      status: status.value
+                                    })}
+                                  >
+                                    <div className={`w-2 h-2 rounded-full ${status.color} mr-2`} />
+                                    {status.label}
+                                  </DropdownMenuItem>
+                                ))}
+                              </DropdownMenuSubContent>
+                            </DropdownMenuSub>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedContacts([contact.id]);
+                                setShowDeleteDialog(true);
+                              }}
+                              className="text-red-600 focus:text-red-600"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete Contact
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="flex items-center justify-between px-4 py-3 border-t bg-gray-50">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <span>Showing</span>
+                <Select
+                  value={pageSize.toString()}
+                  onValueChange={(value) => {
+                    setPageSize(Number(value));
+                    setCurrentPage(1);
+                  }}
+                >
+                  <SelectTrigger className="w-[70px] h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                  </SelectContent>
+                </Select>
+                <span>
+                  {Math.min((currentPage - 1) * pageSize + 1, contacts.length)}-{Math.min(currentPage * pageSize, contacts.length)} of {contacts.length} contacts
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+                <span className="text-sm text-gray-600 px-2">
+                  Page {currentPage} of {Math.ceil(contacts.length / pageSize) || 1}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(Math.ceil(contacts.length / pageSize), p + 1))}
+                  disabled={currentPage >= Math.ceil(contacts.length / pageSize)}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+            </>
+          ) : (
+            /* Kanban View */
+            <div className="p-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                {statusOptions.map(status => {
+                  const statusContacts = contacts.filter(c => c.status === status.value);
+                  return (
+                    <div key={status.value} className="bg-gray-50 rounded-lg p-3 min-h-[400px]">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-3 h-3 rounded-full ${status.color}`} />
+                          <span className="font-medium text-sm">{status.label}</span>
+                        </div>
+                        <Badge variant="secondary" className="text-xs">
+                          {statusContacts.length}
+                        </Badge>
+                      </div>
+                      <div className="space-y-2">
+                        {statusContacts.map(contact => {
+                          const followUpStyle = getFollowUpRowStyle(contact.nextFollowUpDate);
+                          return (
+                            <div
+                              key={contact.id}
+                              className={`bg-white rounded-md border p-3 cursor-pointer hover:shadow-md transition-shadow ${followUpStyle}`}
+                              onClick={() => {
+                                setViewingContact(contact);
+                                setIsContactModalOpen(true);
+                              }}
+                            >
+                              <div className="font-medium text-sm truncate">{contact.name}</div>
+                              <div className="text-xs text-gray-500 truncate">{contact.email}</div>
+                              {contact.company && (
+                                <div className="text-xs text-gray-400 truncate mt-1">{contact.company}</div>
+                              )}
+                              {contact.nextFollowUpDate && (
+                                <div className="flex items-center gap-1 mt-2 text-xs text-gray-500">
+                                  <Calendar className="h-3 w-3" />
+                                  {new Date(contact.nextFollowUpDate).toLocaleDateString()}
+                                </div>
+                              )}
+                              {contact.tags.length > 0 && (
+                                <div className="flex gap-1 mt-2 flex-wrap">
+                                  {contact.tags.slice(0, 2).map((tag, idx) => (
+                                    <Badge key={idx} variant="outline" className="text-xs px-1 py-0">
+                                      {tag}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                        {statusContacts.length === 0 && (
+                          <div className="text-center py-8 text-gray-400 text-sm">
+                            No contacts
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </CardContent>
@@ -1509,6 +2472,76 @@ export default function InvestorDatabasePage() {
               disabled={addContactMutation.isPending || !addContactForm.name || !addContactForm.email}
             >
               {addContactMutation.isPending ? 'Adding...' : 'Add Contact'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedContacts.length} Contact(s)?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the selected contacts
+              and remove all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => bulkDeleteMutation.mutate(selectedContacts)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {bulkDeleteMutation.isPending ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Add Tag Dialog */}
+      <Dialog open={showBulkTagDialog} onOpenChange={setShowBulkTagDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Add Tag to {selectedContacts.length} Contact(s)</DialogTitle>
+            <DialogDescription>
+              Create a new tag and apply it to all selected contacts.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Tag Name</Label>
+              <Input
+                placeholder="Enter tag name..."
+                value={bulkTagInput}
+                onChange={(e) => setBulkTagInput(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && bulkTagInput.trim()) {
+                    bulkAddTagMutation.mutate({
+                      contactIds: selectedContacts,
+                      tag: bulkTagInput.trim()
+                    });
+                  }
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBulkTagDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (bulkTagInput.trim()) {
+                  bulkAddTagMutation.mutate({
+                    contactIds: selectedContacts,
+                    tag: bulkTagInput.trim()
+                  });
+                }
+              }}
+              disabled={!bulkTagInput.trim() || bulkAddTagMutation.isPending}
+            >
+              {bulkAddTagMutation.isPending ? 'Adding...' : 'Add Tag'}
             </Button>
           </DialogFooter>
         </DialogContent>

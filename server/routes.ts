@@ -10533,6 +10533,136 @@ ${finalQuestion}
     }
   });
 
+  // Bulk delete investor contacts
+  app.post("/api/investor-contacts/bulk-delete", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const { contactIds } = req.body;
+
+      if (!contactIds || !Array.isArray(contactIds) || contactIds.length === 0) {
+        return res.status(400).json({ error: "No contact IDs provided" });
+      }
+
+      const { investorContacts } = await import('@shared/schema');
+      const { and, inArray } = await import('drizzle-orm');
+
+      // Delete contacts belonging to this user
+      const result = await db
+        .delete(investorContacts)
+        .where(
+          and(
+            eq(investorContacts.userId, req.user.id),
+            inArray(investorContacts.id, contactIds)
+          )
+        )
+        .returning();
+
+      res.json({ deleted: result.length });
+    } catch (error) {
+      console.error('Error bulk deleting contacts:', error);
+      res.status(500).json({ error: "Failed to delete contacts" });
+    }
+  });
+
+  // Bulk update investor contacts
+  app.post("/api/investor-contacts/bulk-update", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const { contactIds, updates } = req.body;
+
+      if (!contactIds || !Array.isArray(contactIds) || contactIds.length === 0) {
+        return res.status(400).json({ error: "No contact IDs provided" });
+      }
+
+      if (!updates || Object.keys(updates).length === 0) {
+        return res.status(400).json({ error: "No updates provided" });
+      }
+
+      const { investorContacts } = await import('@shared/schema');
+      const { and, inArray } = await import('drizzle-orm');
+
+      // Update contacts belonging to this user
+      const result = await db
+        .update(investorContacts)
+        .set({
+          ...updates,
+          updatedAt: new Date()
+        })
+        .where(
+          and(
+            eq(investorContacts.userId, req.user.id),
+            inArray(investorContacts.id, contactIds)
+          )
+        )
+        .returning();
+
+      res.json({ updated: result.length });
+    } catch (error) {
+      console.error('Error bulk updating contacts:', error);
+      res.status(500).json({ error: "Failed to update contacts" });
+    }
+  });
+
+  // Bulk add tag to investor contacts
+  app.post("/api/investor-contacts/bulk-add-tag", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const { contactIds, tag } = req.body;
+
+      if (!contactIds || !Array.isArray(contactIds) || contactIds.length === 0) {
+        return res.status(400).json({ error: "No contact IDs provided" });
+      }
+
+      if (!tag || typeof tag !== 'string') {
+        return res.status(400).json({ error: "No tag provided" });
+      }
+
+      const { investorContacts } = await import('@shared/schema');
+      const { and, inArray } = await import('drizzle-orm');
+
+      // Get current contacts
+      const currentContacts = await db
+        .select()
+        .from(investorContacts)
+        .where(
+          and(
+            eq(investorContacts.userId, req.user.id),
+            inArray(investorContacts.id, contactIds)
+          )
+        );
+
+      // Update each contact's tags
+      let updatedCount = 0;
+      for (const contact of currentContacts) {
+        const currentTags = contact.tags || [];
+        if (!currentTags.includes(tag)) {
+          await db
+            .update(investorContacts)
+            .set({
+              tags: [...currentTags, tag],
+              updatedAt: new Date()
+            })
+            .where(eq(investorContacts.id, contact.id));
+          updatedCount++;
+        }
+      }
+
+      res.json({ updated: updatedCount });
+    } catch (error) {
+      console.error('Error bulk adding tag:', error);
+      res.status(500).json({ error: "Failed to add tag" });
+    }
+  });
+
   // Create or update investor contact from NDA signature
   app.post("/api/investor-contacts/sync-from-signatures", async (req, res) => {
     if (!req.user) {

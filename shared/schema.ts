@@ -560,6 +560,7 @@ export const investorContacts = pgTable("investor_contacts", {
   userId: integer("user_id").notNull(),
   email: text("email").notNull(),
   name: text("name").notNull(),
+  company: text("company"),
   notes: text("notes"),
   tags: text("tags").array().default([]).notNull(),
   status: text("status").default("new").notNull(), // 'new', 'contacted', 'interested', 'under_review', 'declined', 'closed'
@@ -894,6 +895,8 @@ export type InsertDocumentBaseline = z.infer<typeof insertDocumentBaselineSchema
 export const insertInvestorContactSchema = createInsertSchema(investorContacts).pick({
   email: true,
   name: true,
+  company: true,
+  location: true,
   notes: true,
   tags: true,
   status: true,
@@ -902,6 +905,8 @@ export const insertInvestorContactSchema = createInsertSchema(investorContacts).
 }).extend({
   email: z.string().email("Please enter a valid email address"),
   name: z.string().min(1, "Name is required"),
+  company: z.string().optional().nullable(),
+  location: z.string().optional().nullable(),
   status: z.enum(["new", "contacted", "interested", "under_review", "declined", "closed"]).optional()
 });
 
