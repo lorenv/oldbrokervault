@@ -124,13 +124,13 @@ function EditableTitle({ title, docId, onTitleUpdate }: EditableTitleProps) {
 
   if (isEditing) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-center gap-2">
         <input
           type="text"
           value={editTitle}
           onChange={(e) => setEditTitle(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="text-3xl font-bold tracking-tight bg-transparent border-none outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-2 py-1 flex-1"
+          className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight bg-transparent border-none outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-2 py-1 text-center text-gray-900"
           autoFocus
           disabled={updateTitleMutation.isPending}
         />
@@ -149,20 +149,20 @@ function EditableTitle({ title, docId, onTitleUpdate }: EditableTitleProps) {
           disabled={updateTitleMutation.isPending}
           className="h-8 w-8 p-0"
         >
-          <X className="h-4 w-4" />
+          <X className="h-4 w-4 text-gray-700" />
         </Button>
       </div>
     );
   }
 
   return (
-    <div 
-      className="group text-3xl font-bold tracking-tight cursor-pointer hover:bg-gray-50 rounded px-2 py-1 -mx-2 -my-1 transition-colors flex items-center gap-2"
+    <div
+      className="group cursor-pointer hover:bg-gray-50 rounded px-3 py-2 transition-colors flex items-center justify-center gap-2"
       onClick={() => setIsEditing(true)}
       title="Click to edit title"
     >
-      <h1>{displayTitle}</h1>
-      <Edit2 className="h-5 w-5 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+      <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-gray-900">{displayTitle}</h1>
+      <Edit2 className="h-5 w-5 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0" />
     </div>
   );
 }
@@ -355,28 +355,26 @@ export function DocumentDetailPage() {
               </Button>
             </Link>
           </div>
-          
-          <div className="flex items-start justify-between">
-            <div className="space-y-3">
+
+          {/* Document Title - Centered, prominent display */}
+          <div className="text-center mb-6">
+            <div className="inline-block">
               <EditableTitle title={cimDocument.title} docId={docId} />
-              <div className="flex items-center gap-3 flex-wrap">
-                {cimDocument.ndaProtected && (
-                  <Badge variant="outline" className="border-blue-200 text-blue-700 bg-blue-50">
-                    <FileSignature className="h-3 w-3 mr-1" />
-                    NDA Protected
-                  </Badge>
-                )}
-                {ndaSignatures && ndaSignatures.length > 0 && (
-                  <Badge variant="outline" className="border-purple-200 text-purple-700 bg-purple-50">
-                    <Users className="h-3 w-3 mr-1" />
-                    {ndaSignatures.length} Signature{ndaSignatures.length !== 1 ? 's' : ''}
-                  </Badge>
-                )}
-              </div>
             </div>
-            <div className="text-right text-sm text-muted-foreground">
-              <div>Created</div>
-              <div className="font-medium">{new Date(cimDocument.createdAt).toLocaleDateString()}</div>
+            <div className="flex items-center justify-center gap-4 mt-3 text-sm text-muted-foreground flex-wrap">
+              <span>Created {new Date(cimDocument.createdAt).toLocaleDateString()}</span>
+              {cimDocument.ndaProtected && (
+                <Badge variant="outline" className="border-blue-200 text-blue-700 bg-blue-50">
+                  <FileSignature className="h-3 w-3 mr-1" />
+                  NDA Protected
+                </Badge>
+              )}
+              {ndaSignatures && ndaSignatures.length > 0 && (
+                <Badge variant="outline" className="border-purple-200 text-purple-700 bg-purple-50">
+                  <Users className="h-3 w-3 mr-1" />
+                  {ndaSignatures.length} Signature{ndaSignatures.length !== 1 ? 's' : ''}
+                </Badge>
+              )}
             </div>
           </div>
         </div>

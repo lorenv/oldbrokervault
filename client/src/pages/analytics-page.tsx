@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Eye, FileSignature, UserCheck, FileText, TrendingUp, TrendingDown, Download, RefreshCw, Check, X, CheckCheck, MapPin, Copy, Clock, BarChart3 } from "lucide-react";
 import { Line, LineChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { format, subDays, eachDayOfInterval } from "date-fns";
@@ -641,7 +642,7 @@ export default function AnalyticsPage() {
         </Card>
 
         {/* Pending NDA Approvals Section */}
-        <Card className="bg-white shadow-md border border-gray-200" id="pending-approvals">
+        <Card className="bg-white shadow-md border border-gray-200 w-full" id="pending-approvals">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-xl font-bold flex items-center gap-2">
@@ -756,10 +757,10 @@ export default function AnalyticsPage() {
 
             <div className="overflow-x-auto">
               {filteredPendingApprovals.length > 0 ? (
-                <table className="w-full">
+                <table className="w-full table-fixed">
                   <thead>
-                    <tr className="border-b">
-                      <th className="w-12 py-2 px-4">
+                    <tr className="border-b bg-gray-50">
+                      <th className="w-[50px] py-3 px-4">
                         <input
                           type="checkbox"
                           checked={selectedSignatures.length === filteredPendingApprovals.length && filteredPendingApprovals.length > 0}
@@ -773,12 +774,12 @@ export default function AnalyticsPage() {
                           className="rounded"
                         />
                       </th>
-                      <th className="text-left py-2 px-4 font-semibold text-sm text-gray-700">Signer Name</th>
-                      <th className="text-left py-2 px-4 font-semibold text-sm text-gray-700">Document</th>
-                      <th className="text-left py-2 px-4 font-semibold text-sm text-gray-700">Email</th>
-                      <th className="text-left py-2 px-4 font-semibold text-sm text-gray-700">Location</th>
-                      <th className="text-center py-2 px-4 font-semibold text-sm text-gray-700">Signed Date</th>
-                      <th className="text-center py-2 px-4 font-semibold text-sm text-gray-700">Actions</th>
+                      <th className="w-[18%] text-left py-3 px-4 font-semibold text-sm text-gray-700">Signer Name</th>
+                      <th className="w-[20%] text-left py-3 px-4 font-semibold text-sm text-gray-700">Document</th>
+                      <th className="w-[20%] text-left py-3 px-4 font-semibold text-sm text-gray-700">Email</th>
+                      <th className="w-[12%] text-left py-3 px-4 font-semibold text-sm text-gray-700">Location</th>
+                      <th className="w-[12%] text-center py-3 px-4 font-semibold text-sm text-gray-700">Signed Date</th>
+                      <th className="w-[100px] text-center py-3 px-4 font-semibold text-sm text-gray-700">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -917,7 +918,7 @@ export default function AnalyticsPage() {
         </Card>
 
         {/* Document Performance Table - Top 5 */}
-        <Card className="bg-white shadow-md border border-gray-200">
+        <Card className="bg-white shadow-md border border-gray-200 w-full">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-xl font-bold">Most Active Documents</CardTitle>
@@ -969,57 +970,57 @@ export default function AnalyticsPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700 min-w-[250px]">Document Name</th>
-                    <th className="text-center py-3 px-4 font-semibold text-sm text-gray-700">Views</th>
-                    <th className="text-center py-3 px-4 font-semibold text-sm text-gray-700">
+          <CardContent className="p-0">
+            <div className="overflow-x-auto w-full">
+              <Table className="w-full table-fixed">
+                <TableHeader>
+                  <TableRow className="bg-gray-50 border-b">
+                    <TableHead className="w-[40%] text-gray-700">Document Name</TableHead>
+                    <TableHead className="w-[12%] text-center text-gray-700">Views</TableHead>
+                    <TableHead className="w-[12%] text-center text-gray-700">
                       <span className="flex items-center justify-center gap-1">
                         <Clock className="h-3 w-3" />
                         Avg Time
                       </span>
-                    </th>
-                    <th className="text-center py-3 px-4 font-semibold text-sm text-gray-700">Downloads</th>
-                    <th className="text-center py-3 px-4 font-semibold text-sm text-gray-700">Signatures</th>
-                    <th className="text-center py-3 px-4 font-semibold text-sm text-gray-700">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
+                    </TableHead>
+                    <TableHead className="w-[12%] text-center text-gray-700">Downloads</TableHead>
+                    <TableHead className="w-[12%] text-center text-gray-700">Signatures</TableHead>
+                    <TableHead className="w-[12%] text-center text-gray-700">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {filteredDocuments && filteredDocuments.length > 0 ? (
                     (showAllDocuments ? filteredDocuments : filteredDocuments.slice(0, 5)).map((doc: any) => (
-                      <tr key={doc.id} className="border-b hover:bg-gray-50 cursor-pointer transition-colors">
-                        <td className="py-3 px-4 min-w-[250px]">
-                          <a href={`/documents/${doc.id}`} className="text-blue-600 hover:font-bold font-medium">
+                      <TableRow key={doc.id} className="cursor-pointer">
+                        <TableCell>
+                          <a href={`/documents/${doc.id}`} className="text-blue-600 hover:font-bold font-medium truncate block">
                             {doc.title}
                           </a>
-                        </td>
-                        <td className="text-center py-3 px-4">{doc.views}</td>
-                        <td className="text-center py-3 px-4 text-gray-600">
+                        </TableCell>
+                        <TableCell className="text-center">{doc.views}</TableCell>
+                        <TableCell className="text-center text-gray-600">
                           {formatTimeSpent(doc.avgTimePerView)}
-                        </td>
-                        <td className="text-center py-3 px-4">{doc.downloads || 0}</td>
-                        <td className="text-center py-3 px-4">{doc.signatures}</td>
-                        <td className="text-center py-3 px-4">
+                        </TableCell>
+                        <TableCell className="text-center">{doc.downloads || 0}</TableCell>
+                        <TableCell className="text-center">{doc.signatures}</TableCell>
+                        <TableCell className="text-center">
                           <span className={`inline-block px-2 py-1 text-xs rounded-full ${
                             doc.shareEnabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
                           }`}>
                             {doc.shareEnabled ? 'Active' : 'Inactive'}
                           </span>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))
                   ) : (
-                    <tr>
-                      <td colSpan={6} className="text-center py-8 text-gray-500">
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8 text-gray-500">
                         No documents found
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   )}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           </CardContent>
         </Card>
