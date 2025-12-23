@@ -424,8 +424,8 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
                 <Users className="h-5 w-5 text-white" />
               </div>
               <div className="text-left">
-                <h3 className="text-lg font-semibold">Collaborate</h3>
-                <p className="text-sm text-muted-foreground">Invite others to help manage this document</p>
+                <h3 className="text-lg font-semibold text-gray-900">Collaborate</h3>
+                <p className="text-sm text-gray-600">Invite others to help manage this document</p>
               </div>
             </div>
           </AccordionTrigger>
@@ -448,8 +448,8 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
                 <Link className="h-5 w-5 text-white" />
               </div>
               <div className="text-left">
-                <h3 className="text-lg font-semibold">Share Link & Settings</h3>
-                <p className="text-sm text-muted-foreground">Configure public sharing and access controls</p>
+                <h3 className="text-lg font-semibold text-gray-900">Share Link & Settings</h3>
+                <p className="text-sm text-gray-600">Configure public sharing and access controls</p>
               </div>
             </div>
           </AccordionTrigger>
@@ -513,8 +513,8 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
               {/* Main Toggle */}
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <Label htmlFor="share-enabled">Enable Public Sharing</Label>
-              <p className="text-sm text-muted-foreground">
+              <Label htmlFor="share-enabled" className="text-gray-900">Enable Public Sharing</Label>
+              <p className="text-sm text-gray-600">
                 Allow others to view this document via a public link
               </p>
             </div>
@@ -530,7 +530,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
           {shareSettings.shareEnabled && (
             <>
               <div className="space-y-2">
-                <Label htmlFor="custom-slug">Customize Share Link</Label>
+                <Label htmlFor="custom-slug" className="text-gray-900">Customize Share Link</Label>
                 <Input
                   id="custom-slug"
                   placeholder="my-company-cim"
@@ -540,14 +540,14 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
                   }
                   autoComplete="off"
                 />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-gray-600">
                   Customize the end of your share link.{user?.customSubdomain ? ` Your subdomain "${user.customSubdomain}" will be used.` : ''}
                 </p>
               </div>
 
 
                 <div className="space-y-2">
-                  <Label htmlFor="share-password">Password Protection</Label>
+                  <Label htmlFor="share-password" className="text-gray-900">Password Protection</Label>
                   <Input
                     id="share-password"
                     type="password"
@@ -562,7 +562,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
 
 
                 <div className="space-y-2">
-                  <Label htmlFor="expires-at">Expiration Date</Label>
+                  <Label htmlFor="expires-at" className="text-gray-900">Expiration Date</Label>
                   <Input
                     id="expires-at"
                     type="datetime-local"
@@ -595,8 +595,8 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
                 <Send className="h-5 w-5 text-white" />
               </div>
               <div className="text-left">
-                <h3 className="text-lg font-semibold">Send via Email</h3>
-                <p className="text-sm text-muted-foreground">Share this document directly via email</p>
+                <h3 className="text-lg font-semibold text-gray-900">Send via Email</h3>
+                <p className="text-sm text-gray-600">Share this document directly via email</p>
               </div>
             </div>
           </AccordionTrigger>
@@ -605,7 +605,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
               {shareSettings.shareEnabled ? (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="recipient-email">Recipient Email Address</Label>
+                    <Label htmlFor="recipient-email" className="text-gray-900">Recipient Email Address</Label>
                     <Input
                       id="recipient-email"
                       type="email"
@@ -617,7 +617,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="custom-message">Custom Message (Optional)</Label>
+                    <Label htmlFor="custom-message" className="text-gray-900">Custom Message (Optional)</Label>
                     <Textarea
                       id="custom-message"
                       placeholder="Add a personal message..."
@@ -672,8 +672,8 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
                 <Download className="h-5 w-5 text-white" />
               </div>
               <div className="text-left">
-                <h3 className="text-lg font-semibold">Export Document</h3>
-                <p className="text-sm text-muted-foreground">Download your CIM as a PDF</p>
+                <h3 className="text-lg font-semibold text-gray-900">Export Document</h3>
+                <p className="text-sm text-gray-600">Download your CIM as a PDF</p>
               </div>
             </div>
           </AccordionTrigger>
@@ -702,8 +702,8 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
                 <Code className="h-5 w-5 text-white" />
               </div>
               <div className="text-left">
-                <h3 className="text-lg font-semibold">Embed on Website</h3>
-                <p className="text-sm text-muted-foreground">Generate embed code for your website</p>
+                <h3 className="text-lg font-semibold text-gray-900">Embed on Website</h3>
+                <p className="text-sm text-gray-600">Generate embed code for your website</p>
               </div>
             </div>
           </AccordionTrigger>
@@ -714,7 +714,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
                   {/* Embed Settings */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="embed-width">Width</Label>
+                <Label htmlFor="embed-width" className="text-gray-900">Width</Label>
                 <Input
                   id="embed-width"
                   value={embedSettings.width}
@@ -724,7 +724,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="embed-height">Height (px)</Label>
+                <Label htmlFor="embed-height" className="text-gray-900">Height (px)</Label>
                 <Input
                   id="embed-height"
                   value={embedSettings.height}
@@ -744,7 +744,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
                     setEmbedSettings(prev => ({ ...prev, border: checked }))
                   }
                 />
-                <Label htmlFor="embed-border">Show Border</Label>
+                <Label htmlFor="embed-border" className="text-gray-900">Show Border</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <Switch
@@ -754,12 +754,12 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
                     setEmbedSettings(prev => ({ ...prev, responsive: checked }))
                   }
                 />
-                <Label htmlFor="embed-responsive">Responsive</Label>
+                <Label htmlFor="embed-responsive" className="text-gray-900">Responsive</Label>
               </div>
             </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="embed-code">Embed Code</Label>
+                    <Label htmlFor="embed-code" className="text-gray-900">Embed Code</Label>
                     <Textarea
                       id="embed-code"
                       value={generateEmbedCode()}

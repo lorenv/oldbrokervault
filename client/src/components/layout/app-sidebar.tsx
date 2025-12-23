@@ -118,6 +118,15 @@ export function AppSidebar() {
     enabled: !!user,
   });
 
+  // Fetch pending approvals count for Analytics badge
+  const { data: pendingApprovalsData } = useQuery({
+    queryKey: ["/api/analytics/pending-approvals"],
+    enabled: !!user,
+    staleTime: 1000 * 60 * 1, // 1 minute
+  });
+
+  const pendingApprovalsCount = Array.isArray(pendingApprovalsData) ? pendingApprovalsData.length : 0;
+
   // Check if a nav item is active
   const isActive = (item: NavItem) => {
     if (item.matchPaths) {
@@ -150,6 +159,10 @@ export function AppSidebar() {
     const active = isActive(item);
     const Icon = item.icon;
 
+    // Special handling for Analytics badge with pending approvals count
+    const isAnalytics = item.label === "Analytics";
+    const showPendingBadge = isAnalytics && pendingApprovalsCount > 0;
+
     return (
       <SidebarMenuItem key={item.href}>
         <SidebarMenuButton
@@ -169,6 +182,16 @@ export function AppSidebar() {
             <span>{item.label}</span>
           </Link>
         </SidebarMenuButton>
+        {/* Pending approvals badge for Analytics */}
+        {showPendingBadge && !isCollapsed && (
+          <SidebarMenuBadge
+            className="text-[10px] px-1.5 rounded-full bg-slate-500/70 text-white/90"
+            title={`${pendingApprovalsCount} pending NDA approval${pendingApprovalsCount !== 1 ? 's' : ''}`}
+          >
+            {pendingApprovalsCount}
+          </SidebarMenuBadge>
+        )}
+        {/* Regular badges (Beta, Upgrade, etc.) */}
         {item.badge && !isCollapsed && (
           <SidebarMenuBadge
             className={`text-[10px] px-1.5 rounded-full ${

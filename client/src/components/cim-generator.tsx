@@ -48,6 +48,7 @@ import { Slider } from "@/components/ui/slider";
 import { DraggableImagePositioner } from "./draggable-image-positioner";
 import { UnsplashIcon } from "@/components/ui/unsplash-icon";
 import { TemplatesLibrary } from "./templates-library";
+import { useBrandColor } from "@/hooks/use-brand-color";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { FormattingProfileSelector, type CustomStyleConfig } from "./formatting-profile-selector";
 import type { FormattingProfile } from "@shared/formatting-config";
@@ -73,6 +74,7 @@ interface CimGeneratorProps {
 export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { brandColor, needsDarkText } = useBrandColor();
   const [cimMode, setCimMode] = useState<'choice' | 'generate' | 'upload'>('choice');
 
   // Notify parent component when mode changes
@@ -766,13 +768,6 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
   if (cimMode === 'choice') {
     return (
       <div className="space-y-8 max-w-3xl mx-auto">
-        <div className="text-center space-y-3">
-          <h2 className="text-3xl font-bold text-gray-900">Generate Your CIM</h2>
-          <p className="text-gray-600 text-lg">
-            Choose how you'd like to create your Confidential Information Memorandum
-          </p>
-        </div>
-
         <div className="space-y-6">
           {/* Primary Option - Generate CIM */}
           <Card className="border-2 border-blue-200 hover:border-blue-400 hover:shadow-xl transition-all duration-200 shadow-lg">
@@ -794,7 +789,24 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
             <CardContent>
               <Button
                 onClick={() => setCimMode('generate')}
-                className="w-full bg-gradient-to-r from-slate-600 to-blue-600 hover:from-slate-700 hover:to-blue-700 text-white h-12 text-base font-semibold shadow-md"
+                className="w-full h-12 text-base font-semibold shadow-md hover:shadow-lg transition-all"
+                style={brandColor ? {
+                  backgroundColor: brandColor,
+                  color: needsDarkText ? '#1e293b' : '#ffffff',
+                } : {
+                  background: 'linear-gradient(to right, #475569, #2563eb)',
+                  color: '#ffffff',
+                }}
+                onMouseEnter={(e) => {
+                  if (brandColor) {
+                    (e.currentTarget as HTMLButtonElement).style.backgroundColor = `${brandColor}dd`;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (brandColor) {
+                    (e.currentTarget as HTMLButtonElement).style.backgroundColor = brandColor;
+                  }
+                }}
               >
                 <Plus className="h-5 w-5 mr-2" />
                 Generate CIM with AI
