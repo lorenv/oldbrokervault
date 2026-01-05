@@ -201,7 +201,7 @@ export default function HomePage() {
                 Build detailed CIMs with AI, then share with an NDA in no time.
               </p>
               <div className="transform transition-all duration-1000 delay-400 ease-out">
-                <Link href="/login">
+                <Link href="/login?tab=register">
                   <Button
                     size="lg"
                     className="text-base sm:text-lg px-6 sm:px-8 py-2 sm:py-3 hover:scale-105 hover:shadow-xl transition-all duration-300"
@@ -652,7 +652,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* E-Signature Template Editor Feature - Responsive Layout */}
+            {/* E-Signatures Feature - Responsive Layout */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 items-center">
               <div
                 className={`space-y-4 sm:space-y-6 order-2 sm:order-1 lg:order-1 transition-all duration-1000 ${
@@ -663,23 +663,26 @@ export default function HomePage() {
                 data-animate-id="showcase-4"
               >
                 <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 hover:text-purple-600 transition-colors duration-300">
-                  E-Signature Templates
+                  E-Signatures
                 </h3>
                 <p className="text-sm sm:text-base lg:text-lg text-gray-600 leading-relaxed">
-                  Create custom PDF templates with drag-and-drop signature
-                  fields. Upload any PDF document and position signature, name,
-                  date, email, and text fields exactly where you need them for
-                  professional document signing workflows.
+                  Powerful e-signature capabilities with an intuitive drag-and-drop
+                  editor, reusable templates, and custom branding. Every signature
+                  includes a complete audit trail for full legal compliance and
+                  peace of mind.
                 </p>
                 <div className="flex flex-wrap gap-2 sm:gap-3">
                   <span className="px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-100 text-blue-800 rounded-full text-xs sm:text-sm font-medium hover:bg-blue-200 transition-colors duration-300 cursor-pointer">
-                    PDF Template Editor
+                    Drag & Drop Editor
                   </span>
                   <span className="px-3 py-1.5 sm:px-4 sm:py-2 bg-green-100 text-green-800 rounded-full text-xs sm:text-sm font-medium hover:bg-green-200 transition-colors duration-300 cursor-pointer">
-                    Drag & Drop Fields
+                    Full Audit Trail
                   </span>
                   <span className="px-3 py-1.5 sm:px-4 sm:py-2 bg-purple-100 text-purple-800 rounded-full text-xs sm:text-sm font-medium hover:bg-purple-200 transition-colors duration-300 cursor-pointer">
-                    Custom Positioning
+                    Reusable Templates
+                  </span>
+                  <span className="px-3 py-1.5 sm:px-4 sm:py-2 bg-orange-100 text-orange-800 rounded-full text-xs sm:text-sm font-medium hover:bg-orange-200 transition-colors duration-300 cursor-pointer">
+                    Custom Branding
                   </span>
                 </div>
               </div>
@@ -1249,19 +1252,15 @@ export default function HomePage() {
                 window.open("https://cimshare.com/listings/dealve-inc", "_blank")
               }
             >
-              <div className="aspect-[4/3] bg-gradient-to-br from-cyan-500 via-blue-500 to-indigo-600 flex flex-col items-center justify-center p-6 group-hover:scale-105 transition-transform duration-500">
-                <Globe className="w-16 h-16 text-white/90 mb-4" />
-                <h3 className="text-white font-bold text-lg text-center mb-2">Public Listings Page</h3>
-                <p className="text-white/80 text-sm text-center">Browse deals in a branded marketplace</p>
-              </div>
+              <img
+                src="/example-assets/listings example.png"
+                alt="Public Listings Page Preview"
+                loading="lazy"
+                className="w-full h-auto object-cover group-hover:scale-110 transition-transform duration-500"
+              />
               <div className="absolute top-4 right-4">
                 <div className="text-sm text-cyan-600 font-medium bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-sm animate-pulse-slow">
                   Live Example
-                </div>
-              </div>
-              <div className="absolute top-4 left-4">
-                <div className="text-xs text-white font-bold bg-green-500 px-2 py-1 rounded-full shadow-sm">
-                  NEW
                 </div>
               </div>
               <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
@@ -1285,19 +1284,15 @@ export default function HomePage() {
                 window.open("https://cimshare.com/teaser/prominent-food-beverage-business-with-strong-marke-2ea50f", "_blank")
               }
             >
-              <div className="aspect-[4/3] bg-gradient-to-br from-purple-500 via-pink-500 to-rose-500 flex flex-col items-center justify-center p-6 group-hover:scale-105 transition-transform duration-500">
-                <FileText className="w-16 h-16 text-white/90 mb-4" />
-                <h3 className="text-white font-bold text-lg text-center mb-2">AI-Generated Teaser</h3>
-                <p className="text-white/80 text-sm text-center">Anonymous preview before NDA</p>
-              </div>
+              <img
+                src="/example-assets/teaser example.png"
+                alt="Teaser Document Preview"
+                loading="lazy"
+                className="w-full h-auto object-cover group-hover:scale-110 transition-transform duration-500"
+              />
               <div className="absolute top-4 right-4">
                 <div className="text-sm text-purple-600 font-medium bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-sm animate-pulse-slow">
                   Live Example
-                </div>
-              </div>
-              <div className="absolute top-4 left-4">
-                <div className="text-xs text-white font-bold bg-green-500 px-2 py-1 rounded-full shadow-sm">
-                  NEW
                 </div>
               </div>
               <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
@@ -1493,7 +1488,7 @@ export default function HomePage() {
                 confidential business documentation needs.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <Link href="/login">
+                <Link href="/login?tab=register">
                   <Button
                     size="lg"
                     variant="secondary"

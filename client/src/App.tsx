@@ -14,7 +14,6 @@ import { AppLayout } from "@/components/layout/app-layout";
 
 // Page imports
 import HomePage from "@/pages/home-page";
-import HomePageNew from "@/pages/home-page-new";
 import DashboardPage from "@/pages/dashboard-page";
 import LoginPage from "@/pages/login-page";
 import AdminPage from "@/pages/admin-page";
@@ -47,7 +46,6 @@ import SignDocumentPage from "@/pages/sign-document";
 import Messages from "@/pages/messages";
 import EnhancedTemplateEditorPage from "@/pages/enhanced-template-editor-page";
 import { GetStartedChecklist } from "@/components/get-started-checklist";
-import MarketingHomePage from "@/pages/marketing-home-page";
 import VirtualDataRoomPage from "@/pages/virtual-data-room-page";
 import SDEAnalyzerPage from "@/pages/sde-analyzer-page";
 import IntegrationsPage from "@/pages/integrations-page";
@@ -183,8 +181,6 @@ function PublicRouter() {
         <div className={isSharePage ? "" : "flex-1"}>
           <Switch>
             <Route path="/" component={HomePage} />
-            <Route path="/home-new" component={HomePageNew} />
-            <Route path="/marketing" component={MarketingHomePage} />
             <Route path="/pricing" component={PricingPage} />
             <Route path="/virtual-data-room" component={VirtualDataRoomPage} />
             <Route path="/checkout-success" component={CheckoutSuccess} />
