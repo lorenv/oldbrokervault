@@ -1194,9 +1194,14 @@ export default function HomePage() {
                 loading="lazy"
                 className="w-full h-auto object-cover group-hover:scale-110 transition-transform duration-500"
               />
-              <div className="absolute top-4 right-4">
-                <div className="text-sm text-blue-600 font-medium bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-sm animate-pulse-slow">
-                  Live Example
+              <div className="absolute top-3 left-3">
+                <div className="text-xs font-bold text-white bg-blue-600 px-2.5 py-1 rounded-md shadow-md">
+                  CIM
+                </div>
+              </div>
+              <div className="absolute top-3 right-3">
+                <div className="text-[10px] text-gray-500 font-medium bg-white/70 backdrop-blur-sm px-2 py-0.5 rounded-full">
+                  Live
                 </div>
               </div>
               <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
@@ -1226,9 +1231,14 @@ export default function HomePage() {
                 loading="lazy"
                 className="w-full h-auto object-cover group-hover:scale-110 transition-transform duration-500"
               />
-              <div className="absolute top-4 right-4">
-                <div className="text-sm text-green-600 font-medium bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-sm animate-pulse-slow">
-                  Live Example
+              <div className="absolute top-3 left-3">
+                <div className="text-xs font-bold text-white bg-blue-600 px-2.5 py-1 rounded-md shadow-md">
+                  CIM
+                </div>
+              </div>
+              <div className="absolute top-3 right-3">
+                <div className="text-[10px] text-gray-500 font-medium bg-white/70 backdrop-blur-sm px-2 py-0.5 rounded-full">
+                  Live
                 </div>
               </div>
               <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
@@ -1258,9 +1268,14 @@ export default function HomePage() {
                 loading="lazy"
                 className="w-full h-auto object-cover group-hover:scale-110 transition-transform duration-500"
               />
-              <div className="absolute top-4 right-4">
-                <div className="text-sm text-cyan-600 font-medium bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-sm animate-pulse-slow">
-                  Live Example
+              <div className="absolute top-3 left-3">
+                <div className="text-xs font-bold text-white bg-cyan-600 px-2.5 py-1 rounded-md shadow-md">
+                  Listings
+                </div>
+              </div>
+              <div className="absolute top-3 right-3">
+                <div className="text-[10px] text-gray-500 font-medium bg-white/70 backdrop-blur-sm px-2 py-0.5 rounded-full">
+                  Live
                 </div>
               </div>
               <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
@@ -1290,9 +1305,14 @@ export default function HomePage() {
                 loading="lazy"
                 className="w-full h-auto object-cover group-hover:scale-110 transition-transform duration-500"
               />
-              <div className="absolute top-4 right-4">
-                <div className="text-sm text-purple-600 font-medium bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-sm animate-pulse-slow">
-                  Live Example
+              <div className="absolute top-3 left-3">
+                <div className="text-xs font-bold text-white bg-purple-600 px-2.5 py-1 rounded-md shadow-md">
+                  Teaser
+                </div>
+              </div>
+              <div className="absolute top-3 right-3">
+                <div className="text-[10px] text-gray-500 font-medium bg-white/70 backdrop-blur-sm px-2 py-0.5 rounded-full">
+                  Live
                 </div>
               </div>
               <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
