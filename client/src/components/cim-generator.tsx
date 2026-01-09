@@ -1104,7 +1104,7 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
                         <div className="flex-1">
                           <label
                             htmlFor="website-analysis"
-                            className="text-sm font-medium cursor-pointer"
+                            className="text-sm font-medium cursor-pointer text-gray-900"
                           >
                             AI Website Information Extraction
                           </label>
