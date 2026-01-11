@@ -327,10 +327,10 @@ export default function DocumentsPage() {
           icon={<FolderOpen className="h-5 w-5" />}
           actions={
             <Link href="/dashboard">
-              <BrandedButton className="flex items-center gap-2">
+              <Button variant="outline" className="flex items-center gap-2">
                 <Plus className="h-4 w-4" />
                 <span className="hidden sm:inline">Create New CIM</span>
-              </BrandedButton>
+              </Button>
             </Link>
           }
         />

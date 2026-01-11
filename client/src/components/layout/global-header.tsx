@@ -278,6 +278,7 @@ export function GlobalHeader() {
   const [, navigate] = useLocation();
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchFilter, setSearchFilter] = useState<"all" | "deal" | "contact" | "company">("all");
   const [quickCreateType, setQuickCreateType] = useState<"deal" | "contact" | "company" | "task" | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
@@ -295,6 +296,7 @@ export function GlobalHeader() {
       if (e.key === "Escape" && searchFocused) {
         setSearchFocused(false);
         setSearchQuery("");
+        setSearchFilter("all");
         inputRef.current?.blur();
       }
     };
@@ -307,6 +309,7 @@ export function GlobalHeader() {
     const handleClickOutside = (e: MouseEvent) => {
       if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
         setSearchFocused(false);
+        setSearchFilter("all");
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -315,17 +318,32 @@ export function GlobalHeader() {
 
   // Global search query
   const { data: searchResults } = useQuery<{ results: SearchResult[] }>({
-    queryKey: ["/api/crm/search", searchQuery],
-    queryFn: () => apiRequest("GET", `/api/crm/search?q=${encodeURIComponent(searchQuery)}`).then(r => r.json()),
+    queryKey: ["/api/crm/search", searchQuery, searchFilter],
+    queryFn: () => {
+      const params = new URLSearchParams({ q: searchQuery });
+      if (searchFilter !== "all") params.set("type", searchFilter);
+      return apiRequest("GET", `/api/crm/search?${params.toString()}`).then(r => r.json());
+    },
     enabled: searchQuery.length >= 2,
   });
 
-  const results = searchResults?.results || [];
+  const allResults = searchResults?.results || [];
+  // Client-side filter as backup (in case backend doesn't support type filter)
+  const results = searchFilter === "all"
+    ? allResults
+    : allResults.filter(r => r.type === searchFilter);
 
   const handleSelect = (result: SearchResult) => {
     setSearchFocused(false);
     setSearchQuery("");
+    setSearchFilter("all");
     navigate(`/${result.type}s/${result.id}`);
+  };
+
+  const handleCloseSearch = () => {
+    setSearchFocused(false);
+    setSearchQuery("");
+    setSearchFilter("all");
   };
 
   const getIcon = (type: string) => {
@@ -361,20 +379,44 @@ export function GlobalHeader() {
           </kbd>
 
           {/* Search Results Dropdown */}
-          {searchFocused && (searchQuery.length >= 2 || searchQuery.length === 0) && (
+          {searchFocused && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-md border border-gray-200 shadow-lg z-50 overflow-hidden">
+              {/* Quick Filters */}
+              <div className="px-3 py-2 border-b border-gray-100 flex items-center gap-1.5">
+                <span className="text-xs text-gray-500 mr-1">Filter:</span>
+                {[
+                  { value: "all", label: "All" },
+                  { value: "deal", label: "Deals", icon: Kanban, color: "text-green-600" },
+                  { value: "contact", label: "Contacts", icon: Contact, color: "text-blue-600" },
+                  { value: "company", label: "Companies", icon: Building2, color: "text-purple-600" },
+                ].map((filter) => (
+                  <button
+                    key={filter.value}
+                    onClick={() => setSearchFilter(filter.value as typeof searchFilter)}
+                    className={`px-2 py-1 text-xs rounded-md flex items-center gap-1 transition-colors ${
+                      searchFilter === filter.value
+                        ? "bg-blue-100 text-blue-700 ring-1 ring-blue-300"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    {filter.icon && <filter.icon className={`h-3 w-3 ${searchFilter === filter.value ? "text-blue-600" : filter.color}`} />}
+                    {filter.label}
+                  </button>
+                ))}
+              </div>
+
               {searchQuery.length < 2 ? (
-                <div className="px-4 py-3 text-sm text-gray-500">
+                <div className="px-4 py-3 text-sm text-gray-600">
                   Type at least 2 characters to search
                 </div>
               ) : results.length === 0 ? (
-                <div className="px-4 py-3 text-sm text-gray-500">
-                  No results found
+                <div className="px-4 py-3 text-sm text-gray-600">
+                  No results found{searchFilter !== "all" && ` for ${searchFilter}s`}
                 </div>
               ) : (
-                <div className="py-1">
+                <div className="py-1 max-h-80 overflow-y-auto">
                   <div className="px-3 py-1.5 text-xs font-medium text-gray-500 uppercase">
-                    Results
+                    {results.length} Result{results.length !== 1 ? "s" : ""}
                   </div>
                   {results.map((result) => (
                     <button
@@ -384,12 +426,12 @@ export function GlobalHeader() {
                     >
                       {getIcon(result.type)}
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm truncate">{result.title}</div>
+                        <div className="font-medium text-sm text-gray-900 truncate">{result.title}</div>
                         {result.subtitle && (
-                          <div className="text-xs text-gray-500 truncate">{result.subtitle}</div>
+                          <div className="text-xs text-gray-600 truncate">{result.subtitle}</div>
                         )}
                       </div>
-                      <span className="text-xs text-gray-400 capitalize flex-shrink-0">{result.type}</span>
+                      <span className="text-xs text-gray-500 capitalize flex-shrink-0">{result.type}</span>
                     </button>
                   ))}
                 </div>
