@@ -1,4 +1,4 @@
-import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, uploadedFiles, customSections, ndaTemplates, ndaSignatures, ndaAccessTokens, ndaRedirectLinks, documentViews, documentDownloads, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, NdaAccessToken, InsertNdaAccessToken, NdaRedirectLink, InsertNdaRedirectLink, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator, documentLocks, DocumentLock, documentActivityLog, DocumentActivityLog, customTags, analysisTemplates, AnalysisTemplate, InsertAnalysisTemplate, financialFiles, documentVersions, documentAnalytics, documentBaselines, DocumentBaseline, InsertDocumentBaseline, contentStyleTemplates, ContentStyleTemplate, InsertContentStyleTemplate, messageAttachments, MessageAttachment, InsertMessageAttachment, onboardingEmailSequences, userEmailQueue, OnboardingEmailSequence, UserEmailQueue, InsertUserEmailQueue, teasers } from "@shared/schema";
+import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, uploadedFiles, customSections, ndaTemplates, ndaSignatures, ndaAccessTokens, ndaRedirectLinks, documentViews, documentDownloads, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, NdaAccessToken, InsertNdaAccessToken, NdaRedirectLink, InsertNdaRedirectLink, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator, documentLocks, DocumentLock, documentActivityLog, DocumentActivityLog, customTags, analysisTemplates, AnalysisTemplate, InsertAnalysisTemplate, financialFiles, documentVersions, documentAnalytics, documentBaselines, DocumentBaseline, InsertDocumentBaseline, contentStyleTemplates, ContentStyleTemplate, InsertContentStyleTemplate, messageAttachments, MessageAttachment, InsertMessageAttachment, onboardingEmailSequences, userEmailQueue, OnboardingEmailSequence, UserEmailQueue, InsertUserEmailQueue, teasers, deals } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
@@ -100,6 +100,7 @@ export interface IStorage {
       ndaTemplateId: number | null;
       ndaApprovalRequired: boolean;
     } | null;
+    dealId?: number | null;
   }): Promise<CimDocument>;
   createUploadedFile(data: {
     cimDocumentId: number;
@@ -109,7 +110,7 @@ export interface IStorage {
     mimeType: string;
   }): Promise<any>;
   getUploadedFiles(cimDocumentId: number): Promise<any[]>;
-  getCimDocuments(userId: number, options?: { page?: number; limit?: number; search?: string; filters?: string[] }): Promise<{ documents: CimDocument[]; total: number; hasMore: boolean }>;
+  getCimDocuments(userId: number, options?: { page?: number; limit?: number; search?: string; filters?: string[]; dealId?: number }): Promise<{ documents: CimDocument[]; total: number; hasMore: boolean }>;
   getAllUsers(): Promise<User[]>;
   getAllCimDocuments(): Promise<CimDocument[]>;
   getCimDocument(id: number): Promise<CimDocument | undefined>;
@@ -544,6 +545,8 @@ export class DatabaseStorage implements IStorage {
       // New fields for section directions and formatting
       sectionDirections: doc.sectionDirections || null,
       formattingProfile: doc.formattingProfile || null,
+      // Deal association
+      dealId: doc.dealId || null,
     };
 
     console.log("Data being inserted into database:", insertData);
@@ -736,6 +739,7 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
       ndaTemplateId: number | null;
       ndaApprovalRequired: boolean;
     } | null;
+    dealId?: number | null;
   }): Promise<CimDocument> {
     // Check if user is within their limit
     const canCreate = await this.checkUserLimit(userId);
@@ -749,6 +753,9 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
     // Generate automatic share link for uploaded document
     const randomId = Math.random().toString(36).substring(2, 8);
     const shareSlug = `cim-${randomId}`;
+
+    console.log("=== STORAGE createUploadedCimDocument ===");
+    console.log("dealId received:", data.dealId, "type:", typeof data.dealId);
 
     const [cimDoc] = await db
       .insert(cimDocuments)
@@ -773,8 +780,12 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
         ndaProtected: data.ndaSettings?.ndaProtected ?? false,
         ndaTemplateId: data.ndaSettings?.ndaTemplateId ?? null,
         ndaApprovalRequired: data.ndaSettings?.ndaApprovalRequired ?? false,
+        // Deal association
+        dealId: data.dealId ?? null,
       })
       .returning();
+
+    console.log("Created uploaded CIM document with dealId:", cimDoc.dealId);
 
     await this.updateDocumentCreationUsage(userId);
     return cimDoc;
@@ -801,12 +812,13 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
       .where(eq(uploadedFiles.cimDocumentId, cimDocumentId));
   }
 
-  async getCimDocuments(userId: number, options?: { page?: number; limit?: number; search?: string; filters?: string[] }): Promise<{ documents: CimDocument[]; total: number; hasMore: boolean }> {
+  async getCimDocuments(userId: number, options?: { page?: number; limit?: number; search?: string; filters?: string[]; dealId?: number }): Promise<{ documents: CimDocument[]; total: number; hasMore: boolean }> {
     const page = options?.page || 1;
     const limit = options?.limit || 12;
     const offset = (page - 1) * limit;
     const search = options?.search?.trim();
     const filters = options?.filters || [];
+    const dealId = options?.dealId;
 
     // Build base query that includes:
     // 1. Documents owned by the user
@@ -842,6 +854,16 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
       filterConditions.push(sql`${cimDocuments.shareViewCount} > 0`);
     }
 
+    // Orphan (no deal) filter
+    if (filters.includes('orphan')) {
+      filterConditions.push(isNull(cimDocuments.dealId));
+    }
+
+    // Filter by specific deal ID
+    if (dealId) {
+      filterConditions.push(eq(cimDocuments.dealId, dealId));
+    }
+
     // Has Published Teaser filter - uses subquery to check for published teaser
     if (filters.includes('has-published-teaser')) {
       filterConditions.push(
@@ -865,6 +887,7 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
     // For dashboard, only select essential fields to minimize data transfer
     // Include signature count via LEFT JOIN with ndaSignatures table
     // Include collaborator info to determine if this is a shared document
+    // Include deal info via LEFT JOIN with deals table
     let query = db
       .select({
         id: cimDocuments.id,
@@ -887,11 +910,15 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
         pendingNdaCount: sql<number>`COALESCE(SUM(CASE WHEN ${cimDocuments.ndaApprovalRequired} = true AND ${ndaSignatures.id} IS NOT NULL AND ${ndaSignatures.approved} = false THEN 1 ELSE 0 END), 0)`,
         // Add field to indicate if this is a shared document
         isSharedWithUser: sql<boolean>`CASE WHEN ${cimDocuments.userId} != ${userId} THEN true ELSE false END`,
-        collaboratorPermission: sql<string>`MAX(CASE WHEN ${collaborators.userId} = ${userId} THEN ${collaborators.permission} ELSE NULL END)`
+        collaboratorPermission: sql<string>`MAX(CASE WHEN ${collaborators.userId} = ${userId} THEN ${collaborators.permission} ELSE NULL END)`,
+        // Deal info
+        dealId: cimDocuments.dealId,
+        dealName: deals.name
       })
       .from(cimDocuments)
       .leftJoin(collaborators, eq(cimDocuments.id, collaborators.cimDocumentId))
       .leftJoin(ndaSignatures, eq(cimDocuments.id, ndaSignatures.cimDocumentId))
+      .leftJoin(deals, eq(cimDocuments.dealId, deals.id))
       .where(whereCondition)
       .groupBy(
         cimDocuments.id,
@@ -909,7 +936,9 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
         cimDocuments.isExample,
         cimDocuments.sectionDirections,
         cimDocuments.formattingProfile,
-        cimDocuments.ndaApprovalRequired
+        cimDocuments.ndaApprovalRequired,
+        cimDocuments.dealId,
+        deals.name
       );
 
     // Add HAVING clause for 'has-signatures' filter
@@ -975,6 +1004,9 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
       // Add collaboration info
       isSharedWithUser: result.isSharedWithUser || false,
       collaboratorPermission: result.collaboratorPermission || null,
+      // Add deal info
+      dealId: result.dealId || null,
+      dealName: result.dealName || null,
       // Add missing fields
       copyMeOnEmails: false,
       deletedAt: null

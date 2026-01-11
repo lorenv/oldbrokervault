@@ -368,7 +368,17 @@ startServer().then(async (server) => {
     console.error('❌ Failed to initialize daily signup summary system:', summaryError);
     // Don't fail server startup if summary system fails
   }
-  
+
+  // Initialize task reminder system
+  try {
+    const { taskReminderSystem } = await import('./task-reminder-system');
+    taskReminderSystem.start();
+    console.log('⏰ Task reminder system initialized and running');
+  } catch (reminderError) {
+    console.error('❌ Failed to initialize task reminder system:', reminderError);
+    // Don't fail server startup if reminder system fails
+  }
+
   // Graceful shutdown with memory cleanup
   process.on('SIGTERM', () => {
     log('SIGTERM received, shutting down gracefully');

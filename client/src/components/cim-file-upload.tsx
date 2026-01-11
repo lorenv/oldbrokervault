@@ -13,9 +13,12 @@ import { useAuth } from "@/hooks/use-auth";
 
 interface CimFileUploadProps {
   onSuccess?: (docId: number) => void;
+  dealId?: number | null;
 }
 
-export function CimFileUpload({ onSuccess }: CimFileUploadProps) {
+export function CimFileUpload({ onSuccess, dealId }: CimFileUploadProps) {
+  // Debug: Log dealId prop
+  console.log('[CimFileUpload] Received dealId prop:', dealId, 'type:', typeof dealId);
   const { user } = useAuth();
   const [uploadedDocId, setUploadedDocId] = useState<number | null>(null);
   const [title, setTitle] = useState("");
@@ -53,6 +56,12 @@ export function CimFileUpload({ onSuccess }: CimFileUploadProps) {
 
       // Add NDA settings to the upload
       formData.append('ndaSettings', JSON.stringify(ndaSettings));
+
+      // Add deal association if provided
+      if (dealId) {
+        formData.append('dealId', dealId.toString());
+        console.log('[CimFileUpload] Added dealId to FormData:', dealId);
+      }
 
       const res = await fetch('/api/cim/upload-file', {
         method: 'POST',

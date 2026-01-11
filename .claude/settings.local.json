@@ -60,7 +60,9 @@
       "Bash(npm ls:*)",
       "Bash(pgrep:*)",
       "Bash(openssl rand:*)",
-      "Bash(timeout 60 npx drizzle-kit:*)"
+      "Bash(timeout 60 npx drizzle-kit:*)",
+      "Bash(npm run db:push:*)",
+      "Bash(npm run check:*)"
     ],
     "deny": [],
     "ask": [],

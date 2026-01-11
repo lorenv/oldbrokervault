@@ -53,9 +53,18 @@ import IntegrationsPage from "@/pages/integrations-page";
 // New settings pages
 import ListingsSettingsPage from "@/pages/listings-settings-page";
 import AccountSettingsPage from "@/pages/settings/account-settings-page";
-import BillingPage from "@/pages/settings/billing-page";
-import PdfBrandingPage from "@/pages/settings/pdf-branding-page";
-import OnlineBrandingPage from "@/pages/settings/online-branding-page";
+import BrandingPage from "@/pages/settings/branding-page";
+
+// CRM Pages
+import DealsPage from "@/pages/crm/deals-page";
+import DealDetailPage from "@/pages/crm/deal-detail-page";
+import CompaniesPage from "@/pages/crm/companies-page";
+import CompanyDetailPage from "@/pages/crm/company-detail-page";
+import ContactsPage from "@/pages/crm/contacts-page";
+import ContactDetailPage from "@/pages/crm/contact-detail-page";
+import TasksPage from "@/pages/crm/tasks-page";
+import TeamSettingsPage from "@/pages/settings/team-settings-page";
+import PipelineSettingsPage from "@/pages/settings/pipeline-settings-page";
 
 // E-Signature Pages
 import EsignDashboard from "@/pages/esign/esign-dashboard";
@@ -99,6 +108,11 @@ const authenticatedRoutes = [
   '/admin',
   '/listings-settings',
   '/settings',
+  // CRM routes
+  '/deals',
+  '/tasks',
+  '/companies',
+  '/contacts',
 ];
 
 // Check if current route should use sidebar layout
@@ -125,6 +139,15 @@ function AuthenticatedRouter() {
         <ProtectedRoute path="/sde-analyzer" component={SDEAnalyzerPage} />
         <ProtectedRoute path="/messages" component={Messages} />
 
+        {/* CRM Routes */}
+        <ProtectedRoute path="/deals" component={DealsPage} />
+        <ProtectedRoute path="/deals/:id" component={DealDetailPage} />
+        <ProtectedRoute path="/tasks" component={TasksPage} />
+        <ProtectedRoute path="/companies" component={CompaniesPage} />
+        <ProtectedRoute path="/companies/:id" component={CompanyDetailPage} />
+        <ProtectedRoute path="/contacts" component={ContactsPage} />
+        <ProtectedRoute path="/contacts/:id" component={ContactDetailPage} />
+
         {/* E-Signature Routes */}
         <ProtectedRoute path="/esign" component={EsignDashboard} />
         <ProtectedRoute path="/esign/templates" component={EsignTemplates} />
@@ -140,11 +163,16 @@ function AuthenticatedRouter() {
 
         {/* Settings Routes (sidebar settings section) */}
         <ProtectedRoute path="/settings/account" component={AccountSettingsPage} />
-        <ProtectedRoute path="/settings/billing" component={BillingPage} />
-        <ProtectedRoute path="/settings/pdf-branding" component={PdfBrandingPage} />
-        <ProtectedRoute path="/settings/online-branding" component={OnlineBrandingPage} />
+        <ProtectedRoute path="/settings/team" component={TeamSettingsPage} />
+        <ProtectedRoute path="/settings/customization" component={PipelineSettingsPage} />
+        <ProtectedRoute path="/settings/branding" component={BrandingPage} />
 
-        {/* Legacy account route - redirect to new settings */}
+        {/* Legacy settings routes - redirect to new consolidated pages */}
+        <ProtectedRoute path="/settings/billing" component={AccountSettingsPage} />
+        <ProtectedRoute path="/settings/email" component={AccountSettingsPage} />
+        <ProtectedRoute path="/settings/pipelines" component={PipelineSettingsPage} />
+        <ProtectedRoute path="/settings/pdf-branding" component={BrandingPage} />
+        <ProtectedRoute path="/settings/online-branding" component={BrandingPage} />
         <ProtectedRoute path="/account" component={AccountSettingsPage} />
         <ProtectedRoute path="/profile" component={AccountSettingsPage} />
 

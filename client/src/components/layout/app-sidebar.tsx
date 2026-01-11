@@ -6,12 +6,13 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
   SidebarMenu,
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
@@ -23,7 +24,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Plus,
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
   FileText,
   Users,
   Signature,
@@ -32,17 +37,22 @@ import {
   LayoutList,
   WandSparkles,
   User,
-  CreditCard,
-  FileImage,
-  Globe,
   FileCheck,
   Workflow,
   LogOut,
   HelpCircle,
   Shield,
   ChevronUp,
+  ChevronRight,
   PanelLeftClose,
   PanelLeft,
+  Kanban,
+  Building2,
+  Contact,
+  Settings,
+  Palette,
+  Sliders,
+  CheckSquare,
 } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -57,28 +67,30 @@ interface NavItem {
   matchPaths?: string[];
 }
 
-// Main navigation items (top section, no header)
+// Main navigation items (top section - CRM)
 const mainNavItems: NavItem[] = [
-  { label: "Create CIM", icon: Plus, href: "/dashboard", matchPaths: ["/dashboard"] },
-  { label: "My CIMs", icon: FileText, href: "/documents", matchPaths: ["/documents"] },
-  { label: "CRM", icon: Users, href: "/investor-database", matchPaths: ["/investor-database"] },
-  { label: "E-Signatures", icon: Signature, href: "/esign", matchPaths: ["/esign"] },
+  { label: "Deals", icon: Kanban, href: "/deals", matchPaths: ["/deals"] },
+  { label: "Contacts", icon: Contact, href: "/contacts", matchPaths: ["/contacts", "/investor-database"] },
+  { label: "Companies", icon: Building2, href: "/companies", matchPaths: ["/companies"] },
+  { label: "Tasks", icon: CheckSquare, href: "/tasks", matchPaths: ["/tasks"] },
 ];
 
-// Secondary navigation items (after gap)
+// Secondary navigation items (after gap - tools & documents)
 const secondaryNavItems: NavItem[] = [
+  { label: "CIM Library", icon: FileText, href: "/documents", matchPaths: ["/documents"] },
+  { label: "E-Signatures", icon: Signature, href: "/esign", matchPaths: ["/esign"] },
   { label: "Analytics", icon: BarChart3, href: "/analytics", matchPaths: ["/analytics"] },
   { label: "Messages", icon: MessageCircle, href: "/messages", matchPaths: ["/messages"] },
-  { label: "Listings", icon: LayoutList, href: "/listings-settings", matchPaths: ["/listings-settings"] },
+  { label: "Listings Page", icon: LayoutList, href: "/listings-settings", matchPaths: ["/listings-settings"] },
   { label: "SDE Analyzer", icon: WandSparkles, href: "/sde-analyzer", badge: "Beta", matchPaths: ["/sde-analyzer"] },
 ];
 
-// Settings navigation items (Billing badge is dynamic based on subscription)
-const getSettingsNavItems = (showUpgradeBadge: boolean): NavItem[] => [
-  { label: "Account", icon: User, href: "/settings/account", matchPaths: ["/settings/account"] },
-  { label: "Billing", icon: CreditCard, href: "/settings/billing", matchPaths: ["/settings/billing"], badge: showUpgradeBadge ? "Upgrade" : undefined },
-  { label: "PDF Branding", icon: FileImage, href: "/settings/pdf-branding", matchPaths: ["/settings/pdf-branding"] },
-  { label: "Online CIM Branding", icon: Globe, href: "/settings/online-branding", matchPaths: ["/settings/online-branding"] },
+// Settings navigation items (simplified)
+const settingsNavItems: NavItem[] = [
+  { label: "Account", icon: User, href: "/settings/account", matchPaths: ["/settings/account", "/settings/billing", "/settings/email"] },
+  { label: "Team", icon: Users, href: "/settings/team", matchPaths: ["/settings/team"] },
+  { label: "Customization", icon: Sliders, href: "/settings/customization", matchPaths: ["/settings/customization", "/settings/pipelines"] },
+  { label: "Branding", icon: Palette, href: "/settings/branding", matchPaths: ["/settings/branding", "/settings/pdf-branding", "/settings/online-branding"] },
   { label: "NDA Templates", icon: FileCheck, href: "/nda-templates", matchPaths: ["/nda-templates", "/template-editor"] },
   { label: "Integrations", icon: Workflow, href: "/integrations", matchPaths: ["/integrations"] },
 ];
@@ -107,10 +119,13 @@ export function AppSidebar() {
   const { user, logoutMutation } = useAuth();
   const [location] = useLocation();
   const [isSupportOpen, setIsSupportOpen] = useState(false);
-
-  // Check if user is on free tier (show upgrade badge on Billing)
-  const isFreeTier = !user?.subscriptionStatus || user.subscriptionStatus === 'free';
-  const settingsNavItems = getSettingsNavItems(isFreeTier);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(() => {
+    // Auto-expand if we're on a settings page
+    return location.startsWith('/settings') ||
+           location.startsWith('/nda-templates') ||
+           location.startsWith('/template-editor') ||
+           location.startsWith('/integrations');
+  });
 
   // Fetch profile data for profile picture
   const { data: profile } = useQuery({
@@ -136,6 +151,9 @@ export function AppSidebar() {
     }
     return location === item.href || location.startsWith(item.href + "/");
   };
+
+  // Check if any settings item is active
+  const isSettingsActive = settingsNavItems.some(item => isActive(item));
 
   // Get sidebar context
   const { state, toggleSidebar, isMobile, setOpenMobile } = useSidebar();
@@ -209,6 +227,30 @@ export function AppSidebar() {
     );
   };
 
+  // Render settings sub-item
+  const renderSettingsSubItem = (item: NavItem) => {
+    const active = isActive(item);
+    const Icon = item.icon;
+
+    return (
+      <SidebarMenuSubItem key={item.href}>
+        <SidebarMenuSubButton
+          asChild
+          isActive={active}
+          className={active && brandColor ? "!bg-opacity-20" : ""}
+          style={active && brandColor ? {
+            backgroundColor: `${brandColor}20`,
+          } : undefined}
+        >
+          <Link href={item.href} onClick={handleNavClick}>
+            <Icon className="h-4 w-4" style={active && brandColor ? { color: brandColor } : undefined} />
+            <span>{item.label}</span>
+          </Link>
+        </SidebarMenuSubButton>
+      </SidebarMenuSubItem>
+    );
+  };
+
   return (
     <>
       <Sidebar collapsible="icon">
@@ -237,7 +279,7 @@ export function AppSidebar() {
         </Link>
 
         <SidebarContent>
-          {/* Main Navigation */}
+          {/* Main Navigation - Deal-centric */}
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
@@ -258,12 +300,40 @@ export function AppSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
 
-          {/* Settings Section */}
+          {/* Settings Section - Collapsible */}
           <SidebarGroup className="mt-auto">
-            <SidebarGroupLabel>Settings</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {settingsNavItems.map(renderNavItem)}
+                <Collapsible
+                  open={isSettingsOpen}
+                  onOpenChange={setIsSettingsOpen}
+                  className="group/collapsible"
+                >
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton
+                        tooltip="Settings"
+                        isActive={isSettingsActive && !isSettingsOpen}
+                        className={isSettingsActive && brandColor && !isSettingsOpen ? "!bg-opacity-20" : ""}
+                        style={isSettingsActive && brandColor && !isSettingsOpen ? {
+                          backgroundColor: `${brandColor}25`,
+                          borderLeft: `3px solid ${brandColor}`,
+                          marginLeft: '-3px',
+                          paddingLeft: 'calc(0.5rem + 3px)',
+                        } : undefined}
+                      >
+                        <Settings className="h-4 w-4" style={isSettingsActive && brandColor ? { color: brandColor } : undefined} />
+                        <span>Settings</span>
+                        <ChevronRight className={`ml-auto h-4 w-4 transition-transform duration-200 ${isSettingsOpen ? 'rotate-90' : ''}`} />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
+                      <SidebarMenuSub>
+                        {settingsNavItems.map(renderSettingsSubItem)}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
