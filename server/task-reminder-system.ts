@@ -184,8 +184,8 @@ export class TaskReminderSystem {
     }
 
     const taskUrl = task.objectType && task.objectId
-      ? `https://app.cimshare.com/${task.objectType}s/${task.objectId}`
-      : 'https://app.cimshare.com/tasks';
+      ? `https://cimshare.com/${task.objectType}s/${task.objectId}`
+      : 'https://cimshare.com/tasks';
 
     const subject = `Reminder: ${task.title}`;
 

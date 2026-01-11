@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import {
@@ -30,8 +30,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
 import {
   Plus,
@@ -45,6 +45,13 @@ import {
   MoreHorizontal,
   Trash2,
   Eye,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
+  Check,
+  X,
+  Clock,
+  Download,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -52,6 +59,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+import { useDealFilters, DEFAULT_FILTERS, DEFAULT_SORTING, DEFAULT_COLUMNS } from "@/hooks/use-deal-filters";
+import { DealsQuickFilters } from "@/components/crm/deals-quick-filters";
+import { DealsAdvancedFilters } from "@/components/crm/deals-advanced-filters";
+import { DealsViewManager } from "@/components/crm/deals-view-manager";
+import { DealsColumnConfig } from "@/components/crm/deals-column-config";
 
 interface Deal {
   id: number;
@@ -62,8 +75,11 @@ interface Deal {
   pipelineId: number;
   closeDate: string | null;
   companyId: number | null;
+  ownerId: number | null;
+  priority: string | null;
+  source: string | null;
   company?: { id: number; name: string } | null;
-  stage?: { id: number; name: string; color: string };
+  stage?: { id: number; name: string; color: string; probability: number };
   createdAt: string;
 }
 
@@ -85,6 +101,35 @@ interface Pipeline {
   stages: Stage[];
 }
 
+interface DealsResponse {
+  deals: Deal[];
+  total: number;
+  page: number;
+  limit: number;
+  aggregates: {
+    count: number;
+    totalAmount: number;
+    avgAmount: number;
+    weightedAmount: number;
+  };
+}
+
+// Helper to calculate days since a date
+function getDaysSince(dateString: string): number {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffTime = now.getTime() - date.getTime();
+  return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+}
+
+// Get color for days indicator based on age
+function getDaysColor(days: number): string {
+  if (days <= 7) return "text-green-600";
+  if (days <= 14) return "text-yellow-600";
+  if (days <= 30) return "text-orange-500";
+  return "text-red-500";
+}
+
 // Draggable Deal Card Component
 function DealCard({ deal, isDragging, isOverlay }: { deal: Deal; isDragging?: boolean; isOverlay?: boolean }) {
   const { attributes, listeners, setNodeRef, transform, isDragging: isCurrentlyDragging } = useDraggable({
@@ -92,12 +137,9 @@ function DealCard({ deal, isDragging, isOverlay }: { deal: Deal; isDragging?: bo
     data: deal,
   });
 
-  // Hide the original card while dragging (we show the DragOverlay instead)
-  // This prevents the "snap back" animation when the card is dropped
   const style: React.CSSProperties = {
     transform: transform ? CSS.Translate.toString(transform) : undefined,
     opacity: isCurrentlyDragging ? 0 : (isDragging ? 0.5 : 1),
-    // Prevent any transition on the original card during drag
     transition: isCurrentlyDragging ? 'none' : undefined,
   };
 
@@ -143,6 +185,13 @@ function DealCard({ deal, isDragging, isOverlay }: { deal: Deal; isDragging?: bo
               <span>{new Date(deal.closeDate).toLocaleDateString()}</span>
             </div>
           )}
+          {/* Days in pipeline indicator */}
+          {deal.createdAt && (
+            <div className={`flex items-center gap-1.5 text-xs mt-2 ${getDaysColor(getDaysSince(deal.createdAt))}`}>
+              <Clock className="h-3 w-3" />
+              <span>{getDaysSince(deal.createdAt)}d in pipeline</span>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -162,7 +211,6 @@ function StageColumn({
     data: stage,
   });
 
-  // Calculate stage totals
   const dealCount = stage.deals?.length || 0;
   const totalValue = stage.deals?.reduce((sum, deal) => {
     return sum + (deal.amount ? parseFloat(deal.amount) : 0);
@@ -175,7 +223,6 @@ function StageColumn({
         isOver ? "ring-2 ring-blue-400 bg-blue-50" : ""
       }`}
     >
-      {/* Stage Header */}
       <div
         className="p-3 border-b bg-white rounded-t-lg"
         style={{ borderTopColor: stage.color, borderTopWidth: 3 }}
@@ -203,8 +250,6 @@ function StageColumn({
           </div>
         )}
       </div>
-
-      {/* Deals List */}
       <div className="p-2 space-y-2 min-h-[200px] max-h-[calc(100vh-300px)] overflow-y-auto">
         {children}
       </div>
@@ -212,11 +257,134 @@ function StageColumn({
   );
 }
 
+// Inline Editable Cell
+function InlineEditableCell({
+  value,
+  onSave,
+  type = 'text',
+  options,
+  renderValue,
+}: {
+  value: string | number | null;
+  onSave: (value: string) => void;
+  type?: 'text' | 'number' | 'date' | 'select' | 'currency';
+  options?: { value: string; label: string; color?: string }[];
+  renderValue?: (value: any) => React.ReactNode;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(String(value ?? ''));
+
+  const handleSave = () => {
+    onSave(editValue);
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setEditValue(String(value ?? ''));
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleSave();
+    if (e.key === 'Escape') handleCancel();
+  };
+
+  if (isEditing) {
+    if (type === 'select' && options) {
+      return (
+        <Select value={editValue} onValueChange={(val) => { setEditValue(val); onSave(val); setIsEditing(false); }}>
+          <SelectTrigger className="h-7 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {options.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.color && (
+                  <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ backgroundColor: opt.color }} />
+                )}
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      );
+    }
+
+    return (
+      <div className="flex items-center gap-1">
+        <Input
+          type={type === 'currency' ? 'number' : type}
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="h-7 text-sm w-full"
+          autoFocus
+        />
+        <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={handleSave}>
+          <Check className="h-3.5 w-3.5 text-green-600" />
+        </Button>
+        <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={handleCancel}>
+          <X className="h-3.5 w-3.5 text-gray-400" />
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="cursor-pointer hover:bg-gray-100 rounded px-1 py-0.5 -mx-1 min-h-[24px] flex items-center"
+      onDoubleClick={() => setIsEditing(true)}
+      title="Double-click to edit"
+    >
+      {renderValue ? renderValue(value) : (value ?? '-')}
+    </div>
+  );
+}
+
+// Sortable Column Header
+function SortableHeader({
+  label,
+  field,
+  currentSort,
+  onSort,
+  className = '',
+  style,
+}: {
+  label: string;
+  field: string;
+  currentSort: { field: string; direction: 'asc' | 'desc' };
+  onSort: (field: string) => void;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  const isActive = currentSort.field === field;
+
+  return (
+    <th
+      className={`text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none ${className}`}
+      style={style}
+      onClick={() => onSort(field)}
+    >
+      <div className="flex items-center gap-1">
+        {label}
+        {isActive ? (
+          currentSort.direction === 'asc' ? (
+            <ArrowUp className="h-3.5 w-3.5 text-blue-600" />
+          ) : (
+            <ArrowDown className="h-3.5 w-3.5 text-blue-600" />
+          )
+        ) : (
+          <ArrowUpDown className="h-3.5 w-3.5 text-gray-300" />
+        )}
+      </div>
+    </th>
+  );
+}
+
 export default function DealsPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [activeDeal, setActiveDeal] = useState<Deal | null>(null);
   const [newDeal, setNewDeal] = useState({
@@ -226,61 +394,95 @@ export default function DealsPage() {
     companyId: "",
   });
 
-  // Fetch pipelines with stages and deals
+  // Use the filters hook
+  const {
+    filters,
+    updateFilter,
+    updateCustomFieldFilter,
+    clearFilters,
+    activeFilterCount,
+    sorting,
+    toggleSort,
+    columns,
+    visibleColumns,
+    toggleColumnVisibility,
+    reorderColumns,
+    viewMode,
+    setViewMode,
+    buildQueryParams,
+    applyView,
+    getCurrentViewConfig,
+  } = useDealFilters();
+
+  // Fetch pipelines with stages
   const { data: pipelines, isLoading: pipelinesLoading } = useQuery<Pipeline[]>({
     queryKey: ["/api/crm/pipelines"],
   });
 
-  // Use the first (default) pipeline for Kanban
   const defaultPipeline = pipelines?.[0];
+  const allStages = defaultPipeline?.stages || [];
 
-  // Fetch Kanban data for the default pipeline
+  // Fetch deals with filters (for list view)
+  const queryParams = buildQueryParams();
+  const { data: dealsData, isLoading: dealsLoading } = useQuery<DealsResponse>({
+    queryKey: ["/api/crm/deals", queryParams],
+    queryFn: () => apiRequest("GET", `/api/crm/deals?${queryParams}`).then(res => res.json()),
+    enabled: viewMode === 'list',
+  });
+
+  // Fetch Kanban data
   const { data: kanbanData, isLoading: kanbanLoading } = useQuery({
     queryKey: ["/api/crm/deals/kanban", defaultPipeline?.id],
     queryFn: () =>
       defaultPipeline
         ? apiRequest("GET", `/api/crm/deals/kanban/${defaultPipeline.id}`).then(res => res.json())
         : null,
-    enabled: !!defaultPipeline?.id,
+    enabled: !!defaultPipeline?.id && viewMode === 'kanban',
   });
 
-  // Fetch companies for the create dialog
+  // Fetch companies
   const { data: companiesData } = useQuery({
     queryKey: ["/api/crm/companies"],
   });
   const companies = (companiesData as any)?.companies || [];
 
+  // Fetch organization members for owners
+  const { data: membersData } = useQuery({
+    queryKey: ["/api/crm/members"],
+  });
+  const members = (membersData as any)?.members || [];
+
+  // Fetch custom fields for deals
+  const { data: customFieldsData } = useQuery<{ fields: { id: number; name: string; label: string; fieldType: string; options?: { value: string; label: string }[] }[] }>({
+    queryKey: ["/api/crm/custom-fields", "deal"],
+    queryFn: () => apiRequest("GET", "/api/crm/custom-fields?objectType=deal").then(res => res.json()),
+  });
+  const customFields = customFieldsData?.fields || [];
+
+  // Get current user ID from auth
+  const currentUserId = user?.id ?? null;
+
   // Sensors for drag and drop
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
+      activationConstraint: { distance: 8 },
     })
   );
 
-  // Move deal mutation with optimistic updates
+  // Move deal mutation
   const moveDealMutation = useMutation({
     mutationFn: ({ dealId, stageId }: { dealId: number; stageId: number }) =>
       apiRequest("POST", `/api/crm/deals/${dealId}/move`, {
         body: { stageId },
       }).then(res => res.json()),
     onMutate: async ({ dealId, stageId }) => {
-      // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ["/api/crm/deals/kanban", defaultPipeline?.id] });
-
-      // Snapshot the previous value
       const previousKanban = queryClient.getQueryData(["/api/crm/deals/kanban", defaultPipeline?.id]);
 
-      // Optimistically update the kanban data
       queryClient.setQueryData(["/api/crm/deals/kanban", defaultPipeline?.id], (old: any) => {
         if (!old?.stages) return old;
-
         const newStages = old.stages.map((stage: Stage) => {
-          // Remove deal from its current stage
           const filteredDeals = stage.deals?.filter((d: Deal) => d.id !== dealId) || [];
-
-          // If this is the target stage, add the deal
           if (stage.id === stageId) {
             const movedDeal = old.stages
               .flatMap((s: Stage) => s.deals || [])
@@ -289,55 +491,51 @@ export default function DealsPage() {
               return { ...stage, deals: [...filteredDeals, { ...movedDeal, stageId }] };
             }
           }
-
           return { ...stage, deals: filteredDeals };
         });
-
         return { ...old, stages: newStages };
       });
 
       return { previousKanban };
     },
     onError: (err, variables, context) => {
-      // Rollback on error
       if (context?.previousKanban) {
         queryClient.setQueryData(["/api/crm/deals/kanban", defaultPipeline?.id], context.previousKanban);
       }
-      toast({
-        title: "Error",
-        description: "Failed to move deal",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to move deal", variant: "destructive" });
     },
     onSettled: () => {
-      // Refetch to ensure data is in sync
       queryClient.invalidateQueries({ queryKey: ["/api/crm/deals/kanban"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"] });
+    },
+  });
+
+  // Update deal mutation (for inline editing)
+  const updateDealMutation = useMutation({
+    mutationFn: ({ dealId, data }: { dealId: number; data: any }) =>
+      apiRequest("PATCH", `/api/crm/deals/${dealId}`, { body: data }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals/kanban"] });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update deal", variant: "destructive" });
     },
   });
 
   // Create deal mutation
   const createDealMutation = useMutation({
     mutationFn: (data: any) =>
-      apiRequest("POST", "/api/crm/deals", {
-        body: data,
-      }).then(res => res.json()),
+      apiRequest("POST", "/api/crm/deals", { body: data }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"] });
       queryClient.invalidateQueries({ queryKey: ["/api/crm/deals/kanban"] });
       setIsCreateDialogOpen(false);
       setNewDeal({ name: "", amount: "", closeDate: "", companyId: "" });
-      toast({
-        title: "Deal created",
-        description: "Your new deal has been created successfully.",
-      });
+      toast({ title: "Deal created", description: "Your new deal has been created successfully." });
     },
     onError: (error: any) => {
-      console.error("Failed to create deal:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create deal",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message || "Failed to create deal", variant: "destructive" });
     },
   });
 
@@ -348,36 +546,25 @@ export default function DealsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"] });
       queryClient.invalidateQueries({ queryKey: ["/api/crm/deals/kanban"] });
-      toast({
-        title: "Deal deleted",
-        description: "The deal has been deleted.",
-      });
+      toast({ title: "Deal deleted" });
     },
   });
 
-  // Handle drag start
   const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event;
-    const deal = active.data.current as Deal;
-    setActiveDeal(deal);
+    setActiveDeal(event.active.data.current as Deal);
   };
 
-  // Handle drag end
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveDeal(null);
-
     if (!over) return;
 
     const dealId = active.id as number;
     const overId = over.id as string;
 
-    // Check if dropped on a stage
     if (overId.startsWith("stage-")) {
       const stageId = parseInt(overId.replace("stage-", ""));
       const deal = active.data.current as Deal;
-
-      // Only move if the stage is different
       if (deal.stageId !== stageId) {
         moveDealMutation.mutate({ dealId, stageId });
       }
@@ -386,14 +573,9 @@ export default function DealsPage() {
 
   const handleCreateDeal = () => {
     if (!newDeal.name.trim()) {
-      toast({
-        title: "Error",
-        description: "Deal name is required",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Deal name is required", variant: "destructive" });
       return;
     }
-
     createDealMutation.mutate({
       name: newDeal.name,
       amount: newDeal.amount || null,
@@ -402,9 +584,68 @@ export default function DealsPage() {
     });
   };
 
-  const stages = (kanbanData as any)?.stages || [];
+  const handleInlineEdit = (dealId: number, field: string, value: string) => {
+    updateDealMutation.mutate({ dealId, data: { [field]: value || null } });
+  };
 
-  if (pipelinesLoading || kanbanLoading) {
+  const stages = (kanbanData as any)?.stages || [];
+  const deals = dealsData?.deals || [];
+  const aggregates = dealsData?.aggregates;
+
+  // Export deals to CSV
+  const handleExport = () => {
+    const exportDeals = viewMode === 'kanban'
+      ? stages.flatMap((s: Stage) => s.deals || [])
+      : deals;
+
+    if (exportDeals.length === 0) {
+      toast({ title: "No deals to export", variant: "destructive" });
+      return;
+    }
+
+    const headers = ["Name", "Company", "Stage", "Amount", "Currency", "Close Date", "Priority", "Source", "Days in Pipeline", "Created"];
+    const rows = exportDeals.map((d: Deal) => [
+      d.name || "",
+      d.company?.name || "",
+      d.stage?.name || "",
+      d.amount || "",
+      d.currency || "USD",
+      d.closeDate ? new Date(d.closeDate).toLocaleDateString() : "",
+      d.priority || "",
+      d.source || "",
+      d.createdAt ? getDaysSince(d.createdAt) : "",
+      d.createdAt ? new Date(d.createdAt).toLocaleDateString() : "",
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `deals-export-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+
+    toast({ title: `Exported ${exportDeals.length} deals` });
+  };
+
+  const isLoading = pipelinesLoading || (viewMode === 'kanban' ? kanbanLoading : dealsLoading);
+
+  // Filter deals for kanban based on search
+  const filteredKanbanStages = useMemo(() => {
+    if (!filters.search) return stages;
+    return stages.map((stage: Stage) => ({
+      ...stage,
+      deals: stage.deals?.filter((deal: Deal) =>
+        deal.name.toLowerCase().includes(filters.search.toLowerCase())
+      ),
+    }));
+  }, [stages, filters.search]);
+
+  if (isLoading) {
     return (
       <div className="p-6">
         <div className="animate-pulse space-y-4">
@@ -420,50 +661,98 @@ export default function DealsPage() {
   }
 
   return (
-    <div className="p-4 md:p-6">
-      {/* Header - stacks on mobile */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div className="p-4 md:p-6 space-y-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl md:text-2xl font-semibold text-gray-900">Deals</h1>
           <p className="text-sm text-gray-500 mt-1">
             Manage your sales pipeline and track deal progress
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          <div className="relative flex-1 sm:flex-none">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Search deals..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 w-full sm:w-64"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="flex border rounded-lg">
-              <Button
-                variant={viewMode === "kanban" ? "secondary" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode("kanban")}
-                className="rounded-r-none"
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === "list" ? "secondary" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode("list")}
-                className="rounded-l-none"
-              >
-                <List className="h-4 w-4" />
-              </Button>
-            </div>
-            <Button onClick={() => setIsCreateDialogOpen(true)} className="flex-1 sm:flex-none">
-              <Plus className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">Add Deal</span>
-              <span className="sm:hidden">Add</span>
+        <Button variant="outline" onClick={() => setIsCreateDialogOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Deal
+        </Button>
+      </div>
+
+      {/* Toolbar Row 1: Search, View Toggle, View Manager */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <div className="relative flex-1 sm:max-w-xs">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Search deals..."
+            value={filters.search}
+            onChange={(e) => updateFilter('search', e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex border rounded-lg">
+            <Button
+              variant={viewMode === "kanban" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("kanban")}
+              className="rounded-r-none"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === "list" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("list")}
+              className="rounded-l-none"
+            >
+              <List className="h-4 w-4" />
             </Button>
           </div>
+
+          <DealsViewManager
+            currentFilters={filters}
+            currentColumns={columns}
+            currentSorting={sorting}
+            currentViewMode={viewMode}
+            onApplyView={applyView}
+          />
+        </div>
+      </div>
+
+      {/* Toolbar Row 2: Quick Filters, Advanced Filters, Column Config */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 border-b pb-3">
+        <DealsQuickFilters
+          filters={filters}
+          onFilterChange={updateFilter}
+          onClearFilters={clearFilters}
+          stages={allStages}
+          currentUserId={currentUserId}
+          activeFilterCount={activeFilterCount}
+        />
+        <div className="flex items-center gap-2 ml-auto">
+          <DealsAdvancedFilters
+            filters={filters}
+            onFilterChange={updateFilter}
+            onCustomFieldFilterChange={updateCustomFieldFilter}
+            onClearFilters={clearFilters}
+            companies={companies}
+            owners={members.map((m: any) => ({ id: m.userId, name: m.user?.email || `User ${m.userId}` }))}
+            customFields={customFields}
+            activeFilterCount={activeFilterCount}
+          />
+          {viewMode === 'list' && (
+            <DealsColumnConfig
+              columns={columns}
+              onToggleVisibility={toggleColumnVisibility}
+              onReorder={reorderColumns}
+            />
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExport}
+            title="Export to CSV"
+          >
+            <Download className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
@@ -476,19 +765,14 @@ export default function DealsPage() {
           onDragEnd={handleDragEnd}
         >
           <div className="flex gap-4 overflow-x-auto pb-4">
-            {stages.map((stage: Stage) => (
+            {filteredKanbanStages.map((stage: Stage) => (
               <StageColumn key={stage.id} stage={stage}>
-                {stage.deals
-                  ?.filter((deal) =>
-                    deal.name.toLowerCase().includes(searchQuery.toLowerCase())
-                  )
-                  .map((deal) => (
-                    <DealCard key={deal.id} deal={deal} />
-                  ))}
+                {stage.deals?.map((deal) => (
+                  <DealCard key={deal.id} deal={deal} />
+                ))}
               </StageColumn>
             ))}
           </div>
-
           <DragOverlay dropAnimation={null}>
             {activeDeal ? <DealCard deal={activeDeal} isOverlay /> : null}
           </DragOverlay>
@@ -497,104 +781,207 @@ export default function DealsPage() {
 
       {/* List View */}
       {viewMode === "list" && (
-        <div className="bg-white rounded-lg border">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">
-                  Deal Name
-                </th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">
-                  Company
-                </th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">
-                  Stage
-                </th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">
-                  Amount
-                </th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">
-                  Close Date
-                </th>
-                <th className="text-right py-3 px-4 text-xs font-medium text-gray-500 uppercase">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {stages.flatMap((stage: Stage) =>
-                stage.deals
-                  ?.filter((deal) =>
-                    deal.name.toLowerCase().includes(searchQuery.toLowerCase())
-                  )
-                  .map((deal) => (
-                    <tr key={deal.id} className="border-b hover:bg-gray-50">
-                      <td className="py-3 px-4">
-                        <Link
-                          href={`/deals/${deal.id}`}
-                          className="font-medium text-blue-600 hover:underline"
-                        >
-                          {deal.name}
-                        </Link>
-                      </td>
-                      <td className="py-3 px-4 text-gray-500">
-                        {deal.company?.name || "-"}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span
-                          className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
-                          style={{
-                            backgroundColor: stage.color + '20',
-                            color: stage.color,
-                            border: `1px solid ${stage.color}40`,
-                          }}
-                        >
-                          {stage.name}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-gray-900">
-                        {deal.amount
-                          ? new Intl.NumberFormat("en-US", {
-                              style: "currency",
-                              currency: deal.currency || "USD",
-                              minimumFractionDigits: 0,
-                            }).format(parseFloat(deal.amount))
-                          : "-"}
-                      </td>
-                      <td className="py-3 px-4 text-gray-500">
-                        {deal.closeDate
-                          ? new Date(deal.closeDate).toLocaleDateString()
-                          : "-"}
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <Link href={`/deals/${deal.id}`}>
-                                <Eye className="h-4 w-4 mr-2" />
-                                View Details
+        <div className="bg-white rounded-lg border overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full table-fixed">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  {visibleColumns.map((col) => {
+                    const sortable = ['name', 'amount', 'closeDate', 'createdAt', 'stage', 'company', 'priority'].includes(col.id);
+                    const columnWidth = col.id === 'name' ? '22%' :
+                                       col.id === 'company' ? '18%' :
+                                       col.id === 'stage' ? '12%' :
+                                       col.id === 'amount' ? '12%' :
+                                       col.id === 'closeDate' ? '12%' :
+                                       col.id === 'priority' ? '10%' :
+                                       '14%';
+                    if (sortable) {
+                      return (
+                        <SortableHeader
+                          key={col.id}
+                          label={col.label}
+                          field={col.id}
+                          currentSort={sorting}
+                          onSort={toggleSort}
+                          className=""
+                          style={{ width: columnWidth }}
+                        />
+                      );
+                    }
+                    return (
+                      <th key={col.id} className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase" style={{ width: columnWidth }}>
+                        {col.label}
+                      </th>
+                    );
+                  })}
+                  <th className="text-right py-3 px-4 text-xs font-medium text-gray-500 uppercase" style={{ width: '8%' }}>
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {deals.map((deal) => (
+                  <tr key={deal.id} className="border-b hover:bg-gray-50">
+                    {visibleColumns.map((col) => (
+                      <td key={col.id} className="py-3 px-4">
+                        {col.id === 'name' && (
+                          <InlineEditableCell
+                            value={deal.name}
+                            onSave={(val) => handleInlineEdit(deal.id, 'name', val)}
+                            renderValue={() => (
+                              <Link href={`/deals/${deal.id}`} className="font-medium text-blue-600 hover:underline">
+                                {deal.name}
                               </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="text-red-600"
-                              onClick={() => deleteDealMutation.mutate(deal.id)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                            )}
+                          />
+                        )}
+                        {col.id === 'company' && (
+                          <span className="text-gray-500">{deal.company?.name || '-'}</span>
+                        )}
+                        {col.id === 'stage' && deal.stage && (
+                          <span
+                            className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
+                            style={{
+                              backgroundColor: deal.stage.color + '20',
+                              color: deal.stage.color,
+                              border: `1px solid ${deal.stage.color}40`,
+                            }}
+                          >
+                            {deal.stage.name}
+                          </span>
+                        )}
+                        {col.id === 'amount' && (
+                          <InlineEditableCell
+                            value={deal.amount}
+                            type="currency"
+                            onSave={(val) => handleInlineEdit(deal.id, 'amount', val)}
+                            renderValue={(val) =>
+                              val
+                                ? new Intl.NumberFormat("en-US", {
+                                    style: "currency",
+                                    currency: deal.currency || "USD",
+                                    minimumFractionDigits: 0,
+                                  }).format(parseFloat(val))
+                                : '-'
+                            }
+                          />
+                        )}
+                        {col.id === 'closeDate' && (
+                          <InlineEditableCell
+                            value={deal.closeDate ? new Date(deal.closeDate).toISOString().split('T')[0] : null}
+                            type="date"
+                            onSave={(val) => handleInlineEdit(deal.id, 'closeDate', val)}
+                            renderValue={(val) => val ? new Date(val).toLocaleDateString() : '-'}
+                          />
+                        )}
+                        {col.id === 'priority' && (
+                          <InlineEditableCell
+                            value={deal.priority}
+                            type="select"
+                            options={[
+                              { value: 'low', label: 'Low' },
+                              { value: 'normal', label: 'Normal' },
+                              { value: 'high', label: 'High' },
+                              { value: 'urgent', label: 'Urgent' },
+                            ]}
+                            onSave={(val) => handleInlineEdit(deal.id, 'priority', val)}
+                            renderValue={(val) => val ? (
+                              <span className={`capitalize ${val === 'high' || val === 'urgent' ? 'text-red-600' : 'text-gray-600'}`}>
+                                {val}
+                              </span>
+                            ) : '-'}
+                          />
+                        )}
+                        {col.id === 'owner' && (
+                          <span className="text-gray-500">{deal.ownerId ? `User ${deal.ownerId}` : '-'}</span>
+                        )}
+                        {col.id === 'source' && (
+                          <span className="text-gray-500">{deal.source || '-'}</span>
+                        )}
+                        {col.id === 'createdAt' && (
+                          <span className="text-gray-500">{new Date(deal.createdAt).toLocaleDateString()}</span>
+                        )}
                       </td>
-                    </tr>
-                  ))
-              )}
-            </tbody>
-          </table>
+                    ))}
+                    <td className="py-3 px-4 text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <Link href={`/deals/${deal.id}`}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              View Details
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-red-600"
+                            onClick={() => deleteDealMutation.mutate(deal.id)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </td>
+                  </tr>
+                ))}
+                {deals.length === 0 && (
+                  <tr>
+                    <td colSpan={visibleColumns.length + 1} className="py-12 text-center text-gray-500">
+                      No deals found. Try adjusting your filters.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Summary Row */}
+          {aggregates && deals.length > 0 && (
+            <div className="bg-gray-50 border-t px-4 py-3 flex flex-wrap items-center gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="text-gray-500">Total:</span>
+                <span className="font-semibold text-gray-900">{aggregates.count} deals</span>
+              </div>
+              <div className="w-px h-4 bg-gray-300" />
+              <div className="flex items-center gap-2">
+                <span className="text-gray-500">Value:</span>
+                <span className="font-semibold text-green-600">
+                  {new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: "USD",
+                    minimumFractionDigits: 0,
+                  }).format(aggregates.totalAmount)}
+                </span>
+              </div>
+              <div className="w-px h-4 bg-gray-300" />
+              <div className="flex items-center gap-2">
+                <span className="text-gray-500">Avg:</span>
+                <span className="font-semibold text-gray-900">
+                  {new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: "USD",
+                    minimumFractionDigits: 0,
+                  }).format(aggregates.avgAmount)}
+                </span>
+              </div>
+              <div className="w-px h-4 bg-gray-300" />
+              <div className="flex items-center gap-2">
+                <span className="text-gray-500">Weighted:</span>
+                <span className="font-semibold text-blue-600">
+                  {new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: "USD",
+                    minimumFractionDigits: 0,
+                  }).format(aggregates.weightedAmount)}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -610,9 +997,7 @@ export default function DealsPage() {
               <Input
                 id="name"
                 value={newDeal.name}
-                onChange={(e) =>
-                  setNewDeal({ ...newDeal, name: e.target.value })
-                }
+                onChange={(e) => setNewDeal({ ...newDeal, name: e.target.value })}
                 placeholder="e.g., Acme Corp Acquisition"
               />
             </div>
@@ -622,9 +1007,7 @@ export default function DealsPage() {
                 id="amount"
                 type="number"
                 value={newDeal.amount}
-                onChange={(e) =>
-                  setNewDeal({ ...newDeal, amount: e.target.value })
-                }
+                onChange={(e) => setNewDeal({ ...newDeal, amount: e.target.value })}
                 placeholder="e.g., 500000"
               />
             </div>
@@ -632,9 +1015,7 @@ export default function DealsPage() {
               <Label htmlFor="company">Company</Label>
               <Select
                 value={newDeal.companyId}
-                onValueChange={(value) =>
-                  setNewDeal({ ...newDeal, companyId: value })
-                }
+                onValueChange={(value) => setNewDeal({ ...newDeal, companyId: value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a company" />
@@ -654,23 +1035,15 @@ export default function DealsPage() {
                 id="closeDate"
                 type="date"
                 value={newDeal.closeDate}
-                onChange={(e) =>
-                  setNewDeal({ ...newDeal, closeDate: e.target.value })
-                }
+                onChange={(e) => setNewDeal({ ...newDeal, closeDate: e.target.value })}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsCreateDialogOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
               Cancel
             </Button>
-            <Button
-              onClick={handleCreateDeal}
-              disabled={createDealMutation.isPending}
-            >
+            <Button onClick={handleCreateDeal} disabled={createDealMutation.isPending}>
               {createDealMutation.isPending ? "Creating..." : "Create Deal"}
             </Button>
           </DialogFooter>
@@ -678,28 +1051,4 @@ export default function DealsPage() {
       </Dialog>
     </div>
   );
-}
-
-// Helper function to determine if text should be dark or light based on background color
-function getContrastColor(hexColor: string | undefined | null): string {
-  if (!hexColor) return '#1f2937';
-
-  try {
-    let hex = hexColor.replace('#', '');
-    if (hex.length === 3) {
-      hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
-    }
-    if (hex.length !== 6) return '#ffffff';
-
-    const r = parseInt(hex.substring(0, 2), 16);
-    const g = parseInt(hex.substring(2, 4), 16);
-    const b = parseInt(hex.substring(4, 6), 16);
-
-    if (isNaN(r) || isNaN(g) || isNaN(b)) return '#ffffff';
-
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    return luminance > 0.45 ? '#1f2937' : '#ffffff';
-  } catch {
-    return '#ffffff';
-  }
 }

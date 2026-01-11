@@ -361,6 +361,228 @@ function PipelinesSection() {
   );
 }
 
+interface BuyerStage {
+  id: number;
+  name: string;
+  displayOrder: number;
+  color: string;
+}
+
+function SortableBuyerStage({ stage, onEdit, onDelete }: { stage: BuyerStage; onEdit: () => void; onDelete: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: stage.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center gap-3 p-3 bg-white border rounded-lg">
+      <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
+        <GripVertical className="h-4 w-4 text-gray-400" />
+      </button>
+      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: stage.color }} />
+      <div className="flex-1">
+        <p className="font-medium">{stage.name}</p>
+      </div>
+      <Button variant="ghost" size="sm" onClick={onEdit}><Pencil className="h-4 w-4" /></Button>
+      <Button variant="ghost" size="sm" onClick={onDelete}><Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" /></Button>
+    </div>
+  );
+}
+
+function BuyerPipelineSection() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isAddStageOpen, setIsAddStageOpen] = useState(false);
+  const [editingStage, setEditingStage] = useState<BuyerStage | null>(null);
+  const [newStage, setNewStage] = useState({ name: "", color: "#6B7280" });
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+
+  const { data: stages, isLoading } = useQuery<BuyerStage[]>({
+    queryKey: ["/api/crm/buyer-stages"],
+    queryFn: () => apiRequest("GET", "/api/crm/buyer-stages").then(res => res.json()),
+  });
+
+  const createStageMutation = useMutation({
+    mutationFn: (data: any) =>
+      apiRequest("POST", "/api/crm/buyer-stages", { body: data }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/buyer-stages"] });
+      setIsAddStageOpen(false);
+      setNewStage({ name: "", color: "#6B7280" });
+      toast({ title: "Stage added" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to create stage", variant: "destructive" });
+    },
+  });
+
+  const updateStageMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) =>
+      apiRequest("PATCH", `/api/crm/buyer-stages/${id}`, { body: data }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/buyer-stages"] });
+      setEditingStage(null);
+      toast({ title: "Stage updated" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to update stage", variant: "destructive" });
+    },
+  });
+
+  const deleteStageMutation = useMutation({
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/crm/buyer-stages/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/buyer-stages"] });
+      toast({ title: "Stage deleted" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Cannot delete stage with buyers", variant: "destructive" });
+    },
+  });
+
+  const reorderMutation = useMutation({
+    mutationFn: (stageIds: number[]) =>
+      apiRequest("POST", "/api/crm/buyer-stages/reorder", { body: { stageIds } }).then(res => res.json()),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/crm/buyer-stages"] }),
+  });
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !stages) return;
+
+    const oldIndex = stages.findIndex((s) => s.id === active.id);
+    const newIndex = stages.findIndex((s) => s.id === over.id);
+    const newOrder = arrayMove(stages, oldIndex, newIndex);
+    reorderMutation.mutate(newOrder.map((s) => s.id));
+  };
+
+  const colors = ["#D1FAE5", "#A7F3D0", "#6EE7B7", "#34D399", "#10B981", "#059669", "#FCA5A5", "#F87171", "#6B7280", "#3B82F6", "#8B5CF6", "#F59E0B"];
+
+  if (isLoading) {
+    return <div className="animate-pulse h-64 bg-gray-200 rounded" />;
+  }
+
+  return (
+    <>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-lg">Buyer Pipeline</CardTitle>
+            <CardDescription>Customize stages for tracking buyers through your deal process</CardDescription>
+          </div>
+          <Button onClick={() => setIsAddStageOpen(true)} size="sm"><Plus className="h-4 w-4 mr-2" />Add Stage</Button>
+        </CardHeader>
+        <CardContent>
+          {stages && stages.length > 0 ? (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={stages.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+                <div className="space-y-2">
+                  {stages.map((stage) => (
+                    <SortableBuyerStage
+                      key={stage.id}
+                      stage={stage}
+                      onEdit={() => setEditingStage(stage)}
+                      onDelete={() => deleteStageMutation.mutate(stage.id)}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          ) : (
+            <p className="text-gray-500 text-center py-8">No buyer stages configured</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Add Stage Dialog */}
+      <Dialog open={isAddStageOpen} onOpenChange={setIsAddStageOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Add Buyer Pipeline Stage</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Stage Name</Label>
+              <Input value={newStage.name} onChange={(e) => setNewStage({ ...newStage, name: e.target.value })} placeholder="e.g., NDA Signed" />
+            </div>
+            <div className="space-y-2">
+              <Label>Color</Label>
+              <div className="flex flex-wrap gap-2">
+                {colors.map((color) => (
+                  <button
+                    key={color}
+                    onClick={() => setNewStage({ ...newStage, color })}
+                    className={`w-8 h-8 rounded-full border-2 transition-all ${newStage.color === color ? "border-gray-900 scale-110" : "border-transparent"}`}
+                    style={{ backgroundColor: color }}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddStageOpen(false)}>Cancel</Button>
+            <Button
+              onClick={() => createStageMutation.mutate({
+                name: newStage.name,
+                color: newStage.color,
+                displayOrder: stages?.length || 0,
+              })}
+              disabled={!newStage.name || createStageMutation.isPending}
+            >
+              {createStageMutation.isPending ? "Adding..." : "Add Stage"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Stage Dialog */}
+      <Dialog open={!!editingStage} onOpenChange={(open) => !open && setEditingStage(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Edit Buyer Stage</DialogTitle></DialogHeader>
+          {editingStage && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Stage Name</Label>
+                <Input
+                  value={editingStage.name}
+                  onChange={(e) => setEditingStage({ ...editingStage, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Color</Label>
+                <div className="flex flex-wrap gap-2">
+                  {colors.map((color) => (
+                    <button
+                      key={color}
+                      onClick={() => setEditingStage({ ...editingStage, color })}
+                      className={`w-8 h-8 rounded-full border-2 transition-all ${editingStage.color === color ? "border-gray-900 scale-110" : "border-transparent"}`}
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingStage(null)}>Cancel</Button>
+            <Button
+              onClick={() => editingStage && updateStageMutation.mutate({
+                id: editingStage.id,
+                data: { name: editingStage.name, color: editingStage.color },
+              })}
+              disabled={updateStageMutation.isPending}
+            >
+              {updateStageMutation.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 function CustomFieldsSection() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -730,7 +952,7 @@ function CustomFieldsSection() {
 export default function PipelineSettingsPage() {
   const getInitialTab = () => {
     const hash = window.location.hash.replace('#', '');
-    if (['pipelines', 'fields'].includes(hash)) return hash;
+    if (['pipelines', 'buyer-pipeline', 'fields'].includes(hash)) return hash;
     return 'pipelines';
   };
   const [activeTab, setActiveTab] = useState(getInitialTab);
@@ -754,7 +976,11 @@ export default function PipelineSettingsPage() {
         <TabsList className="mb-6">
           <TabsTrigger value="pipelines" className="gap-2">
             <Kanban className="h-4 w-4" />
-            Pipelines
+            Sales Pipeline
+          </TabsTrigger>
+          <TabsTrigger value="buyer-pipeline" className="gap-2">
+            <Users className="h-4 w-4" />
+            Buyer Pipeline
           </TabsTrigger>
           <TabsTrigger value="fields" className="gap-2">
             <Database className="h-4 w-4" />
@@ -764,6 +990,10 @@ export default function PipelineSettingsPage() {
 
         <TabsContent value="pipelines">
           <PipelinesSection />
+        </TabsContent>
+
+        <TabsContent value="buyer-pipeline">
+          <BuyerPipelineSection />
         </TabsContent>
 
         <TabsContent value="fields">

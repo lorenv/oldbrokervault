@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +19,9 @@ import {
   User,
   Flag,
   CheckCircle2,
+  Building2,
+  UserCircle,
+  Briefcase,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -48,6 +51,10 @@ interface Task {
     firstName: string | null;
     lastName: string | null;
   } | null;
+  // Association data (populated by backend)
+  deal?: { id: number; name: string } | null;
+  contact?: { id: number; firstName: string | null; lastName: string | null } | null;
+  company?: { id: number; name: string } | null;
 }
 
 interface TaskListProps {
@@ -116,6 +123,48 @@ function isOverdue(dueDate: string | null): boolean {
   const due = new Date(dueDate);
   const now = new Date();
   return due < now;
+}
+
+// Helper to get association info for display
+function getAssociationInfo(task: Task): { type: string; name: string; href: string; icon: React.ReactNode } | null {
+  if (task.deal) {
+    return {
+      type: 'Deal',
+      name: task.deal.name,
+      href: `/deals/${task.deal.id}`,
+      icon: <Briefcase className="h-3 w-3" />,
+    };
+  }
+  if (task.contact) {
+    const name = [task.contact.firstName, task.contact.lastName].filter(Boolean).join(' ') || 'Contact';
+    return {
+      type: 'Contact',
+      name,
+      href: `/contacts/${task.contact.id}`,
+      icon: <UserCircle className="h-3 w-3" />,
+    };
+  }
+  if (task.company) {
+    return {
+      type: 'Company',
+      name: task.company.name,
+      href: `/companies/${task.company.id}`,
+      icon: <Building2 className="h-3 w-3" />,
+    };
+  }
+  // Fallback: if we have objectType/objectId but no populated data, show a generic link
+  if (task.objectType && task.objectId) {
+    const typeLabel = task.objectType.charAt(0).toUpperCase() + task.objectType.slice(1);
+    return {
+      type: typeLabel,
+      name: `${typeLabel} #${task.objectId}`,
+      href: `/${task.objectType}s/${task.objectId}`,
+      icon: task.objectType === 'deal' ? <Briefcase className="h-3 w-3" /> :
+            task.objectType === 'contact' ? <UserCircle className="h-3 w-3" /> :
+            <Building2 className="h-3 w-3" />,
+    };
+  }
+  return null;
 }
 
 export function TaskList({
@@ -201,37 +250,69 @@ export function TaskList({
         const isComplete = task.status === "completed" || task.status === "cancelled";
         const priorityConfig = PRIORITY_CONFIG[task.priority as keyof typeof PRIORITY_CONFIG] || PRIORITY_CONFIG.normal;
         const overdue = !isComplete && isOverdue(task.dueDate);
+        const association = getAssociationInfo(task);
 
         return (
           <div
             key={task.id}
             className={cn(
-              "flex items-start gap-3 p-3 rounded-lg border bg-white hover:bg-gray-50 transition-colors",
-              isComplete && "opacity-60"
+              "flex items-start gap-3 p-3 rounded-lg border bg-white hover:bg-gray-50 transition-colors group",
+              isComplete && "opacity-60",
+              onEditTask && "cursor-pointer"
             )}
+            onClick={() => {
+              if (onEditTask) {
+                onEditTask(task);
+              }
+            }}
           >
-            <Checkbox
-              checked={isComplete}
+            {/* Circle checkbox for quick complete - HubSpot style */}
+            <button
+              type="button"
               disabled={isComplete || completeTaskMutation.isPending}
-              onCheckedChange={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 if (!isComplete) {
                   completeTaskMutation.mutate(task.id);
                 }
               }}
-              className="mt-1"
-            />
+              className={cn(
+                "mt-0.5 flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                isComplete
+                  ? "bg-green-500 border-green-500 text-white"
+                  : "border-gray-300 hover:border-green-500 hover:bg-green-50",
+                completeTaskMutation.isPending && "opacity-50"
+              )}
+            >
+              {isComplete && (
+                <CheckCircle2 className="h-3 w-3" />
+              )}
+            </button>
 
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <h4
-                    className={cn(
-                      "font-medium text-sm text-gray-900 truncate",
-                      isComplete && "line-through text-gray-500"
+                  <div className="flex items-center gap-2">
+                    <h4
+                      className={cn(
+                        "font-medium text-sm text-gray-900",
+                        isComplete && "line-through text-gray-500"
+                      )}
+                    >
+                      {task.title}
+                    </h4>
+                    {/* Association badge - shows what record this task is linked to */}
+                    {association && (
+                      <Link
+                        href={association.href}
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800 transition-colors"
+                      >
+                        {association.icon}
+                        <span className="truncate max-w-[120px]">{association.name}</span>
+                      </Link>
                     )}
-                  >
-                    {task.title}
-                  </h4>
+                  </div>
 
                   {task.description && (
                     <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
@@ -275,7 +356,12 @@ export function TaskList({
 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>

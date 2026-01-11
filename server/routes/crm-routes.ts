@@ -21,7 +21,10 @@ import {
   dealBuyers,
   integrationConnections,
   customFieldDefinitions,
+  detailPageLayouts,
+  dealViews,
   insertOrganizationSchema,
+  insertDealViewSchema,
   insertOrganizationMemberSchema,
   insertCompanySchema,
   insertCrmContactSchema,
@@ -1357,6 +1360,142 @@ router.post('/custom-fields/reorder', async (req, res) => {
   }
 });
 
+// ==================== DETAIL PAGE LAYOUT ROUTES ====================
+
+// Get layout for an object type
+router.get('/layouts/:objectType', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    const { objectType } = req.params;
+    if (!['deal', 'contact', 'company'].includes(objectType)) {
+      return res.status(400).json({ error: 'Invalid object type' });
+    }
+
+    // Try to get custom layout
+    const [layout] = await db
+      .select()
+      .from(detailPageLayouts)
+      .where(
+        and(
+          eq(detailPageLayouts.organizationId, orgData.organization.id),
+          eq(detailPageLayouts.objectType, objectType)
+        )
+      )
+      .limit(1);
+
+    // Also get custom fields for this object type
+    const customFields = await db
+      .select()
+      .from(customFieldDefinitions)
+      .where(
+        and(
+          eq(customFieldDefinitions.organizationId, orgData.organization.id),
+          eq(customFieldDefinitions.objectType, objectType)
+        )
+      )
+      .orderBy(asc(customFieldDefinitions.displayOrder));
+
+    res.json({
+      layout: layout?.layout || null,
+      customFields,
+    });
+  } catch (error) {
+    console.error('[CRM] Error fetching layout:', error);
+    res.status(500).json({ error: 'Failed to fetch layout' });
+  }
+});
+
+// Save layout for an object type
+router.post('/layouts/:objectType', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    const { objectType } = req.params;
+    if (!['deal', 'contact', 'company'].includes(objectType)) {
+      return res.status(400).json({ error: 'Invalid object type' });
+    }
+
+    const { layout } = req.body;
+    if (!layout || !Array.isArray(layout)) {
+      return res.status(400).json({ error: 'Layout must be an array of sections' });
+    }
+
+    // Check if layout already exists
+    const [existing] = await db
+      .select()
+      .from(detailPageLayouts)
+      .where(
+        and(
+          eq(detailPageLayouts.organizationId, orgData.organization.id),
+          eq(detailPageLayouts.objectType, objectType)
+        )
+      )
+      .limit(1);
+
+    if (existing) {
+      // Update existing layout
+      await db
+        .update(detailPageLayouts)
+        .set({ layout, updatedAt: new Date() })
+        .where(eq(detailPageLayouts.id, existing.id));
+    } else {
+      // Create new layout
+      await db.insert(detailPageLayouts).values({
+        organizationId: orgData.organization.id,
+        objectType,
+        layout,
+      });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[CRM] Error saving layout:', error);
+    res.status(500).json({ error: 'Failed to save layout' });
+  }
+});
+
+// Reset layout to default
+router.delete('/layouts/:objectType', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    const { objectType } = req.params;
+    if (!['deal', 'contact', 'company'].includes(objectType)) {
+      return res.status(400).json({ error: 'Invalid object type' });
+    }
+
+    await db
+      .delete(detailPageLayouts)
+      .where(
+        and(
+          eq(detailPageLayouts.organizationId, orgData.organization.id),
+          eq(detailPageLayouts.objectType, objectType)
+        )
+      );
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[CRM] Error resetting layout:', error);
+    res.status(500).json({ error: 'Failed to reset layout' });
+  }
+});
+
 // ==================== COMPANY ROUTES ====================
 
 // Get companies
@@ -1954,9 +2093,234 @@ router.post('/contacts/fetch-avatars', async (req, res) => {
   }
 });
 
+// ==================== DEAL VIEWS ROUTES ====================
+
+// Get all deal views (user's + shared org views)
+router.get('/deal-views', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    // Get user's personal views + shared org views
+    const views = await db
+      .select()
+      .from(dealViews)
+      .where(
+        and(
+          eq(dealViews.organizationId, orgData.organization.id),
+          or(
+            eq(dealViews.userId, req.user!.id), // User's own views
+            eq(dealViews.isShared, true) // Shared org views
+          )
+        )
+      )
+      .orderBy(desc(dealViews.isDefault), asc(dealViews.name));
+
+    res.json(views);
+  } catch (error) {
+    console.error('[CRM] Error fetching deal views:', error);
+    res.status(500).json({ error: 'Failed to fetch deal views' });
+  }
+});
+
+// Create a new deal view
+router.post('/deal-views', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    const validation = insertDealViewSchema.safeParse({
+      ...req.body,
+      organizationId: orgData.organization.id,
+      userId: req.user!.id,
+    });
+
+    if (!validation.success) {
+      return res.status(400).json({ error: validation.error.errors });
+    }
+
+    // If this view is being set as default, unset other defaults
+    if (validation.data.isDefault) {
+      await db
+        .update(dealViews)
+        .set({ isDefault: false })
+        .where(
+          and(
+            eq(dealViews.organizationId, orgData.organization.id),
+            eq(dealViews.userId, req.user!.id)
+          )
+        );
+    }
+
+    const [newView] = await db
+      .insert(dealViews)
+      .values({
+        organizationId: orgData.organization.id,
+        userId: req.user!.id,
+        name: validation.data.name,
+        isDefault: validation.data.isDefault || false,
+        isShared: validation.data.isShared || false,
+        filters: validation.data.filters || {},
+        columns: validation.data.columns || [],
+        sorting: validation.data.sorting || {},
+        viewMode: validation.data.viewMode || 'list',
+      })
+      .returning();
+
+    res.status(201).json(newView);
+  } catch (error) {
+    console.error('[CRM] Error creating deal view:', error);
+    res.status(500).json({ error: 'Failed to create deal view' });
+  }
+});
+
+// Update a deal view
+router.patch('/deal-views/:id', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const viewId = parseInt(req.params.id);
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    // Check view exists and belongs to user
+    const [existingView] = await db
+      .select()
+      .from(dealViews)
+      .where(
+        and(
+          eq(dealViews.id, viewId),
+          eq(dealViews.organizationId, orgData.organization.id),
+          eq(dealViews.userId, req.user!.id)
+        )
+      );
+
+    if (!existingView) {
+      return res.status(404).json({ error: 'View not found or access denied' });
+    }
+
+    // If setting as default, unset other defaults
+    if (req.body.isDefault === true) {
+      await db
+        .update(dealViews)
+        .set({ isDefault: false })
+        .where(
+          and(
+            eq(dealViews.organizationId, orgData.organization.id),
+            eq(dealViews.userId, req.user!.id),
+            sql`${dealViews.id} != ${viewId}`
+          )
+        );
+    }
+
+    const [updatedView] = await db
+      .update(dealViews)
+      .set({
+        ...req.body,
+        updatedAt: new Date(),
+      })
+      .where(eq(dealViews.id, viewId))
+      .returning();
+
+    res.json(updatedView);
+  } catch (error) {
+    console.error('[CRM] Error updating deal view:', error);
+    res.status(500).json({ error: 'Failed to update deal view' });
+  }
+});
+
+// Delete a deal view
+router.delete('/deal-views/:id', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const viewId = parseInt(req.params.id);
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    // Check view exists and belongs to user
+    const [existingView] = await db
+      .select()
+      .from(dealViews)
+      .where(
+        and(
+          eq(dealViews.id, viewId),
+          eq(dealViews.organizationId, orgData.organization.id),
+          eq(dealViews.userId, req.user!.id)
+        )
+      );
+
+    if (!existingView) {
+      return res.status(404).json({ error: 'View not found or access denied' });
+    }
+
+    await db.delete(dealViews).where(eq(dealViews.id, viewId));
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[CRM] Error deleting deal view:', error);
+    res.status(500).json({ error: 'Failed to delete deal view' });
+  }
+});
+
+// Toggle share status of a deal view
+router.post('/deal-views/:id/share', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const viewId = parseInt(req.params.id);
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    // Check view exists and belongs to user
+    const [existingView] = await db
+      .select()
+      .from(dealViews)
+      .where(
+        and(
+          eq(dealViews.id, viewId),
+          eq(dealViews.organizationId, orgData.organization.id),
+          eq(dealViews.userId, req.user!.id)
+        )
+      );
+
+    if (!existingView) {
+      return res.status(404).json({ error: 'View not found or access denied' });
+    }
+
+    const [updatedView] = await db
+      .update(dealViews)
+      .set({
+        isShared: !existingView.isShared,
+        updatedAt: new Date(),
+      })
+      .where(eq(dealViews.id, viewId))
+      .returning();
+
+    res.json(updatedView);
+  } catch (error) {
+    console.error('[CRM] Error toggling share status:', error);
+    res.status(500).json({ error: 'Failed to toggle share status' });
+  }
+});
+
 // ==================== DEAL ROUTES ====================
 
-// Get deals (with optional pipeline filter)
+// Get deals (with advanced filtering, sorting, and aggregates)
 router.get('/deals', async (req, res) => {
   if (!req.isAuthenticated()) return res.sendStatus(401);
 
@@ -1966,22 +2330,147 @@ router.get('/deals', async (req, res) => {
       return res.status(404).json({ error: 'Organization not found' });
     }
 
-    const { pipelineId, stageId, page = '1', limit = '100' } = req.query;
+    const {
+      pipelineId,
+      stageId,
+      page = '1',
+      limit = '100',
+      // Advanced filters
+      search,
+      stages, // comma-separated stage IDs
+      owners, // comma-separated owner IDs
+      companies: companyIds, // comma-separated company IDs
+      amountMin,
+      amountMax,
+      closeDateFrom,
+      closeDateTo,
+      createdFrom,
+      createdTo,
+      priority, // comma-separated priorities
+      status, // 'open', 'won', 'lost', 'all'
+      ownerId, // for "My Deals" filter
+      // Sorting
+      sortField = 'createdAt',
+      sortOrder = 'desc',
+    } = req.query;
+
     const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
 
-    let conditions = [
+    let conditions: any[] = [
       eq(deals.organizationId, orgData.organization.id),
       isNull(deals.deletedAt),
     ];
 
+    // Pipeline filter
     if (pipelineId) {
       conditions.push(eq(deals.pipelineId, parseInt(pipelineId as string)));
     }
 
+    // Single stage filter (legacy)
     if (stageId) {
       conditions.push(eq(deals.stageId, parseInt(stageId as string)));
     }
 
+    // Multiple stages filter
+    if (stages) {
+      const stageIds = (stages as string).split(',').map(s => parseInt(s.trim())).filter(s => !isNaN(s));
+      if (stageIds.length > 0) {
+        conditions.push(inArray(deals.stageId, stageIds));
+      }
+    }
+
+    // Owner filter (My Deals)
+    if (ownerId) {
+      conditions.push(eq(deals.ownerId, parseInt(ownerId as string)));
+    }
+
+    // Multiple owners filter
+    if (owners) {
+      const ownerIds = (owners as string).split(',').map(o => parseInt(o.trim())).filter(o => !isNaN(o));
+      if (ownerIds.length > 0) {
+        conditions.push(inArray(deals.ownerId, ownerIds));
+      }
+    }
+
+    // Companies filter
+    if (companyIds) {
+      const compIds = (companyIds as string).split(',').map(c => parseInt(c.trim())).filter(c => !isNaN(c));
+      if (compIds.length > 0) {
+        conditions.push(inArray(deals.companyId, compIds));
+      }
+    }
+
+    // Amount range filter
+    if (amountMin) {
+      conditions.push(sql`CAST(${deals.amount} AS DECIMAL) >= ${parseFloat(amountMin as string)}`);
+    }
+    if (amountMax) {
+      conditions.push(sql`CAST(${deals.amount} AS DECIMAL) <= ${parseFloat(amountMax as string)}`);
+    }
+
+    // Close date range filter
+    if (closeDateFrom) {
+      conditions.push(sql`${deals.closeDate} >= ${new Date(closeDateFrom as string)}`);
+    }
+    if (closeDateTo) {
+      conditions.push(sql`${deals.closeDate} <= ${new Date(closeDateTo as string)}`);
+    }
+
+    // Created date range filter
+    if (createdFrom) {
+      conditions.push(sql`${deals.createdAt} >= ${new Date(createdFrom as string)}`);
+    }
+    if (createdTo) {
+      conditions.push(sql`${deals.createdAt} <= ${new Date(createdTo as string)}`);
+    }
+
+    // Priority filter
+    if (priority) {
+      const priorities = (priority as string).split(',').map(p => p.trim()).filter(p => p);
+      if (priorities.length > 0) {
+        conditions.push(inArray(deals.priority, priorities));
+      }
+    }
+
+    // Status filter (open/won/lost)
+    if (status && status !== 'all') {
+      if (status === 'open') {
+        // Open deals are those not in won or lost stages
+        conditions.push(sql`${pipelineStages.isWon} = false AND ${pipelineStages.isLost} = false`);
+      } else if (status === 'won') {
+        conditions.push(eq(pipelineStages.isWon, true));
+      } else if (status === 'lost') {
+        conditions.push(eq(pipelineStages.isLost, true));
+      }
+    }
+
+    // Search filter (searches deal name and company name)
+    if (search) {
+      const searchTerm = `%${search}%`;
+      conditions.push(
+        or(
+          ilike(deals.name, searchTerm),
+          ilike(companies.name, searchTerm)
+        )
+      );
+    }
+
+    // Build sort order
+    const sortFieldMap: Record<string, any> = {
+      name: deals.name,
+      amount: sql`CAST(${deals.amount} AS DECIMAL)`,
+      closeDate: deals.closeDate,
+      createdAt: deals.createdAt,
+      updatedAt: deals.updatedAt,
+      priority: deals.priority,
+      stage: pipelineStages.displayOrder,
+      company: companies.name,
+    };
+
+    const sortColumn = sortFieldMap[sortField as string] || deals.createdAt;
+    const orderDirection = sortOrder === 'asc' ? asc(sortColumn) : desc(sortColumn);
+
+    // Get deals with joins
     const dealList = await db
       .select({
         deal: deals,
@@ -1992,14 +2481,21 @@ router.get('/deals', async (req, res) => {
       .leftJoin(pipelineStages, eq(pipelineStages.id, deals.stageId))
       .leftJoin(companies, eq(companies.id, deals.companyId))
       .where(and(...conditions))
-      .orderBy(desc(deals.createdAt))
+      .orderBy(orderDirection)
       .limit(parseInt(limit as string))
       .offset(offset);
 
-    // Get total count
-    const [countResult] = await db
-      .select({ count: sql<number>`count(*)` })
+    // Get aggregates for filtered results (without pagination)
+    const [aggregates] = await db
+      .select({
+        count: sql<number>`count(*)`,
+        totalAmount: sql<string>`COALESCE(SUM(CAST(${deals.amount} AS DECIMAL)), 0)`,
+        avgAmount: sql<string>`COALESCE(AVG(CAST(${deals.amount} AS DECIMAL)), 0)`,
+        weightedAmount: sql<string>`COALESCE(SUM(CAST(${deals.amount} AS DECIMAL) * COALESCE(${pipelineStages.probability}, 0) / 100), 0)`,
+      })
       .from(deals)
+      .leftJoin(pipelineStages, eq(pipelineStages.id, deals.stageId))
+      .leftJoin(companies, eq(companies.id, deals.companyId))
       .where(and(...conditions));
 
     res.json({
@@ -2008,9 +2504,15 @@ router.get('/deals', async (req, res) => {
         stage: d.stage,
         company: d.company,
       })),
-      total: Number(countResult?.count || 0),
+      total: Number(aggregates?.count || 0),
       page: parseInt(page as string),
       limit: parseInt(limit as string),
+      aggregates: {
+        count: Number(aggregates?.count || 0),
+        totalAmount: parseFloat(aggregates?.totalAmount || '0'),
+        avgAmount: parseFloat(aggregates?.avgAmount || '0'),
+        weightedAmount: parseFloat(aggregates?.weightedAmount || '0'),
+      },
     });
   } catch (error) {
     console.error('[CRM] Error fetching deals:', error);
@@ -3668,6 +4170,51 @@ router.delete('/attachments/:id', async (req, res) => {
 // TASK ENDPOINTS
 // ============================================
 
+// Get task counts (overdue, pending) for navigation badges
+router.get('/tasks/counts', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    const now = new Date();
+
+    // Count overdue tasks (pending/in_progress with due date in the past)
+    const overdueResult = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(crmTasks)
+      .where(
+        and(
+          eq(crmTasks.organizationId, orgData.organization.id),
+          inArray(crmTasks.status, ['pending', 'in_progress']),
+          sql`${crmTasks.dueDate} < ${now}`
+        )
+      );
+
+    // Count pending tasks (not completed)
+    const pendingResult = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(crmTasks)
+      .where(
+        and(
+          eq(crmTasks.organizationId, orgData.organization.id),
+          inArray(crmTasks.status, ['pending', 'in_progress'])
+        )
+      );
+
+    res.json({
+      overdueCount: overdueResult[0]?.count || 0,
+      pendingCount: pendingResult[0]?.count || 0,
+    });
+  } catch (error) {
+    console.error('Error fetching task counts:', error);
+    res.status(500).json({ error: 'Failed to fetch task counts' });
+  }
+});
+
 // Get all tasks for the organization (with filters)
 router.get('/tasks', async (req, res) => {
   if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -3757,10 +4304,28 @@ router.get('/tasks', async (req, res) => {
 
     const creatorsMap = new Map(creators.map(c => [c.id, c]));
 
+    // Fetch associations (deals, contacts, companies) for tasks
+    const dealIds = tasks.filter(t => t.task.objectType === 'deal' && t.task.objectId).map(t => t.task.objectId!);
+    const contactIds = tasks.filter(t => t.task.objectType === 'contact' && t.task.objectId).map(t => t.task.objectId!);
+    const companyIds = tasks.filter(t => t.task.objectType === 'company' && t.task.objectId).map(t => t.task.objectId!);
+
+    const [dealsData, contactsData, companiesData] = await Promise.all([
+      dealIds.length > 0 ? db.select({ id: deals.id, name: deals.name }).from(deals).where(inArray(deals.id, dealIds)) : [],
+      contactIds.length > 0 ? db.select({ id: crmContacts.id, firstName: crmContacts.firstName, lastName: crmContacts.lastName }).from(crmContacts).where(inArray(crmContacts.id, contactIds)) : [],
+      companyIds.length > 0 ? db.select({ id: companies.id, name: companies.name }).from(companies).where(inArray(companies.id, companyIds)) : [],
+    ]);
+
+    const dealsMap = new Map(dealsData.map(d => [d.id, d]));
+    const contactsMap = new Map(contactsData.map(c => [c.id, c]));
+    const companiesMap = new Map(companiesData.map(c => [c.id, c]));
+
     res.json(tasks.map((t) => ({
       ...t.task,
       assignee: t.assignee?.id ? t.assignee : null,
       creator: creatorsMap.get(t.task.createdBy) || null,
+      deal: t.task.objectType === 'deal' && t.task.objectId ? dealsMap.get(t.task.objectId) || null : null,
+      contact: t.task.objectType === 'contact' && t.task.objectId ? contactsMap.get(t.task.objectId) || null : null,
+      company: t.task.objectType === 'company' && t.task.objectId ? companiesMap.get(t.task.objectId) || null : null,
     })));
   } catch (error) {
     console.error('[CRM] Error fetching tasks:', error);
@@ -4694,6 +5259,117 @@ router.get('/emails/connection/info', async (req, res) => {
   } catch (error) {
     console.error('[CRM] Error getting email connection info:', error);
     res.status(500).json({ error: 'Failed to get email connection info' });
+  }
+});
+
+// ============================================
+// GLOBAL SEARCH ENDPOINT
+// ============================================
+
+// Search across deals, contacts, and companies
+router.get('/search', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    const { q } = req.query;
+    if (!q || typeof q !== 'string' || q.length < 2) {
+      return res.json({ results: [] });
+    }
+
+    const searchTerm = `%${q}%`;
+    const limit = 10;
+
+    // Search deals
+    const dealResults = await db
+      .select({
+        id: deals.id,
+        name: deals.name,
+        companyName: companies.name,
+      })
+      .from(deals)
+      .leftJoin(companies, eq(companies.id, deals.companyId))
+      .where(
+        and(
+          eq(deals.organizationId, orgData.organization.id),
+          isNull(deals.deletedAt),
+          ilike(deals.name, searchTerm)
+        )
+      )
+      .limit(limit);
+
+    // Search contacts
+    const contactResults = await db
+      .select({
+        id: crmContacts.id,
+        firstName: crmContacts.firstName,
+        lastName: crmContacts.lastName,
+        email: crmContacts.email,
+        companyName: companies.name,
+      })
+      .from(crmContacts)
+      .leftJoin(companies, eq(companies.id, crmContacts.companyId))
+      .where(
+        and(
+          eq(crmContacts.organizationId, orgData.organization.id),
+          or(
+            ilike(crmContacts.firstName, searchTerm),
+            ilike(crmContacts.lastName, searchTerm),
+            ilike(crmContacts.email, searchTerm)
+          )
+        )
+      )
+      .limit(limit);
+
+    // Search companies
+    const companyResults = await db
+      .select({
+        id: companies.id,
+        name: companies.name,
+        website: companies.website,
+      })
+      .from(companies)
+      .where(
+        and(
+          eq(companies.organizationId, orgData.organization.id),
+          or(
+            ilike(companies.name, searchTerm),
+            ilike(companies.website, searchTerm)
+          )
+        )
+      )
+      .limit(limit);
+
+    // Format results
+    const results = [
+      ...dealResults.map(d => ({
+        type: 'deal' as const,
+        id: d.id,
+        title: d.name,
+        subtitle: d.companyName || undefined,
+      })),
+      ...contactResults.map(c => ({
+        type: 'contact' as const,
+        id: c.id,
+        title: [c.firstName, c.lastName].filter(Boolean).join(' ') || c.email,
+        subtitle: c.companyName || c.email,
+      })),
+      ...companyResults.map(c => ({
+        type: 'company' as const,
+        id: c.id,
+        title: c.name,
+        subtitle: c.website || undefined,
+      })),
+    ].slice(0, 15); // Limit total results
+
+    res.json({ results });
+  } catch (error) {
+    console.error('Error in global search:', error);
+    res.status(500).json({ error: 'Search failed' });
   }
 });
 

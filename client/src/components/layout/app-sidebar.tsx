@@ -142,6 +142,15 @@ export function AppSidebar() {
 
   const pendingApprovalsCount = Array.isArray(pendingApprovalsData) ? pendingApprovalsData.length : 0;
 
+  // Fetch overdue/pending task count for Tasks badge
+  const { data: taskCountData } = useQuery<{ overdueCount: number; pendingCount: number }>({
+    queryKey: ["/api/crm/tasks/counts"],
+    enabled: !!user,
+    staleTime: 1000 * 60 * 2, // 2 minutes
+  });
+
+  const overdueTaskCount = taskCountData?.overdueCount || 0;
+
   // Check if a nav item is active
   const isActive = (item: NavItem) => {
     if (item.matchPaths) {
@@ -181,6 +190,10 @@ export function AppSidebar() {
     const isAnalytics = item.label === "Analytics";
     const showPendingBadge = isAnalytics && pendingApprovalsCount > 0;
 
+    // Special handling for Tasks badge with overdue count
+    const isTasks = item.label === "Tasks";
+    const showTaskBadge = isTasks && overdueTaskCount > 0;
+
     return (
       <SidebarMenuItem key={item.href}>
         <SidebarMenuButton
@@ -200,6 +213,15 @@ export function AppSidebar() {
             <span>{item.label}</span>
           </Link>
         </SidebarMenuButton>
+        {/* Overdue tasks badge for Tasks */}
+        {showTaskBadge && !isCollapsed && (
+          <SidebarMenuBadge
+            className="text-[10px] px-1.5 rounded-full bg-red-500 text-white"
+            title={`${overdueTaskCount} overdue task${overdueTaskCount !== 1 ? 's' : ''}`}
+          >
+            {overdueTaskCount}
+          </SidebarMenuBadge>
+        )}
         {/* Pending approvals badge for Analytics */}
         {showPendingBadge && !isCollapsed && (
           <SidebarMenuBadge
@@ -348,14 +370,16 @@ export function AppSidebar() {
                 <SidebarMenuButton
                   onClick={toggleSidebar}
                   tooltip={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-                  className="text-sidebar-foreground/70 hover:text-sidebar-foreground"
+                  className="text-sidebar-foreground/70 hover:text-sidebar-foreground group/collapse"
                 >
                   {isCollapsed ? (
                     <PanelLeft className="h-4 w-4" />
                   ) : (
                     <PanelLeftClose className="h-4 w-4" />
                   )}
-                  <span>{isCollapsed ? "Expand" : "Collapse"}</span>
+                  <span className="opacity-0 group-hover/collapse:opacity-100 transition-opacity duration-200">
+                    {isCollapsed ? "Expand" : "Collapse"}
+                  </span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             )}

@@ -59,7 +59,7 @@ export default function TasksPage() {
       if (viewMode === "my") {
         params.append("myTasks", "true");
       }
-      if (statusFilter !== "all" && statusFilter !== "active") {
+      if (statusFilter !== "all" && statusFilter !== "active" && statusFilter !== "overdue") {
         params.append("status", statusFilter);
       }
       if (priorityFilter !== "all") {
@@ -68,23 +68,6 @@ export default function TasksPage() {
       const res = await apiRequest("GET", `/api/crm/tasks?${params.toString()}`);
       return res.json();
     },
-  });
-
-  // Filter tasks based on search and status
-  const filteredTasks = (tasks || []).filter((task) => {
-    const matchesSearch =
-      !searchQuery ||
-      task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      task.description?.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesStatus =
-      statusFilter === "all" ||
-      (statusFilter === "active" &&
-        task.status !== "completed" &&
-        task.status !== "cancelled") ||
-      task.status === statusFilter;
-
-    return matchesSearch && matchesStatus;
   });
 
   // Helper to check if a task is overdue (considering both date AND time)
@@ -108,6 +91,27 @@ export default function TasksPage() {
     return now > dueDateTime;
   };
 
+  // Filter tasks based on search and status
+  const filteredTasks = (tasks || []).filter((task) => {
+    const matchesSearch =
+      !searchQuery ||
+      task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      task.description?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    let matchesStatus = false;
+    if (statusFilter === "all") {
+      matchesStatus = true;
+    } else if (statusFilter === "active") {
+      matchesStatus = task.status !== "completed" && task.status !== "cancelled";
+    } else if (statusFilter === "overdue") {
+      matchesStatus = isTaskOverdue(task);
+    } else {
+      matchesStatus = task.status === statusFilter;
+    }
+
+    return matchesSearch && matchesStatus;
+  });
+
   // Calculate stats
   const stats = {
     total: tasks?.length || 0,
@@ -127,15 +131,20 @@ export default function TasksPage() {
             Manage your tasks and follow-ups
           </p>
         </div>
-        <Button onClick={() => setIsCreateDialogOpen(true)} className="w-full sm:w-auto">
+        <Button variant="outline" onClick={() => setIsCreateDialogOpen(true)} className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
           Add Task
         </Button>
       </div>
 
-      {/* Stats Cards - 2 cols on mobile, 4 on desktop */}
+      {/* Stats Cards - 2 cols on mobile, 4 on desktop - clickable as quick filters */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
-        <div className="bg-white rounded-lg border p-4">
+        <button
+          onClick={() => setStatusFilter("active")}
+          className={`bg-white rounded-lg border p-4 text-left transition-all hover:shadow-md hover:border-blue-300 ${
+            statusFilter === "active" ? "ring-2 ring-blue-500 border-blue-500" : ""
+          }`}
+        >
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-100 rounded-lg">
               <Clock className="h-5 w-5 text-blue-600" />
@@ -147,9 +156,14 @@ export default function TasksPage() {
               <p className="text-sm text-gray-500">Active Tasks</p>
             </div>
           </div>
-        </div>
+        </button>
 
-        <div className="bg-white rounded-lg border p-4">
+        <button
+          onClick={() => setStatusFilter("overdue")}
+          className={`bg-white rounded-lg border p-4 text-left transition-all hover:shadow-md hover:border-red-300 ${
+            statusFilter === "overdue" ? "ring-2 ring-red-500 border-red-500" : ""
+          }`}
+        >
           <div className="flex items-center gap-3">
             <div className="p-2 bg-red-100 rounded-lg">
               <AlertCircle className="h-5 w-5 text-red-600" />
@@ -161,9 +175,14 @@ export default function TasksPage() {
               <p className="text-sm text-gray-500">Overdue</p>
             </div>
           </div>
-        </div>
+        </button>
 
-        <div className="bg-white rounded-lg border p-4">
+        <button
+          onClick={() => setStatusFilter("completed")}
+          className={`bg-white rounded-lg border p-4 text-left transition-all hover:shadow-md hover:border-green-300 ${
+            statusFilter === "completed" ? "ring-2 ring-green-500 border-green-500" : ""
+          }`}
+        >
           <div className="flex items-center gap-3">
             <div className="p-2 bg-green-100 rounded-lg">
               <CheckCircle2 className="h-5 w-5 text-green-600" />
@@ -175,9 +194,14 @@ export default function TasksPage() {
               <p className="text-sm text-gray-500">Completed</p>
             </div>
           </div>
-        </div>
+        </button>
 
-        <div className="bg-white rounded-lg border p-4">
+        <button
+          onClick={() => setStatusFilter("all")}
+          className={`bg-white rounded-lg border p-4 text-left transition-all hover:shadow-md hover:border-gray-400 ${
+            statusFilter === "all" ? "ring-2 ring-gray-500 border-gray-500" : ""
+          }`}
+        >
           <div className="flex items-center gap-3">
             <div className="p-2 bg-gray-100 rounded-lg">
               <CheckCircle2 className="h-5 w-5 text-gray-600" />
@@ -189,7 +213,7 @@ export default function TasksPage() {
               <p className="text-sm text-gray-500">Total Tasks</p>
             </div>
           </div>
-        </div>
+        </button>
       </div>
 
       {/* Filters - stacks on mobile */}

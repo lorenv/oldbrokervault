@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useLocation, Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -35,8 +35,6 @@ import {
   Clock,
   Plus,
   Trash2,
-  Edit,
-  Save,
   X,
   Users,
   WandSparkles,
@@ -55,6 +53,7 @@ import {
   Phone,
   Video,
   MessageSquarePlus,
+  Settings2,
 } from "lucide-react";
 
 // Helper function to get activity icon based on type
@@ -121,9 +120,12 @@ function formatActivityTitle(activity: Activity): string {
   }
 }
 import { BuyerPipeline } from "@/components/crm/buyer-pipeline";
+import { InlineEdit, InlineEditCurrency, InlineEditDate } from "@/components/ui/inline-edit";
 import { EmailList } from "@/components/crm/email-list";
 import { TaskDialog } from "@/components/crm/task-dialog";
 import { TaskList } from "@/components/crm/task-list";
+import { DetailPageCustomizer } from "@/components/crm/detail-page-customizer";
+import { useDetailPageLayout } from "@/hooks/use-detail-page-layout";
 import {
   Dialog,
   DialogContent,
@@ -202,6 +204,8 @@ interface Contact {
   lastName: string;
   phone?: string;
   company?: string;
+  role?: string;
+  avatarUrl?: string;
 }
 
 interface Attachment {
@@ -218,7 +222,6 @@ export default function DealDetailPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [isEditing, setIsEditing] = useState(false);
   const [newNote, setNewNote] = useState("");
   const [isAddContactDialogOpen, setIsAddContactDialogOpen] = useState(false);
   const [selectedContactId, setSelectedContactId] = useState<string>("");
@@ -228,6 +231,15 @@ export default function DealDetailPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<any>(null);
+  const [isCustomizerOpen, setIsCustomizerOpen] = useState(false);
+
+  // Use detail page layout hook
+  const {
+    isSectionVisible,
+    isFieldVisible,
+    getSectionOrder,
+    getVisibleCustomFields,
+  } = useDetailPageLayout("deal");
 
   // Fetch deal details
   const { data: deal, isLoading } = useQuery<Deal>({
@@ -348,7 +360,6 @@ export default function DealDetailPage() {
       }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/deals", id] });
-      setIsEditing(false);
       toast({ title: "Deal updated", description: "Changes saved successfully." });
     },
   });
@@ -401,6 +412,29 @@ export default function DealDetailPage() {
       toast({ title: "Error", description: "Failed to add contact.", variant: "destructive" });
     },
   });
+
+  // Update contact mutation (for inline editing)
+  const updateContactMutation = useMutation({
+    mutationFn: ({ contactId, data }: { contactId: number; data: Record<string, any> }) =>
+      apiRequest("PATCH", `/api/crm/contacts/${contactId}`, { body: data }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"] });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update contact.", variant: "destructive" });
+    },
+  });
+
+  // Helper for inline contact updates
+  const handleContactUpdate = useCallback(async (contactId: number, field: string, value: string) => {
+    await updateContactMutation.mutateAsync({ contactId, data: { [field]: value || null } });
+  }, [updateContactMutation]);
+
+  // Helper for inline deal updates
+  const handleDealUpdate = useCallback(async (field: string, value: string) => {
+    await updateDealMutation.mutateAsync({ [field]: value || null });
+  }, [updateDealMutation]);
 
   const currentPipeline = (pipelines as any)?.find((p: any) => p.id === deal?.pipelineId);
   const stages = currentPipeline?.stages || [];
@@ -468,25 +502,15 @@ export default function DealDetailPage() {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {isEditing ? (
-            <>
-              <Button variant="outline" onClick={() => setIsEditing(false)} size="sm" className="flex-1 sm:flex-none">
-                <X className="h-4 w-4 mr-2" />
-                Cancel
-              </Button>
-              <Button onClick={() => updateDealMutation.mutate({})} size="sm" className="flex-1 sm:flex-none">
-                <Save className="h-4 w-4 mr-2" />
-                Save
-              </Button>
-            </>
-          ) : (
-            <Button variant="outline" onClick={() => setIsEditing(true)} size="sm">
-              <Edit className="h-4 w-4 mr-2" />
-              Edit
-            </Button>
-          )}
-        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setIsCustomizerOpen(true)}
+          className="flex items-center gap-1.5"
+        >
+          <Settings2 className="h-4 w-4" />
+          <span className="hidden sm:inline">Customize</span>
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -749,9 +773,6 @@ export default function DealDetailPage() {
                   dealId={parseInt(id!)}
                   buyers={buyers || []}
                   stages={buyerStages}
-                  onAddBuyer={() => {
-                    toast({ title: "Coming soon", description: "Add buyer dialog will be implemented." });
-                  }}
                 />
               ) : (
                 <Card>
@@ -844,186 +865,87 @@ export default function DealDetailPage() {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-lg">Contacts</CardTitle>
-                  <Dialog open={isAddContactDialogOpen} onOpenChange={(open) => {
-                    setIsAddContactDialogOpen(open);
-                    if (!open) {
-                      setContactSearch("");
-                      setSelectedContactId("");
-                      setContactMode("existing");
-                    }
-                  }}>
-                    <DialogTrigger asChild>
-                      <Button size="sm" variant="outline">
-                        <UserPlus className="h-4 w-4 mr-2" />
-                        Add Contact
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-md">
-                      <DialogHeader>
-                        <DialogTitle>Add Contact to Deal</DialogTitle>
-                        <DialogDescription>
-                          Link an existing contact or create a new one.
-                        </DialogDescription>
-                      </DialogHeader>
-
-                      {/* Mode Selection */}
-                      <div className="flex gap-2 py-2">
-                        <Button
-                          variant={contactMode === "existing" ? "default" : "outline"}
-                          size="sm"
-                          className="flex-1"
-                          onClick={() => setContactMode("existing")}
-                        >
-                          <Users className="h-4 w-4 mr-2" />
-                          Existing Contact
-                        </Button>
-                        <Button
-                          variant={contactMode === "new" ? "default" : "outline"}
-                          size="sm"
-                          className="flex-1"
-                          onClick={() => setContactMode("new")}
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          New Contact
-                        </Button>
-                      </div>
-
-                      {contactMode === "existing" ? (
-                        <div className="space-y-4 py-2">
-                          {/* Search Input */}
-                          <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                            <Input
-                              placeholder="Search contacts by name or email..."
-                              value={contactSearch}
-                              onChange={(e) => setContactSearch(e.target.value)}
-                              className="pl-9"
-                            />
-                          </div>
-
-                          {/* Contact List */}
-                          <div className="max-h-48 overflow-y-auto border rounded-lg">
-                            {availableContacts.filter(c =>
-                              `${c.firstName} ${c.lastName} ${c.email}`.toLowerCase().includes(contactSearch.toLowerCase())
-                            ).length > 0 ? (
-                              availableContacts
-                                .filter(c =>
-                                  `${c.firstName} ${c.lastName} ${c.email}`.toLowerCase().includes(contactSearch.toLowerCase())
-                                )
-                                .slice(0, 20)
-                                .map((contact) => (
-                                  <button
-                                    key={contact.id}
-                                    onClick={() => setSelectedContactId(contact.id.toString())}
-                                    className={`w-full flex items-center gap-3 p-3 hover:bg-gray-50 border-b last:border-b-0 text-left transition-colors ${
-                                      selectedContactId === contact.id.toString() ? "bg-blue-50 border-blue-200" : ""
-                                    }`}
-                                  >
-                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
-                                      {(contact.firstName?.[0] || '').toUpperCase()}{(contact.lastName?.[0] || '').toUpperCase()}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <p className="font-medium text-sm text-gray-900 truncate">
-                                        {contact.firstName} {contact.lastName}
-                                      </p>
-                                      <p className="text-xs text-gray-500 truncate">{contact.email}</p>
-                                    </div>
-                                    {selectedContactId === contact.id.toString() && (
-                                      <Check className="h-4 w-4 text-blue-600 flex-shrink-0" />
-                                    )}
-                                  </button>
-                                ))
-                            ) : (
-                              <div className="p-4 text-center text-gray-500 text-sm">
-                                {contactSearch ? "No contacts match your search" : "No available contacts"}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Role Selection */}
-                          <div className="space-y-2">
-                            <Label>Role in this deal</Label>
-                            <Select value={contactRole} onValueChange={setContactRole}>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="primary">Primary Contact</SelectItem>
-                                <SelectItem value="decision_maker">Decision Maker</SelectItem>
-                                <SelectItem value="influencer">Influencer</SelectItem>
-                                <SelectItem value="other">Other</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="py-4 text-center">
-                          <UserPlus className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                          <p className="text-gray-600 mb-4">Create a new contact in your CRM</p>
-                          <Button asChild>
-                            <Link href={`/contacts/new?dealId=${id}`}>
-                              <Plus className="h-4 w-4 mr-2" />
-                              Create New Contact
-                            </Link>
-                          </Button>
-                        </div>
-                      )}
-
-                      {contactMode === "existing" && (
-                        <DialogFooter>
-                          <Button variant="outline" onClick={() => setIsAddContactDialogOpen(false)}>
-                            Cancel
-                          </Button>
-                          <Button
-                            onClick={() => {
-                              if (selectedContactId) {
-                                addContactMutation.mutate({
-                                  contactId: parseInt(selectedContactId),
-                                  role: contactRole,
-                                });
-                              }
-                            }}
-                            disabled={!selectedContactId || addContactMutation.isPending}
-                          >
-                            {addContactMutation.isPending ? "Adding..." : "Add to Deal"}
-                          </Button>
-                        </DialogFooter>
-                      )}
-                    </DialogContent>
-                  </Dialog>
+                  <Button size="sm" variant="outline" onClick={() => setIsAddContactDialogOpen(true)}>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Add Contact
+                  </Button>
                 </CardHeader>
                 <CardContent>
                   {deal.contacts && deal.contacts.length > 0 ? (
                     <div className="space-y-3">
                       {deal.contacts.map((contact: any) => (
-                        <Link
+                        <div
                           key={contact.id}
-                          href={`/contacts/${contact.id}`}
-                          className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 border"
+                          className="p-3 rounded-lg border hover:bg-gray-50/50 transition-colors"
                         >
-                          {contact.avatarUrl ? (
-                            <img
-                              src={contact.avatarUrl}
-                              alt={`${contact.firstName} ${contact.lastName}`}
-                              className="w-10 h-10 rounded-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-medium">
-                              {(contact.firstName?.[0] || '').toUpperCase()}{(contact.lastName?.[0] || '').toUpperCase()}
+                          <div className="flex items-start gap-3">
+                            <Link href={`/contacts/${contact.id}`}>
+                              {contact.avatarUrl ? (
+                                <img
+                                  src={contact.avatarUrl}
+                                  alt={`${contact.firstName} ${contact.lastName}`}
+                                  className="w-10 h-10 rounded-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-medium">
+                                  {(contact.firstName?.[0] || '').toUpperCase()}{(contact.lastName?.[0] || '').toUpperCase()}
+                                </div>
+                              )}
+                            </Link>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <Link href={`/contacts/${contact.id}`} className="font-medium text-gray-900 hover:text-blue-600 truncate">
+                                  {contact.firstName} {contact.lastName}
+                                </Link>
+                                <Badge variant="secondary" className="flex-shrink-0">
+                                  {contact.role}
+                                </Badge>
+                              </div>
+                              <div className="mt-1.5 space-y-1">
+                                <div className="flex items-center gap-1.5">
+                                  <Mail className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                                  <InlineEdit
+                                    value={contact.email}
+                                    onSave={(val) => handleContactUpdate(contact.id, 'email', val)}
+                                    type="email"
+                                    emptyText="Add email"
+                                    displayClassName="text-gray-600"
+                                  />
+                                  {contact.email && (
+                                    <a
+                                      href={`mailto:${contact.email}`}
+                                      className="text-blue-500 hover:text-blue-600 ml-1"
+                                      title="Send email"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <Mail className="h-3.5 w-3.5" />
+                                    </a>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <Phone className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                                  <InlineEdit
+                                    value={contact.phone}
+                                    onSave={(val) => handleContactUpdate(contact.id, 'phone', val)}
+                                    type="phone"
+                                    emptyText="Add phone"
+                                    displayClassName="text-gray-600"
+                                  />
+                                  {contact.phone && (
+                                    <a
+                                      href={`tel:${contact.phone}`}
+                                      className="text-green-500 hover:text-green-600 ml-1"
+                                      title="Call"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <Phone className="h-3.5 w-3.5" />
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                          )}
-                          <div className="flex-1">
-                            <p className="font-medium text-gray-900">
-                              {contact.firstName} {contact.lastName}
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              {contact.email}
-                            </p>
                           </div>
-                          <Badge variant="secondary">
-                            {contact.role}
-                          </Badge>
-                        </Link>
+                        </div>
                       ))}
                     </div>
                   ) : (
@@ -1224,6 +1146,7 @@ export default function DealDetailPage() {
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Key People Card */}
+          {isSectionVisible("key-people") && (
           <Card>
             <CardHeader className="pb-3 flex flex-row items-center justify-between">
               <CardTitle className="text-lg flex items-center gap-2">
@@ -1273,28 +1196,53 @@ export default function DealDetailPage() {
 
               {/* Primary Contact */}
               {deal.contacts && deal.contacts.length > 0 && (
-                <Link
-                  href={`/contacts/${deal.contacts[0].id}`}
-                  className="flex items-center gap-3 hover:bg-gray-50 rounded-lg p-2 -mx-2 transition-colors"
-                >
-                  {(deal.contacts[0] as any).avatarUrl ? (
-                    <img
-                      src={(deal.contacts[0] as any).avatarUrl}
-                      alt={`${deal.contacts[0].firstName} ${deal.contacts[0].lastName}`}
-                      className="w-8 h-8 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white text-xs font-medium">
-                      {(deal.contacts[0].firstName?.[0] || '').toUpperCase()}{(deal.contacts[0].lastName?.[0] || '').toUpperCase()}
+                <div className="rounded-lg p-2 -mx-2">
+                  <div className="flex items-start gap-3">
+                    <Link href={`/contacts/${deal.contacts[0].id}`}>
+                      {(deal.contacts[0] as any).avatarUrl ? (
+                        <img
+                          src={(deal.contacts[0] as any).avatarUrl}
+                          alt={`${deal.contacts[0].firstName} ${deal.contacts[0].lastName}`}
+                          className="w-8 h-8 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-medium">
+                          {(deal.contacts[0].firstName?.[0] || '').toUpperCase()}{(deal.contacts[0].lastName?.[0] || '').toUpperCase()}
+                        </div>
+                      )}
+                    </Link>
+                    <div className="flex-1 min-w-0">
+                      <Link href={`/contacts/${deal.contacts[0].id}`} className="text-sm font-medium truncate text-gray-900 hover:text-blue-600 block">
+                        {deal.contacts[0].firstName} {deal.contacts[0].lastName}
+                      </Link>
+                      <p className="text-xs text-gray-500 mb-1">{deal.contacts[0].role || "Primary Contact"}</p>
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-1">
+                          <Mail className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                          <InlineEdit
+                            value={deal.contacts[0].email}
+                            onSave={(val) => handleContactUpdate(deal.contacts![0].id, 'email', val)}
+                            type="email"
+                            emptyText="Add email"
+                            displayClassName="text-xs text-gray-600"
+                            inputClassName="h-6 text-xs"
+                          />
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Phone className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                          <InlineEdit
+                            value={(deal.contacts[0] as any).phone}
+                            onSave={(val) => handleContactUpdate(deal.contacts![0].id, 'phone', val)}
+                            type="phone"
+                            emptyText="Add phone"
+                            displayClassName="text-xs text-gray-600"
+                            inputClassName="h-6 text-xs"
+                          />
+                        </div>
+                      </div>
                     </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate text-gray-900">
-                      {deal.contacts[0].firstName} {deal.contacts[0].lastName}
-                    </p>
-                    <p className="text-xs text-gray-500">{deal.contacts[0].role || "Primary Contact"}</p>
                   </div>
-                </Link>
+                </div>
               )}
 
               {/* Additional contacts count */}
@@ -1319,8 +1267,10 @@ export default function DealDetailPage() {
               )}
             </CardContent>
           </Card>
+          )}
 
           {/* Deal Details Card */}
+          {isSectionVisible("deal-details") && (
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Deal Details</CardTitle>
@@ -1328,23 +1278,25 @@ export default function DealDetailPage() {
             <CardContent className="space-y-4">
               <div>
                 <Label className="text-xs text-gray-500">Value</Label>
-                <p className="text-lg font-semibold text-green-600">
-                  {deal.amount
-                    ? new Intl.NumberFormat("en-US", {
-                        style: "currency",
-                        currency: deal.currency || "USD",
-                      }).format(parseFloat(deal.amount))
-                    : "Not set"}
-                </p>
+                <div className="mt-0.5">
+                  <InlineEditCurrency
+                    value={deal.amount}
+                    onSave={(val) => handleDealUpdate('amount', val)}
+                    currency={deal.currency || "USD"}
+                    displayClassName="text-lg font-semibold text-green-600"
+                  />
+                </div>
               </div>
 
               <div>
                 <Label className="text-xs text-gray-500">Close Date</Label>
-                <p className="font-medium">
-                  {deal.closeDate
-                    ? new Date(deal.closeDate).toLocaleDateString()
-                    : "Not set"}
-                </p>
+                <div className="mt-0.5">
+                  <InlineEditDate
+                    value={deal.closeDate ? deal.closeDate.split('T')[0] : ''}
+                    onSave={(val) => handleDealUpdate('closeDate', val)}
+                    displayClassName="font-medium"
+                  />
+                </div>
               </div>
 
               <div>
@@ -1367,8 +1319,10 @@ export default function DealDetailPage() {
               </div>
             </CardContent>
           </Card>
+          )}
 
           {/* Quick Actions */}
+          {isSectionVisible("quick-actions") && (
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Quick Actions</CardTitle>
@@ -1397,6 +1351,7 @@ export default function DealDetailPage() {
               </Button>
             </CardContent>
           </Card>
+          )}
         </div>
       </div>
 
@@ -1414,6 +1369,156 @@ export default function DealDetailPage() {
         task={editingTask}
         objectType="deal"
         objectId={parseInt(id!)}
+      />
+
+      {/* Add Contact Dialog - rendered at root level so it works from any tab */}
+      <Dialog open={isAddContactDialogOpen} onOpenChange={(open) => {
+        setIsAddContactDialogOpen(open);
+        if (!open) {
+          setContactSearch("");
+          setSelectedContactId("");
+          setContactMode("existing");
+        }
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Contact to Deal</DialogTitle>
+            <DialogDescription>
+              Link an existing contact or create a new one.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Mode Selection */}
+          <div className="flex gap-2 py-2">
+            <Button
+              variant={contactMode === "existing" ? "default" : "outline"}
+              size="sm"
+              className="flex-1"
+              onClick={() => setContactMode("existing")}
+            >
+              <Users className="h-4 w-4 mr-2" />
+              Existing Contact
+            </Button>
+            <Button
+              variant={contactMode === "new" ? "default" : "outline"}
+              size="sm"
+              className="flex-1"
+              onClick={() => setContactMode("new")}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              New Contact
+            </Button>
+          </div>
+
+          {contactMode === "existing" ? (
+            <div className="space-y-4 py-2">
+              {/* Search Input */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search contacts by name or email..."
+                  value={contactSearch}
+                  onChange={(e) => setContactSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+
+              {/* Contact List */}
+              <div className="max-h-48 overflow-y-auto border rounded-lg">
+                {availableContacts.filter(c =>
+                  `${c.firstName} ${c.lastName} ${c.email}`.toLowerCase().includes(contactSearch.toLowerCase())
+                ).length > 0 ? (
+                  availableContacts
+                    .filter(c =>
+                      `${c.firstName} ${c.lastName} ${c.email}`.toLowerCase().includes(contactSearch.toLowerCase())
+                    )
+                    .slice(0, 20)
+                    .map((contact) => (
+                      <button
+                        key={contact.id}
+                        onClick={() => setSelectedContactId(contact.id.toString())}
+                        className={`w-full flex items-center gap-3 p-3 hover:bg-gray-50 border-b last:border-b-0 text-left transition-colors ${
+                          selectedContactId === contact.id.toString() ? "bg-blue-50 border-blue-200" : ""
+                        }`}
+                      >
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
+                          {(contact.firstName?.[0] || '').toUpperCase()}{(contact.lastName?.[0] || '').toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm text-gray-900 truncate">
+                            {contact.firstName} {contact.lastName}
+                          </p>
+                          <p className="text-xs text-gray-500 truncate">{contact.email}</p>
+                        </div>
+                        {selectedContactId === contact.id.toString() && (
+                          <Check className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                        )}
+                      </button>
+                    ))
+                ) : (
+                  <div className="p-4 text-center text-gray-500 text-sm">
+                    {contactSearch ? "No contacts match your search" : "No available contacts"}
+                  </div>
+                )}
+              </div>
+
+              {/* Role Selection */}
+              <div className="space-y-2">
+                <Label>Role in this deal</Label>
+                <Select value={contactRole} onValueChange={setContactRole}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="primary">Primary Contact</SelectItem>
+                    <SelectItem value="decision_maker">Decision Maker</SelectItem>
+                    <SelectItem value="influencer">Influencer</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          ) : (
+            <div className="py-4 text-center">
+              <UserPlus className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-600 mb-4">Create a new contact in your CRM</p>
+              <Button asChild>
+                <Link href={`/contacts/new?dealId=${id}`}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create New Contact
+                </Link>
+              </Button>
+            </div>
+          )}
+
+          {contactMode === "existing" && (
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsAddContactDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  if (selectedContactId) {
+                    addContactMutation.mutate({
+                      contactId: parseInt(selectedContactId),
+                      role: contactRole,
+                    });
+                  }
+                }}
+                disabled={!selectedContactId || addContactMutation.isPending}
+              >
+                {addContactMutation.isPending ? "Adding..." : "Add to Deal"}
+              </Button>
+            </DialogFooter>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Detail Page Customizer */}
+      <DetailPageCustomizer
+        objectType="deal"
+        open={isCustomizerOpen}
+        onOpenChange={setIsCustomizerOpen}
       />
     </div>
   );

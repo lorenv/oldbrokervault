@@ -2467,6 +2467,22 @@ export const dealBuyers = pgTable("deal_buyers", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Detail Page Layout Configuration - Customizable per organization
+export const detailPageLayouts = pgTable("detail_page_layouts", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
+
+  // What object type this layout is for
+  objectType: text("object_type").notNull(), // 'deal', 'contact', 'company'
+
+  // Layout configuration stored as JSON
+  // Contains sections array with: { id, title, order, visible, collapsed, fields: [{ id, visible, order }] }
+  layout: jsonb("layout").notNull().default([]),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Constants for buyer pipeline
 export const BUYER_CONTACT_TYPES = ['buyer', 'seller', 'advisor', 'other'] as const;
 
@@ -2509,6 +2525,59 @@ export const customFieldDefinitions = pgTable("custom_field_definitions", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Deal Views - Saved filter/column configurations for deals table
+export const dealViews = pgTable("deal_views", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
+  userId: integer("user_id"), // null = org-level shared view
+
+  name: text("name").notNull(),
+  isDefault: boolean("is_default").default(false).notNull(),
+  isShared: boolean("is_shared").default(false).notNull(), // visible to team
+
+  // Filter configuration
+  filters: jsonb("filters").default({}).notNull(),
+  // Example: { stages: [1,2], amountMin: 10000, amountMax: 100000, owners: [1], companies: [1,2], priority: ['high'], closeDateFrom: '2024-01-01', closeDateTo: '2024-12-31', status: 'open' }
+
+  // Column configuration
+  columns: jsonb("columns").default([]).notNull(),
+  // Example: [{ id: 'name', visible: true, width: 200, order: 0 }, { id: 'amount', visible: true, width: 120, order: 1 }]
+
+  // Sorting configuration
+  sorting: jsonb("sorting").default({}).notNull(),
+  // Example: { field: 'amount', direction: 'desc' }
+
+  // View mode preference
+  viewMode: text("view_mode").default("list"), // 'list' | 'kanban'
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Insert schema for deal views
+export const insertDealViewSchema = createInsertSchema(dealViews).pick({
+  organizationId: true,
+  name: true
+}).extend({
+  organizationId: z.number().min(1),
+  userId: z.number().nullable().optional(),
+  name: z.string().min(1, "View name is required").max(100),
+  isDefault: z.boolean().optional(),
+  isShared: z.boolean().optional(),
+  filters: z.record(z.any()).optional(),
+  columns: z.array(z.object({
+    id: z.string(),
+    visible: z.boolean(),
+    width: z.number().optional(),
+    order: z.number()
+  })).optional(),
+  sorting: z.object({
+    field: z.string(),
+    direction: z.enum(['asc', 'desc'])
+  }).optional(),
+  viewMode: z.enum(['list', 'kanban']).optional()
+});
+
 // Zod schemas for CRM system
 
 export const insertOrganizationSchema = createInsertSchema(organizations).pick({
@@ -2534,6 +2603,12 @@ export const insertOrganizationMemberSchema = createInsertSchema(organizationMem
   status: z.enum(ORGANIZATION_MEMBER_STATUSES as unknown as [string, ...string[]]).default('active')
 });
 
+// Helper for optional URL fields that converts empty strings to null
+const optionalUrl = z.preprocess(
+  (val) => (val === '' || val === undefined ? null : val),
+  z.string().url().nullable().optional()
+);
+
 export const insertCompanySchema = createInsertSchema(companies).pick({
   organizationId: true,
   name: true
@@ -2541,7 +2616,7 @@ export const insertCompanySchema = createInsertSchema(companies).pick({
   organizationId: z.number().min(1),
   name: z.string().min(1, "Company name is required").max(200),
   domain: z.string().nullable().optional(),
-  website: z.string().url().nullable().optional(),
+  website: optionalUrl,
   industry: z.string().nullable().optional(),
   size: z.string().nullable().optional(),
   annualRevenue: z.string().nullable().optional(),
@@ -2550,7 +2625,7 @@ export const insertCompanySchema = createInsertSchema(companies).pick({
   state: z.string().nullable().optional(),
   country: z.string().nullable().optional(),
   phone: z.string().nullable().optional(),
-  linkedinUrl: z.string().url().nullable().optional(),
+  linkedinUrl: optionalUrl,
   ownerId: z.number().nullable().optional(),
   customProperties: z.record(z.any()).optional(),
   description: z.string().nullable().optional()

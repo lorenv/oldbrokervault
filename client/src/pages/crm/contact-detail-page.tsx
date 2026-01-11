@@ -1,13 +1,18 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { EmailList } from "@/components/crm/email-list";
 import { TaskDialog } from "@/components/crm/task-dialog";
 import { TaskList } from "@/components/crm/task-list";
+import { InlineEdit } from "@/components/ui/inline-edit";
+import { DetailPageCustomizer } from "@/components/crm/detail-page-customizer";
+import { useDetailPageLayout } from "@/hooks/use-detail-page-layout";
 import {
   ArrowLeft,
   User,
@@ -27,6 +32,7 @@ import {
   Activity,
   CheckSquare,
   Plus,
+  Settings2,
 } from "lucide-react";
 
 interface ContactCustomProperties {
@@ -45,8 +51,14 @@ interface ContactCustomProperties {
 
 export default function ContactDetailPage() {
   const { id } = useParams();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<any>(null);
+  const [isCustomizerOpen, setIsCustomizerOpen] = useState(false);
+
+  // Use detail page layout hook
+  const { isSectionVisible, getVisibleCustomFields } = useDetailPageLayout("contact");
 
   const { data: contact, isLoading } = useQuery({
     queryKey: ["/api/crm/contacts", id],
@@ -60,6 +72,24 @@ export default function ContactDetailPage() {
     queryFn: () => apiRequest("GET", `/api/crm/tasks/contact/${id}`).then(res => res.json()),
     enabled: !!id,
   });
+
+  // Update contact mutation
+  const updateContactMutation = useMutation({
+    mutationFn: (data: Record<string, any>) =>
+      apiRequest("PATCH", `/api/crm/contacts/${id}`, { body: data }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"] });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update contact.", variant: "destructive" });
+    },
+  });
+
+  // Helper for inline contact updates
+  const handleContactUpdate = useCallback(async (field: string, value: string) => {
+    await updateContactMutation.mutateAsync({ [field]: value || null });
+  }, [updateContactMutation]);
 
   if (isLoading) {
     return <div className="p-6"><div className="animate-pulse h-64 bg-gray-200 rounded" /></div>;
@@ -142,26 +172,93 @@ export default function ContactDetailPage() {
             <p className="text-gray-500 text-sm truncate">{(contact as any).title || (contact as any).email}</p>
           </div>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setIsCustomizerOpen(true)}
+          className="flex items-center gap-1.5"
+        >
+          <Settings2 className="h-4 w-4" />
+          <span className="hidden sm:inline">Customize</span>
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Column */}
         <div className="lg:col-span-2 space-y-6">
           {/* Contact Information */}
+          {isSectionVisible("contact-info") && (
           <Card>
             <CardHeader><CardTitle className="flex items-center gap-2"><User className="h-5 w-5" />Contact Information</CardTitle></CardHeader>
             <CardContent className="space-y-4">
+              {/* Name and Title - Inline Editable */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4 border-b">
+                <div className="space-y-1">
+                  <Label className="text-xs text-gray-500">First Name</Label>
+                  <div>
+                    <InlineEdit
+                      value={(contact as any).firstName}
+                      onSave={(val) => handleContactUpdate('firstName', val)}
+                      emptyText="Add first name"
+                      displayClassName="font-medium"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-gray-500">Last Name</Label>
+                  <div>
+                    <InlineEdit
+                      value={(contact as any).lastName}
+                      onSave={(val) => handleContactUpdate('lastName', val)}
+                      emptyText="Add last name"
+                      displayClassName="font-medium"
+                    />
+                  </div>
+                </div>
+                <div className="md:col-span-2 space-y-1">
+                  <Label className="text-xs text-gray-500">Title</Label>
+                  <div>
+                    <InlineEdit
+                      value={(contact as any).title}
+                      onSave={(val) => handleContactUpdate('title', val)}
+                      emptyText="Add title"
+                      placeholder="e.g., CEO, VP of Sales"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact Details - Inline Editable */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-gray-400" />
-                  <a href={`mailto:${(contact as any).email}`} className="text-blue-600 hover:underline">{(contact as any).email}</a>
+                  <Mail className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                  <InlineEdit
+                    value={(contact as any).email}
+                    onSave={(val) => handleContactUpdate('email', val)}
+                    type="email"
+                    emptyText="Add email"
+                    displayClassName="text-blue-600"
+                  />
+                  {(contact as any).email && (
+                    <a href={`mailto:${(contact as any).email}`} className="text-gray-400 hover:text-blue-600">
+                      <Mail className="h-3.5 w-3.5" />
+                    </a>
+                  )}
                 </div>
-                {(contact as any).phone && (
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-gray-400" />
-                    <span>{(contact as any).phone}</span>
-                  </div>
-                )}
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                  <InlineEdit
+                    value={(contact as any).phone}
+                    onSave={(val) => handleContactUpdate('phone', val)}
+                    type="phone"
+                    emptyText="Add phone"
+                  />
+                  {(contact as any).phone && (
+                    <a href={`tel:${(contact as any).phone}`} className="text-gray-400 hover:text-green-600">
+                      <Phone className="h-3.5 w-3.5" />
+                    </a>
+                  )}
+                </div>
                 {(contact as any).company && (
                   <div className="flex items-center gap-2">
                     <Building2 className="h-4 w-4 text-gray-400" />
@@ -218,9 +315,10 @@ export default function ContactDetailPage() {
               )}
             </CardContent>
           </Card>
+          )}
 
           {/* Engagement Data - Only show if there's engagement data */}
-          {(customProps.totalDocumentViews || customProps.totalTimeSpentMinutes || customProps.location) && (
+          {isSectionVisible("engagement-history") && (customProps.totalDocumentViews || customProps.totalTimeSpentMinutes || customProps.location) && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -295,6 +393,7 @@ export default function ContactDetailPage() {
           )}
 
           {/* Email Activity */}
+          {isSectionVisible("email-activity") && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -309,8 +408,10 @@ export default function ContactDetailPage() {
               />
             </CardContent>
           </Card>
+          )}
 
           {/* Tasks */}
+          {isSectionVisible("tasks") && (
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="flex items-center gap-2">
@@ -335,11 +436,13 @@ export default function ContactDetailPage() {
               />
             </CardContent>
           </Card>
+          )}
         </div>
 
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Associated Deals */}
+          {isSectionVisible("associated-deals") && (
           <Card>
             <CardHeader><CardTitle className="flex items-center gap-2"><Briefcase className="h-5 w-5" />Associated Deals</CardTitle></CardHeader>
             <CardContent>
@@ -360,8 +463,10 @@ export default function ContactDetailPage() {
               )}
             </CardContent>
           </Card>
+          )}
 
           {/* Quick Stats */}
+          {isSectionVisible("quick-info") && (
           <Card>
             <CardHeader><CardTitle className="text-sm">Quick Info</CardTitle></CardHeader>
             <CardContent className="space-y-3 text-sm">
@@ -383,6 +488,7 @@ export default function ContactDetailPage() {
               )}
             </CardContent>
           </Card>
+          )}
         </div>
       </div>
 
@@ -400,6 +506,13 @@ export default function ContactDetailPage() {
         task={editingTask}
         objectType="contact"
         objectId={parseInt(id!)}
+      />
+
+      {/* Detail Page Customizer */}
+      <DetailPageCustomizer
+        objectType="contact"
+        open={isCustomizerOpen}
+        onOpenChange={setIsCustomizerOpen}
       />
     </div>
   );
