@@ -13,6 +13,8 @@ import { zapierProvider } from './zapier';
 import { makeProvider } from './make';
 import { slackProvider } from './slack';
 import { hubspotProvider } from './hubspot';
+import { gmailProvider } from './gmail';
+import { microsoftProvider } from './microsoft';
 
 // Registry of all providers
 const providers: Map<IntegrationProvider, IIntegrationProvider> = new Map([
@@ -21,6 +23,8 @@ const providers: Map<IntegrationProvider, IIntegrationProvider> = new Map([
   ['make', makeProvider],
   ['slack', slackProvider],
   ['hubspot', hubspotProvider],
+  ['gmail', gmailProvider],
+  ['microsoft', microsoftProvider],
 ]);
 
 /**
@@ -87,6 +91,24 @@ export function getProviderInfo(): ProviderInfo[] {
       destinationTypes: ['custom_webhook'],
       status: 'available',
     },
+    {
+      id: 'gmail',
+      name: 'Gmail',
+      icon: 'gmail',
+      description: 'Connect your Gmail to sync email activity with contacts',
+      authType: 'oauth',
+      destinationTypes: [],
+      status: gmailProvider.isConfigured() ? 'available' : 'coming_soon',
+    },
+    {
+      id: 'microsoft',
+      name: 'Microsoft 365',
+      icon: 'microsoft',
+      description: 'Connect your Outlook to sync email activity with contacts',
+      authType: 'oauth',
+      destinationTypes: [],
+      status: microsoftProvider.isConfigured() ? 'available' : 'coming_soon',
+    },
   ];
 }
 
@@ -116,3 +138,5 @@ export { zapierProvider } from './zapier';
 export { makeProvider } from './make';
 export { slackProvider } from './slack';
 export { hubspotProvider } from './hubspot';
+export { gmailProvider } from './gmail';
+export { microsoftProvider } from './microsoft';

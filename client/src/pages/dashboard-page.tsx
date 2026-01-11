@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { CimGenerator } from "@/components/cim-generator";
 
@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AnalyticsOverviewCard } from "@/components/analytics-overview-card";
 import { FileText, Clock, ArrowRight, Mail, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { PageHeader } from "@/components/layout/page-header";
 
 
@@ -15,6 +15,17 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const [cimMode, setCimMode] = useState<'choice' | 'generate' | 'upload'>('choice');
   const [, setLocation] = useLocation();
+  const searchString = useSearch();
+
+  // Parse dealId from URL search params
+  const dealId = useMemo(() => {
+    const params = new URLSearchParams(searchString);
+    const id = params.get('dealId');
+    const parsedId = id ? parseInt(id) : null;
+    console.log('[Dashboard] URL search string:', searchString);
+    console.log('[Dashboard] Parsed dealId from URL:', parsedId);
+    return parsedId;
+  }, [searchString]);
 
   // Removed guided tour - now using get started checklist instead
   const { data: documentsResponse, isLoading: documentsLoading } = useQuery({
@@ -64,7 +75,7 @@ export default function DashboardPage() {
           <div className={cimMode === 'choice' ? 'lg:col-span-9' : 'lg:col-span-12'}>
             <div className="bg-white rounded-xl shadow-lg border border-gray-200">
               <div className="p-3 lg:p-4">
-                <CimGenerator onModeChange={setCimMode} />
+                <CimGenerator onModeChange={setCimMode} dealId={dealId} />
               </div>
             </div>
           </div>

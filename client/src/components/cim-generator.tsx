@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Loader2, Settings, Upload, X, FileText, Download, Copy, File, Save, FolderOpen, NotebookPen, DollarSign, Settings2, Shield, UserCheck, ExternalLink, Paperclip, Check, Zap, Sparkles, Plus } from "lucide-react";
+import { Loader2, Settings, Upload, X, FileText, Download, Copy, File, Save, FolderOpen, NotebookPen, DollarSign, Settings2, Shield, UserCheck, ExternalLink, Paperclip, Check, Zap, Sparkles, Plus, Briefcase } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -69,13 +69,17 @@ const DEFAULT_SECTION_LINES = [
 
 interface CimGeneratorProps {
   onModeChange?: (mode: 'choice' | 'generate' | 'upload') => void;
+  dealId?: number | null;
 }
 
-export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
+export function CimGenerator({ onModeChange, dealId }: CimGeneratorProps = {}) {
   const { user } = useAuth();
   const { toast } = useToast();
   const { brandColor, needsDarkText } = useBrandColor();
   const [cimMode, setCimMode] = useState<'choice' | 'generate' | 'upload'>('choice');
+
+  // Debug: Log dealId prop
+  console.log('[CimGenerator] Received dealId prop:', dealId, 'type:', typeof dealId);
 
   // Notify parent component when mode changes
   useEffect(() => {
@@ -554,6 +558,14 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
         // Add NDA settings
         formData.append('ndaSettings', JSON.stringify(ndaSettings));
 
+        // Add deal association if provided
+        if (dealId) {
+          formData.append('dealId', dealId.toString());
+          console.log('[CimGenerator] Added dealId to FormData:', dealId);
+        } else {
+          console.log('[CimGenerator] No dealId to add to FormData. Value:', dealId);
+        }
+
         try {
           // Start API call immediately (runs in background while stage timers progress)
           const res = await fetch('/api/cim/upload', {
@@ -603,8 +615,11 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
             purpose: data.purpose || "business_overview",
             audience: data.audience || "investors",
             ndaSettings,
-            ...(customStyleConfig && { customStyleConfig })
+            ...(customStyleConfig && { customStyleConfig }),
+            ...(dealId && { dealId })
           };
+
+          console.log('[CimGenerator] Enhanced payload dealId:', enhancedPayload.dealId, 'from prop:', dealId);
 
           // Start API call immediately (runs in background while stage timers progress)
           const response = await apiRequest("POST", "/api/cim/generate", { body: enhancedPayload });
@@ -768,6 +783,16 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
   if (cimMode === 'choice') {
     return (
       <div className="space-y-8 max-w-3xl mx-auto">
+        {/* Deal Association Banner */}
+        {dealId && (
+          <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <Briefcase className="h-5 w-5 text-blue-600 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-blue-800">Creating CIM for Deal #{dealId}</p>
+              <p className="text-xs text-blue-600">This CIM will be automatically linked to your deal</p>
+            </div>
+          </div>
+        )}
         <div className="space-y-6">
           {/* Primary Option - Generate CIM */}
           <Card className="border-2 border-blue-200 hover:border-blue-400 hover:shadow-xl transition-all duration-200 shadow-lg">
@@ -859,6 +884,16 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
   if (cimMode === 'upload') {
     return (
       <div className="space-y-6 max-w-4xl mx-auto">
+        {/* Deal Association Banner for upload mode */}
+        {dealId && (
+          <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <Briefcase className="h-5 w-5 text-blue-600 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-blue-800">Uploading CIM for Deal #{dealId}</p>
+              <p className="text-xs text-blue-600">This CIM will be automatically linked to your deal</p>
+            </div>
+          </div>
+        )}
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
@@ -868,7 +903,7 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
             ← Back to Options
           </Button>
         </div>
-        <CimFileUpload />
+        <CimFileUpload dealId={dealId} />
       </div>
     );
   }

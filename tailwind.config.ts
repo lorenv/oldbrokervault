@@ -117,6 +117,26 @@ export default {
             transform: "scale(1)",
           },
         },
+        "collapsible-down": {
+          from: {
+            height: "0",
+            opacity: "0",
+          },
+          to: {
+            height: "var(--radix-collapsible-content-height)",
+            opacity: "1",
+          },
+        },
+        "collapsible-up": {
+          from: {
+            height: "var(--radix-collapsible-content-height)",
+            opacity: "1",
+          },
+          to: {
+            height: "0",
+            opacity: "0",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -124,6 +144,8 @@ export default {
         "float": "float 25s ease-in-out infinite",
         "float-up": "float-up 5s linear infinite",
         "sparkle": "sparkle 4s ease-in-out infinite",
+        "collapsible-down": "collapsible-down 0.2s ease-out",
+        "collapsible-up": "collapsible-up 0.2s ease-out",
       },
     },
   },

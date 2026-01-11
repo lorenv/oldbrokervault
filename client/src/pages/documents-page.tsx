@@ -3,7 +3,7 @@ import { CimDocument } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BrandedButton } from "@/components/ui/branded-button";
-import { FileText, Download, Lock, Copy, Globe, Search, Trash2, FileDown, Clock, Share2, Mail, Loader2, PenTool, Eye, ChevronLeft, ChevronRight, Plus, Copy as DuplicateIcon, Link as LinkIcon, MoreVertical, Edit, LayoutGrid, List, Shield, Users, Calendar, X, ArrowUpDown, ArrowUp, ArrowDown, Filter, FolderOpen } from "lucide-react";
+import { FileText, Download, Lock, Copy, Globe, Search, Trash2, FileDown, Clock, Share2, Mail, Loader2, PenTool, Eye, ChevronLeft, ChevronRight, Plus, Copy as DuplicateIcon, Link as LinkIcon, MoreVertical, Edit, LayoutGrid, List, Shield, Users, Calendar, X, ArrowUpDown, ArrowUp, ArrowDown, Filter, FolderOpen, Kanban, FileQuestion } from "lucide-react";
 import { Link } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useState, useEffect, useMemo } from "react";
@@ -36,6 +36,8 @@ interface CimDocumentWithAnalysis extends CimDocument {
   hasNdaSignatures?: boolean;
   ndaSignatureCount?: number; // Assuming ndaSignatureCount is a property from the backend
   pendingNdaCount?: number; // Number of NDA signatures pending approval
+  dealId?: number | null;
+  dealName?: string | null;
 }
 
 export default function DocumentsPage() {
@@ -57,6 +59,7 @@ export default function DocumentsPage() {
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<'date' | 'views' | 'signatures'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [selectedDealId, setSelectedDealId] = useState<number | null>(null);
 
   const { user } = useAuth();
   const { toast } = useToast();
@@ -75,6 +78,12 @@ export default function DocumentsPage() {
   }>({
     queryKey: ["/api/user/limits"],
     staleTime: 1000 * 30, // 30 seconds
+  });
+
+  // Fetch deals for filter dropdown
+  const { data: dealsData } = useQuery<any[]>({
+    queryKey: ["/api/crm/deals"],
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
   // Debounce search query
@@ -106,13 +115,20 @@ export default function DocumentsPage() {
     }
   }, [sortBy, sortOrder]);
 
+  // Reset to page 1 when deal filter changes
+  useEffect(() => {
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [selectedDealId]);
+
   // Fetch documents with pagination
   const { data: paginatedData, isLoading: documentsLoading } = useQuery<{
     documents: CimDocumentWithAnalysis[];
     total: number;
     hasMore: boolean;
   }>({
-    queryKey: ["/api/cim", currentPage, debouncedSearchQuery, activeFilters],
+    queryKey: ["/api/cim", currentPage, debouncedSearchQuery, activeFilters, selectedDealId],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: currentPage.toString(),
@@ -123,6 +139,9 @@ export default function DocumentsPage() {
       }
       if (activeFilters.length > 0) {
         params.append("filters", activeFilters.join(','));
+      }
+      if (selectedDealId) {
+        params.append("dealId", selectedDealId.toString());
       }
       const response = await fetch(`/api/cim?${params}`, {
         credentials: 'include'
@@ -169,6 +188,7 @@ export default function DocumentsPage() {
     { id: 'has-signatures', label: 'Has Signatures', icon: Users, color: 'blue' },
     { id: 'created-this-week', label: 'Created This Week', icon: Calendar, color: 'green' },
     { id: 'has-views', label: 'Has Views', icon: Eye, color: 'orange' },
+    { id: 'orphan', label: 'No Deal', icon: FileQuestion, color: 'slate' },
   ];
 
   const toggleFilter = (filterId: string) => {
@@ -181,6 +201,7 @@ export default function DocumentsPage() {
 
   const clearAllFilters = () => {
     setActiveFilters([]);
+    setSelectedDealId(null);
   };
 
   const toggleSort = (newSortBy: 'date' | 'views' | 'signatures') => {
@@ -365,6 +386,7 @@ export default function DocumentsPage() {
                   blue: isActive ? 'bg-blue-100 text-blue-700 border-blue-300' : 'bg-white text-blue-600 border-blue-200 hover:bg-blue-50',
                   green: isActive ? 'bg-green-100 text-green-700 border-green-300' : 'bg-white text-green-600 border-green-200 hover:bg-green-50',
                   orange: isActive ? 'bg-orange-100 text-orange-700 border-orange-300' : 'bg-white text-orange-600 border-orange-200 hover:bg-orange-50',
+                  slate: isActive ? 'bg-slate-100 text-slate-700 border-slate-300' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50',
                 };
 
                 return (
@@ -379,7 +401,37 @@ export default function DocumentsPage() {
                   </button>
                 );
               })}
-              {activeFilters.length > 0 && (
+              {/* Deal filter dropdown */}
+              {dealsData && dealsData.length > 0 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-200 ${
+                        selectedDealId
+                          ? 'bg-indigo-100 text-indigo-700 border-indigo-300 shadow-sm'
+                          : 'bg-white text-indigo-600 border-indigo-200 hover:bg-indigo-50'
+                      }`}
+                    >
+                      <Kanban className="h-3 w-3" />
+                      <span>{selectedDealId ? dealsData.find((d: any) => d.id === selectedDealId)?.name || 'Deal' : 'By Deal'}</span>
+                      {selectedDealId && <X className="h-3 w-3 ml-0.5" onClick={(e) => { e.stopPropagation(); setSelectedDealId(null); }} />}
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="max-h-64 overflow-y-auto">
+                    {dealsData.map((deal: any) => (
+                      <DropdownMenuItem
+                        key={deal.id}
+                        onClick={() => setSelectedDealId(deal.id)}
+                        className={selectedDealId === deal.id ? 'bg-indigo-50' : ''}
+                      >
+                        <Kanban className="mr-2 h-4 w-4" />
+                        {deal.name}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+              {(activeFilters.length > 0 || selectedDealId) && (
                 <button
                   onClick={clearAllFilters}
                   className="text-xs text-gray-500 hover:text-gray-700 underline"
@@ -521,6 +573,14 @@ export default function DocumentsPage() {
                               <Clock className="h-3 w-3 flex-shrink-0" />
                               <span>{doc.pendingNdaCount} pending</span>
                             </div>
+                          )}
+                          {doc.dealName && (
+                            <Link href={`/deals/${doc.dealId}`} onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center gap-1 px-2 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-medium border border-indigo-200 shadow-sm hover:bg-indigo-100 transition-colors">
+                                <Kanban className="h-3 w-3 flex-shrink-0" />
+                                <span className="truncate max-w-[100px]">{doc.dealName}</span>
+                              </div>
+                            </Link>
                           )}
                         </div>
 
@@ -823,6 +883,15 @@ export default function DocumentsPage() {
                             <Clock className="h-3 w-3" />
                             <span>{doc.pendingNdaCount} pending</span>
                           </div>
+                        )}
+                        {/* Deal badge */}
+                        {doc.dealName && (
+                          <Link href={`/deals/${doc.dealId}`} onClick={(e) => e.stopPropagation()}>
+                            <div className="hidden sm:flex items-center gap-1 px-2 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-medium border border-indigo-200 shadow-sm hover:bg-indigo-100 transition-colors">
+                              <Kanban className="h-3 w-3" />
+                              <span className="truncate max-w-[100px]">{doc.dealName}</span>
+                            </div>
+                          </Link>
                         )}
 
                         {/* Action buttons */}

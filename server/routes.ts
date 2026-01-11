@@ -59,6 +59,7 @@ import webhookRoutes from "./routes/webhook-routes";
 import integrationRoutes from "./routes/integration-routes";
 import teaserRoutes from "./routes/teaser-routes";
 import listingsRoutes from "./routes/listings-routes";
+import crmRoutes from "./routes/crm-routes";
 import { dispatchWebhookEvent } from "./webhook-dispatcher";
 import { dispatchIntegrationEvent } from "./integrations";
 
@@ -1816,7 +1817,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Now parse the main schema (this will strip out unknown fields like ndaSettings)
       const data = insertCimDocumentSchema.parse(req.body);
-      
+
+      // Debug: Log dealId
+      console.log("=== DEAL ASSOCIATION DEBUG (GENERATE ROUTE) ===");
+      console.log("Raw req.body.dealId:", req.body.dealId, "type:", typeof req.body.dealId);
+      console.log("Parsed data.dealId:", data.dealId, "type:", typeof data.dealId, "truthy:", !!data.dealId);
+
       const docId = data.docId; // For regeneration
       const customizations = data.customizations || {};
       
@@ -2110,8 +2116,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         shareExpiresAt: null,
         ndaProtected: ndaSettings.ndaProtected || false,
         ndaTemplateId: ndaSettings.ndaTemplateId || null,
-        ndaApprovalRequired: ndaSettings.ndaApprovalRequired || false
+        ndaApprovalRequired: ndaSettings.ndaApprovalRequired || false,
+        // Deal association from request body
+        dealId: data.dealId || null
       });
+
+      console.log("=== DOCUMENT CREATED (GENERATE ROUTE) ===");
+      console.log("Doc ID:", doc.id, "Doc dealId:", doc.dealId);
+
+      // If dealId was provided, create a deal-document link
+      console.log("=== JUNCTION TABLE CHECK (GENERATE ROUTE) ===");
+      console.log("data.dealId for junction table:", data.dealId, "type:", typeof data.dealId, "truthy:", !!data.dealId);
+      if (data.dealId) {
+        const { dealDocuments } = await import('@shared/schema');
+        const { db } = await import('./db');
+        try {
+          console.log("Inserting into deal_documents:", { dealId: data.dealId, cimDocumentId: doc.id });
+          await db.insert(dealDocuments).values({
+            dealId: data.dealId,
+            cimDocumentId: doc.id,
+          });
+          console.log(`✅ Successfully created deal-document link: deal ${data.dealId} -> CIM ${doc.id}`);
+        } catch (linkError) {
+          console.error('❌ Error creating deal-document link:', linkError);
+          // Don't fail the whole request if the link fails
+        }
+      } else {
+        console.log("No dealId provided, skipping junction table insert");
+      }
 
       // Process only the user-selected images (selectedImageUrls already contains the user's choices)
       // Note: extractedImages are just for UI display, selectedImageUrls contains the actual user selections
@@ -2518,6 +2550,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Parse dealId from FormData string to number
+      console.log("=== DEAL ASSOCIATION DEBUG (UPLOAD ROUTE) ===");
+      console.log("Raw req.body.dealId:", req.body.dealId, "type:", typeof req.body.dealId);
+      if (req.body.dealId && typeof req.body.dealId === 'string') {
+        const parsedDealId = parseInt(req.body.dealId, 10);
+        if (!isNaN(parsedDealId)) {
+          parsedBody.dealId = parsedDealId;
+          console.log("Successfully parsed dealId from FormData:", parsedBody.dealId);
+        } else {
+          console.log("Failed to parse dealId - NaN result");
+        }
+      } else if (req.body.dealId) {
+        // Already a number
+        parsedBody.dealId = req.body.dealId;
+        console.log("dealId already a number:", parsedBody.dealId);
+      } else {
+        console.log("No dealId in request body");
+      }
+
       // Debug: Log what we're sending to schema validation
       console.log("=== SCHEMA VALIDATION DEBUG ===");
       console.log("coverImagePosition type:", typeof parsedBody.coverImagePosition);
@@ -2529,6 +2580,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...parsedBody,
         transcript
       });
+
+      // Debug: Check dealId survived schema validation
+      console.log("=== POST SCHEMA VALIDATION ===");
+      console.log("data.dealId after schema parse:", data.dealId, "type:", typeof data.dealId);
 
       // Debug: Check if selectedImages are present
       console.log("Selected images in request:", data.selectedImages);
@@ -2821,8 +2876,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         shareExpiresAt: null,
         ndaProtected: ndaSettings.ndaProtected || false,
         ndaTemplateId: ndaSettings.ndaTemplateId || null,
-        ndaApprovalRequired: ndaSettings.ndaApprovalRequired || false
+        ndaApprovalRequired: ndaSettings.ndaApprovalRequired || false,
+        // Deal association from request body
+        dealId: data.dealId || null
       });
+
+      console.log("=== DOCUMENT CREATED (UPLOAD ROUTE) ===");
+      console.log("Doc ID:", doc.id, "Doc dealId:", doc.dealId);
+
+      // If dealId was provided, create a deal-document link
+      console.log("=== JUNCTION TABLE CHECK ===");
+      console.log("data.dealId for junction table:", data.dealId, "type:", typeof data.dealId, "truthy:", !!data.dealId);
+      if (data.dealId) {
+        const { dealDocuments } = await import('@shared/schema');
+        const { db: dbDealDocs } = await import('./db');
+        try {
+          console.log("Inserting into deal_documents:", { dealId: data.dealId, cimDocumentId: doc.id });
+          await dbDealDocs.insert(dealDocuments).values({
+            dealId: data.dealId,
+            cimDocumentId: doc.id,
+          });
+          console.log(`✅ Successfully created deal-document link: deal ${data.dealId} -> CIM ${doc.id}`);
+        } catch (linkError) {
+          console.error('❌ Error creating deal-document link:', linkError);
+        }
+      } else {
+        console.log("No dealId provided, skipping junction table insert");
+      }
 
       // Save financial files to database after document creation
       if (uploadedFinancialFiles.length > 0) {
@@ -2867,10 +2947,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No files uploaded" });
       }
 
-      const { title, ndaSettings } = req.body;
+      const { title, ndaSettings, dealId: rawDealId } = req.body;
       if (!title || title.trim() === '') {
         console.log("No title provided:", title);
         return res.status(400).json({ error: "Title is required" });
+      }
+
+      // Parse dealId from form data
+      console.log("=== DEAL ASSOCIATION DEBUG (UPLOAD-FILE ROUTE) ===");
+      console.log("Raw dealId from req.body:", rawDealId, "type:", typeof rawDealId);
+      let dealId: number | null = null;
+      if (rawDealId) {
+        const parsed = typeof rawDealId === 'string' ? parseInt(rawDealId, 10) : rawDealId;
+        if (!isNaN(parsed)) {
+          dealId = parsed;
+          console.log("Successfully parsed dealId:", dealId);
+        }
+      } else {
+        console.log("No dealId in request body");
       }
 
       // Parse NDA settings if provided
@@ -2891,11 +2985,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Create CIM document record first with NDA settings
+      // Create CIM document record first with NDA settings and deal association
       const cimDoc = await storage.createUploadedCimDocument(req.user!.id, {
         title: title.trim(),
-        ndaSettings: parsedNdaSettings
+        ndaSettings: parsedNdaSettings,
+        dealId: dealId
       });
+
+      console.log("=== DOCUMENT CREATED (UPLOAD-FILE ROUTE) ===");
+      console.log("Doc ID:", cimDoc.id, "Doc dealId:", cimDoc.dealId);
+
+      // If dealId was provided, create a deal-document link in junction table
+      console.log("=== JUNCTION TABLE CHECK (UPLOAD-FILE ROUTE) ===");
+      console.log("dealId for junction table:", dealId, "type:", typeof dealId, "truthy:", !!dealId);
+      if (dealId) {
+        const { dealDocuments } = await import('@shared/schema');
+        try {
+          console.log("Inserting into deal_documents:", { dealId, cimDocumentId: cimDoc.id });
+          await db.insert(dealDocuments).values({
+            dealId: dealId,
+            cimDocumentId: cimDoc.id,
+          });
+          console.log(`✅ Successfully created deal-document link: deal ${dealId} -> CIM ${cimDoc.id}`);
+        } catch (linkError) {
+          console.error('❌ Error creating deal-document link:', linkError);
+        }
+      } else {
+        console.log("No dealId provided, skipping junction table insert");
+      }
 
       // Process and save each file to object storage
       const savedFiles = [];
@@ -3265,8 +3382,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const limit = parseInt(req.query.limit as string) || 12;
     const search = req.query.search as string;
     const filters = req.query.filters ? (req.query.filters as string).split(',') : [];
+    const dealId = req.query.dealId ? parseInt(req.query.dealId as string) : undefined;
 
-    const result = await storage.getCimDocuments(req.user!.id, { page, limit, search, filters });
+    const result = await storage.getCimDocuments(req.user!.id, { page, limit, search, filters, dealId });
     res.json(result);
   });
 
@@ -7156,7 +7274,8 @@ ${finalQuestion}
         email: user.email,
         brandColors: user.brandColors,
         brandedPdfTemplate: user.brandedPdfTemplate,
-        customSubdomain: user.customSubdomain
+        customSubdomain: user.customSubdomain,
+        timezone: user.timezone
       };
       
       console.log("Profile data being returned:", profileData);
@@ -7181,16 +7300,27 @@ ${finalQuestion}
     }, 30000);
 
     try {
-      const { name, title, phoneNumber, businessName, businessLogo, profilePhoto, customSubdomain } = req.body;
+      const { name, title, phoneNumber, businessName, businessLogo, profilePhoto, customSubdomain, timezone } = req.body;
 
       // Validate input data
       if (typeof name !== 'string' && name !== undefined ||
           typeof title !== 'string' && title !== undefined ||
           typeof phoneNumber !== 'string' && phoneNumber !== undefined ||
           typeof businessName !== 'string' && businessName !== undefined ||
-          typeof customSubdomain !== 'string' && customSubdomain !== undefined) {
+          typeof customSubdomain !== 'string' && customSubdomain !== undefined ||
+          typeof timezone !== 'string' && timezone !== undefined) {
         clearTimeout(timeout);
         return res.status(400).json({ error: "Invalid input data types" });
+      }
+
+      // Validate timezone if provided (must be valid IANA timezone)
+      if (timezone) {
+        try {
+          Intl.DateTimeFormat(undefined, { timeZone: timezone });
+        } catch (e) {
+          clearTimeout(timeout);
+          return res.status(400).json({ error: "Invalid timezone", message: "Please select a valid timezone" });
+        }
       }
 
       // Validate custom subdomain format if provided
@@ -7401,7 +7531,8 @@ ${finalQuestion}
         businessName,
         businessLogo: processedBusinessLogo,
         profilePhoto: processedProfilePhoto,
-        customSubdomain: processedSubdomain || null
+        customSubdomain: processedSubdomain || null,
+        timezone: timezone || undefined
       };
 
       // Add brand colors if we extracted them from a new logo
@@ -7428,6 +7559,7 @@ ${finalQuestion}
         customSubdomain: updatedUser.customSubdomain,
         brandColors: updatedUser.brandColors,
         brandedPdfTemplate: updatedUser.brandedPdfTemplate,
+        timezone: updatedUser.timezone,
         email: updatedUser.email
         // Explicitly omitting: password, stripeCustomerId, subscriptionId, googleTokens, etc.
       });
@@ -11225,6 +11357,11 @@ ${finalQuestion}
 
   // Register listings routes
   app.use('/api/listings', listingsRoutes);
+
+  // Register CRM routes
+  console.log('📦 Registering CRM routes at /api/crm');
+  app.use('/api/crm', crmRoutes);
+  console.log('✅ CRM routes registered');
 
   // Background job: Clean up stale document locks (15+ minutes old)
   async function cleanupStaleLocks() {

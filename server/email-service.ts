@@ -71,6 +71,43 @@ export class EmailService {
       }
     });
   }
+
+  async sendCustomEmail(params: {
+    to: string;
+    subject: string;
+    html: string;
+    text?: string;
+    from?: string;
+  }): Promise<boolean> {
+    const service = getMailService();
+
+    if (!service) {
+      console.warn(`Email not sent (SendGrid not configured): ${params.to}`);
+      return false;
+    }
+
+    try {
+      await service.send({
+        to: params.to,
+        from: params.from || this.defaultFromEmail,
+        subject: params.subject,
+        html: params.html,
+        text: params.text || params.html.replace(/<[^>]*>/g, ''),
+      });
+
+      console.log(`Custom email sent successfully to ${params.to}: ${params.subject}`);
+      return true;
+    } catch (error: any) {
+      console.error('SendGrid custom email error:', error);
+      if (error.response) {
+        console.error('SendGrid error response:', {
+          statusCode: error.code,
+          body: error.response.body,
+        });
+      }
+      return false;
+    }
+  }
 }
 
 export const emailService = new EmailService();

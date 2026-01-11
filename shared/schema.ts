@@ -140,6 +140,8 @@ export const users = pgTable("users", {
   listingsTagline: text("listings_tagline"),
   listingsBannerUrl: text("listings_banner_url"),
   listingsLayout: text("listings_layout").default('grid'),
+  // User timezone for task reminders and date displays (IANA timezone, e.g., "America/New_York")
+  timezone: text("timezone").default("America/New_York"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -207,6 +209,8 @@ export const cimDocuments = pgTable("cim_documents", {
   isExample: boolean("is_example").default(false).notNull(),
   // Soft delete - marks document as deleted but keeps in database for limit tracking
   deletedAt: timestamp("deleted_at"),
+  // Deal association - links CIM to a specific deal
+  dealId: integer("deal_id"), // FK to deals table - optional for backward compat
   // Display settings for share page customization
   displaySettings: jsonb("display_settings").$type<{
     theme: 'corporate-blue' | 'forest-green' | 'charcoal' | 'burgundy' | 'brand';
@@ -635,7 +639,9 @@ export const insertCimDocumentSchema = createInsertSchema(cimDocuments).pick({
     id: z.string(),
     content: z.string()
   })).optional(),
-  formattingProfile: z.string().optional()
+  formattingProfile: z.string().optional(),
+  // Deal association
+  dealId: z.number().nullable().optional()
 });
 
 export const insertUploadedCimSchema = createInsertSchema(cimDocuments).pick({
@@ -664,7 +670,9 @@ export const insertUploadedCimSchema = createInsertSchema(cimDocuments).pick({
     id: z.string(),
     content: z.string()
   })).optional(),
-  formattingProfile: z.string().optional()
+  formattingProfile: z.string().optional(),
+  // Deal association
+  dealId: z.number().nullable().optional()
 });
 
 export const insertUploadedFileSchema = createInsertSchema(uploadedFiles).pick({
@@ -1584,6 +1592,8 @@ export const INTEGRATION_PROVIDERS = [
   'zapier',
   'make',
   'webhook',
+  'gmail',
+  'microsoft',
 ] as const;
 
 export type IntegrationProvider = typeof INTEGRATION_PROVIDERS[number];
@@ -2036,3 +2046,862 @@ export type TeaserView = typeof teaserViews.$inferSelect;
 export type InsertTeaserView = z.infer<typeof insertTeaserViewSchema>;
 export type UserTeaserTag = typeof userTeaserTags.$inferSelect;
 export type InsertUserTeaserTag = z.infer<typeof insertUserTeaserTagSchema>;
+
+// ============================================================================
+// CRM SYSTEM - Deals, Companies, Contacts, Teams
+// ============================================================================
+
+// Organization member roles
+export const ORGANIZATION_ROLES = ['owner', 'admin', 'member', 'viewer'] as const;
+export type OrganizationRole = typeof ORGANIZATION_ROLES[number];
+
+// Organization member statuses
+export const ORGANIZATION_MEMBER_STATUSES = ['pending', 'active', 'deactivated'] as const;
+export type OrganizationMemberStatus = typeof ORGANIZATION_MEMBER_STATUSES[number];
+
+// Deal contact roles
+export const DEAL_CONTACT_ROLES = ['primary', 'influencer', 'decision_maker', 'other'] as const;
+export type DealContactRole = typeof DEAL_CONTACT_ROLES[number];
+
+// CRM activity types
+export const CRM_ACTIVITY_TYPES = [
+  'call', 'email', 'meeting', 'task', 'note',
+  'stage_change', 'deal_created', 'deal_won', 'deal_lost',
+  'contact_created', 'company_created', 'file_uploaded',
+  'task_created', 'task_completed'
+] as const;
+export type CrmActivityType = typeof CRM_ACTIVITY_TYPES[number];
+
+// CRM object types for polymorphic relations
+export const CRM_OBJECT_TYPES = ['deal', 'contact', 'company'] as const;
+export type CrmObjectType = typeof CRM_OBJECT_TYPES[number];
+
+// Organizations - Team/Workspace container
+export const organizations = pgTable("organizations", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  slug: text("slug").unique().notNull(),
+  ownerId: integer("owner_id").notNull(), // FK to users
+
+  // Settings
+  settings: jsonb("settings").default({}).notNull(), // timezone, default currency, etc.
+
+  // Subscription/billing (for future team-based pricing)
+  subscriptionTier: text("subscription_tier").default("free"),
+  seatCount: integer("seat_count").default(1).notNull(),
+
+  // Branding
+  logoUrl: text("logo_url"),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+// Organization Members - Team membership with roles
+export const organizationMembers = pgTable("organization_members", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
+  userId: integer("user_id").notNull(),
+
+  // Role and permissions
+  role: text("role").notNull().default("member"), // owner, admin, member, viewer
+
+  // Invitation tracking
+  invitedBy: integer("invited_by"),
+  invitedAt: timestamp("invited_at"),
+  joinedAt: timestamp("joined_at"),
+
+  // Status
+  status: text("status").notNull().default("active"), // pending, active, deactivated
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+// Companies - First-class company object
+export const companies = pgTable("companies", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
+
+  // Basic info
+  name: text("name").notNull(),
+  domain: text("domain"), // e.g., "acme.com"
+  website: text("website"),
+
+  // Industry and size
+  industry: text("industry"),
+  size: text("size"), // 1-10, 11-50, 51-200, 201-500, 501-1000, 1001+
+  annualRevenue: text("annual_revenue"),
+
+  // Location
+  address: text("address"),
+  city: text("city"),
+  state: text("state"),
+  country: text("country"),
+
+  // Contact info
+  phone: text("phone"),
+  linkedinUrl: text("linkedin_url"),
+
+  // Ownership
+  ownerId: integer("owner_id"), // FK to organization_members
+
+  // Custom properties (JSON for flexibility)
+  customProperties: jsonb("custom_properties").default({}).notNull(),
+
+  // Description/notes
+  description: text("description"),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+// CRM Contacts - Enhanced contact management (evolved from investorContacts concept)
+export const crmContacts = pgTable("crm_contacts", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
+
+  // Basic info
+  email: text("email").notNull(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  phone: text("phone"),
+
+  // Professional info
+  title: text("title"),
+  department: text("department"),
+
+  // Company association
+  companyId: integer("company_id"), // FK to companies
+
+  // Ownership
+  ownerId: integer("owner_id"), // FK to organization_members
+
+  // Status tracking
+  lifecycleStage: text("lifecycle_stage").default("lead"), // lead, qualified, opportunity, customer, other
+  leadStatus: text("lead_status").default("new"), // new, contacted, qualified, unqualified
+
+  // Contact type for categorization
+  contactType: text("contact_type").default("other"), // buyer, seller, advisor, other
+
+  // Custom properties
+  customProperties: jsonb("custom_properties").default({}).notNull(),
+
+  // Source tracking
+  source: text("source"), // website, referral, cold_outreach, etc.
+
+  // Activity tracking
+  lastActivityDate: timestamp("last_activity_date"),
+
+  // Social profiles
+  linkedinUrl: text("linkedin_url"),
+
+  // Avatar/Profile picture
+  avatarUrl: text("avatar_url"),  // Our stored copy of the avatar
+  avatarSource: text("avatar_source"),  // 'gravatar', 'google', 'manual', null
+
+  // Notes
+  notes: text("notes"),
+
+  // Tags for categorization
+  tags: text("tags").array().default([]).notNull(),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+// Pipelines - Deal pipeline configuration
+export const pipelines = pgTable("pipelines", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
+
+  name: text("name").notNull(),
+  isDefault: boolean("is_default").default(false).notNull(),
+
+  // Deal rotting - days before a deal is considered stale
+  dealRotting: integer("deal_rotting").default(30),
+
+  // Currency for deals in this pipeline
+  currency: text("currency").default("USD"),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+// Pipeline Stages - Stage configuration within pipelines
+export const pipelineStages = pgTable("pipeline_stages", {
+  id: serial("id").primaryKey(),
+  pipelineId: integer("pipeline_id").notNull(),
+
+  name: text("name").notNull(),
+  displayOrder: integer("display_order").notNull(),
+
+  // Probability of closing (0-100%)
+  probability: integer("probability").default(0),
+
+  // Visual
+  color: text("color").default("#6B7280"), // Hex color
+
+  // Terminal stage flags
+  isWon: boolean("is_won").default(false).notNull(),
+  isLost: boolean("is_lost").default(false).notNull(),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+// Deals - Core deal/opportunity object
+export const deals = pgTable("deals", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
+
+  // Basic info
+  name: text("name").notNull(),
+  amount: text("amount"), // Stored as text for flexibility with large numbers
+  currency: text("currency").default("USD"),
+
+  // Pipeline and stage
+  pipelineId: integer("pipeline_id").notNull(),
+  stageId: integer("stage_id").notNull(),
+
+  // Dates
+  closeDate: timestamp("close_date"), // Expected close date
+  closedAt: timestamp("closed_at"), // Actual close date
+
+  // Probability (can override stage probability)
+  probability: integer("probability"),
+
+  // Ownership
+  ownerId: integer("owner_id"), // FK to organization_members
+
+  // Company association
+  companyId: integer("company_id"), // FK to companies
+
+  // Custom properties
+  customProperties: jsonb("custom_properties").default({}).notNull(),
+
+  // Source and tracking
+  source: text("source"),
+  lostReason: text("lost_reason"),
+
+  // Description
+  description: text("description"),
+
+  // Priority
+  priority: text("priority").default("normal"), // low, normal, high
+
+  // Soft delete
+  deletedAt: timestamp("deleted_at"),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+// Deal Contacts - Many-to-many relationship between deals and contacts
+export const dealContacts = pgTable("deal_contacts", {
+  id: serial("id").primaryKey(),
+  dealId: integer("deal_id").notNull(),
+  contactId: integer("contact_id").notNull(),
+
+  // Role of the contact in this deal
+  role: text("role").default("other"), // primary, influencer, decision_maker, other
+
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
+// Deal Documents - Link deals to CIM documents
+export const dealDocuments = pgTable("deal_documents", {
+  id: serial("id").primaryKey(),
+  dealId: integer("deal_id").notNull(),
+  cimDocumentId: integer("cim_document_id").notNull(),
+
+  linkedAt: timestamp("linked_at").defaultNow().notNull()
+});
+
+// CRM Notes - Polymorphic notes for deals, contacts, companies
+export const crmNotes = pgTable("crm_notes", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
+  authorId: integer("author_id").notNull(), // FK to users
+
+  // Polymorphic relation
+  objectType: text("object_type").notNull(), // deal, contact, company
+  objectId: integer("object_id").notNull(),
+
+  // Content (rich text stored as JSON for TipTap)
+  content: text("content").notNull(),
+  richContent: jsonb("rich_content"), // TipTap JSON
+
+  // Pinning
+  isPinned: boolean("is_pinned").default(false).notNull(),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+// CRM Activities - Timeline events for deals, contacts, companies
+export const crmActivities = pgTable("crm_activities", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
+
+  // Activity type
+  activityType: text("activity_type").notNull(), // call, email, meeting, task, note, stage_change, etc.
+
+  // Polymorphic relation
+  objectType: text("object_type").notNull(), // deal, contact, company
+  objectId: integer("object_id").notNull(),
+
+  // Who performed the activity
+  performedBy: integer("performed_by"), // FK to users
+
+  // Activity metadata (flexible JSON for different activity types)
+  metadata: jsonb("metadata").default({}).notNull(),
+  // Examples:
+  // For call: { duration: 300, direction: 'outbound', notes: '...' }
+  // For email: { subject: '...', direction: 'sent' }
+  // For stage_change: { fromStage: 'Discovery', toStage: 'Proposal' }
+
+  // Optional title/description
+  title: text("title"),
+  description: text("description"),
+
+  timestamp: timestamp("timestamp").defaultNow().notNull()
+});
+
+// CRM Attachments - Polymorphic file attachments
+export const crmAttachments = pgTable("crm_attachments", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
+
+  // Polymorphic relation
+  objectType: text("object_type").notNull(), // deal, contact, company, note
+  objectId: integer("object_id").notNull(),
+
+  // File info
+  fileName: text("file_name").notNull(),
+  filePath: text("file_path").notNull(),
+  fileSize: integer("file_size").notNull(),
+  mimeType: text("mime_type").notNull(),
+
+  // Upload tracking
+  uploadedBy: integer("uploaded_by").notNull(), // FK to users
+  uploadedAt: timestamp("uploaded_at").defaultNow().notNull()
+});
+
+// Task Constants
+export const TASK_REMINDER_OPTIONS = [
+  'none',           // No reminder
+  'at_time',        // At task due time
+  '15_minutes',     // 15 minutes before
+  '30_minutes',     // 30 minutes before
+  '1_hour',         // 1 hour before
+  '1_day',          // 1 day before
+  '1_week',         // 1 week before
+] as const;
+export type TaskReminderOption = typeof TASK_REMINDER_OPTIONS[number];
+
+export const TASK_PRIORITIES = ['low', 'normal', 'high', 'urgent'] as const;
+export type TaskPriority = typeof TASK_PRIORITIES[number];
+
+export const TASK_STATUSES = ['pending', 'in_progress', 'completed', 'cancelled'] as const;
+export type TaskStatus = typeof TASK_STATUSES[number];
+
+// CRM Tasks - Tasks linked to deals, contacts, or companies
+export const crmTasks = pgTable("crm_tasks", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
+
+  // Task details
+  title: text("title").notNull(),
+  description: text("description"),
+
+  // Due date/time
+  dueDate: timestamp("due_date"),
+  dueTime: text("due_time"), // Store as "HH:MM" string for flexibility
+
+  // Reminder
+  reminder: text("reminder").default("none"), // TASK_REMINDER_OPTIONS
+  reminderSentAt: timestamp("reminder_sent_at"),
+
+  // Assignment
+  assignedTo: integer("assigned_to"), // FK to users
+  createdBy: integer("created_by").notNull(), // FK to users
+
+  // Status and priority
+  status: text("status").default("pending").notNull(), // TASK_STATUSES
+  priority: text("priority").default("normal").notNull(), // TASK_PRIORITIES
+
+  // Polymorphic relation (can attach to deal, contact, or company)
+  objectType: text("object_type"), // 'deal', 'contact', 'company', or null for standalone
+  objectId: integer("object_id"),
+
+  // Completion tracking
+  completedAt: timestamp("completed_at"),
+  completedBy: integer("completed_by"),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Buyer Pipeline Stages - Customizable per organization
+export const buyerPipelineStages = pgTable("buyer_pipeline_stages", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
+  name: text("name").notNull(),
+  displayOrder: integer("display_order").notNull(),
+  color: text("color").default("#6B7280"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Deal Buyers - Track buyers through pipeline per deal
+export const dealBuyers = pgTable("deal_buyers", {
+  id: serial("id").primaryKey(),
+  dealId: integer("deal_id").notNull(), // FK to deals
+  contactId: integer("contact_id"), // FK to crmContacts - optional
+  companyId: integer("company_id"), // FK to companies - optional
+  stageId: integer("stage_id").notNull(), // FK to buyerPipelineStages
+  notes: text("notes"),
+  lastContactDate: timestamp("last_contact_date"),
+  nextFollowUp: timestamp("next_follow_up"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Detail Page Layout Configuration - Customizable per organization
+export const detailPageLayouts = pgTable("detail_page_layouts", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
+
+  // What object type this layout is for
+  objectType: text("object_type").notNull(), // 'deal', 'contact', 'company'
+
+  // Layout configuration stored as JSON
+  // Contains sections array with: { id, title, order, visible, collapsed, fields: [{ id, visible, order }] }
+  layout: jsonb("layout").notNull().default([]),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Constants for buyer pipeline
+export const BUYER_CONTACT_TYPES = ['buyer', 'seller', 'advisor', 'other'] as const;
+
+// Custom Field Types
+export const CUSTOM_FIELD_TYPES = ['text', 'number', 'date', 'select', 'multiselect', 'checkbox', 'url', 'email', 'phone', 'currency'] as const;
+export const CUSTOM_FIELD_OBJECT_TYPES = ['deal', 'contact', 'company'] as const;
+
+// Custom Field Definitions - Define what custom fields exist for each object type
+export const customFieldDefinitions = pgTable("custom_field_definitions", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
+
+  // What object this field applies to
+  objectType: text("object_type").notNull(), // 'deal', 'contact', 'company'
+
+  // Field configuration
+  name: text("name").notNull(), // Internal key
+  label: text("label").notNull(), // Display label
+  fieldType: text("field_type").notNull(), // 'text', 'number', 'date', 'select', 'multiselect', 'checkbox', 'url', 'email', 'phone', 'currency'
+  description: text("description"),
+  placeholder: text("placeholder"),
+
+  // Options for select/multiselect fields (stored as JSON array)
+  options: jsonb("options").default([]),
+
+  // Field behavior
+  isRequired: boolean("is_required").default(false).notNull(),
+  isVisible: boolean("is_visible").default(true).notNull(),
+  displayOrder: integer("display_order").default(0).notNull(),
+
+  // Field grouping (for UI organization)
+  groupName: text("group_name").default("Custom Fields"),
+
+  // Validation
+  minValue: integer("min_value"), // For number/currency
+  maxValue: integer("max_value"), // For number/currency
+  maxLength: integer("max_length"), // For text
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Deal Views - Saved filter/column configurations for deals table
+export const dealViews = pgTable("deal_views", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
+  userId: integer("user_id"), // null = org-level shared view
+
+  name: text("name").notNull(),
+  isDefault: boolean("is_default").default(false).notNull(),
+  isShared: boolean("is_shared").default(false).notNull(), // visible to team
+
+  // Filter configuration
+  filters: jsonb("filters").default({}).notNull(),
+  // Example: { stages: [1,2], amountMin: 10000, amountMax: 100000, owners: [1], companies: [1,2], priority: ['high'], closeDateFrom: '2024-01-01', closeDateTo: '2024-12-31', status: 'open' }
+
+  // Column configuration
+  columns: jsonb("columns").default([]).notNull(),
+  // Example: [{ id: 'name', visible: true, width: 200, order: 0 }, { id: 'amount', visible: true, width: 120, order: 1 }]
+
+  // Sorting configuration
+  sorting: jsonb("sorting").default({}).notNull(),
+  // Example: { field: 'amount', direction: 'desc' }
+
+  // View mode preference
+  viewMode: text("view_mode").default("list"), // 'list' | 'kanban'
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Insert schema for deal views
+export const insertDealViewSchema = createInsertSchema(dealViews).pick({
+  organizationId: true,
+  name: true
+}).extend({
+  organizationId: z.number().min(1),
+  userId: z.number().nullable().optional(),
+  name: z.string().min(1, "View name is required").max(100),
+  isDefault: z.boolean().optional(),
+  isShared: z.boolean().optional(),
+  filters: z.record(z.any()).optional(),
+  columns: z.array(z.object({
+    id: z.string(),
+    visible: z.boolean(),
+    width: z.number().optional(),
+    order: z.number()
+  })).optional(),
+  sorting: z.object({
+    field: z.string(),
+    direction: z.enum(['asc', 'desc'])
+  }).optional(),
+  viewMode: z.enum(['list', 'kanban']).optional()
+});
+
+// Zod schemas for CRM system
+
+export const insertOrganizationSchema = createInsertSchema(organizations).pick({
+  name: true,
+  slug: true,
+  ownerId: true
+}).extend({
+  name: z.string().min(1, "Organization name is required").max(100),
+  slug: z.string().min(1, "Slug is required").max(50).regex(/^[a-z0-9-]+$/, "Slug must contain only lowercase letters, numbers, and hyphens"),
+  ownerId: z.number().min(1),
+  settings: z.record(z.any()).optional(),
+  logoUrl: z.string().nullable().optional()
+});
+
+export const insertOrganizationMemberSchema = createInsertSchema(organizationMembers).pick({
+  organizationId: true,
+  userId: true,
+  role: true
+}).extend({
+  organizationId: z.number().min(1),
+  userId: z.number().min(1),
+  role: z.enum(ORGANIZATION_ROLES as unknown as [string, ...string[]]).default('member'),
+  status: z.enum(ORGANIZATION_MEMBER_STATUSES as unknown as [string, ...string[]]).default('active')
+});
+
+// Helper for optional URL fields that converts empty strings to null
+const optionalUrl = z.preprocess(
+  (val) => (val === '' || val === undefined ? null : val),
+  z.string().url().nullable().optional()
+);
+
+export const insertCompanySchema = createInsertSchema(companies).pick({
+  organizationId: true,
+  name: true
+}).extend({
+  organizationId: z.number().min(1),
+  name: z.string().min(1, "Company name is required").max(200),
+  domain: z.string().nullable().optional(),
+  website: optionalUrl,
+  industry: z.string().nullable().optional(),
+  size: z.string().nullable().optional(),
+  annualRevenue: z.string().nullable().optional(),
+  address: z.string().nullable().optional(),
+  city: z.string().nullable().optional(),
+  state: z.string().nullable().optional(),
+  country: z.string().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  linkedinUrl: optionalUrl,
+  ownerId: z.number().nullable().optional(),
+  customProperties: z.record(z.any()).optional(),
+  description: z.string().nullable().optional()
+});
+
+export const insertCrmContactSchema = createInsertSchema(crmContacts).pick({
+  organizationId: true,
+  email: true
+}).extend({
+  organizationId: z.number().min(1),
+  email: z.string().email("Please enter a valid email address"),
+  firstName: z.string().nullable().optional(),
+  lastName: z.string().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  title: z.string().nullable().optional(),
+  department: z.string().nullable().optional(),
+  companyId: z.number().nullable().optional(),
+  ownerId: z.number().nullable().optional(),
+  lifecycleStage: z.string().nullable().optional(),
+  leadStatus: z.string().nullable().optional(),
+  contactType: z.enum(BUYER_CONTACT_TYPES as unknown as [string, ...string[]]).optional(),
+  customProperties: z.record(z.any()).optional(),
+  source: z.string().nullable().optional(),
+  linkedinUrl: z.string().url().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  tags: z.array(z.string()).optional()
+});
+
+export const insertPipelineSchema = createInsertSchema(pipelines).pick({
+  organizationId: true,
+  name: true
+}).extend({
+  organizationId: z.number().min(1),
+  name: z.string().min(1, "Pipeline name is required").max(100),
+  isDefault: z.boolean().optional(),
+  dealRotting: z.number().min(1).max(365).optional(),
+  currency: z.string().length(3).optional()
+});
+
+export const insertPipelineStageSchema = createInsertSchema(pipelineStages).pick({
+  pipelineId: true,
+  name: true,
+  displayOrder: true
+}).extend({
+  pipelineId: z.number().min(1),
+  name: z.string().min(1, "Stage name is required").max(100),
+  displayOrder: z.number().min(0),
+  probability: z.number().min(0).max(100).optional(),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid hex color").optional(),
+  isWon: z.boolean().optional(),
+  isLost: z.boolean().optional()
+});
+
+export const insertDealSchema = createInsertSchema(deals).pick({
+  organizationId: true,
+  name: true,
+  pipelineId: true,
+  stageId: true
+}).extend({
+  organizationId: z.number().min(1),
+  name: z.string().min(1, "Deal name is required").max(200),
+  amount: z.string().nullable().optional(),
+  currency: z.string().length(3).optional(),
+  pipelineId: z.number().min(1),
+  stageId: z.number().min(1),
+  closeDate: z.union([z.date(), z.string().transform(s => s ? new Date(s) : null)]).nullable().optional(),
+  probability: z.number().min(0).max(100).nullable().optional(),
+  ownerId: z.number().nullable().optional(),
+  companyId: z.number().nullable().optional(),
+  customProperties: z.record(z.any()).optional(),
+  source: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  priority: z.enum(['low', 'normal', 'high']).optional()
+});
+
+export const insertDealContactSchema = createInsertSchema(dealContacts).pick({
+  dealId: true,
+  contactId: true
+}).extend({
+  dealId: z.number().min(1),
+  contactId: z.number().min(1),
+  role: z.enum(DEAL_CONTACT_ROLES as unknown as [string, ...string[]]).optional()
+});
+
+export const insertDealDocumentSchema = createInsertSchema(dealDocuments).pick({
+  dealId: true,
+  cimDocumentId: true
+}).extend({
+  dealId: z.number().min(1),
+  cimDocumentId: z.number().min(1)
+});
+
+export const insertCrmNoteSchema = createInsertSchema(crmNotes).pick({
+  organizationId: true,
+  authorId: true,
+  objectType: true,
+  objectId: true,
+  content: true
+}).extend({
+  organizationId: z.number().min(1),
+  authorId: z.number().min(1),
+  objectType: z.enum(CRM_OBJECT_TYPES as unknown as [string, ...string[]]),
+  objectId: z.number().min(1),
+  content: z.string().min(1, "Note content is required"),
+  richContent: z.any().optional(),
+  isPinned: z.boolean().optional()
+});
+
+export const insertCrmActivitySchema = createInsertSchema(crmActivities).pick({
+  organizationId: true,
+  activityType: true,
+  objectType: true,
+  objectId: true
+}).extend({
+  organizationId: z.number().min(1),
+  activityType: z.enum(CRM_ACTIVITY_TYPES as unknown as [string, ...string[]]),
+  objectType: z.enum(CRM_OBJECT_TYPES as unknown as [string, ...string[]]),
+  objectId: z.number().min(1),
+  performedBy: z.number().nullable().optional(),
+  metadata: z.record(z.any()).optional(),
+  title: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  timestamp: z.date().optional()
+});
+
+export const insertCrmAttachmentSchema = createInsertSchema(crmAttachments).pick({
+  organizationId: true,
+  objectType: true,
+  objectId: true,
+  fileName: true,
+  filePath: true,
+  fileSize: true,
+  mimeType: true,
+  uploadedBy: true
+}).extend({
+  organizationId: z.number().min(1),
+  objectType: z.enum([...CRM_OBJECT_TYPES, 'note'] as unknown as [string, ...string[]]),
+  objectId: z.number().min(1),
+  fileName: z.string().min(1),
+  filePath: z.string().min(1),
+  fileSize: z.number().min(0),
+  mimeType: z.string().min(1),
+  uploadedBy: z.number().min(1)
+});
+
+// Task Schemas
+export const insertCrmTaskSchema = createInsertSchema(crmTasks).pick({
+  organizationId: true,
+  title: true,
+  createdBy: true
+}).extend({
+  organizationId: z.number().min(1),
+  title: z.string().min(1, "Task title is required").max(200),
+  description: z.string().max(2000).nullable().optional(),
+  dueDate: z.union([z.date(), z.string().transform(s => s ? new Date(s) : null)]).nullable().optional(),
+  dueTime: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format (HH:MM)").nullable().optional(),
+  reminder: z.enum(TASK_REMINDER_OPTIONS as unknown as [string, ...string[]]).default("none"),
+  assignedTo: z.number().nullable().optional(),
+  createdBy: z.number().min(1),
+  status: z.enum(TASK_STATUSES as unknown as [string, ...string[]]).default("pending"),
+  priority: z.enum(TASK_PRIORITIES as unknown as [string, ...string[]]).default("normal"),
+  objectType: z.enum([...CRM_OBJECT_TYPES, ''] as unknown as [string, ...string[]]).nullable().optional(),
+  objectId: z.number().nullable().optional(),
+});
+
+export const updateCrmTaskSchema = z.object({
+  title: z.string().min(1, "Task title is required").max(200).optional(),
+  description: z.string().max(2000).nullable().optional(),
+  dueDate: z.union([z.date(), z.string().transform(s => s ? new Date(s) : null)]).nullable().optional(),
+  dueTime: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format (HH:MM)").nullable().optional(),
+  reminder: z.enum(TASK_REMINDER_OPTIONS as unknown as [string, ...string[]]).optional(),
+  assignedTo: z.number().nullable().optional(),
+  status: z.enum(TASK_STATUSES as unknown as [string, ...string[]]).optional(),
+  priority: z.enum(TASK_PRIORITIES as unknown as [string, ...string[]]).optional(),
+  objectType: z.enum([...CRM_OBJECT_TYPES, ''] as unknown as [string, ...string[]]).nullable().optional(),
+  objectId: z.number().nullable().optional(),
+});
+
+// Buyer Pipeline Schemas
+export const insertBuyerPipelineStageSchema = createInsertSchema(buyerPipelineStages).pick({
+  organizationId: true,
+  name: true,
+  displayOrder: true
+}).extend({
+  organizationId: z.number().min(1),
+  name: z.string().min(1, "Stage name is required").max(100),
+  displayOrder: z.number().min(0),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid hex color").optional()
+});
+
+export const insertDealBuyerSchema = createInsertSchema(dealBuyers).pick({
+  dealId: true,
+  stageId: true
+}).extend({
+  dealId: z.number().min(1),
+  contactId: z.number().nullable().optional(),
+  companyId: z.number().nullable().optional(),
+  stageId: z.number().min(1),
+  notes: z.string().nullable().optional(),
+  lastContactDate: z.union([z.date(), z.string().transform(s => s ? new Date(s) : null)]).nullable().optional(),
+  nextFollowUp: z.union([z.date(), z.string().transform(s => s ? new Date(s) : null)]).nullable().optional()
+});
+
+export const insertCustomFieldDefinitionSchema = createInsertSchema(customFieldDefinitions).pick({
+  objectType: true,
+  name: true,
+  label: true,
+  fieldType: true
+}).extend({
+  organizationId: z.number().min(1),
+  objectType: z.enum(CUSTOM_FIELD_OBJECT_TYPES),
+  name: z.string().min(1, "Field name is required").max(50).regex(/^[a-z][a-zA-Z0-9_]*$/, "Field name must start with lowercase letter and contain only letters, numbers, and underscores"),
+  label: z.string().min(1, "Label is required").max(100),
+  fieldType: z.enum(CUSTOM_FIELD_TYPES),
+  description: z.string().max(500).nullable().optional(),
+  placeholder: z.string().max(100).nullable().optional(),
+  options: z.array(z.object({
+    value: z.string(),
+    label: z.string(),
+    color: z.string().optional()
+  })).optional().default([]),
+  isRequired: z.boolean().optional().default(false),
+  isVisible: z.boolean().optional().default(true),
+  displayOrder: z.number().min(0).optional().default(0),
+  groupName: z.string().max(50).optional().default("Custom Fields"),
+  minValue: z.number().nullable().optional(),
+  maxValue: z.number().nullable().optional(),
+  maxLength: z.number().min(1).max(10000).nullable().optional()
+});
+
+// Type exports for CRM system
+export type Organization = typeof organizations.$inferSelect;
+export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
+
+export type OrganizationMember = typeof organizationMembers.$inferSelect;
+export type InsertOrganizationMember = z.infer<typeof insertOrganizationMemberSchema>;
+
+export type Company = typeof companies.$inferSelect;
+export type InsertCompany = z.infer<typeof insertCompanySchema>;
+
+export type CrmContact = typeof crmContacts.$inferSelect;
+export type InsertCrmContact = z.infer<typeof insertCrmContactSchema>;
+
+export type Pipeline = typeof pipelines.$inferSelect;
+export type InsertPipeline = z.infer<typeof insertPipelineSchema>;
+
+export type PipelineStage = typeof pipelineStages.$inferSelect;
+export type InsertPipelineStage = z.infer<typeof insertPipelineStageSchema>;
+
+export type Deal = typeof deals.$inferSelect;
+export type InsertDeal = z.infer<typeof insertDealSchema>;
+
+export type DealContact = typeof dealContacts.$inferSelect;
+export type InsertDealContact = z.infer<typeof insertDealContactSchema>;
+
+export type DealDocument = typeof dealDocuments.$inferSelect;
+export type InsertDealDocument = z.infer<typeof insertDealDocumentSchema>;
+
+export type CrmNote = typeof crmNotes.$inferSelect;
+export type InsertCrmNote = z.infer<typeof insertCrmNoteSchema>;
+
+export type CrmActivity = typeof crmActivities.$inferSelect;
+export type InsertCrmActivity = z.infer<typeof insertCrmActivitySchema>;
+
+export type CrmAttachment = typeof crmAttachments.$inferSelect;
+export type InsertCrmAttachment = z.infer<typeof insertCrmAttachmentSchema>;
+
+export type CrmTask = typeof crmTasks.$inferSelect;
+export type InsertCrmTask = z.infer<typeof insertCrmTaskSchema>;
+export type UpdateCrmTask = z.infer<typeof updateCrmTaskSchema>;
+
+export type BuyerPipelineStage = typeof buyerPipelineStages.$inferSelect;
+export type InsertBuyerPipelineStage = z.infer<typeof insertBuyerPipelineStageSchema>;
+
+export type DealBuyer = typeof dealBuyers.$inferSelect;
+export type InsertDealBuyer = z.infer<typeof insertDealBuyerSchema>;
+
+export type CustomFieldDefinition = typeof customFieldDefinitions.$inferSelect;
+export type InsertCustomFieldDefinition = z.infer<typeof insertCustomFieldDefinitionSchema>;
