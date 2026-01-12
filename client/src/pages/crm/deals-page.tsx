@@ -781,12 +781,14 @@ export default function DealsPage() {
 
       {/* List View */}
       {viewMode === "list" && (
-        <div className="bg-white rounded-lg border overflow-hidden">
-          <table className="w-full table-fixed">
+        <div className="w-full bg-white rounded-lg border overflow-x-auto">
+          <table className="w-full table-auto">
               <thead className="bg-gray-50 border-b">
                 <tr>
-                  {visibleColumns.map((col) => {
+                  {visibleColumns.map((col, index) => {
                     const sortable = ['name', 'amount', 'closeDate', 'createdAt', 'stage', 'company', 'priority'].includes(col.id);
+                    // First column (usually name) gets more space
+                    const widthClass = index === 0 ? 'w-[30%]' : '';
                     if (sortable) {
                       return (
                         <SortableHeader
@@ -795,20 +797,21 @@ export default function DealsPage() {
                           field={col.id}
                           currentSort={sorting}
                           onSort={toggleSort}
+                          className={widthClass}
                         />
                       );
                     }
                     return (
                       <th
                         key={col.id}
-                        className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase"
+                        className={`text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase ${widthClass}`}
                       >
                         {col.label}
                       </th>
                     );
                   })}
                   <th
-                    className="text-right py-3 px-4 text-xs font-medium text-gray-500 uppercase w-24"
+                    className="text-right py-3 px-4 text-xs font-medium text-gray-500 uppercase w-[100px]"
                   >
                     Actions
                   </th>

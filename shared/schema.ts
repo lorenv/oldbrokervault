@@ -2554,6 +2554,34 @@ export const dealViews = pgTable("deal_views", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Dashboard AI Briefings - Cached daily AI summaries for each user
+export const dashboardBriefings = pgTable("dashboard_briefings", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
+  userId: integer("user_id").notNull(),
+
+  // The AI-generated briefing content
+  briefing: jsonb("briefing").notNull(),
+  // Structure: {
+  //   summary: string,
+  //   priorityDeals: [{ id, name, reason, suggestedAction }],
+  //   riskAlerts: [{ dealId, dealName, message }],
+  //   tasksOverview: { dueToday: number, overdue: number, message: string },
+  //   pendingSignatures: { count: number, message: string },
+  //   pendingApprovals: { count: number, message: string },
+  //   quickStats: { pipelineValue: number, dealsWonThisMonth: number }
+  // }
+
+  // Raw data used to generate the briefing (for debugging/refresh)
+  sourceData: jsonb("source_data"),
+
+  generatedAt: timestamp("generated_at").defaultNow().notNull(),
+  // Briefings are valid for the day they were generated
+  validForDate: text("valid_for_date").notNull(), // Format: YYYY-MM-DD
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Insert schema for deal views
 export const insertDealViewSchema = createInsertSchema(dealViews).pick({
   organizationId: true,
@@ -2905,3 +2933,5 @@ export type InsertDealBuyer = z.infer<typeof insertDealBuyerSchema>;
 
 export type CustomFieldDefinition = typeof customFieldDefinitions.$inferSelect;
 export type InsertCustomFieldDefinition = z.infer<typeof insertCustomFieldDefinitionSchema>;
+
+export type DashboardBriefing = typeof dashboardBriefings.$inferSelect;

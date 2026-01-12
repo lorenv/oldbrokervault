@@ -4182,13 +4182,14 @@ router.get('/tasks/counts', async (req, res) => {
 
     const now = new Date();
 
-    // Count overdue tasks (pending/in_progress with due date in the past)
+    // Count overdue tasks assigned to current user (pending/in_progress with due date in the past)
     const overdueResult = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(crmTasks)
       .where(
         and(
           eq(crmTasks.organizationId, orgData.organization.id),
+          eq(crmTasks.assignedTo, req.user!.id),
           inArray(crmTasks.status, ['pending', 'in_progress']),
           sql`${crmTasks.dueDate} < ${now}`
         )

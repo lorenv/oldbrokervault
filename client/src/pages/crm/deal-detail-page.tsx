@@ -64,7 +64,7 @@ function getActivityIcon(activityType: string) {
     case 'file_uploaded':
       return { icon: FileUp, bg: 'bg-purple-100', color: 'text-purple-600' };
     case 'stage_change':
-      return { icon: ArrowRight, bg: 'bg-green-100', color: 'text-green-600' };
+      return { icon: ArrowRight, bg: 'bg-slate-100', color: 'text-slate-600' };
     case 'task_created':
       return { icon: CheckSquare, bg: 'bg-orange-100', color: 'text-orange-600' };
     case 'task_completed':
@@ -717,12 +717,12 @@ export default function DealDetailPage() {
 
                               {/* Stage Change Details */}
                               {activity.activityType === 'stage_change' && activity.metadata && (
-                                <div className="mt-2 p-3 bg-green-50 rounded-lg border border-green-100">
+                                <div className="mt-2 p-3 bg-slate-50 rounded-lg border border-slate-200">
                                   <p className="text-sm text-gray-700 flex items-center gap-2">
                                     <span className="text-gray-500">Stage changed:</span>
                                     <Badge variant="outline">{(activity.metadata as any).fromStage || 'None'}</Badge>
                                     <ArrowRight className="h-3 w-3 text-gray-400" />
-                                    <Badge variant="outline" className="bg-green-100 border-green-200">
+                                    <Badge variant="outline" className="bg-slate-100 border-slate-300">
                                       {(activity.metadata as any).toStage}
                                     </Badge>
                                   </p>
@@ -970,7 +970,7 @@ export default function DealDetailPage() {
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-lg">CIM Documents</CardTitle>
                   <Button asChild size="sm">
-                    <Link href={`/dashboard?dealId=${deal.id}`}>
+                    <Link href={`/dashboard?mode=cim&dealId=${deal.id}`}>
                       <WandSparkles className="h-4 w-4 mr-2" />
                       Create CIM
                     </Link>
@@ -1005,7 +1005,7 @@ export default function DealDetailPage() {
                         Create a CIM to showcase this deal to potential buyers
                       </p>
                       <Button asChild size="sm">
-                        <Link href={`/dashboard?dealId=${deal.id}`}>
+                        <Link href={`/dashboard?mode=cim&dealId=${deal.id}`}>
                           <WandSparkles className="h-4 w-4 mr-2" />
                           Create Your First CIM
                         </Link>
@@ -1328,8 +1328,8 @@ export default function DealDetailPage() {
               <CardTitle className="text-lg">Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button asChild className="w-full justify-start">
-                <Link href={`/dashboard?dealId=${deal.id}`}>
+              <Button variant="outline" asChild className="w-full justify-start">
+                <Link href={`/dashboard?mode=cim&dealId=${deal.id}`}>
                   <FileText className="h-4 w-4 mr-2" />
                   Create CIM
                 </Link>

@@ -76,7 +76,7 @@ export function Navbar() {
           <>
             <nav className="hidden md:flex items-center space-x-1 mr-4">
               {/* Primary Nav Items */}
-              <Link href="/dashboard">
+              <Link href="/dashboard?mode=cim">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -645,7 +645,7 @@ export function Navbar() {
                     <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-2 mb-2">
                       Main
                     </div>
-                    <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Link href="/dashboard?mode=cim" onClick={() => setIsMobileMenuOpen(false)}>
                       <Button
                         variant={location === '/dashboard' ? 'secondary' : 'ghost'}
                         className="w-full justify-start text-left h-12 text-base"

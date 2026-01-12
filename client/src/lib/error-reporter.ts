@@ -24,6 +24,7 @@ const IGNORED_ERROR_PATTERNS = [
   'doubleclick.net',
   'hotjar.com',
   'Object Not Found Matching Id',  // SignalR errors from external embeds/widgets
+  'ResizeObserver loop',  // Benign browser warning, not actionable
 ];
 
 function shouldIgnoreError(error: Error | string, filename?: string): boolean {
