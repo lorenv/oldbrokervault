@@ -106,9 +106,9 @@ export function DealsAdvancedFilters({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-visible">
-            {/* Amount Range */}
+            {/* Value Range */}
             <div className="space-y-2">
-              <Label className="text-xs font-medium text-muted-foreground">Amount Range</Label>
+              <Label className="text-xs font-medium text-muted-foreground">Value Range</Label>
               <div className="flex items-center gap-2">
                 <Input
                   type="number"

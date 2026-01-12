@@ -35,6 +35,7 @@ import {
   CheckSquare,
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { NotificationBell } from "@/components/ui/notification-bell";
 
 interface QuickCreateDialogProps {
   type: "deal" | "contact" | "company" | "task" | null;
@@ -163,7 +164,7 @@ function QuickCreateDialog({ type, onClose }: QuickCreateDialogProps) {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Amount</Label>
+                <Label>Value</Label>
                 <Input
                   type="number"
                   value={dealForm.amount}
@@ -440,8 +441,12 @@ export function GlobalHeader() {
           )}
         </div>
 
-        {/* Quick Create Button - pushed to right */}
-        <div className="ml-auto">
+        {/* Actions - pushed to right */}
+        <div className="ml-auto flex items-center gap-2">
+          {/* Notifications */}
+          <NotificationBell />
+
+          {/* Quick Create Button */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button size="sm" className="gap-1.5">

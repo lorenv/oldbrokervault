@@ -253,7 +253,7 @@ export function InlineEditCurrency(props: Omit<InlineEditProps, 'type' | 'format
       {...rest}
       type="currency"
       placeholder="0"
-      emptyText="Add amount"
+      emptyText="Add value"
       formatDisplay={(val) =>
         new Intl.NumberFormat('en-US', {
           style: 'currency',

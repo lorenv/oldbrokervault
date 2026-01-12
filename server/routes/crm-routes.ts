@@ -23,6 +23,8 @@ import {
   customFieldDefinitions,
   detailPageLayouts,
   dealViews,
+  notifications,
+  mentions,
   insertOrganizationSchema,
   insertDealViewSchema,
   insertOrganizationMemberSchema,
@@ -315,6 +317,39 @@ async function logActivity(
     title,
     description,
   });
+}
+
+// Helper: Create notification
+async function createNotification(params: {
+  organizationId: number;
+  userId: number;
+  type: string;
+  title: string;
+  message: string;
+  entityType?: string;
+  entityId?: number;
+  actorId?: number;
+}) {
+  await db.insert(notifications).values({
+    organizationId: params.organizationId,
+    userId: params.userId,
+    type: params.type,
+    title: params.title,
+    message: params.message,
+    entityType: params.entityType || null,
+    entityId: params.entityId || null,
+    actorId: params.actorId || null,
+  });
+}
+
+// Helper: Get user display name
+async function getUserDisplayName(userId: number): Promise<string> {
+  const [user] = await db.select().from(users).where(eq(users.id, userId));
+  if (!user) return 'Someone';
+  if (user.firstName || user.lastName) {
+    return `${user.firstName || ''} ${user.lastName || ''}`.trim();
+  }
+  return user.email.split('@')[0];
 }
 
 // ==================== ORGANIZATION ROUTES ====================
@@ -2734,6 +2769,21 @@ router.post('/deals', async (req, res) => {
       { dealName: newDeal.name, amount: newDeal.amount }
     );
 
+    // Send notification if deal is assigned to someone else
+    if (newDeal.ownerId && newDeal.ownerId !== req.user!.id) {
+      const assignerName = await getUserDisplayName(req.user!.id);
+      await createNotification({
+        organizationId: orgData.organization.id,
+        userId: newDeal.ownerId,
+        type: 'deal_assigned',
+        title: 'Deal assigned to you',
+        message: `${assignerName} assigned you a deal: "${newDeal.name}"`,
+        entityType: 'deal',
+        entityId: newDeal.id,
+        actorId: req.user!.id,
+      });
+    }
+
     res.json(newDeal);
   } catch (error) {
     console.error('[CRM] Error creating deal:', error);
@@ -2789,7 +2839,12 @@ router.patch('/deals/:id', async (req, res) => {
 
     for (const field of allowedFields) {
       if (req.body[field] !== undefined) {
-        updateData[field] = req.body[field];
+        // Convert date strings to Date objects for timestamp fields
+        if (field === 'closeDate' && req.body[field]) {
+          updateData[field] = new Date(req.body[field]);
+        } else {
+          updateData[field] = req.body[field];
+        }
       }
     }
 
@@ -2834,6 +2889,25 @@ router.patch('/deals/:id', async (req, res) => {
       .set(updateData)
       .where(eq(deals.id, dealId))
       .returning();
+
+    // Send notification if deal owner changed to someone new
+    if (
+      updated.ownerId &&
+      updated.ownerId !== existing.ownerId &&
+      updated.ownerId !== req.user!.id
+    ) {
+      const assignerName = await getUserDisplayName(req.user!.id);
+      await createNotification({
+        organizationId: orgData.organization.id,
+        userId: updated.ownerId,
+        type: 'deal_assigned',
+        title: 'Deal assigned to you',
+        message: `${assignerName} assigned you a deal: "${updated.name}"`,
+        entityType: 'deal',
+        entityId: updated.id,
+        actorId: req.user!.id,
+      });
+    }
 
     res.json(updated);
   } catch (error) {
@@ -3622,8 +3696,10 @@ router.post('/notes', async (req, res) => {
       return res.status(404).json({ error: 'Organization not found' });
     }
 
+    const { mentionedUserIds, ...noteData } = req.body;
+
     const parsed = insertCrmNoteSchema.safeParse({
-      ...req.body,
+      ...noteData,
       organizationId: orgData.organization.id,
       authorId: req.user!.id,
     });
@@ -3643,6 +3719,77 @@ router.post('/notes', async (req, res) => {
       req.user!.id,
       { noteId: newNote.id }
     );
+
+    // Process mentions if any
+    if (mentionedUserIds && Array.isArray(mentionedUserIds) && mentionedUserIds.length > 0) {
+      // Get author's name for the notification
+      const [author] = await db
+        .select({ firstName: users.firstName, lastName: users.lastName, email: users.email })
+        .from(users)
+        .where(eq(users.id, req.user!.id));
+
+      const authorName = author?.firstName
+        ? `${author.firstName} ${author.lastName || ''}`.trim()
+        : author?.email || 'Someone';
+
+      // Get entity name for context
+      let entityName = 'a record';
+      if (parsed.data.objectType === 'deal') {
+        const [deal] = await db.select({ name: deals.name }).from(deals).where(eq(deals.id, parsed.data.objectId));
+        entityName = deal?.name || 'a deal';
+      } else if (parsed.data.objectType === 'contact') {
+        const [contact] = await db
+          .select({ firstName: crmContacts.firstName, lastName: crmContacts.lastName })
+          .from(crmContacts)
+          .where(eq(crmContacts.id, parsed.data.objectId));
+        entityName = contact?.firstName ? `${contact.firstName} ${contact.lastName || ''}`.trim() : 'a contact';
+      } else if (parsed.data.objectType === 'company') {
+        const [company] = await db.select({ name: companies.name }).from(companies).where(eq(companies.id, parsed.data.objectId));
+        entityName = company?.name || 'a company';
+      }
+
+      // Create mentions and notifications for each mentioned user
+      for (const mentionedUserId of mentionedUserIds) {
+        // Don't notify yourself
+        if (mentionedUserId === req.user!.id) continue;
+
+        // Get the mentioned user's name for the mention text
+        const [mentionedUser] = await db
+          .select({ firstName: users.firstName, lastName: users.lastName })
+          .from(users)
+          .where(eq(users.id, mentionedUserId));
+
+        const mentionText = mentionedUser?.firstName
+          ? `@${mentionedUser.firstName} ${mentionedUser.lastName || ''}`.trim()
+          : '@User';
+
+        // Create mention record
+        await db.insert(mentions).values({
+          organizationId: orgData.organization.id,
+          mentionedUserId,
+          mentionedByUserId: req.user!.id,
+          entityType: parsed.data.objectType,
+          entityId: parsed.data.objectId,
+          noteId: newNote.id,
+          mentionText,
+        });
+
+        // Create notification
+        await db.insert(notifications).values({
+          organizationId: orgData.organization.id,
+          userId: mentionedUserId,
+          type: 'mention',
+          title: `${authorName} mentioned you`,
+          message: `You were mentioned in a note on ${entityName}`,
+          entityType: parsed.data.objectType,
+          entityId: parsed.data.objectId,
+          actorId: req.user!.id,
+        });
+
+        // TODO: Send email notification (requires email service integration)
+        // For now, we'll skip the email part
+      }
+    }
 
     res.json(newNote);
   } catch (error) {
@@ -4486,6 +4633,21 @@ router.post('/tasks', async (req, res) => {
       );
     }
 
+    // Send notification if task is assigned to someone else
+    if (newTask.assignedTo && newTask.assignedTo !== req.user!.id) {
+      const assignerName = await getUserDisplayName(req.user!.id);
+      await createNotification({
+        organizationId: orgData.organization.id,
+        userId: newTask.assignedTo,
+        type: 'task_assigned',
+        title: 'Task assigned to you',
+        message: `${assignerName} assigned you a task: "${newTask.title}"`,
+        entityType: newTask.objectType || 'task',
+        entityId: newTask.objectId || newTask.id,
+        actorId: req.user!.id,
+      });
+    }
+
     res.json(newTask);
   } catch (error) {
     console.error('[CRM] Error creating task:', error);
@@ -4543,6 +4705,25 @@ router.patch('/tasks/:id', async (req, res) => {
       .set(updateData)
       .where(eq(crmTasks.id, taskId))
       .returning();
+
+    // Send notification if task assignment changed to someone new
+    if (
+      updated.assignedTo &&
+      updated.assignedTo !== existing.assignedTo &&
+      updated.assignedTo !== req.user!.id
+    ) {
+      const assignerName = await getUserDisplayName(req.user!.id);
+      await createNotification({
+        organizationId: orgData.organization.id,
+        userId: updated.assignedTo,
+        type: 'task_assigned',
+        title: 'Task assigned to you',
+        message: `${assignerName} assigned you a task: "${updated.title}"`,
+        entityType: updated.objectType || 'task',
+        entityId: updated.objectId || updated.id,
+        actorId: req.user!.id,
+      });
+    }
 
     res.json(updated);
   } catch (error) {
@@ -5427,6 +5608,122 @@ router.get('/search', async (req, res) => {
   } catch (error) {
     console.error('Error in global search:', error);
     res.status(500).json({ error: 'Search failed' });
+  }
+});
+
+// ==================== NOTIFICATIONS ====================
+
+// Get user's notifications
+router.get('/notifications', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const { unreadOnly } = req.query;
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    const conditions = [
+      eq(notifications.organizationId, orgData.organization.id),
+      eq(notifications.userId, req.user!.id),
+    ];
+
+    if (unreadOnly === 'true') {
+      conditions.push(eq(notifications.isRead, false));
+    }
+
+    const userNotifications = await db
+      .select({
+        notification: notifications,
+        actor: {
+          id: users.id,
+          email: users.email,
+          firstName: users.firstName,
+          lastName: users.lastName,
+        },
+      })
+      .from(notifications)
+      .leftJoin(users, eq(users.id, notifications.actorId))
+      .where(and(...conditions))
+      .orderBy(desc(notifications.createdAt))
+      .limit(50);
+
+    // Get unread count
+    const [{ count }] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(notifications)
+      .where(
+        and(
+          eq(notifications.organizationId, orgData.organization.id),
+          eq(notifications.userId, req.user!.id),
+          eq(notifications.isRead, false)
+        )
+      );
+
+    res.json({
+      notifications: userNotifications.map(n => ({
+        ...n.notification,
+        actor: n.actor,
+      })),
+      unreadCount: Number(count),
+    });
+  } catch (error) {
+    console.error('[CRM] Error fetching notifications:', error);
+    res.status(500).json({ error: 'Failed to fetch notifications' });
+  }
+});
+
+// Mark notification as read
+router.patch('/notifications/:id/read', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const notificationId = parseInt(req.params.id);
+
+    const [updated] = await db
+      .update(notifications)
+      .set({ isRead: true, readAt: new Date() })
+      .where(
+        and(
+          eq(notifications.id, notificationId),
+          eq(notifications.userId, req.user!.id)
+        )
+      )
+      .returning();
+
+    res.json(updated);
+  } catch (error) {
+    console.error('[CRM] Error marking notification as read:', error);
+    res.status(500).json({ error: 'Failed to update notification' });
+  }
+});
+
+// Mark all notifications as read
+router.post('/notifications/mark-all-read', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    await db
+      .update(notifications)
+      .set({ isRead: true, readAt: new Date() })
+      .where(
+        and(
+          eq(notifications.organizationId, orgData.organization.id),
+          eq(notifications.userId, req.user!.id),
+          eq(notifications.isRead, false)
+        )
+      );
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[CRM] Error marking all notifications as read:', error);
+    res.status(500).json({ error: 'Failed to update notifications' });
   }
 });
 

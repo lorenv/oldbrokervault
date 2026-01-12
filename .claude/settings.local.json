@@ -64,7 +64,8 @@
       "Bash(npm run db:push:*)",
       "Bash(npm run check:*)",
       "Bash(timeout 30 npm run dev:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(timeout 60 npm run:*)"
     ],
     "deny": [],
     "ask": [],

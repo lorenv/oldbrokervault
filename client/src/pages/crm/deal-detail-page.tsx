@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { MentionInput, highlightMentions } from "@/components/ui/mention-input";
 import {
   Select,
   SelectContent,
@@ -223,6 +224,7 @@ export default function DealDetailPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [newNote, setNewNote] = useState("");
+  const [mentionedUserIds, setMentionedUserIds] = useState<number[]>([]);
   const [isAddContactDialogOpen, setIsAddContactDialogOpen] = useState(false);
   const [selectedContactId, setSelectedContactId] = useState<string>("");
   const [contactRole, setContactRole] = useState("other");
@@ -232,6 +234,7 @@ export default function DealDetailPage() {
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<any>(null);
   const [isCustomizerOpen, setIsCustomizerOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("activity");
 
   // Use detail page layout hook
   const {
@@ -360,24 +363,29 @@ export default function DealDetailPage() {
       }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/deals", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"] }); // Also refresh deals list
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals/kanban"] }); // Also refresh kanban view
       toast({ title: "Deal updated", description: "Changes saved successfully." });
     },
   });
 
   // Create note mutation
   const createNoteMutation = useMutation({
-    mutationFn: (content: string) =>
+    mutationFn: (data: { content: string; mentionedUserIds: number[] }) =>
       apiRequest("POST", "/api/crm/notes", {
         body: {
           objectType: "deal",
           objectId: parseInt(id!),
-          content,
+          content: data.content,
+          mentionedUserIds: data.mentionedUserIds,
         },
       }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/notes/deal", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/crm/activities/deal", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
       setNewNote("");
+      setMentionedUserIds([]);
       toast({ title: "Note added" });
     },
   });
@@ -590,7 +598,7 @@ export default function DealDetailPage() {
           </Card>
 
           {/* Tabs */}
-          <Tabs defaultValue="activity">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="flex-wrap h-auto gap-1">
               <TabsTrigger value="activity">
                 <Clock className="h-4 w-4 mr-1" />
@@ -788,16 +796,19 @@ export default function DealDetailPage() {
                 <CardContent className="pt-6">
                   {/* Add Note Form */}
                   <div className="mb-6">
-                    <Textarea
+                    <MentionInput
                       value={newNote}
-                      onChange={(e) => setNewNote(e.target.value)}
-                      placeholder="Add a note..."
+                      onChange={(value, mentions) => {
+                        setNewNote(value);
+                        setMentionedUserIds(mentions.map(m => m.userId));
+                      }}
+                      placeholder="Add a note... Use @ to mention teammates"
                       rows={3}
                     />
                     <Button
                       className="mt-2"
                       size="sm"
-                      onClick={() => createNoteMutation.mutate(newNote)}
+                      onClick={() => createNoteMutation.mutate({ content: newNote, mentionedUserIds })}
                       disabled={!newNote.trim() || createNoteMutation.isPending}
                     >
                       <Plus className="h-4 w-4 mr-2" />
@@ -814,7 +825,7 @@ export default function DealDetailPage() {
                           className="p-4 bg-gray-50 rounded-lg"
                         >
                           <p className="text-sm whitespace-pre-wrap">
-                            {note.content}
+                            {highlightMentions(note.content)}
                           </p>
                           <div className="flex items-center justify-between mt-2">
                             <span className="text-xs text-gray-500">
@@ -1338,12 +1349,11 @@ export default function DealDetailPage() {
                 variant="outline"
                 className="w-full justify-start"
                 onClick={() => {
-                  setNewNote("📞 Call note: ");
-                  toast({ title: "Log your call", description: "Add details in the Notes tab" });
+                  setActiveTab("notes");
                 }}
               >
                 <MessageSquare className="h-4 w-4 mr-2" />
-                Log a Call
+                Add Note
               </Button>
               <Button variant="outline" className="w-full justify-start" onClick={() => fileInputRef.current?.click()}>
                 <Paperclip className="h-4 w-4 mr-2" />

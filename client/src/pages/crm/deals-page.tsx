@@ -603,7 +603,7 @@ export default function DealsPage() {
       return;
     }
 
-    const headers = ["Name", "Company", "Stage", "Amount", "Currency", "Close Date", "Priority", "Source", "Days in Pipeline", "Created"];
+    const headers = ["Name", "Company", "Stage", "Value", "Currency", "Close Date", "Priority", "Source", "Days in Pipeline", "Created"];
     const rows = exportDeals.map((d: Deal) => [
       d.name || "",
       d.company?.name || "",
@@ -785,10 +785,10 @@ export default function DealsPage() {
           <table className="w-full table-auto">
               <thead className="bg-gray-50 border-b">
                 <tr>
-                  {visibleColumns.map((col, index) => {
+                  {visibleColumns.map((col) => {
                     const sortable = ['name', 'amount', 'closeDate', 'createdAt', 'stage', 'company', 'priority'].includes(col.id);
-                    // First column (usually name) gets more space
-                    const widthClass = index === 0 ? 'w-[30%]' : '';
+                    // Name column expands to fill remaining space, others size to content
+                    const widthStyle = col.id === 'name' ? { width: '100%' } : { whiteSpace: 'nowrap' as const };
                     if (sortable) {
                       return (
                         <SortableHeader
@@ -797,21 +797,23 @@ export default function DealsPage() {
                           field={col.id}
                           currentSort={sorting}
                           onSort={toggleSort}
-                          className={widthClass}
+                          style={widthStyle}
                         />
                       );
                     }
                     return (
                       <th
                         key={col.id}
-                        className={`text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase ${widthClass}`}
+                        className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase"
+                        style={widthStyle}
                       >
                         {col.label}
                       </th>
                     );
                   })}
                   <th
-                    className="text-right py-3 px-4 text-xs font-medium text-gray-500 uppercase w-[100px]"
+                    className="text-right py-3 px-4 text-xs font-medium text-gray-500 uppercase"
+                    style={{ whiteSpace: 'nowrap' }}
                   >
                     Actions
                   </th>
@@ -821,7 +823,11 @@ export default function DealsPage() {
                 {deals.map((deal) => (
                   <tr key={deal.id} className="border-b hover:bg-gray-50">
                     {visibleColumns.map((col) => (
-                      <td key={col.id} className="py-3 px-4">
+                      <td
+                        key={col.id}
+                        className="py-3 px-4"
+                        style={col.id === 'name' ? { width: '100%' } : { whiteSpace: 'nowrap' }}
+                      >
                         {col.id === 'name' && (
                           <InlineEditableCell
                             value={deal.name}

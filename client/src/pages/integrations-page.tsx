@@ -598,7 +598,7 @@ export default function IntegrationsPage() {
       } else if (objectType === 'deal') {
         setHubspotProperties([
           { name: 'dealname', label: 'Deal Name', type: 'string', required: true },
-          { name: 'amount', label: 'Amount', type: 'number' },
+          { name: 'amount', label: 'Value', type: 'number' },
           { name: 'dealstage', label: 'Deal Stage', type: 'string' },
           { name: 'closedate', label: 'Close Date', type: 'date' },
         ]);

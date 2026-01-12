@@ -1,6 +1,6 @@
 import { db } from './db';
-import { crmTasks, users } from '@shared/schema';
-import { eq, and, isNull, isNotNull, lte, ne } from 'drizzle-orm';
+import { crmTasks, users, notifications, organizationMembers } from '@shared/schema';
+import { eq, and, isNull, isNotNull, lte, lt, ne } from 'drizzle-orm';
 import { emailService } from './email-service';
 
 // Map reminder options to milliseconds before due time
@@ -16,12 +16,14 @@ const REMINDER_OFFSETS: Record<string, number> = {
 interface TaskWithAssignee {
   task: {
     id: number;
+    organizationId: number;
     title: string;
     description: string | null;
     dueDate: Date | null;
     dueTime: string | null;
     reminder: string | null;
     reminderSentAt: Date | null;
+    overdueNotifiedAt: Date | null;
     assignedTo: number | null;
     objectType: string | null;
     objectId: number | null;
@@ -318,12 +320,102 @@ export class TaskReminderSystem {
           } else {
             console.error(`[TaskReminder] Failed to send reminder for task "${task.title}"`);
           }
+
+          // Also create an in-app notification for the reminder
+          try {
+            await db.insert(notifications).values({
+              organizationId: task.organizationId,
+              userId: assignee.id,
+              type: 'task_reminder',
+              title: 'Task due soon',
+              message: `Reminder: "${task.title}" is due soon`,
+              entityType: task.objectType || 'task',
+              entityId: task.objectId || task.id,
+            });
+          } catch (notifError) {
+            console.error(`[TaskReminder] Failed to create in-app notification for task "${task.title}":`, notifError);
+          }
         }
       }
+
+      // Process overdue tasks
+      await this.processOverdueTasks();
     } catch (error) {
       console.error('[TaskReminder] Error processing reminders:', error);
     } finally {
       this.isRunning = false;
+    }
+  }
+
+  /**
+   * Process overdue tasks and send notifications
+   */
+  async processOverdueTasks(): Promise<void> {
+    try {
+      const now = new Date();
+
+      // Get all tasks that:
+      // 1. Have a due date in the past
+      // 2. Haven't had an overdue notification sent
+      // 3. Are not completed or cancelled
+      // 4. Have an assignee
+      const overdueTasks = await db
+        .select({
+          task: crmTasks,
+          assignee: {
+            id: users.id,
+            email: users.email,
+            firstName: users.firstName,
+            lastName: users.lastName,
+          },
+        })
+        .from(crmTasks)
+        .leftJoin(users, eq(users.id, crmTasks.assignedTo))
+        .where(
+          and(
+            isNotNull(crmTasks.dueDate),
+            lt(crmTasks.dueDate, now),
+            isNull(crmTasks.overdueNotifiedAt),
+            isNotNull(crmTasks.assignedTo),
+            ne(crmTasks.status, 'completed'),
+            ne(crmTasks.status, 'cancelled')
+          )
+        );
+
+      if (overdueTasks.length === 0) {
+        return;
+      }
+
+      console.log(`[TaskReminder] Found ${overdueTasks.length} overdue tasks`);
+
+      for (const { task, assignee } of overdueTasks) {
+        if (!assignee) continue;
+
+        // Create in-app notification for overdue task
+        try {
+          await db.insert(notifications).values({
+            organizationId: task.organizationId,
+            userId: assignee.id,
+            type: 'task_overdue',
+            title: 'Task overdue',
+            message: `Task "${task.title}" is now overdue`,
+            entityType: task.objectType || 'task',
+            entityId: task.objectId || task.id,
+          });
+
+          // Mark overdue notification as sent
+          await db
+            .update(crmTasks)
+            .set({ overdueNotifiedAt: new Date() })
+            .where(eq(crmTasks.id, task.id));
+
+          console.log(`[TaskReminder] Sent overdue notification for task "${task.title}"`);
+        } catch (error) {
+          console.error(`[TaskReminder] Failed to send overdue notification for task "${task.title}":`, error);
+        }
+      }
+    } catch (error) {
+      console.error('[TaskReminder] Error processing overdue tasks:', error);
     }
   }
 

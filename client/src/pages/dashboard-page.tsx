@@ -156,7 +156,7 @@ function QuickCreateDialog({ type, onClose }: QuickCreateDialogProps) {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Amount</Label>
+                <Label>Value</Label>
                 <Input
                   type="number"
                   value={dealForm.amount}

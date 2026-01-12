@@ -2422,6 +2422,7 @@ export const crmTasks = pgTable("crm_tasks", {
   // Reminder
   reminder: text("reminder").default("none"), // TASK_REMINDER_OPTIONS
   reminderSentAt: timestamp("reminder_sent_at"),
+  overdueNotifiedAt: timestamp("overdue_notified_at"),
 
   // Assignment
   assignedTo: integer("assigned_to"), // FK to users
@@ -2578,6 +2579,59 @@ export const dashboardBriefings = pgTable("dashboard_briefings", {
   generatedAt: timestamp("generated_at").defaultNow().notNull(),
   // Briefings are valid for the day they were generated
   validForDate: text("valid_for_date").notNull(), // Format: YYYY-MM-DD
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Notifications for in-app alerts
+export const NOTIFICATION_TYPES = ['mention', 'task_assigned', 'deal_update', 'comment', 'reminder'] as const;
+
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
+  userId: integer("user_id").notNull(), // The user who receives the notification
+
+  type: text("type").notNull(), // 'mention', 'task_assigned', 'deal_update', etc.
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+
+  // Link to the related entity
+  entityType: text("entity_type"), // 'deal', 'contact', 'company', 'task', 'note'
+  entityId: integer("entity_id"),
+
+  // Who triggered the notification
+  actorId: integer("actor_id"), // The user who caused the notification
+
+  isRead: boolean("is_read").default(false).notNull(),
+  readAt: timestamp("read_at"),
+
+  // For email notifications
+  emailSent: boolean("email_sent").default(false).notNull(),
+  emailSentAt: timestamp("email_sent_at"),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Mentions tracking - stores @mentions in notes and comments
+export const mentions = pgTable("mentions", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
+
+  // Who was mentioned
+  mentionedUserId: integer("mentioned_user_id").notNull(),
+
+  // Who made the mention
+  mentionedByUserId: integer("mentioned_by_user_id").notNull(),
+
+  // Where the mention occurred
+  entityType: text("entity_type").notNull(), // 'deal', 'contact', 'company', 'task'
+  entityId: integer("entity_id").notNull(),
+
+  // The note/comment containing the mention
+  noteId: integer("note_id"), // References crmNotes.id
+
+  // The mention text as it appears (e.g., "@John Smith")
+  mentionText: text("mention_text").notNull(),
 
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
