@@ -396,7 +396,7 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Link href="/dashboard">
+            <Link href="/dashboard?mode=cim">
               <Button className="w-full sm:w-auto whitespace-nowrap">
                 <FileText className="mr-2 h-4 w-4" />
                 Create New CIM

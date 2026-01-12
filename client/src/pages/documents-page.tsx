@@ -326,11 +326,11 @@ export default function DocumentsPage() {
           description="Manage and share your CIM documents"
           icon={<FolderOpen className="h-5 w-5" />}
           actions={
-            <Link href="/dashboard">
-              <BrandedButton className="flex items-center gap-2">
+            <Link href="/dashboard?mode=cim">
+              <Button variant="outline" className="flex items-center gap-2">
                 <Plus className="h-4 w-4" />
                 <span className="hidden sm:inline">Create New CIM</span>
-              </BrandedButton>
+              </Button>
             </Link>
           }
         />
@@ -1136,7 +1136,7 @@ export default function DocumentsPage() {
               <FileText className="h-12 w-12 text-blue-500 mx-auto mb-4" />
               <p className="text-gray-800 font-semibold text-lg mb-2">No CIM documents yet</p>
               <p className="text-gray-600 mb-6">Get started by creating your first CIM</p>
-              <Link href="/dashboard">
+              <Link href="/dashboard?mode=cim">
                 <BrandedButton>
                   <Plus className="h-4 w-4 mr-2" />
                   Create Your First CIM

@@ -4182,13 +4182,14 @@ router.get('/tasks/counts', async (req, res) => {
 
     const now = new Date();
 
-    // Count overdue tasks (pending/in_progress with due date in the past)
+    // Count overdue tasks assigned to current user (pending/in_progress with due date in the past)
     const overdueResult = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(crmTasks)
       .where(
         and(
           eq(crmTasks.organizationId, orgData.organization.id),
+          eq(crmTasks.assignedTo, req.user!.id),
           inArray(crmTasks.status, ['pending', 'in_progress']),
           sql`${crmTasks.dueDate} < ${now}`
         )
@@ -4603,6 +4604,62 @@ router.patch('/tasks/:id/complete', async (req, res) => {
   } catch (error) {
     console.error('[CRM] Error completing task:', error);
     res.status(500).json({ error: 'Failed to complete task' });
+  }
+});
+
+// Uncomplete/reopen task
+router.patch('/tasks/:id/uncomplete', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const taskId = parseInt(req.params.id);
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    const [existing] = await db
+      .select()
+      .from(crmTasks)
+      .where(
+        and(
+          eq(crmTasks.id, taskId),
+          eq(crmTasks.organizationId, orgData.organization.id)
+        )
+      );
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    const [updated] = await db
+      .update(crmTasks)
+      .set({
+        status: 'pending',
+        completedAt: null,
+        completedBy: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(crmTasks.id, taskId))
+      .returning();
+
+    // Log activity if linked to an object
+    if (existing.objectType && existing.objectId) {
+      await logActivity(
+        orgData.organization.id,
+        'task_reopened',
+        existing.objectType,
+        existing.objectId,
+        req.user!.id,
+        { taskId: existing.id, taskTitle: existing.title },
+        `Reopened task: ${existing.title}`
+      );
+    }
+
+    res.json(updated);
+  } catch (error) {
+    console.error('[CRM] Error uncompleting task:', error);
+    res.status(500).json({ error: 'Failed to uncomplete task' });
   }
 });
 

@@ -22,6 +22,7 @@ import {
   Building2,
   UserCircle,
   Briefcase,
+  RotateCcw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -207,6 +208,36 @@ export function TaskList({
     },
   });
 
+  // Uncomplete/reopen task mutation
+  const uncompleteTaskMutation = useMutation({
+    mutationFn: (taskId: number) =>
+      apiRequest("PATCH", `/api/crm/tasks/${taskId}/uncomplete`).then((res) =>
+        res.json()
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/tasks"] });
+      if (objectType && objectId) {
+        queryClient.invalidateQueries({
+          queryKey: [`/api/crm/tasks/${objectType}/${objectId}`],
+        });
+        queryClient.invalidateQueries({
+          queryKey: [`/api/crm/activities/${objectType}`, objectId?.toString()],
+        });
+      }
+      toast({
+        title: "Task reopened",
+        description: "The task has been marked as pending.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reopen task",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Delete task mutation
   const deleteTaskMutation = useMutation({
     mutationFn: (taskId: number) =>
@@ -266,23 +297,26 @@ export function TaskList({
               }
             }}
           >
-            {/* Circle checkbox for quick complete - HubSpot style */}
+            {/* Circle checkbox for quick complete/uncomplete - HubSpot style */}
             <button
               type="button"
-              disabled={isComplete || completeTaskMutation.isPending}
+              disabled={completeTaskMutation.isPending || uncompleteTaskMutation.isPending}
               onClick={(e) => {
                 e.stopPropagation();
-                if (!isComplete) {
+                if (isComplete) {
+                  uncompleteTaskMutation.mutate(task.id);
+                } else {
                   completeTaskMutation.mutate(task.id);
                 }
               }}
               className={cn(
                 "mt-0.5 flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
                 isComplete
-                  ? "bg-green-500 border-green-500 text-white"
+                  ? "bg-green-500 border-green-500 text-white hover:bg-green-600 hover:border-green-600"
                   : "border-gray-300 hover:border-green-500 hover:bg-green-50",
-                completeTaskMutation.isPending && "opacity-50"
+                (completeTaskMutation.isPending || uncompleteTaskMutation.isPending) && "opacity-50"
               )}
+              title={isComplete ? "Mark as incomplete" : "Mark as complete"}
             >
               {isComplete && (
                 <CheckCircle2 className="h-3 w-3" />
@@ -367,22 +401,29 @@ export function TaskList({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     {onEditTask && (
-                      <DropdownMenuItem onClick={() => onEditTask(task)}>
+                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEditTask(task); }}>
                         <Edit className="h-4 w-4 mr-2" />
                         Edit
                       </DropdownMenuItem>
                     )}
-                    {!isComplete && (
+                    {!isComplete ? (
                       <DropdownMenuItem
-                        onClick={() => completeTaskMutation.mutate(task.id)}
+                        onClick={(e) => { e.stopPropagation(); completeTaskMutation.mutate(task.id); }}
                       >
                         <CheckCircle2 className="h-4 w-4 mr-2" />
                         Mark Complete
                       </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem
+                        onClick={(e) => { e.stopPropagation(); uncompleteTaskMutation.mutate(task.id); }}
+                      >
+                        <RotateCcw className="h-4 w-4 mr-2" />
+                        Reopen Task
+                      </DropdownMenuItem>
                     )}
                     <DropdownMenuItem
                       className="text-red-600"
-                      onClick={() => deleteTaskMutation.mutate(task.id)}
+                      onClick={(e) => { e.stopPropagation(); deleteTaskMutation.mutate(task.id); }}
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Delete

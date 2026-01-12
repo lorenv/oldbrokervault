@@ -781,20 +781,14 @@ export default function DealsPage() {
 
       {/* List View */}
       {viewMode === "list" && (
-        <div className="bg-white rounded-lg border overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full table-fixed">
+        <div className="w-full bg-white rounded-lg border overflow-x-auto">
+          <table className="w-full table-auto">
               <thead className="bg-gray-50 border-b">
                 <tr>
-                  {visibleColumns.map((col) => {
+                  {visibleColumns.map((col, index) => {
                     const sortable = ['name', 'amount', 'closeDate', 'createdAt', 'stage', 'company', 'priority'].includes(col.id);
-                    const columnWidth = col.id === 'name' ? '22%' :
-                                       col.id === 'company' ? '18%' :
-                                       col.id === 'stage' ? '12%' :
-                                       col.id === 'amount' ? '12%' :
-                                       col.id === 'closeDate' ? '12%' :
-                                       col.id === 'priority' ? '10%' :
-                                       '14%';
+                    // First column (usually name) gets more space
+                    const widthClass = index === 0 ? 'w-[30%]' : '';
                     if (sortable) {
                       return (
                         <SortableHeader
@@ -803,18 +797,22 @@ export default function DealsPage() {
                           field={col.id}
                           currentSort={sorting}
                           onSort={toggleSort}
-                          className=""
-                          style={{ width: columnWidth }}
+                          className={widthClass}
                         />
                       );
                     }
                     return (
-                      <th key={col.id} className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase" style={{ width: columnWidth }}>
+                      <th
+                        key={col.id}
+                        className={`text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase ${widthClass}`}
+                      >
                         {col.label}
                       </th>
                     );
                   })}
-                  <th className="text-right py-3 px-4 text-xs font-medium text-gray-500 uppercase" style={{ width: '8%' }}>
+                  <th
+                    className="text-right py-3 px-4 text-xs font-medium text-gray-500 uppercase w-[100px]"
+                  >
                     Actions
                   </th>
                 </tr>
@@ -938,7 +936,6 @@ export default function DealsPage() {
                 )}
               </tbody>
             </table>
-          </div>
 
           {/* Summary Row */}
           {aggregates && deals.length > 0 && (

@@ -60,6 +60,7 @@ import integrationRoutes from "./routes/integration-routes";
 import teaserRoutes from "./routes/teaser-routes";
 import listingsRoutes from "./routes/listings-routes";
 import crmRoutes from "./routes/crm-routes";
+import dashboardRoutes from "./routes/dashboard-routes";
 import { dispatchWebhookEvent } from "./webhook-dispatcher";
 import { dispatchIntegrationEvent } from "./integrations";
 
@@ -11362,6 +11363,9 @@ ${finalQuestion}
   console.log('📦 Registering CRM routes at /api/crm');
   app.use('/api/crm', crmRoutes);
   console.log('✅ CRM routes registered');
+
+  // Register Dashboard routes (AI briefing, stats)
+  app.use('/api/dashboard', dashboardRoutes);
 
   // Background job: Clean up stale document locks (15+ minutes old)
   async function cleanupStaleLocks() {

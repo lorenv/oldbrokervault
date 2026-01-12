@@ -53,6 +53,7 @@ import {
   Palette,
   Sliders,
   CheckSquare,
+  LayoutDashboard,
 } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -69,6 +70,7 @@ interface NavItem {
 
 // Main navigation items (top section - CRM)
 const mainNavItems: NavItem[] = [
+  { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard", matchPaths: ["/dashboard"] },
   { label: "Deals", icon: Kanban, href: "/deals", matchPaths: ["/deals"] },
   { label: "Contacts", icon: Contact, href: "/contacts", matchPaths: ["/contacts", "/investor-database"] },
   { label: "Companies", icon: Building2, href: "/companies", matchPaths: ["/companies"] },
