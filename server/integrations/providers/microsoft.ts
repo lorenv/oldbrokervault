@@ -89,15 +89,6 @@ export class MicrosoftProvider extends BaseProvider {
       throw new Error('Microsoft OAuth is not configured');
     }
 
-    // Debug: Log lengths only (not actual values)
-    console.error('[Microsoft] Token exchange debug:', JSON.stringify({
-      clientIdLength: MICROSOFT_CLIENT_ID.length,
-      clientSecretLength: MICROSOFT_CLIENT_SECRET.length,
-      clientSecretFirst3: MICROSOFT_CLIENT_SECRET.substring(0, 3),
-      clientSecretLast3: MICROSOFT_CLIENT_SECRET.substring(MICROSOFT_CLIENT_SECRET.length - 3),
-      redirectUri: MICROSOFT_REDIRECT_URI,
-    }));
-
     const response = await fetch(getTokenUrl(), {
       method: 'POST',
       headers: {
@@ -115,7 +106,6 @@ export class MicrosoftProvider extends BaseProvider {
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('[Microsoft] Token exchange failed:', errorData);
       throw new Error(errorData.error_description || 'Failed to exchange code for tokens');
     }
 
@@ -168,7 +158,6 @@ export class MicrosoftProvider extends BaseProvider {
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('[Microsoft] Token exchange failed:', errorData);
         return {
           success: false,
           error: errorData.error_description || 'Failed to exchange code for tokens',
@@ -197,7 +186,6 @@ export class MicrosoftProvider extends BaseProvider {
         accountName: userInfo.name || userInfo.email,
       };
     } catch (error) {
-      console.error('[Microsoft] Error exchanging code:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to exchange code',
@@ -231,7 +219,6 @@ export class MicrosoftProvider extends BaseProvider {
    */
   async refreshAccessToken(connection: IntegrationConnection): Promise<OAuthTokens | null> {
     if (!connection.refreshToken) {
-      console.error('[Microsoft] No refresh token available');
       return null;
     }
 
@@ -253,8 +240,6 @@ export class MicrosoftProvider extends BaseProvider {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('[Microsoft] Token refresh failed:', errorData);
         return null;
       }
 
@@ -271,7 +256,6 @@ export class MicrosoftProvider extends BaseProvider {
         scope: tokenData.scope,
       };
     } catch (error) {
-      console.error('[Microsoft] Error refreshing token:', error);
       return null;
     }
   }
@@ -285,7 +269,6 @@ export class MicrosoftProvider extends BaseProvider {
 
     // Check if token is expired or will expire in next 5 minutes
     if (expiresAt && expiresAt.getTime() - now.getTime() < 5 * 60 * 1000) {
-      console.log('[Microsoft] Token expired or expiring soon, refreshing...');
       const newTokens = await this.refreshAccessToken(connection);
       if (newTokens) {
         return decrypt(newTokens.accessToken);

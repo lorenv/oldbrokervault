@@ -8,7 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { InlineEdit } from "@/components/ui/inline-edit";
+import { InlineEdit, InlineEditEmail } from "@/components/ui/inline-edit";
+import { TablePagination } from "@/components/ui/pagination";
 import { useContactFilters } from "@/hooks/use-contact-filters";
 import { ContactsColumnConfig } from "@/components/crm/contacts-column-config";
 import { ContactsFilterBuilderIntegration } from "@/components/crm/contacts-filter-builder-integration";
@@ -65,6 +66,8 @@ export default function ContactsPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newContact, setNewContact] = useState({ email: "", firstName: "", lastName: "", phone: "", companyId: "" });
   const [hasMigrated, setHasMigrated] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   // Update filter when URL param changes
   useEffect(() => {
@@ -166,10 +169,23 @@ export default function ContactsPage() {
     }
   }, [data, investorData, isLoading, hasMigrated]);
 
-  const contacts = (data as any)?.contacts || [];
+  const allContacts = (data as any)?.contacts || [];
   const investorContacts = (investorData as any)?.contacts || [];
   const hasInvestorContacts = investorContacts.length > 0;
-  const showMigrateButton = hasInvestorContacts && contacts.length === 0 && !migrateMutation.isPending;
+  const showMigrateButton = hasInvestorContacts && allContacts.length === 0 && !migrateMutation.isPending;
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters.search, filters.contactType, filters.leadStatus, filters.companies]);
+
+  // Pagination calculations
+  const totalItems = allContacts.length;
+  const totalPages = Math.ceil(totalItems / pageSize);
+  const contacts = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return allContacts.slice(start, start + pageSize);
+  }, [allContacts, currentPage, pageSize]);
 
   // Get contact type badge color
   const getContactTypeColor = (type: string) => {
@@ -191,13 +207,13 @@ export default function ContactsPage() {
 
   // Export contacts to CSV
   const handleExport = () => {
-    if (contacts.length === 0) {
+    if (allContacts.length === 0) {
       toast({ title: "No contacts to export", variant: "destructive" });
       return;
     }
 
     const headers = ["First Name", "Last Name", "Email", "Phone", "Company", "Title", "Type", "Status", "Source", "Last Activity", "Created"];
-    const rows = contacts.map((c: any) => [
+    const rows = allContacts.map((c: any) => [
       c.firstName || "",
       c.lastName || "",
       c.email || "",
@@ -223,7 +239,7 @@ export default function ContactsPage() {
     link.click();
     URL.revokeObjectURL(link.href);
 
-    toast({ title: `Exported ${contacts.length} contacts` });
+    toast({ title: `Exported ${allContacts.length} contacts` });
   };
 
   // Render cell content based on column
@@ -231,39 +247,30 @@ export default function ContactsPage() {
     switch (columnId) {
       case 'name':
         return (
-          <Link href={`/contacts/${contact.id}`} className="flex items-center gap-2">
+          <Link href={`/contacts/${contact.id}`} className="flex items-center gap-2 group">
             {contact.avatarUrl ? (
               <img
                 src={contact.avatarUrl}
                 alt={`${contact.firstName} ${contact.lastName}`}
-                className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                className="w-7 h-7 rounded-full object-cover flex-shrink-0"
               />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
+              <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 text-xs font-medium flex-shrink-0">
                 {(contact.firstName?.[0] || '').toUpperCase()}{(contact.lastName?.[0] || '').toUpperCase()}
               </div>
             )}
-            <span className="font-medium text-blue-600 hover:underline truncate">
+            <span className="font-medium text-gray-900 group-hover:text-blue-600 truncate">
               {contact.firstName} {contact.lastName}
             </span>
           </Link>
         );
       case 'email':
         return (
-          <div className="flex items-center gap-1">
-            <InlineEdit
-              value={contact.email}
-              onSave={(val) => handleContactUpdate(contact.id, 'email', val || null)}
-              type="email"
-              emptyText="Add email"
-              displayClassName="text-gray-600 truncate"
-            />
-            {contact.email && (
-              <a href={`mailto:${contact.email}`} className="text-gray-400 hover:text-blue-600 ml-1 flex-shrink-0">
-                <Mail className="h-3.5 w-3.5" />
-              </a>
-            )}
-          </div>
+          <InlineEditEmail
+            value={contact.email}
+            onSave={(val) => handleContactUpdate(contact.id, 'email', val || null)}
+            emptyText="Add email"
+          />
         );
       case 'phone':
         return (
@@ -560,7 +567,7 @@ export default function ContactsPage() {
                     {visibleColumns.map((column) => (
                       <th
                         key={column.id}
-                        className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 transition-colors"
+                        className="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 transition-colors"
                         style={{
                           width: column.id === 'name' ? '25%' :
                                  column.id === 'email' ? '25%' :
@@ -580,9 +587,9 @@ export default function ContactsPage() {
                 </thead>
                 <tbody>
                   {contacts.map((contact: any) => (
-                    <tr key={contact.id} className="border-b hover:bg-gray-50">
+                    <tr key={contact.id} className="border-b hover:bg-gray-50/50">
                       {visibleColumns.map((column) => (
-                        <td key={column.id} className="py-3 px-4">
+                        <td key={column.id} className="py-2 px-3">
                           {renderCell(contact, column.id)}
                         </td>
                       ))}
@@ -591,6 +598,14 @@ export default function ContactsPage() {
                 </tbody>
               </table>
             </div>
+            <TablePagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={setPageSize}
+            />
           </div>
         </>
       ) : (

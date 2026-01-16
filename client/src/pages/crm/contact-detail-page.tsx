@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { EmailList } from "@/components/crm/email-list";
 import { TaskDialog } from "@/components/crm/task-dialog";
 import { TaskList } from "@/components/crm/task-list";
-import { InlineEdit } from "@/components/ui/inline-edit";
+import { InlineEdit, InlineEditEmail } from "@/components/ui/inline-edit";
 import { DetailPageCustomizer } from "@/components/crm/detail-page-customizer";
 import { useDetailPageLayout } from "@/hooks/use-detail-page-layout";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -271,12 +271,10 @@ export default function ContactDetailPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-center gap-2">
                   <Mail className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                  <InlineEdit
+                  <InlineEditEmail
                     value={(contact as any).email}
                     onSave={(val) => handleContactUpdate('email', val)}
-                    type="email"
                     emptyText="Add email"
-                    displayClassName="text-blue-600"
                   />
                 </div>
                 <div className="flex items-center gap-2">

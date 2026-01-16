@@ -121,7 +121,7 @@ function formatActivityTitle(activity: Activity): string {
   }
 }
 import { BuyerPipeline } from "@/components/crm/buyer-pipeline";
-import { InlineEdit, InlineEditCurrency, InlineEditDate } from "@/components/ui/inline-edit";
+import { InlineEdit, InlineEditEmail, InlineEditCurrency, InlineEditDate } from "@/components/ui/inline-edit";
 import { EmailList } from "@/components/crm/email-list";
 import { TaskDialog } from "@/components/crm/task-dialog";
 import { TaskList } from "@/components/crm/task-list";
@@ -607,7 +607,7 @@ export default function DealDetailPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="flex items-stretch">
+              <div className="flex items-stretch" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.08))' }}>
                 {stages.map((stage: any, index: number) => {
                   const isActive = stage.id === deal.stageId;
                   const isPast = index < currentStageIndex;
@@ -622,12 +622,13 @@ export default function DealDetailPage() {
                       onClick={() => handleStageClick(stage)}
                       className={`
                         relative h-11 flex-1 min-w-0 flex items-center justify-center
-                        text-xs font-medium transition-all duration-200
-                        ${isActive ? 'z-10' : 'hover:brightness-110'}
-                        ${isFuture ? 'opacity-50' : ''}
+                        text-xs transition-all duration-200
+                        ${isPast ? 'font-semibold' : 'font-medium'}
+                        ${isActive ? 'z-10 font-semibold' : 'hover:brightness-105'}
+                        ${isFuture ? 'opacity-60' : ''}
                       `}
                       style={{
-                        backgroundColor: toPastelColor(stage.color),
+                        backgroundColor: isPast || isActive ? toPastelColorSaturated(stage.color) : toPastelColor(stage.color),
                         color: getPastelTextColor(stage.color),
                         // Left indent for non-first items (arrow from previous)
                         marginLeft: isFirst ? 0 : -arrowWidth,
@@ -638,11 +639,21 @@ export default function DealDetailPage() {
                       }}
                       title={`Move to ${stage.name}`}
                     >
+                      {/* Checkmark for completed stages */}
+                      {isPast && (
+                        <Check
+                          className="h-3.5 w-3.5 flex-shrink-0"
+                          style={{
+                            marginLeft: isFirst ? '8px' : '12px',
+                            marginRight: '2px'
+                          }}
+                        />
+                      )}
                       <span
-                        className="truncate px-3"
+                        className="truncate"
                         style={{
                           // Offset text to account for arrow shapes
-                          paddingLeft: isFirst ? '12px' : '16px',
+                          paddingLeft: isPast ? '2px' : (isFirst ? '12px' : '16px'),
                           paddingRight: isLast ? '12px' : '16px',
                         }}
                       >
@@ -653,7 +664,7 @@ export default function DealDetailPage() {
                         <div
                           className="absolute inset-0 pointer-events-none"
                           style={{
-                            boxShadow: `inset 0 0 0 2px rgba(255,255,255,0.4)`,
+                            boxShadow: `inset 0 0 0 2px rgba(255,255,255,0.5)`,
                             clipPath: isLast
                               ? `polygon(0 0, 100% 0, 100% 100%, 0 100%, ${arrowWidth}px 50%)`
                               : `polygon(0 0, calc(100% - ${arrowWidth}px) 0, 100% 50%, calc(100% - ${arrowWidth}px) 100%, 0 100%, ${isFirst ? '0' : `${arrowWidth}px`} 50%)`,
@@ -674,6 +685,14 @@ export default function DealDetailPage() {
                 <Clock className="h-4 w-4 mr-1" />
                 Activity
               </TabsTrigger>
+              <TabsTrigger value="notes">
+                <MessageSquare className="h-4 w-4 mr-1" />
+                Notes
+              </TabsTrigger>
+              <TabsTrigger value="tasks">
+                <CheckSquare className="h-4 w-4 mr-1" />
+                Tasks
+              </TabsTrigger>
               <TabsTrigger value="emails">
                 <Mail className="h-4 w-4 mr-1" />
                 Emails
@@ -689,18 +708,6 @@ export default function DealDetailPage() {
               <TabsTrigger value="files">
                 <FolderOpen className="h-4 w-4 mr-1" />
                 Files
-              </TabsTrigger>
-              <TabsTrigger value="contacts">
-                <User className="h-4 w-4 mr-1" />
-                Contacts
-              </TabsTrigger>
-              <TabsTrigger value="notes">
-                <MessageSquare className="h-4 w-4 mr-1" />
-                Notes
-              </TabsTrigger>
-              <TabsTrigger value="tasks">
-                <CheckSquare className="h-4 w-4 mr-1" />
-                Tasks
               </TabsTrigger>
             </TabsList>
 
@@ -954,110 +961,6 @@ export default function DealDetailPage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="contacts" className="mt-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-lg">Contacts</CardTitle>
-                  <Button size="sm" variant="outline" onClick={() => setIsAddContactDialogOpen(true)}>
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Add Contact
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  {deal.contacts && deal.contacts.length > 0 ? (
-                    <div className="space-y-3">
-                      {deal.contacts.map((contact: any) => (
-                        <div
-                          key={contact.id}
-                          className="p-3 rounded-lg border hover:bg-gray-50/50 transition-colors"
-                        >
-                          <div className="flex items-start gap-3">
-                            <Link href={`/contacts/${contact.id}`}>
-                              {contact.avatarUrl ? (
-                                <img
-                                  src={contact.avatarUrl}
-                                  alt={`${contact.firstName} ${contact.lastName}`}
-                                  className="w-10 h-10 rounded-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-medium">
-                                  {(contact.firstName?.[0] || '').toUpperCase()}{(contact.lastName?.[0] || '').toUpperCase()}
-                                </div>
-                              )}
-                            </Link>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between gap-2">
-                                <Link href={`/contacts/${contact.id}`} className="font-medium text-gray-900 hover:text-blue-600 truncate">
-                                  {contact.firstName} {contact.lastName}
-                                </Link>
-                                <Badge variant="secondary" className="flex-shrink-0">
-                                  {contact.role}
-                                </Badge>
-                              </div>
-                              <div className="mt-1.5 space-y-1">
-                                <div className="flex items-center gap-1.5">
-                                  <Mail className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-                                  <InlineEdit
-                                    value={contact.email}
-                                    onSave={(val) => handleContactUpdate(contact.id, 'email', val)}
-                                    type="email"
-                                    emptyText="Add email"
-                                    displayClassName="text-gray-600"
-                                  />
-                                  {contact.email && (
-                                    <a
-                                      href={`mailto:${contact.email}`}
-                                      className="text-blue-500 hover:text-blue-600 ml-1"
-                                      title="Send email"
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      <Mail className="h-3.5 w-3.5" />
-                                    </a>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                  <Phone className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-                                  <InlineEdit
-                                    value={contact.phone}
-                                    onSave={(val) => handleContactUpdate(contact.id, 'phone', val)}
-                                    type="phone"
-                                    emptyText="Add phone"
-                                    displayClassName="text-gray-600"
-                                  />
-                                  {contact.phone && (
-                                    <a
-                                      href={`tel:${contact.phone}`}
-                                      className="text-green-500 hover:text-green-600 ml-1"
-                                      title="Call"
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      <Phone className="h-3.5 w-3.5" />
-                                    </a>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <Users className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                      <p className="text-gray-500 font-medium">No contacts yet</p>
-                      <p className="text-sm text-gray-400 mt-1 mb-4">
-                        Link contacts to track who's involved in this deal
-                      </p>
-                      <Button variant="outline" size="sm" onClick={() => setIsAddContactDialogOpen(true)}>
-                        <UserPlus className="h-4 w-4 mr-2" />
-                        Add First Contact
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
             <TabsContent value="cims" className="mt-4">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -1238,13 +1141,13 @@ export default function DealDetailPage() {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Key People Card */}
+          {/* Contacts Card */}
           {isSectionVisible("key-people") && (
           <Card>
             <CardHeader className="pb-3 flex flex-row items-center justify-between">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Users className="h-4 w-4" />
-                Key People
+                Contacts
               </CardTitle>
               <Button
                 variant="ghost"
@@ -1256,9 +1159,108 @@ export default function DealDetailPage() {
               </Button>
             </CardHeader>
             <CardContent className="space-y-3">
+              {/* Company */}
+              {deal.company && (
+                <Link
+                  href={`/companies/${deal.company.id}`}
+                  className="flex items-center gap-3 hover:bg-gray-50 rounded-lg p-2 -mx-2 transition-colors"
+                >
+                  <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+                    <Building2 className="h-4 w-4 text-purple-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate text-gray-900">{deal.company.name}</p>
+                    <p className="text-xs text-gray-500">Company</p>
+                  </div>
+                </Link>
+              )}
+
+              {/* All Contacts */}
+              {deal.contacts && deal.contacts.length > 0 && (
+                <div className="space-y-3">
+                  {deal.contacts.map((contact: any) => (
+                    <div key={contact.id} className="rounded-lg p-2 -mx-2 hover:bg-gray-50 transition-colors">
+                      <div className="flex items-start gap-3">
+                        <Link href={`/contacts/${contact.id}`}>
+                          {contact.avatarUrl ? (
+                            <img
+                              src={contact.avatarUrl}
+                              alt={`${contact.firstName} ${contact.lastName}`}
+                              className="w-8 h-8 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-medium">
+                              {(contact.firstName?.[0] || '').toUpperCase()}{(contact.lastName?.[0] || '').toUpperCase()}
+                            </div>
+                          )}
+                        </Link>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <Link href={`/contacts/${contact.id}`} className="text-sm font-medium truncate text-gray-900 hover:text-blue-600">
+                              {contact.firstName} {contact.lastName}
+                            </Link>
+                            {contact.role && (
+                              <Badge variant="secondary" className="text-xs flex-shrink-0">
+                                {contact.role}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="mt-1 space-y-0.5">
+                            <div className="flex items-center gap-1">
+                              <Mail className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                              <InlineEditEmail
+                                value={contact.email}
+                                onSave={(val) => handleContactUpdate(contact.id, 'email', val)}
+                                emptyText="Add email"
+                                displayClassName="text-xs"
+                              />
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Phone className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                              <InlineEdit
+                                value={contact.phone}
+                                onSave={(val) => handleContactUpdate(contact.id, 'phone', val)}
+                                type="phone"
+                                emptyText="Add phone"
+                                displayClassName="text-xs text-gray-600"
+                                inputClassName="h-6 text-xs"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {!deal.company && (!deal.contacts || deal.contacts.length === 0) && (
+                <div className="text-center py-3">
+                  <p className="text-sm text-gray-500 mb-2">No company or contacts linked yet</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsAddContactDialogOpen(true)}
+                  >
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Add Contact
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          )}
+
+          {/* Deal Details Card */}
+          {isSectionVisible("deal-details") && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Deal Details</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               {/* Deal Owner */}
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-gray-500">Deal Owner</label>
+                <Label className="text-xs text-gray-500">Deal Owner</Label>
                 <Select
                   value={deal.ownerId?.toString() || ""}
                   onValueChange={(value) => {
@@ -1295,115 +1297,35 @@ export default function DealDetailPage() {
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    {members.map((member) => (
-                      <SelectItem key={member.userId} value={member.userId.toString()}>
-                        {member.firstName && member.lastName
-                          ? `${member.firstName} ${member.lastName}`
-                          : member.email}
-                      </SelectItem>
-                    ))}
+                    {members.filter(m => m.userId != null).map((member) => {
+                      const displayName = member.firstName && member.lastName
+                        ? `${member.firstName} ${member.lastName}`
+                        : member.email;
+                      return (
+                        <SelectItem key={member.userId} value={member.userId.toString()}>
+                          <span className="flex items-center gap-2">
+                            {member.profilePhoto ? (
+                              <img
+                                src={member.profilePhoto}
+                                alt={displayName}
+                                className="w-5 h-5 rounded-full object-cover flex-shrink-0"
+                              />
+                            ) : (
+                              <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                <span className="text-xs font-medium text-blue-600">
+                                  {displayName.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                            )}
+                            <span className="text-gray-900">{displayName}</span>
+                          </span>
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Company */}
-              {deal.company && (
-                <Link
-                  href={`/companies/${deal.company.id}`}
-                  className="flex items-center gap-3 hover:bg-gray-50 rounded-lg p-2 -mx-2 transition-colors"
-                >
-                  <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
-                    <Building2 className="h-4 w-4 text-purple-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate text-gray-900">{deal.company.name}</p>
-                    <p className="text-xs text-gray-500">Company</p>
-                  </div>
-                </Link>
-              )}
-
-              {/* Primary Contact */}
-              {deal.contacts && deal.contacts.length > 0 && (
-                <div className="rounded-lg p-2 -mx-2">
-                  <div className="flex items-start gap-3">
-                    <Link href={`/contacts/${deal.contacts[0].id}`}>
-                      {(deal.contacts[0] as any).avatarUrl ? (
-                        <img
-                          src={(deal.contacts[0] as any).avatarUrl}
-                          alt={`${deal.contacts[0].firstName} ${deal.contacts[0].lastName}`}
-                          className="w-8 h-8 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-medium">
-                          {(deal.contacts[0].firstName?.[0] || '').toUpperCase()}{(deal.contacts[0].lastName?.[0] || '').toUpperCase()}
-                        </div>
-                      )}
-                    </Link>
-                    <div className="flex-1 min-w-0">
-                      <Link href={`/contacts/${deal.contacts[0].id}`} className="text-sm font-medium truncate text-gray-900 hover:text-blue-600 block">
-                        {deal.contacts[0].firstName} {deal.contacts[0].lastName}
-                      </Link>
-                      <p className="text-xs text-gray-500 mb-1">{deal.contacts[0].role || "Primary Contact"}</p>
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-1">
-                          <Mail className="h-3 w-3 text-gray-400 flex-shrink-0" />
-                          <InlineEdit
-                            value={deal.contacts[0].email}
-                            onSave={(val) => handleContactUpdate(deal.contacts![0].id, 'email', val)}
-                            type="email"
-                            emptyText="Add email"
-                            displayClassName="text-xs text-gray-600"
-                            inputClassName="h-6 text-xs"
-                          />
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Phone className="h-3 w-3 text-gray-400 flex-shrink-0" />
-                          <InlineEdit
-                            value={(deal.contacts[0] as any).phone}
-                            onSave={(val) => handleContactUpdate(deal.contacts![0].id, 'phone', val)}
-                            type="phone"
-                            emptyText="Add phone"
-                            displayClassName="text-xs text-gray-600"
-                            inputClassName="h-6 text-xs"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Additional contacts count */}
-              {deal.contacts && deal.contacts.length > 1 && (
-                <p className="text-xs text-gray-500 text-center pt-1">
-                  +{deal.contacts.length - 1} more contact{deal.contacts.length > 2 ? 's' : ''} in Contacts tab
-                </p>
-              )}
-
-              {!deal.company && (!deal.contacts || deal.contacts.length === 0) && (
-                <div className="text-center py-3">
-                  <p className="text-sm text-gray-500 mb-2">No company or contacts linked yet</p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsAddContactDialogOpen(true)}
-                  >
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Add Contact
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-          )}
-
-          {/* Deal Details Card */}
-          {isSectionVisible("deal-details") && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Deal Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
               <div>
                 <Label className="text-xs text-gray-500">Value</Label>
                 <div className="mt-0.5">
@@ -1460,36 +1382,6 @@ export default function DealDetailPage() {
           </Card>
           )}
 
-          {/* Quick Actions */}
-          {isSectionVisible("quick-actions") && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Button variant="outline" asChild className="w-full justify-start">
-                <Link href={`/dashboard?mode=cim&dealId=${deal.id}`}>
-                  <FileText className="h-4 w-4 mr-2" />
-                  Create CIM
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => {
-                  setActiveTab("notes");
-                }}
-              >
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Add Note
-              </Button>
-              <Button variant="outline" className="w-full justify-start" onClick={() => fileInputRef.current?.click()}>
-                <Paperclip className="h-4 w-4 mr-2" />
-                Attach File
-              </Button>
-            </CardContent>
-          </Card>
-          )}
         </div>
       </div>
 
@@ -1758,6 +1650,34 @@ function toPastelColor(hexColor: string | undefined | null): string {
     return `#${pastelR.toString(16).padStart(2, '0')}${pastelG.toString(16).padStart(2, '0')}${pastelB.toString(16).padStart(2, '0')}`;
   } catch {
     return '#e5e7eb';
+  }
+}
+
+// Helper function to convert a color to a more saturated pastel (for completed stages)
+function toPastelColorSaturated(hexColor: string | undefined | null): string {
+  if (!hexColor) return '#d1d5db'; // gray-300 as fallback
+
+  try {
+    let hex = hexColor.replace('#', '');
+    if (hex.length === 3) {
+      hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+    }
+    if (hex.length !== 6) return '#d1d5db';
+
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+
+    if (isNaN(r) || isNaN(g) || isNaN(b)) return '#d1d5db';
+
+    // Less white mixing for more saturated look (75% original, 25% white)
+    const pastelR = Math.round(r * 0.75 + 255 * 0.25);
+    const pastelG = Math.round(g * 0.75 + 255 * 0.25);
+    const pastelB = Math.round(b * 0.75 + 255 * 0.25);
+
+    return `#${pastelR.toString(16).padStart(2, '0')}${pastelG.toString(16).padStart(2, '0')}${pastelB.toString(16).padStart(2, '0')}`;
+  } catch {
+    return '#d1d5db';
   }
 }
 

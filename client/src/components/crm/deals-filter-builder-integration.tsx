@@ -7,7 +7,7 @@ interface DealsFilterBuilderProps {
   onFilterChange: <K extends keyof DealFilters>(key: K, value: DealFilters[K]) => void;
   onClearFilters: () => void;
   companies: { id: number; name: string }[];
-  owners: { id: number; name: string }[];
+  owners: { id: number; name: string; profilePhoto?: string | null }[];
   customFields?: any[];
   activeFilterCount: number;
 }
@@ -15,7 +15,7 @@ interface DealsFilterBuilderProps {
 // Define available filter fields for deals
 const getFilterFields = (
   companies: { id: number; name: string }[],
-  owners: { id: number; name: string }[]
+  owners: { id: number; name: string; profilePhoto?: string | null }[]
 ): FilterField[] => [
   { id: 'dealName', label: 'Deal Name', type: 'text' },
   { id: 'amount', label: 'Value', type: 'number' },

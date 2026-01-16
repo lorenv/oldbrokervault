@@ -27,6 +27,7 @@ interface Company {
 interface Owner {
   id: number;
   name: string;
+  profilePhoto?: string | null;
 }
 
 interface CustomField {
@@ -215,7 +216,22 @@ export function DealsAdvancedFilters({
                   <SelectItem value="all">All Owners</SelectItem>
                   {owners.map((owner) => (
                     <SelectItem key={owner.id} value={owner.id.toString()}>
-                      {owner.name}
+                      <span className="flex items-center gap-2">
+                        {owner.profilePhoto ? (
+                          <img
+                            src={owner.profilePhoto}
+                            alt={owner.name}
+                            className="w-5 h-5 rounded-full object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                            <span className="text-xs font-medium text-blue-600">
+                              {owner.name.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                        <span className="text-gray-900">{owner.name}</span>
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>

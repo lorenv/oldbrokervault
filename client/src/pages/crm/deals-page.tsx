@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import {
@@ -66,6 +66,7 @@ import { DealsQuickFilters } from "@/components/crm/deals-quick-filters";
 import { DealsFilterBuilderIntegration } from "@/components/crm/deals-filter-builder-integration";
 import { DealsViewManager } from "@/components/crm/deals-view-manager";
 import { DealsColumnConfig } from "@/components/crm/deals-column-config";
+import { TablePagination } from "@/components/ui/pagination";
 
 interface Deal {
   id: number;
@@ -392,7 +393,7 @@ function SortableHeader({
 
   return (
     <th
-      className={`text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none ${className}`}
+      className={`text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none ${className || 'py-2 px-3'}`}
       style={style}
       onClick={() => onSort(field)}
     >
@@ -426,6 +427,8 @@ export default function DealsPage() {
     companyId: "",
     ownerId: "",
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   // Use the filters hook
   const {
@@ -629,8 +632,21 @@ export default function DealsPage() {
   };
 
   const stages = (kanbanData as any)?.stages || [];
-  const deals = dealsData?.deals || [];
+  const allDeals = dealsData?.deals || [];
   const aggregates = dealsData?.aggregates;
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters.search, filters.stageIds, filters.ownerIds, filters.companyIds]);
+
+  // Pagination calculations for list view
+  const totalItems = allDeals.length;
+  const totalPages = Math.ceil(totalItems / pageSize);
+  const deals = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return allDeals.slice(start, start + pageSize);
+  }, [allDeals, currentPage, pageSize]);
 
   // Export deals to CSV
   const handleExport = () => {
@@ -773,7 +789,7 @@ export default function DealsPage() {
             onFilterChange={updateFilter}
             onClearFilters={clearFilters}
             companies={companies}
-            owners={members.map((m) => ({ id: m.userId, name: m.firstName && m.lastName ? `${m.firstName} ${m.lastName}` : m.email }))}
+            owners={members.map((m) => ({ id: m.userId, name: m.firstName && m.lastName ? `${m.firstName} ${m.lastName}` : m.email, profilePhoto: m.profilePhoto }))}
             customFields={customFields}
             activeFilterCount={activeFilterCount}
           />
@@ -837,13 +853,14 @@ export default function DealsPage() {
                           currentSort={sorting}
                           onSort={toggleSort}
                           style={widthStyle}
+                          className="py-2 px-3"
                         />
                       );
                     }
                     return (
                       <th
                         key={col.id}
-                        className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase"
+                        className="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase"
                         style={widthStyle}
                       >
                         {col.label}
@@ -851,7 +868,7 @@ export default function DealsPage() {
                     );
                   })}
                   <th
-                    className="text-right py-3 px-4 text-xs font-medium text-gray-500 uppercase"
+                    className="text-right py-2 px-3 text-xs font-medium text-gray-500 uppercase"
                     style={{ whiteSpace: 'nowrap' }}
                   >
                     Actions
@@ -860,11 +877,11 @@ export default function DealsPage() {
               </thead>
               <tbody>
                 {deals.map((deal) => (
-                  <tr key={deal.id} className={`border-b hover:bg-gray-50 ${isMobile ? "h-16" : ""}`}>
+                  <tr key={deal.id} className={`border-b hover:bg-gray-50/50 ${isMobile ? "h-16" : ""}`}>
                     {visibleColumns.map((col) => (
                       <td
                         key={col.id}
-                        className="py-3 px-4"
+                        className="py-2 px-3"
                         style={col.id === 'name' ? { width: '100%' } : { whiteSpace: 'nowrap' }}
                       >
                         {col.id === 'name' && (
@@ -872,7 +889,7 @@ export default function DealsPage() {
                             value={deal.name}
                             onSave={(val) => handleInlineEdit(deal.id, 'name', val)}
                             renderValue={() => (
-                              <Link href={`/deals/${deal.id}`} className="font-medium text-blue-600 hover:underline">
+                              <Link href={`/deals/${deal.id}`} className="font-medium text-gray-900 hover:text-blue-600">
                                 {deal.name}
                               </Link>
                             )}
@@ -1012,8 +1029,8 @@ export default function DealsPage() {
             </table>
 
           {/* Summary Row */}
-          {aggregates && deals.length > 0 && (
-            <div className="bg-gray-50 border-t px-4 py-3 flex flex-wrap items-center gap-4 text-sm">
+          {aggregates && allDeals.length > 0 && (
+            <div className="bg-gray-50 border-t px-3 py-2 flex flex-wrap items-center gap-4 text-sm">
               <div className="flex items-center gap-2">
                 <span className="text-gray-500">Total:</span>
                 <span className="font-semibold text-gray-900">{aggregates.count} deals</span>
@@ -1043,7 +1060,7 @@ export default function DealsPage() {
               <div className="w-px h-4 bg-gray-300" />
               <div className="flex items-center gap-2">
                 <span className="text-gray-500">Weighted:</span>
-                <span className="font-semibold text-blue-600">
+                <span className="font-semibold text-gray-700">
                   {new Intl.NumberFormat("en-US", {
                     style: "currency",
                     currency: "USD",
@@ -1053,6 +1070,14 @@ export default function DealsPage() {
               </div>
             </div>
           )}
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+          />
         </div>
       )}
 
@@ -1107,16 +1132,60 @@ export default function DealsPage() {
                 onValueChange={(value) => setNewDeal({ ...newDeal, ownerId: value })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select an owner" />
+                  <SelectValue placeholder="Select an owner">
+                    {newDeal.ownerId && (() => {
+                      const selectedMember = members.find(m => m.userId?.toString() === newDeal.ownerId);
+                      if (!selectedMember) return null;
+                      const displayName = selectedMember.firstName && selectedMember.lastName
+                        ? `${selectedMember.firstName} ${selectedMember.lastName}`
+                        : selectedMember.email;
+                      return (
+                        <span className="flex items-center gap-2">
+                          {selectedMember.profilePhoto ? (
+                            <img
+                              src={selectedMember.profilePhoto}
+                              alt={displayName}
+                              className="w-5 h-5 rounded-full object-cover flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                              <span className="text-xs font-medium text-blue-600">
+                                {displayName.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                          <span className="truncate text-gray-900">{displayName}</span>
+                        </span>
+                      );
+                    })()}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {members.filter((member) => member.userId != null).map((member) => (
-                    <SelectItem key={member.userId} value={member.userId.toString()}>
-                      {member.firstName && member.lastName
-                        ? `${member.firstName} ${member.lastName}`
-                        : member.email}
-                    </SelectItem>
-                  ))}
+                  {members.filter((member) => member.userId != null).map((member) => {
+                    const displayName = member.firstName && member.lastName
+                      ? `${member.firstName} ${member.lastName}`
+                      : member.email;
+                    return (
+                      <SelectItem key={member.userId} value={member.userId.toString()}>
+                        <span className="flex items-center gap-2">
+                          {member.profilePhoto ? (
+                            <img
+                              src={member.profilePhoto}
+                              alt={displayName}
+                              className="w-5 h-5 rounded-full object-cover flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                              <span className="text-xs font-medium text-blue-600">
+                                {displayName.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                          <span className="text-gray-900">{displayName}</span>
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>

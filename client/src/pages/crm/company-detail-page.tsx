@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { TaskDialog } from "@/components/crm/task-dialog";
 import { TaskList } from "@/components/crm/task-list";
 import { EmailList } from "@/components/crm/email-list";
-import { InlineEdit } from "@/components/ui/inline-edit";
+import { InlineEdit, InlineEditEmail } from "@/components/ui/inline-edit";
 import { DetailPageCustomizer } from "@/components/crm/detail-page-customizer";
 import { useDetailPageLayout } from "@/hooks/use-detail-page-layout";
 import { ArrowLeft, Building2, Globe, MapPin, Phone, Users, Briefcase, CheckSquare, Plus, Mail, ExternalLink, Settings2 } from "lucide-react";
@@ -232,18 +232,11 @@ export default function CompanyDetailPage() {
                           <div className="mt-1.5 space-y-1">
                             <div className="flex items-center gap-1.5">
                               <Mail className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-                              <InlineEdit
+                              <InlineEditEmail
                                 value={contact.email}
                                 onSave={(val) => handleContactUpdate(contact.id, 'email', val)}
-                                type="email"
                                 emptyText="Add email"
-                                displayClassName="text-gray-600"
                               />
-                              {contact.email && (
-                                <a href={`mailto:${contact.email}`} className="text-blue-500 hover:text-blue-600 ml-1">
-                                  <Mail className="h-3.5 w-3.5" />
-                                </a>
-                              )}
                             </div>
                             <div className="flex items-center gap-1.5">
                               <Phone className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />

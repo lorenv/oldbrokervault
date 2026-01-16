@@ -903,7 +903,7 @@ export default function TasksPage() {
 
             {/* Desktop Table View */}
             <div className="hidden md:block overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full table-fixed">
                 <thead className="bg-gray-50 border-b">
                   <tr>
                     <th className="w-10 py-3 px-4">
@@ -917,6 +917,15 @@ export default function TasksPage() {
                       <th
                         key={column.id}
                         className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 transition-colors"
+                        style={{
+                          width: column.id === 'title' ? '30%' :
+                                 column.id === 'dueDate' ? '15%' :
+                                 column.id === 'assignedTo' ? '15%' :
+                                 column.id === 'status' ? '12%' :
+                                 column.id === 'priority' ? '10%' :
+                                 column.id === 'linkedTo' ? '15%' :
+                                 '10%'
+                        }}
                         onClick={() => toggleSort(column.id)}
                       >
                         <div className="flex items-center gap-1">

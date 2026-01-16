@@ -7,8 +7,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { Pencil, Check, X, Loader2 } from "lucide-react";
+import { Pencil, Check, X, Loader2, Mail } from "lucide-react";
 
 export type InlineEditType = 'text' | 'email' | 'phone' | 'number' | 'currency' | 'date' | 'select';
 
@@ -239,7 +245,177 @@ export function InlineEdit({
 
 // Specialized variants for common use cases
 export function InlineEditEmail(props: Omit<InlineEditProps, 'type'>) {
-  return <InlineEdit {...props} type="email" placeholder="email@example.com" emptyText="Add email" />;
+  const { value, onSave, className, displayClassName, emptyText = 'Add email', disabled = false } = props;
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(String(value ?? ''));
+  const [isLoading, setIsLoading] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Update edit value when prop changes
+  useEffect(() => {
+    if (!isEditing) {
+      setEditValue(String(value ?? ''));
+    }
+  }, [value, isEditing]);
+
+  // Focus input when editing starts
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
+
+  const handleSave = useCallback(async () => {
+    const trimmedValue = editValue.trim();
+    const originalValue = String(value ?? '');
+
+    if (trimmedValue === originalValue) {
+      setIsEditing(false);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await onSave(trimmedValue);
+      setIsEditing(false);
+    } catch (error) {
+      setEditValue(originalValue);
+      console.error('Failed to save:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [editValue, value, onSave]);
+
+  const handleCancel = useCallback(() => {
+    setEditValue(String(value ?? ''));
+    setIsEditing(false);
+  }, [value]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSave();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      handleCancel();
+    }
+  }, [handleSave, handleCancel]);
+
+  const handleBlur = useCallback(() => {
+    setTimeout(() => {
+      if (isEditing && !isLoading) {
+        handleSave();
+      }
+    }, 150);
+  }, [isEditing, isLoading, handleSave]);
+
+  const hasValue = value !== null && value !== undefined && value !== '';
+
+  if (disabled) {
+    return (
+      <span className={cn("text-sm", displayClassName)}>
+        {hasValue ? String(value) : <span className="text-muted-foreground">{emptyText}</span>}
+      </span>
+    );
+  }
+
+  if (isEditing) {
+    return (
+      <div className={cn("inline-flex items-center gap-1", className)}>
+        <Input
+          ref={inputRef}
+          type="email"
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onBlur={handleBlur}
+          placeholder="email@example.com"
+          className="h-7 text-sm px-2 min-w-[180px]"
+          disabled={isLoading}
+        />
+        {isLoading ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={handleSave}
+              className="p-0.5 text-green-600 hover:text-green-700"
+            >
+              <Check className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="p-0.5 text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  // Display mode: email as mailto link, edit icon on hover
+  return (
+    <TooltipProvider delayDuration={300}>
+      <div
+        className={cn("inline-flex items-center gap-1", className)}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        {hasValue ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <a
+                href={`mailto:${value}`}
+                className={cn(
+                  "text-sm hover:underline",
+                  displayClassName || "text-blue-600 hover:text-blue-700"
+                )}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {String(value)}
+              </a>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              <p>Send email</p>
+            </TooltipContent>
+          </Tooltip>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setIsEditing(true)}
+            className="text-sm text-muted-foreground italic hover:text-foreground"
+          >
+            {emptyText}
+          </button>
+        )}
+        {isHovered && hasValue && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsEditing(true);
+                }}
+                className="p-0.5 text-muted-foreground hover:text-foreground rounded hover:bg-accent/50 transition-colors"
+              >
+                <Pencil className="h-3 w-3" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              <p>Edit</p>
+            </TooltipContent>
+          </Tooltip>
+        )}
+      </div>
+    </TooltipProvider>
+  );
 }
 
 export function InlineEditPhone(props: Omit<InlineEditProps, 'type'>) {

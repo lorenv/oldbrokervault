@@ -52,17 +52,31 @@ function QuickCreateDialog({ type, onClose }: QuickCreateDialogProps) {
   const [, navigate] = useLocation();
 
   // Form states
-  const [dealForm, setDealForm] = useState({ name: "", amount: "", companyId: "" });
-  const [contactForm, setContactForm] = useState({ firstName: "", lastName: "", email: "" });
+  const [dealForm, setDealForm] = useState({ name: "", amount: "", ownerId: "", contactId: "" });
+  const [contactForm, setContactForm] = useState({ firstName: "", lastName: "", email: "", phone: "" });
   const [companyForm, setCompanyForm] = useState({ name: "", website: "" });
-  const [taskForm, setTaskForm] = useState({ title: "", dueDate: "" });
+  const [taskForm, setTaskForm] = useState({ title: "", dueDate: "", assignedTo: "" });
+  const [contactSearch, setContactSearch] = useState("");
 
-  // Fetch companies for deal creation
-  const { data: companiesData } = useQuery({
-    queryKey: ["/api/crm/companies"],
+  // Fetch team members for owner/assignee dropdowns
+  const { data: teamMembers = [] } = useQuery<Array<{ id: number; email: string; firstName: string | null; lastName: string | null; profilePhoto?: string | null }>>({
+    queryKey: ["/api/team-members"],
+    enabled: type === "deal" || type === "task",
+  });
+
+  // Fetch contacts for deal creation
+  const { data: contactsData } = useQuery({
+    queryKey: ["/api/crm/contacts"],
     enabled: type === "deal",
   });
-  const companies = (companiesData as any)?.companies || [];
+  const contacts = (contactsData as any)?.contacts || [];
+
+  // Filter contacts based on search
+  const filteredContacts = contacts.filter((c: any) => {
+    if (!contactSearch) return true;
+    const name = `${c.firstName || ''} ${c.lastName || ''}`.toLowerCase();
+    return name.includes(contactSearch.toLowerCase()) || c.email?.toLowerCase().includes(contactSearch.toLowerCase());
+  });
 
   // Mutations
   const createDealMutation = useMutation({
@@ -115,12 +129,18 @@ function QuickCreateDialog({ type, onClose }: QuickCreateDialogProps) {
         createDealMutation.mutate({
           name: dealForm.name,
           amount: dealForm.amount || null,
-          companyId: dealForm.companyId ? parseInt(dealForm.companyId) : null,
+          ownerId: dealForm.ownerId ? parseInt(dealForm.ownerId) : null,
+          primaryContactId: dealForm.contactId ? parseInt(dealForm.contactId) : null,
         });
         break;
       case "contact":
         if (!contactForm.email.trim()) return;
-        createContactMutation.mutate(contactForm);
+        createContactMutation.mutate({
+          firstName: contactForm.firstName,
+          lastName: contactForm.lastName,
+          email: contactForm.email,
+          phone: contactForm.phone || null,
+        });
         break;
       case "company":
         if (!companyForm.name.trim()) return;
@@ -131,6 +151,7 @@ function QuickCreateDialog({ type, onClose }: QuickCreateDialogProps) {
         createTaskMutation.mutate({
           title: taskForm.title,
           dueDate: taskForm.dueDate || null,
+          assignedTo: taskForm.assignedTo ? parseInt(taskForm.assignedTo) : null,
         });
         break;
     }
@@ -177,15 +198,63 @@ function QuickCreateDialog({ type, onClose }: QuickCreateDialogProps) {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Company</Label>
-                <Select value={dealForm.companyId} onValueChange={(v) => setDealForm({ ...dealForm, companyId: v })}>
+                <Label>Owner</Label>
+                <Select value={dealForm.ownerId} onValueChange={(v) => setDealForm({ ...dealForm, ownerId: v })}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select company" />
+                    <SelectValue placeholder="Select owner" />
                   </SelectTrigger>
                   <SelectContent>
-                    {companies.map((c: any) => (
-                      <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
+                    {teamMembers.map((member) => (
+                      <SelectItem key={member.id} value={member.id.toString()}>
+                        <div className="flex items-center gap-2">
+                          {member.profilePhoto ? (
+                            <img src={member.profilePhoto} alt="" className="w-5 h-5 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-[10px] font-medium">
+                              {(member.firstName?.[0] || member.email[0] || '').toUpperCase()}
+                            </div>
+                          )}
+                          <span>{member.firstName ? `${member.firstName} ${member.lastName || ''}`.trim() : member.email}</span>
+                        </div>
+                      </SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Contact</Label>
+                <Select value={dealForm.contactId} onValueChange={(v) => setDealForm({ ...dealForm, contactId: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select contact" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <div className="px-2 py-1.5 sticky top-0 bg-white border-b">
+                      <Input
+                        placeholder="Search contacts..."
+                        value={contactSearch}
+                        onChange={(e) => setContactSearch(e.target.value)}
+                        className="h-8"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                    {filteredContacts.length === 0 ? (
+                      <div className="px-2 py-3 text-sm text-gray-500 text-center">No contacts found</div>
+                    ) : (
+                      filteredContacts.slice(0, 20).map((c: any) => (
+                        <SelectItem key={c.id} value={c.id.toString()}>
+                          <div className="flex items-center gap-2">
+                            {c.avatarUrl ? (
+                              <img src={c.avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover" />
+                            ) : (
+                              <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-[10px] font-medium">
+                                {(c.firstName?.[0] || '').toUpperCase()}{(c.lastName?.[0] || '').toUpperCase()}
+                              </div>
+                            )}
+                            <span>{c.firstName} {c.lastName}</span>
+                          </div>
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -216,6 +285,15 @@ function QuickCreateDialog({ type, onClose }: QuickCreateDialogProps) {
                   type="email"
                   value={contactForm.email}
                   onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Phone</Label>
+                <Input
+                  type="tel"
+                  value={contactForm.phone}
+                  onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
+                  placeholder="e.g., +1 (555) 123-4567"
                 />
               </div>
             </>
@@ -257,6 +335,30 @@ function QuickCreateDialog({ type, onClose }: QuickCreateDialogProps) {
                   value={taskForm.dueDate}
                   onChange={(e) => setTaskForm({ ...taskForm, dueDate: e.target.value })}
                 />
+              </div>
+              <div className="space-y-2">
+                <Label>Assign To</Label>
+                <Select value={taskForm.assignedTo} onValueChange={(v) => setTaskForm({ ...taskForm, assignedTo: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select owner" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {teamMembers.map((member) => (
+                      <SelectItem key={member.id} value={member.id.toString()}>
+                        <div className="flex items-center gap-2">
+                          {member.profilePhoto ? (
+                            <img src={member.profilePhoto} alt="" className="w-5 h-5 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-[10px] font-medium">
+                              {(member.firstName?.[0] || member.email[0] || '').toUpperCase()}
+                            </div>
+                          )}
+                          <span>{member.firstName ? `${member.firstName} ${member.lastName || ''}`.trim() : member.email}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </>
           )}

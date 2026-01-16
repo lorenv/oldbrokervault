@@ -5497,12 +5497,9 @@ router.get('/emails/contact/:contactId', async (req, res) => {
     const contactId = parseInt(req.params.contactId);
     const { maxResults = '30', debug } = req.query;
 
-    console.log('[CRM] /emails/contact/:contactId - contactId:', contactId, 'userId:', req.user!.id);
-
     // Get user's organization
     const orgData = await getUserOrganization(req.user!.id);
     if (!orgData) {
-      console.log('[CRM] Organization not found for user:', req.user!.id);
       return res.status(404).json({ error: 'Organization not found' });
     }
 
@@ -5519,11 +5516,8 @@ router.get('/emails/contact/:contactId', async (req, res) => {
       .limit(1);
 
     if (!contact) {
-      console.log('[CRM] Contact not found:', contactId);
       return res.status(404).json({ error: 'Contact not found' });
     }
-
-    console.log('[CRM] Contact found:', contact.id, 'email:', contact.email);
 
     if (!contact.email) {
       return res.json({ emails: [], connected: false, message: 'Contact has no email address' });
@@ -5531,7 +5525,6 @@ router.get('/emails/contact/:contactId', async (req, res) => {
 
     // Check if user has email connected
     const emailConn = await getEmailConnection(req.user!.id);
-    console.log('[CRM] Email connection:', emailConn ? `${emailConn.provider} (${emailConn.connection.providerAccountId})` : 'none');
 
     if (!emailConn) {
       return res.json({
@@ -5543,12 +5536,9 @@ router.get('/emails/contact/:contactId', async (req, res) => {
 
     // Fetch emails for this contact
     try {
-      console.log('[CRM] Fetching emails for contact:', contact.email);
       const emails = await getEmailsForContact(req.user!.id, contact.email, {
         maxResults: parseInt(maxResults as string),
       });
-
-      console.log('[CRM] Emails fetched:', emails.length);
 
       res.json({
         emails,
@@ -5558,8 +5548,6 @@ router.get('/emails/contact/:contactId', async (req, res) => {
         ...(debug ? { debug: { userId: req.user!.id, contactId, connectedAccount: emailConn.connection.providerAccountId } } : {}),
       });
     } catch (emailError: any) {
-      console.error('[CRM] Error fetching contact emails:', emailError);
-
       // Check if it's a token expiry issue
       const isExpired = emailError.message?.includes('expired') ||
                         emailError.message?.includes('token') ||
@@ -5574,7 +5562,6 @@ router.get('/emails/contact/:contactId', async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('[CRM] Error fetching contact emails:', error);
     res.status(500).json({ error: 'Failed to fetch emails' });
   }
 });
@@ -5601,7 +5588,6 @@ router.get('/emails/:emailId', async (req, res) => {
 
     res.json(email);
   } catch (error) {
-    console.error('[CRM] Error fetching email:', error);
     res.status(500).json({ error: 'Failed to fetch email' });
   }
 });
@@ -5614,21 +5600,17 @@ router.post('/emails/send', async (req, res) => {
 
   try {
     const { to, subject, body, isHtml, contactId, dealId } = req.body;
-    console.log('[CRM] /emails/send - request body:', { to, subject, bodyLength: body?.length, isHtml, contactId, dealId });
 
     if (!to || !subject || !body) {
-      console.log('[CRM] /emails/send - missing fields:', { to: !!to, subject: !!subject, body: !!body });
       return res.status(400).json({ error: 'to, subject, and body are required' });
     }
 
-    console.log('[CRM] /emails/send - calling sendEmailService for user:', req.user!.id);
     const result = await sendEmailService(req.user!.id, {
       to,
       subject,
       body,
       isHtml: isHtml || false,
     });
-    console.log('[CRM] /emails/send - result:', result);
 
     if (!result.success) {
       return res.status(400).json({ error: result.error || 'Failed to send email' });
@@ -5656,8 +5638,6 @@ router.post('/emails/send', async (req, res) => {
 
     res.json({ success: true, messageId: result.messageId });
   } catch (error: any) {
-    console.error('[CRM] Error sending email:', error);
-    console.error('[CRM] Error stack:', error?.stack);
     res.status(500).json({ error: error?.message || 'Failed to send email' });
   }
 });
@@ -5709,7 +5689,6 @@ router.post('/emails/reply', async (req, res) => {
 
     res.json({ success: true, messageId: result.messageId });
   } catch (error) {
-    console.error('[CRM] Error sending reply:', error);
     res.status(500).json({ error: 'Failed to send reply' });
   }
 });
@@ -5718,19 +5697,12 @@ router.post('/emails/reply', async (req, res) => {
  * Get connected email info (for compose dialogs)
  */
 router.get('/emails/connection/info', async (req, res) => {
-  console.log('[CRM] /emails/connection/info called, user:', req.user?.id);
   if (!req.isAuthenticated()) {
-    console.log('[CRM] /emails/connection/info - not authenticated');
     return res.sendStatus(401);
   }
 
   try {
     const emailConn = await getEmailConnection(req.user!.id);
-    console.log('[CRM] /emails/connection/info - emailConn:', emailConn ? {
-      provider: emailConn.provider,
-      providerAccountId: emailConn.connection.providerAccountId,
-      providerAccountName: emailConn.connection.providerAccountName
-    } : null);
 
     if (!emailConn) {
       return res.json({
@@ -5746,7 +5718,6 @@ router.get('/emails/connection/info', async (req, res) => {
       accountName: emailConn.connection.providerAccountName,
     });
   } catch (error) {
-    console.error('[CRM] Error getting email connection info:', error);
     res.status(500).json({ error: 'Failed to get email connection info' });
   }
 });
