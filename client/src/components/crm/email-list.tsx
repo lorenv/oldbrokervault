@@ -16,6 +16,8 @@ import {
   Send,
   AlertCircle,
   Inbox,
+  ArrowUpRight,
+  ArrowDownLeft,
 } from "lucide-react";
 import { EmailComposer } from "./email-composer";
 import DOMPurify from "dompurify";
@@ -49,9 +51,10 @@ interface EmailListProps {
   contactId?: number;
   contactEmail?: string;
   dealId?: number;
+  companyId?: number;
 }
 
-export function EmailList({ contactId, contactEmail, dealId }: EmailListProps) {
+export function EmailList({ contactId, contactEmail, dealId, companyId }: EmailListProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [expandedEmailId, setExpandedEmailId] = useState<string | null>(null);
@@ -59,10 +62,22 @@ export function EmailList({ contactId, contactEmail, dealId }: EmailListProps) {
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [replyToEmail, setReplyToEmail] = useState<EmailMessage | null>(null);
 
-  // Fetch emails for this contact or deal
+  // Determine query key based on context
+  const getQueryKey = () => {
+    if (companyId) return ["/api/crm/companies", companyId, "emails"];
+    if (dealId) return ["/api/crm/deals", dealId, "emails"];
+    return ["/api/crm/emails/contact", contactId];
+  };
+
+  // Fetch emails for this contact, deal, or company
   const { data, isLoading, error } = useQuery({
-    queryKey: dealId ? ["/api/crm/deals", dealId, "emails"] : ["/api/crm/emails/contact", contactId],
+    queryKey: getQueryKey(),
     queryFn: async () => {
+      if (companyId) {
+        // Fetch emails for company (from all contacts)
+        const res = await apiRequest("GET", `/api/crm/companies/${companyId}/emails`);
+        return res.json();
+      }
       if (dealId) {
         // Fetch emails for deal (from all contacts)
         const res = await apiRequest("GET", `/api/crm/deals/${dealId}/emails`);
@@ -72,7 +87,7 @@ export function EmailList({ contactId, contactEmail, dealId }: EmailListProps) {
       const res = await apiRequest("GET", `/api/crm/emails/contact/${contactId}`);
       return res.json();
     },
-    enabled: !!contactId || !!dealId,
+    enabled: !!contactId || !!dealId || !!companyId,
   });
 
   // Fetch full email content when expanded
@@ -114,7 +129,9 @@ export function EmailList({ contactId, contactEmail, dealId }: EmailListProps) {
     setIsComposerOpen(false);
     setReplyToEmail(null);
     // Invalidate the correct query based on context
-    if (dealId) {
+    if (companyId) {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies", companyId, "emails"] });
+    } else if (dealId) {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/deals", dealId, "emails"] });
     } else if (contactId) {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/emails/contact", contactId] });
@@ -142,6 +159,17 @@ export function EmailList({ contactId, contactEmail, dealId }: EmailListProps) {
   const emails = (data as any)?.emails || [];
   const connected = (data as any)?.connected;
   const provider = (data as any)?.provider;
+  const expired = (data as any)?.expired;
+  const fetchError = (data as any)?.error;
+  const apiContactEmail = (data as any)?.contactEmail?.toLowerCase();
+
+  // Determine if an email is outgoing (sent to contact) or incoming (from contact)
+  const isOutgoing = (email: EmailMessage) => {
+    const targetEmail = apiContactEmail || contactEmail?.toLowerCase();
+    if (!targetEmail) return false;
+    // If the contact's email is in the "to" field, it's outgoing (we sent it)
+    return email.to?.toLowerCase().includes(targetEmail);
+  };
 
   if (isLoading) {
     return (
@@ -167,6 +195,36 @@ export function EmailList({ contactId, contactEmail, dealId }: EmailListProps) {
         </p>
         <Button variant="outline" asChild>
           <a href="/settings/email">Connect Email</a>
+        </Button>
+      </div>
+    );
+  }
+
+  if (expired) {
+    return (
+      <div className="text-center py-8 px-4">
+        <AlertCircle className="h-10 w-10 text-amber-500 mx-auto mb-3" />
+        <h3 className="font-medium text-gray-900 mb-1">Email connection expired</h3>
+        <p className="text-sm text-gray-500 mb-4">
+          Your {provider === "gmail" ? "Gmail" : "Outlook"} connection needs to be refreshed.
+        </p>
+        <Button variant="outline" asChild>
+          <a href="/settings/email">Reconnect Email</a>
+        </Button>
+      </div>
+    );
+  }
+
+  if (fetchError && emails.length === 0) {
+    return (
+      <div className="text-center py-8 px-4">
+        <AlertCircle className="h-10 w-10 text-red-500 mx-auto mb-3" />
+        <h3 className="font-medium text-gray-900 mb-1">Unable to load emails</h3>
+        <p className="text-sm text-gray-500 mb-4">
+          {fetchError}
+        </p>
+        <Button variant="outline" onClick={() => window.location.reload()}>
+          Try Again
         </Button>
       </div>
     );
@@ -208,6 +266,7 @@ export function EmailList({ contactId, contactEmail, dealId }: EmailListProps) {
         <div className="space-y-2">
           {emails.map((email: EmailMessage) => {
             const isExpanded = expandedEmailId === email.id;
+            const outgoing = isOutgoing(email);
 
             return (
               <div
@@ -222,21 +281,30 @@ export function EmailList({ contactId, contactEmail, dealId }: EmailListProps) {
                   onClick={() => fetchEmailContent(email)}
                 >
                   <div className="flex items-start gap-3">
-                    {/* Read/unread indicator */}
+                    {/* Direction indicator */}
                     <div className="pt-1">
-                      {email.isRead ? (
-                        <MailOpen className="h-4 w-4 text-gray-400" />
+                      {outgoing ? (
+                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100">
+                          <ArrowUpRight className="h-3.5 w-3.5 text-blue-600" />
+                        </div>
                       ) : (
-                        <Mail className="h-4 w-4 text-blue-500" />
+                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-green-100">
+                          <ArrowDownLeft className="h-3.5 w-3.5 text-green-600" />
+                        </div>
                       )}
                     </div>
 
                     {/* Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2 mb-1">
-                        <span className={`font-medium text-sm truncate ${!email.isRead ? "text-gray-900" : "text-gray-700"}`}>
-                          {email.fromName || email.from}
-                        </span>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className={`font-medium text-sm truncate ${!email.isRead ? "text-gray-900" : "text-gray-700"}`}>
+                            {outgoing ? `To: ${email.to?.split(',')[0] || 'Unknown'}` : (email.fromName || email.from)}
+                          </span>
+                          <Badge variant={outgoing ? "secondary" : "outline"} className={`text-xs flex-shrink-0 ${outgoing ? 'bg-blue-50 text-blue-700' : 'bg-green-50 text-green-700 border-green-200'}`}>
+                            {outgoing ? "Sent" : "Received"}
+                          </Badge>
+                        </div>
                         <span className="text-xs text-gray-500 flex-shrink-0">
                           {formatDate(email.date)}
                         </span>
@@ -363,6 +431,7 @@ export function EmailList({ contactId, contactEmail, dealId }: EmailListProps) {
         contactId={contactId}
         contactEmail={contactEmail}
         dealId={dealId}
+        companyId={companyId}
         replyTo={replyToEmail}
         onSuccess={handleEmailSent}
       />

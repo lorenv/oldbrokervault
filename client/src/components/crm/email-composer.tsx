@@ -75,6 +75,7 @@ interface EmailComposerProps {
   contactId?: number;
   contactEmail?: string;
   dealId?: number;
+  companyId?: number;
   replyTo?: EmailMessage | null;
   onSuccess?: () => void;
 }
@@ -85,6 +86,7 @@ export function EmailComposer({
   contactId,
   contactEmail,
   dealId,
+  companyId,
   replyTo,
   onSuccess,
 }: EmailComposerProps) {

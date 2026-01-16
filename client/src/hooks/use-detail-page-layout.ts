@@ -50,7 +50,7 @@ const DEFAULT_SECTION_CONFIG: Record<string, { main: string[]; sidebar: string[]
     sidebar: ["associated-deals", "quick-info"],
   },
   company: {
-    main: ["company-info", "associated-contacts", "tasks"],
+    main: ["company-info", "associated-contacts", "tasks", "email-activity"],
     sidebar: ["deals"],
   },
 };

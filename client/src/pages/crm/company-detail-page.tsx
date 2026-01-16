@@ -8,6 +8,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { TaskDialog } from "@/components/crm/task-dialog";
 import { TaskList } from "@/components/crm/task-list";
+import { EmailList } from "@/components/crm/email-list";
 import { InlineEdit } from "@/components/ui/inline-edit";
 import { DetailPageCustomizer } from "@/components/crm/detail-page-customizer";
 import { useDetailPageLayout } from "@/hooks/use-detail-page-layout";
@@ -296,6 +297,21 @@ export default function CompanyDetailPage() {
                 objectId={parseInt(id!)}
                 onEditTask={(task) => setEditingTask(task)}
               />
+            </CardContent>
+          </Card>
+          )}
+
+          {/* Email Activity */}
+          {isSectionVisible("email-activity") && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Mail className="h-5 w-5" />
+                Email Activity
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <EmailList companyId={parseInt(id!)} />
             </CardContent>
           </Card>
           )}

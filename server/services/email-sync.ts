@@ -6,7 +6,7 @@
  */
 
 import { db } from '../db';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import { integrationConnections } from '@shared/schema';
 import { gmailProvider } from '../integrations/providers/gmail';
 import { microsoftProvider } from '../integrations/providers/microsoft';
@@ -83,6 +83,7 @@ export async function getEmailConnection(userId: number) {
     .limit(1);
 
   if (gmailConnection) {
+    console.log('[EmailSync] Found Gmail connection for user', userId, '- account:', gmailConnection.providerAccountId);
     return { provider: 'gmail' as const, connection: gmailConnection };
   }
 
@@ -100,7 +101,26 @@ export async function getEmailConnection(userId: number) {
     .limit(1);
 
   if (microsoftConnection) {
+    console.log('[EmailSync] Found Microsoft connection for user', userId, '- account:', microsoftConnection.providerAccountId);
     return { provider: 'microsoft' as const, connection: microsoftConnection };
+  }
+
+  // Debug: check if there's a non-active connection
+  const [anyConnection] = await db
+    .select()
+    .from(integrationConnections)
+    .where(
+      and(
+        eq(integrationConnections.userId, userId),
+        inArray(integrationConnections.provider, ['gmail', 'microsoft'])
+      )
+    )
+    .limit(1);
+
+  if (anyConnection) {
+    console.log('[EmailSync] Found non-active email connection for user', userId, '- status:', anyConnection.status, 'provider:', anyConnection.provider);
+  } else {
+    console.log('[EmailSync] No email connection found for user', userId);
   }
 
   return null;
@@ -116,7 +136,7 @@ export async function getEmailsForContact(
 ): Promise<EmailMessage[]> {
   const emailConn = await getEmailConnection(userId);
   if (!emailConn) {
-    return [];
+    throw new Error('No email account connected');
   }
 
   const { provider, connection } = emailConn;
@@ -129,9 +149,13 @@ export async function getEmailsForContact(
     } else {
       return await getMicrosoftEmailsForContact(mappedConnection, contactEmail, maxResults);
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error(`[EmailSync] Error fetching emails for ${contactEmail}:`, error);
-    return [];
+    // Re-throw with more context
+    if (error.message?.includes('token') || error.message?.includes('unauthorized') || error.message?.includes('401')) {
+      throw new Error('Email connection expired. Please reconnect in Settings.');
+    }
+    throw new Error(`Failed to fetch emails: ${error.message || 'Unknown error'}`);
   }
 }
 
@@ -148,8 +172,10 @@ async function getGmailEmailsForContact(
     throw new Error('Failed to get valid access token');
   }
 
-  // Search for emails to/from this contact
+  // Search for emails to/from this contact (Gmail search is case-insensitive)
   const query = `from:${contactEmail} OR to:${contactEmail}`;
+  console.log('[EmailSync] Gmail search query:', query);
+
   const params = new URLSearchParams({
     maxResults: maxResults.toString(),
     q: query,
@@ -163,11 +189,14 @@ async function getGmailEmailsForContact(
   );
 
   if (!listResponse.ok) {
+    const errorBody = await listResponse.text();
+    console.error('[EmailSync] Gmail search failed:', listResponse.status, errorBody);
     throw new Error('Failed to fetch emails from Gmail');
   }
 
   const listData = await listResponse.json();
   const messages = listData.messages || [];
+  console.log('[EmailSync] Gmail found', messages.length, 'messages for', contactEmail);
 
   // Fetch metadata for each message
   const emailDetails = await Promise.all(
@@ -210,6 +239,7 @@ async function getGmailEmailsForContact(
 
 /**
  * Fetch emails from Microsoft for a specific contact
+ * Searches both Inbox and Sent Items folders
  */
 async function getMicrosoftEmailsForContact(
   connection: any,
@@ -221,53 +251,76 @@ async function getMicrosoftEmailsForContact(
     throw new Error('Failed to get valid access token');
   }
 
-  // Search for emails to/from this contact
-  const filter = `(from/emailAddress/address eq '${contactEmail}') or (toRecipients/any(r: r/emailAddress/address eq '${contactEmail}'))`;
-  const params = new URLSearchParams({
-    $top: maxResults.toString(),
-    $select: 'id,subject,from,toRecipients,ccRecipients,receivedDateTime,bodyPreview,isRead,hasAttachments',
-    $orderby: 'receivedDateTime desc',
-    $filter: filter,
-  });
+  const normalizedEmail = contactEmail.toLowerCase();
+  console.log('[EmailSync] Microsoft fetching emails for:', normalizedEmail);
 
-  const response = await fetch(
-    `${GRAPH_API_BASE}/me/messages?${params.toString()}`,
-    {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    }
-  );
+  // Fetch from both Inbox and Sent Items in parallel for better results
+  const selectFields = 'id,subject,from,toRecipients,ccRecipients,receivedDateTime,bodyPreview,isRead,hasAttachments';
 
-  if (!response.ok) {
-    const errorBody = await response.text();
-    console.error('[EmailSync] Microsoft filter failed:', response.status, errorBody);
-
-    // If filter fails, try search instead
-    const searchParams = new URLSearchParams({
-      $top: maxResults.toString(),
-      $select: 'id,subject,from,toRecipients,ccRecipients,receivedDateTime,bodyPreview,isRead,hasAttachments',
-      $orderby: 'receivedDateTime desc',
-      $search: `"${contactEmail}"`,
-    });
-
-    const searchResponse = await fetch(
-      `${GRAPH_API_BASE}/me/messages?${searchParams.toString()}`,
+  const [inboxResponse, sentResponse] = await Promise.all([
+    // Search Inbox folder
+    fetch(
+      `${GRAPH_API_BASE}/me/mailFolders/Inbox/messages?$top=${maxResults}&$select=${selectFields}&$orderby=receivedDateTime desc`,
       {
         headers: { Authorization: `Bearer ${accessToken}` },
       }
-    );
+    ),
+    // Search Sent Items folder
+    fetch(
+      `${GRAPH_API_BASE}/me/mailFolders/SentItems/messages?$top=${maxResults}&$select=${selectFields}&$orderby=receivedDateTime desc`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }
+    ),
+  ]);
 
-    if (!searchResponse.ok) {
-      const searchErrorBody = await searchResponse.text();
-      console.error('[EmailSync] Microsoft search also failed:', searchResponse.status, searchErrorBody);
-      throw new Error('Failed to fetch emails from Microsoft');
-    }
+  let allMessages: any[] = [];
 
-    const searchData = await searchResponse.json();
-    return mapMicrosoftEmails(searchData.value || []);
+  if (inboxResponse.ok) {
+    const inboxData = await inboxResponse.json();
+    allMessages = [...allMessages, ...(inboxData.value || [])];
+    console.log('[EmailSync] Microsoft Inbox returned', inboxData.value?.length || 0, 'messages');
+  } else {
+    console.error('[EmailSync] Microsoft Inbox fetch failed:', inboxResponse.status);
   }
 
-  const data = await response.json();
-  return mapMicrosoftEmails(data.value || []);
+  if (sentResponse.ok) {
+    const sentData = await sentResponse.json();
+    allMessages = [...allMessages, ...(sentData.value || [])];
+    console.log('[EmailSync] Microsoft Sent Items returned', sentData.value?.length || 0, 'messages');
+  } else {
+    console.error('[EmailSync] Microsoft Sent Items fetch failed:', sentResponse.status);
+  }
+
+  if (allMessages.length === 0 && !inboxResponse.ok && !sentResponse.ok) {
+    throw new Error('Failed to fetch emails from Microsoft');
+  }
+
+  // Filter to only emails involving this contact
+  const filteredMessages = allMessages.filter((email: any) => {
+    const fromEmail = email.from?.emailAddress?.address?.toLowerCase() || '';
+    const toEmails = email.toRecipients?.map((r: any) => r.emailAddress?.address?.toLowerCase()) || [];
+    const ccEmails = email.ccRecipients?.map((r: any) => r.emailAddress?.address?.toLowerCase()) || [];
+
+    return fromEmail === normalizedEmail ||
+           toEmails.includes(normalizedEmail) ||
+           ccEmails.includes(normalizedEmail);
+  });
+
+  // Sort by date descending and deduplicate by ID
+  const seen = new Set<string>();
+  const uniqueMessages = filteredMessages
+    .sort((a: any, b: any) => new Date(b.receivedDateTime).getTime() - new Date(a.receivedDateTime).getTime())
+    .filter((email: any) => {
+      if (seen.has(email.id)) return false;
+      seen.add(email.id);
+      return true;
+    })
+    .slice(0, maxResults);
+
+  console.log('[EmailSync] Microsoft found', allMessages.length, 'total messages, filtered to', uniqueMessages.length, 'for contact');
+
+  return mapMicrosoftEmails(uniqueMessages);
 }
 
 function mapMicrosoftEmails(messages: any[]): EmailMessage[] {

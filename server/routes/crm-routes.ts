@@ -5324,6 +5324,156 @@ router.get('/deals/:id/emails', async (req, res) => {
   }
 });
 
+// Get emails for a company (all associated contacts)
+router.get('/companies/:id/emails', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const companyId = parseInt(req.params.id);
+    const orgData = await getUserOrganization(req.user!.id);
+
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    // Get the company
+    const [company] = await db
+      .select()
+      .from(crmCompanies)
+      .where(
+        and(
+          eq(crmCompanies.id, companyId),
+          eq(crmCompanies.organizationId, orgData.organization.id)
+        )
+      );
+
+    if (!company) {
+      return res.status(404).json({ error: 'Company not found' });
+    }
+
+    // Get all contacts associated with this company
+    const companyContacts = await db
+      .select()
+      .from(crmContacts)
+      .where(eq(crmContacts.companyId, companyId));
+
+    const contactEmails = companyContacts
+      .filter(c => c.email)
+      .map(c => ({ email: c.email!.toLowerCase(), name: c.firstName && c.lastName ? `${c.firstName} ${c.lastName}` : c.firstName || c.lastName || c.email }));
+
+    if (contactEmails.length === 0) {
+      return res.json({
+        emails: [],
+        connected: true,
+        message: 'No contacts with email addresses associated with this company'
+      });
+    }
+
+    // Get user's email connection
+    const connection = await getUserEmailConnection(req.user!.id);
+
+    if (!connection) {
+      return res.json({
+        emails: [],
+        connected: false,
+        message: 'No email account connected'
+      });
+    }
+
+    // Transform connection for provider
+    const connectionForProvider = {
+      ...connection,
+      accessToken: connection.accessTokenEncrypted,
+      refreshToken: connection.refreshTokenEncrypted,
+    };
+
+    // Fetch emails for all contact emails
+    let allEmails: any[] = [];
+
+    try {
+      for (const contactInfo of contactEmails) {
+        let emails: any[] = [];
+
+        if (connection.provider === 'gmail') {
+          emails = await gmailProvider.getRecentEmails(connectionForProvider as any, {
+            maxResults: 25,
+            query: `from:${contactInfo.email} OR to:${contactInfo.email}`,
+          });
+        } else if (connection.provider === 'microsoft') {
+          const filter = `from/emailAddress/address eq '${contactInfo.email}' or toRecipients/any(r: r/emailAddress/address eq '${contactInfo.email}')`;
+          emails = await microsoftProvider.getRecentEmails(connectionForProvider as any, {
+            maxResults: 25,
+            filter: filter,
+          });
+        }
+
+        // Filter and tag emails with contact info
+        emails = emails
+          .filter(email => {
+            const fromMatch = email.from?.toLowerCase() === contactInfo.email;
+            const toMatch = email.to?.toLowerCase().includes(contactInfo.email);
+            return fromMatch || toMatch;
+          })
+          .map(email => ({
+            ...email,
+            contactEmail: contactInfo.email,
+            contactName: contactInfo.name,
+          }));
+
+        allEmails = [...allEmails, ...emails];
+      }
+
+      // Sort all emails by date, newest first
+      allEmails.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      // Deduplicate by message ID
+      const seen = new Set();
+      allEmails = allEmails.filter(email => {
+        if (seen.has(email.id)) return false;
+        seen.add(email.id);
+        return true;
+      });
+
+      // Update last used timestamp
+      await db
+        .update(integrationConnections)
+        .set({ lastUsedAt: new Date() })
+        .where(eq(integrationConnections.id, connection.id));
+
+    } catch (emailError: any) {
+      console.error('[CRM] Error fetching company emails:', emailError);
+
+      if (emailError.message?.includes('token') || emailError.message?.includes('unauthorized')) {
+        return res.json({
+          emails: [],
+          connected: true,
+          expired: true,
+          message: 'Email connection expired. Please reconnect in Settings > Email Sync.'
+        });
+      }
+
+      // Return partial results with error flag
+      return res.json({
+        emails: allEmails.slice(0, 100),
+        connected: true,
+        provider: connection.provider,
+        contactCount: contactEmails.length,
+        error: 'Some emails could not be fetched',
+      });
+    }
+
+    res.json({
+      emails: allEmails.slice(0, 100), // Limit to 100 most recent
+      connected: true,
+      provider: connection.provider,
+      contactCount: contactEmails.length,
+    });
+  } catch (error) {
+    console.error('[CRM] Error fetching company emails:', error);
+    res.status(500).json({ error: 'Failed to fetch emails' });
+  }
+});
+
 // ============================================
 // EMAIL INBOX ENDPOINTS
 // ============================================
@@ -5345,11 +5495,14 @@ router.get('/emails/contact/:contactId', async (req, res) => {
 
   try {
     const contactId = parseInt(req.params.contactId);
-    const { maxResults = '30' } = req.query;
+    const { maxResults = '30', debug } = req.query;
+
+    console.log('[CRM] /emails/contact/:contactId - contactId:', contactId, 'userId:', req.user!.id);
 
     // Get user's organization
     const orgData = await getUserOrganization(req.user!.id);
     if (!orgData) {
+      console.log('[CRM] Organization not found for user:', req.user!.id);
       return res.status(404).json({ error: 'Organization not found' });
     }
 
@@ -5366,8 +5519,11 @@ router.get('/emails/contact/:contactId', async (req, res) => {
       .limit(1);
 
     if (!contact) {
+      console.log('[CRM] Contact not found:', contactId);
       return res.status(404).json({ error: 'Contact not found' });
     }
+
+    console.log('[CRM] Contact found:', contact.id, 'email:', contact.email);
 
     if (!contact.email) {
       return res.json({ emails: [], connected: false, message: 'Contact has no email address' });
@@ -5375,6 +5531,8 @@ router.get('/emails/contact/:contactId', async (req, res) => {
 
     // Check if user has email connected
     const emailConn = await getEmailConnection(req.user!.id);
+    console.log('[CRM] Email connection:', emailConn ? `${emailConn.provider} (${emailConn.connection.providerAccountId})` : 'none');
+
     if (!emailConn) {
       return res.json({
         emails: [],
@@ -5384,16 +5542,37 @@ router.get('/emails/contact/:contactId', async (req, res) => {
     }
 
     // Fetch emails for this contact
-    const emails = await getEmailsForContact(req.user!.id, contact.email, {
-      maxResults: parseInt(maxResults as string),
-    });
+    try {
+      console.log('[CRM] Fetching emails for contact:', contact.email);
+      const emails = await getEmailsForContact(req.user!.id, contact.email, {
+        maxResults: parseInt(maxResults as string),
+      });
 
-    res.json({
-      emails,
-      connected: true,
-      provider: emailConn.provider,
-      contactEmail: contact.email,
-    });
+      console.log('[CRM] Emails fetched:', emails.length);
+
+      res.json({
+        emails,
+        connected: true,
+        provider: emailConn.provider,
+        contactEmail: contact.email,
+        ...(debug ? { debug: { userId: req.user!.id, contactId, connectedAccount: emailConn.connection.providerAccountId } } : {}),
+      });
+    } catch (emailError: any) {
+      console.error('[CRM] Error fetching contact emails:', emailError);
+
+      // Check if it's a token expiry issue
+      const isExpired = emailError.message?.includes('expired') ||
+                        emailError.message?.includes('token') ||
+                        emailError.message?.includes('unauthorized');
+
+      res.json({
+        emails: [],
+        connected: true,
+        expired: isExpired,
+        provider: emailConn.provider,
+        error: emailError.message || 'Failed to fetch emails',
+      });
+    }
   } catch (error) {
     console.error('[CRM] Error fetching contact emails:', error);
     res.status(500).json({ error: 'Failed to fetch emails' });
