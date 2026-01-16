@@ -11,7 +11,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { InlineEdit } from "@/components/ui/inline-edit";
 import { useContactFilters } from "@/hooks/use-contact-filters";
 import { ContactsColumnConfig } from "@/components/crm/contacts-column-config";
-import { ContactsAdvancedFilters } from "@/components/crm/contacts-advanced-filters";
+import { ContactsFilterBuilderIntegration } from "@/components/crm/contacts-filter-builder-integration";
 import {
   Plus,
   Search,
@@ -420,7 +420,7 @@ export default function ContactsPage() {
                 <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
-            <ContactsAdvancedFilters
+            <ContactsFilterBuilderIntegration
               filters={filters}
               updateFilter={updateFilter}
               clearFilters={clearFilters}

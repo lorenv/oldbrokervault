@@ -10,9 +10,6 @@ import {
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
   SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
@@ -24,11 +21,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import {
   FileText,
   Users,
   Signature,
@@ -37,21 +29,16 @@ import {
   LayoutList,
   WandSparkles,
   User,
-  FileCheck,
-  Workflow,
   LogOut,
   HelpCircle,
   Shield,
   ChevronUp,
-  ChevronRight,
   PanelLeftClose,
   PanelLeft,
   Kanban,
   Building2,
   Contact,
   Settings,
-  Palette,
-  Sliders,
   CheckSquare,
   LayoutDashboard,
 } from "lucide-react";
@@ -87,15 +74,6 @@ const secondaryNavItems: NavItem[] = [
   { label: "SDE Analyzer", icon: WandSparkles, href: "/sde-analyzer", badge: "Beta", matchPaths: ["/sde-analyzer"] },
 ];
 
-// Settings navigation items (simplified)
-const settingsNavItems: NavItem[] = [
-  { label: "Account", icon: User, href: "/settings/account", matchPaths: ["/settings/account", "/settings/billing", "/settings/email"] },
-  { label: "Team", icon: Users, href: "/settings/team", matchPaths: ["/settings/team"] },
-  { label: "Customization", icon: Sliders, href: "/settings/customization", matchPaths: ["/settings/customization", "/settings/pipelines"] },
-  { label: "Branding", icon: Palette, href: "/settings/branding", matchPaths: ["/settings/branding", "/settings/pdf-branding", "/settings/online-branding"] },
-  { label: "NDA Templates", icon: FileCheck, href: "/nda-templates", matchPaths: ["/nda-templates", "/template-editor"] },
-  { label: "Integrations", icon: Workflow, href: "/integrations", matchPaths: ["/integrations"] },
-];
 
 // Convert hex color to a very light tint (pastel version)
 // This ensures the background is always light regardless of the original color
@@ -121,13 +99,6 @@ export function AppSidebar() {
   const { user, logoutMutation } = useAuth();
   const [location] = useLocation();
   const [isSupportOpen, setIsSupportOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(() => {
-    // Auto-expand if we're on a settings page
-    return location.startsWith('/settings') ||
-           location.startsWith('/nda-templates') ||
-           location.startsWith('/template-editor') ||
-           location.startsWith('/integrations');
-  });
 
   // Fetch profile data for profile picture
   const { data: profile } = useQuery({
@@ -163,8 +134,8 @@ export function AppSidebar() {
     return location === item.href || location.startsWith(item.href + "/");
   };
 
-  // Check if any settings item is active
-  const isSettingsActive = settingsNavItems.some(item => isActive(item));
+  // Check if we're on a settings page
+  const isSettingsActive = location.startsWith('/settings');
 
   // Get sidebar context
   const { state, toggleSidebar, isMobile, setOpenMobile } = useSidebar();
@@ -251,30 +222,6 @@ export function AppSidebar() {
     );
   };
 
-  // Render settings sub-item
-  const renderSettingsSubItem = (item: NavItem) => {
-    const active = isActive(item);
-    const Icon = item.icon;
-
-    return (
-      <SidebarMenuSubItem key={item.href}>
-        <SidebarMenuSubButton
-          asChild
-          isActive={active}
-          className={active && brandColor ? "!bg-opacity-20" : ""}
-          style={active && brandColor ? {
-            backgroundColor: `${brandColor}20`,
-          } : undefined}
-        >
-          <Link href={item.href} onClick={handleNavClick}>
-            <Icon className="h-4 w-4" style={active && brandColor ? { color: brandColor } : undefined} />
-            <span>{item.label}</span>
-          </Link>
-        </SidebarMenuSubButton>
-      </SidebarMenuSubItem>
-    );
-  };
-
   return (
     <>
       <Sidebar collapsible="icon">
@@ -324,40 +271,29 @@ export function AppSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
 
-          {/* Settings Section - Collapsible */}
+          {/* Settings Link */}
           <SidebarGroup className="mt-auto">
             <SidebarGroupContent>
               <SidebarMenu>
-                <Collapsible
-                  open={isSettingsOpen}
-                  onOpenChange={setIsSettingsOpen}
-                  className="group/collapsible"
-                >
-                  <SidebarMenuItem>
-                    <CollapsibleTrigger asChild>
-                      <SidebarMenuButton
-                        tooltip="Settings"
-                        isActive={isSettingsActive && !isSettingsOpen}
-                        className={isSettingsActive && brandColor && !isSettingsOpen ? "!bg-opacity-20" : ""}
-                        style={isSettingsActive && brandColor && !isSettingsOpen ? {
-                          backgroundColor: `${brandColor}25`,
-                          borderLeft: `3px solid ${brandColor}`,
-                          marginLeft: '-3px',
-                          paddingLeft: 'calc(0.5rem + 3px)',
-                        } : undefined}
-                      >
-                        <Settings className="h-4 w-4" style={isSettingsActive && brandColor ? { color: brandColor } : undefined} />
-                        <span>Settings</span>
-                        <ChevronRight className={`ml-auto h-4 w-4 transition-transform duration-200 ${isSettingsOpen ? 'rotate-90' : ''}`} />
-                      </SidebarMenuButton>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
-                      <SidebarMenuSub>
-                        {settingsNavItems.map(renderSettingsSubItem)}
-                      </SidebarMenuSub>
-                    </CollapsibleContent>
-                  </SidebarMenuItem>
-                </Collapsible>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip="Settings"
+                    isActive={isSettingsActive}
+                    className={isSettingsActive && brandColor ? "!bg-opacity-20" : ""}
+                    style={isSettingsActive && brandColor ? {
+                      backgroundColor: `${brandColor}25`,
+                      borderLeft: `3px solid ${brandColor}`,
+                      marginLeft: '-3px',
+                      paddingLeft: 'calc(0.5rem + 3px)',
+                    } : undefined}
+                  >
+                    <Link href="/settings" onClick={handleNavClick}>
+                      <Settings className="h-4 w-4" style={isSettingsActive && brandColor ? { color: brandColor } : undefined} />
+                      <span>Settings</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

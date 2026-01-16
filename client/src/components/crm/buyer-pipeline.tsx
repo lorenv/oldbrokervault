@@ -55,7 +55,10 @@ import {
   Check,
   Users,
   Trash2,
+  Download,
+  CheckSquare,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -264,15 +267,24 @@ function BuyerListRow({
   onStageChange,
   onRemove,
   onUpdateContact,
+  isSelected,
+  onSelectChange,
 }: {
   buyer: DealBuyer;
   stages: BuyerStage[];
   onStageChange: (buyerId: number, stageId: number) => void;
   onRemove: (buyerId: number) => void;
   onUpdateContact: (contactId: number, field: string, value: string) => void;
+  isSelected: boolean;
+  onSelectChange: (checked: boolean) => void;
 }) {
   return (
-    <div className="flex items-center gap-4 p-3 border-b last:border-b-0 hover:bg-gray-50/50">
+    <div className={`flex items-center gap-4 p-3 border-b last:border-b-0 hover:bg-gray-50/50 ${isSelected ? 'bg-blue-50/50' : ''}`}>
+      <Checkbox
+        checked={isSelected}
+        onCheckedChange={onSelectChange}
+        className="flex-shrink-0"
+      />
       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center flex-shrink-0">
         {buyer.company ? (
           <Building2 className="h-5 w-5 text-blue-600" />
@@ -282,7 +294,7 @@ function BuyerListRow({
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-sm truncate">
+        <p className="font-medium text-sm truncate text-gray-900">
           {buyer.company?.name ||
             (buyer.contact
               ? `${buyer.contact.firstName} ${buyer.contact.lastName}`
@@ -291,7 +303,6 @@ function BuyerListRow({
       </div>
 
       <div className="w-48 flex items-center gap-1">
-        <Mail className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
         {buyer.contact ? (
           <>
             <InlineEdit
@@ -302,7 +313,7 @@ function BuyerListRow({
               displayClassName="text-sm text-gray-600 truncate"
             />
             {buyer.contact.email && (
-              <a href={`mailto:${buyer.contact.email}`} className="text-blue-500 hover:text-blue-600 ml-1 flex-shrink-0">
+              <a href={`mailto:${buyer.contact.email}`} className="text-blue-500 hover:text-blue-600 ml-1 flex-shrink-0" title="Send email">
                 <Mail className="h-3.5 w-3.5" />
               </a>
             )}
@@ -313,7 +324,6 @@ function BuyerListRow({
       </div>
 
       <div className="w-36 flex items-center gap-1">
-        <Phone className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
         {buyer.contact ? (
           <>
             <InlineEdit
@@ -324,7 +334,7 @@ function BuyerListRow({
               displayClassName="text-sm text-gray-600"
             />
             {buyer.contact.phone && (
-              <a href={`tel:${buyer.contact.phone}`} className="text-green-500 hover:text-green-600 ml-1 flex-shrink-0">
+              <a href={`tel:${buyer.contact.phone}`} className="text-green-500 hover:text-green-600 ml-1 flex-shrink-0" title="Call">
                 <Phone className="h-3.5 w-3.5" />
               </a>
             )}
@@ -392,8 +402,69 @@ export function BuyerPipeline({
   const [contactSearch, setContactSearch] = useState("");
   const [selectedContactId, setSelectedContactId] = useState<string>("");
   const [buyerMode, setBuyerMode] = useState<"existing" | "new">("existing");
+  const [selectedBuyerIds, setSelectedBuyerIds] = useState<Set<number>>(new Set());
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  // Selection helpers
+  const toggleBuyerSelection = (buyerId: number, checked: boolean) => {
+    setSelectedBuyerIds(prev => {
+      const newSet = new Set(prev);
+      if (checked) {
+        newSet.add(buyerId);
+      } else {
+        newSet.delete(buyerId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedBuyerIds(new Set(buyers.map(b => b.id)));
+    } else {
+      setSelectedBuyerIds(new Set());
+    }
+  };
+
+  const isAllSelected = buyers.length > 0 && selectedBuyerIds.size === buyers.length;
+  const isSomeSelected = selectedBuyerIds.size > 0;
+  const selectedBuyers = buyers.filter(b => selectedBuyerIds.has(b.id));
+
+  // Bulk email selected buyers
+  const handleBulkEmail = () => {
+    const emails = selectedBuyers
+      .filter(b => b.contact?.email)
+      .map(b => b.contact!.email);
+    if (emails.length > 0) {
+      window.open(`mailto:${emails.join(',')}`);
+    } else {
+      toast({ title: "No emails", description: "Selected buyers have no email addresses.", variant: "destructive" });
+    }
+  };
+
+  // Export selected buyers to CSV
+  const handleExportCSV = () => {
+    const buyersToExport = selectedBuyers.length > 0 ? selectedBuyers : buyers;
+    const csvContent = [
+      ['Name', 'Email', 'Phone', 'Company', 'Stage'].join(','),
+      ...buyersToExport.map(b => [
+        b.contact ? `${b.contact.firstName} ${b.contact.lastName}` : (b.company?.name || 'Unknown'),
+        b.contact?.email || '',
+        b.contact?.phone || '',
+        b.company?.name || '',
+        stages.find(s => s.id === b.stageId)?.name || '',
+      ].map(val => `"${(val || '').replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `buyers-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+    toast({ title: "Exported", description: `${buyersToExport.length} buyer${buyersToExport.length !== 1 ? 's' : ''} exported to CSV.` });
+  };
 
   // Fetch all contacts for the add buyer dialog
   const { data: allContactsData } = useQuery({
@@ -577,8 +648,39 @@ export function BuyerPipeline({
           {viewMode === "list" ? (
             // List View
             <div className="border rounded-lg">
+              {/* Bulk Actions Bar */}
+              {isSomeSelected && (
+                <div className="flex items-center gap-3 p-2 bg-blue-50 border-b">
+                  <span className="text-sm text-blue-700 font-medium ml-2">
+                    {selectedBuyerIds.size} selected
+                  </span>
+                  <div className="flex items-center gap-2 ml-auto">
+                    <Button size="sm" variant="outline" onClick={handleBulkEmail}>
+                      <Mail className="h-4 w-4 mr-2" />
+                      Email Selected
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={handleExportCSV}>
+                      <Download className="h-4 w-4 mr-2" />
+                      Export Selected
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setSelectedBuyerIds(new Set())}
+                      className="text-gray-500"
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                </div>
+              )}
               {/* Header */}
               <div className="flex items-center gap-4 p-3 bg-gray-50 border-b text-xs font-medium text-gray-500 uppercase">
+                <Checkbox
+                  checked={isAllSelected}
+                  onCheckedChange={toggleSelectAll}
+                  className="flex-shrink-0"
+                />
                 <div className="w-10" />
                 <div className="flex-1">Name</div>
                 <div className="w-48">Email</div>
@@ -596,16 +698,27 @@ export function BuyerPipeline({
                     onStageChange={(buyerId, stageId) => moveBuyerMutation.mutate({ buyerId, stageId })}
                     onRemove={(buyerId) => removeBuyerMutation.mutate(buyerId)}
                     onUpdateContact={handleContactUpdate}
+                    isSelected={selectedBuyerIds.has(buyer.id)}
+                    onSelectChange={(checked) => toggleBuyerSelection(buyer.id, !!checked)}
                   />
                 ))
               ) : (
                 <div className="p-8 text-center text-gray-500">
                   <Users className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                  <p className="font-medium">No buyers yet</p>
+                  <p className="font-medium text-gray-700">No buyers yet</p>
                   <p className="text-sm mt-1">Add buyers to track interested parties</p>
                   <Button size="sm" variant="outline" className="mt-4" onClick={() => setIsAddBuyerOpen(true)}>
                     <Plus className="h-4 w-4 mr-2" />
                     Add First Buyer
+                  </Button>
+                </div>
+              )}
+              {/* Footer with export all */}
+              {buyers.length > 0 && !isSomeSelected && (
+                <div className="flex items-center justify-end p-2 bg-gray-50 border-t">
+                  <Button size="sm" variant="ghost" onClick={handleExportCSV} className="text-gray-600">
+                    <Download className="h-4 w-4 mr-2" />
+                    Export All to CSV
                   </Button>
                 </div>
               )}

@@ -386,6 +386,11 @@ export default function DashboardPage() {
   const briefing = briefingResponse?.briefing;
   const isRefreshing = refreshBriefingMutation.isPending || briefingFetching;
 
+  // DEBUG: Log briefing data
+  console.log('[Dashboard] briefingResponse:', briefingResponse);
+  console.log('[Dashboard] briefing:', briefing);
+  console.log('[Dashboard] quickStats:', briefing?.quickStats);
+
   // Filter tasks for display
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -442,17 +447,17 @@ export default function DashboardPage() {
         </div>
 
         {/* AI Briefing Card */}
-        <Card className="mb-6 border border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100/80 shadow-sm">
+        <Card className="mb-6 border-0 bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 shadow-md">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="p-2 bg-slate-200/60 rounded-lg">
-                  <Sparkles className="h-4 w-4 text-slate-600" />
+                <div className="p-2 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg shadow-sm">
+                  <Sparkles className="h-4 w-4 text-white" />
                 </div>
                 <div>
-                  <CardTitle className="text-base font-medium text-slate-800">AI Daily Briefing</CardTitle>
+                  <CardTitle className="text-base font-semibold text-gray-900">AI Daily Briefing</CardTitle>
                   {briefingResponse?.generatedAt && (
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-gray-600">
                       Generated {formatTimeAgo(briefingResponse.generatedAt)}
                       {briefingResponse.cached && " (cached)"}
                     </p>
@@ -464,7 +469,7 @@ export default function DashboardPage() {
                 size="sm"
                 onClick={() => refreshBriefingMutation.mutate()}
                 disabled={isRefreshing}
-                className="text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
+                className="text-purple-700 hover:text-purple-900 hover:bg-purple-100/50"
               >
                 <RefreshCw className={cn("h-4 w-4 mr-1", isRefreshing && "animate-spin")} />
                 Refresh
@@ -475,10 +480,10 @@ export default function DashboardPage() {
             {briefingLoading || isRefreshing ? (
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 bg-slate-400 rounded-full animate-pulse" />
-                  <div className="h-2 w-2 bg-slate-400 rounded-full animate-pulse [animation-delay:150ms]" />
-                  <div className="h-2 w-2 bg-slate-400 rounded-full animate-pulse [animation-delay:300ms]" />
-                  <span className="text-sm text-slate-500 ml-1">Analyzing your deals and tasks...</span>
+                  <div className="h-2 w-2 bg-purple-400 rounded-full animate-pulse" />
+                  <div className="h-2 w-2 bg-blue-400 rounded-full animate-pulse [animation-delay:150ms]" />
+                  <div className="h-2 w-2 bg-indigo-400 rounded-full animate-pulse [animation-delay:300ms]" />
+                  <span className="text-sm text-gray-700 ml-1">Analyzing your deals and tasks...</span>
                 </div>
                 <div className="space-y-2">
                   <Skeleton className="h-4 w-full" />
@@ -487,68 +492,86 @@ export default function DashboardPage() {
                 </div>
               </div>
             ) : briefing ? (
-              <p className="text-slate-700 leading-relaxed">{briefing.summary}</p>
+              <p className="text-gray-800 leading-relaxed">{briefing.summary}</p>
             ) : (
-              <p className="text-slate-500">Unable to load briefing. Click refresh to try again.</p>
+              <p className="text-gray-600">Unable to load briefing. Click refresh to try again.</p>
             )}
           </CardContent>
         </Card>
 
         {/* Quick Stats Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <Card className="hover:shadow-md transition-shadow">
-            <CardContent className="pt-4">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setLocation('/deals')}>
+            <CardContent className="pt-4 pb-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-100 rounded-lg">
+                <div className="p-2 bg-green-100 rounded-lg flex-shrink-0">
                   <DollarSign className="h-5 w-5 text-green-600" />
                 </div>
-                <div>
-                  <p className="text-2xl font-semibold text-gray-900">
-                    {briefing ? formatCurrency(briefing.quickStats.pipelineValue) : '-'}
+                <div className="min-w-0 flex-1">
+                  <p className="text-2xl font-semibold text-gray-900 truncate">
+                    {briefingLoading ? (
+                      <Skeleton className="h-8 w-20" />
+                    ) : briefing ? (
+                      (() => {
+                        const value = briefing.quickStats.pipelineValue;
+                        console.log('[Dashboard] Pipeline Value:', value, typeof value);
+                        return formatCurrency(value);
+                      })()
+                    ) : (
+                      '$0'
+                    )}
                   </p>
-                  <p className="text-xs text-gray-500">Pipeline Value</p>
+                  <p className="text-xs text-gray-600 font-medium">Pipeline Value</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-md transition-shadow">
-            <CardContent className="pt-4">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setLocation('/deals')}>
+            <CardContent className="pt-4 pb-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
+                <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
                   <Kanban className="h-5 w-5 text-blue-600" />
                 </div>
-                <div>
-                  <p className="text-2xl font-semibold text-gray-900">
-                    {briefing?.quickStats.openDeals ?? '-'}
+                <div className="min-w-0 flex-1">
+                  <p className="text-2xl font-semibold text-gray-900 truncate">
+                    {briefingLoading ? (
+                      <Skeleton className="h-8 w-12" />
+                    ) : (
+                      briefing?.quickStats.openDeals ?? 0
+                    )}
                   </p>
-                  <p className="text-xs text-gray-500">Open Deals</p>
+                  <p className="text-xs text-gray-600 font-medium">Open Deals</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-md transition-shadow">
-            <CardContent className="pt-4">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setLocation('/deals')}>
+            <CardContent className="pt-4 pb-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-emerald-100 rounded-lg">
+                <div className="p-2 bg-emerald-100 rounded-lg flex-shrink-0">
                   <TrendingUp className="h-5 w-5 text-emerald-600" />
                 </div>
-                <div>
-                  <p className="text-2xl font-semibold text-gray-900">
-                    {briefing?.quickStats.dealsWonThisMonth ?? '-'}
+                <div className="min-w-0 flex-1">
+                  <p className="text-2xl font-semibold text-gray-900 truncate">
+                    {briefingLoading ? (
+                      <Skeleton className="h-8 w-12" />
+                    ) : (
+                      briefing?.quickStats.dealsWonThisMonth ?? 0
+                    )}
                   </p>
-                  <p className="text-xs text-gray-500">Won This Month</p>
+                  <p className="text-xs text-gray-600 font-medium">Won This Month</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-md transition-shadow">
-            <CardContent className="pt-4">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setLocation('/tasks')}>
+            <CardContent className="pt-4 pb-4">
               <div className="flex items-center gap-3">
                 <div className={cn(
-                  "p-2 rounded-lg",
+                  "p-2 rounded-lg flex-shrink-0",
                   overdueTasks.length > 0 ? "bg-red-100" : "bg-gray-100"
                 )}>
                   <CheckSquare className={cn(
@@ -556,11 +579,11 @@ export default function DashboardPage() {
                     overdueTasks.length > 0 ? "text-red-600" : "text-gray-600"
                   )} />
                 </div>
-                <div>
-                  <p className="text-2xl font-semibold text-gray-900">
+                <div className="min-w-0 flex-1">
+                  <p className="text-2xl font-semibold text-gray-900 truncate">
                     {overdueTasks.length}
                   </p>
-                  <p className="text-xs text-gray-500">Overdue Tasks</p>
+                  <p className="text-xs text-gray-600 font-medium">Overdue Tasks</p>
                 </div>
               </div>
             </CardContent>
@@ -572,14 +595,17 @@ export default function DashboardPage() {
           <div className="lg:col-span-2 space-y-6">
             {/* Priority Deals */}
             {briefing?.priorityDeals && briefing.priorityDeals.length > 0 && (
-              <Card>
+              <Card className="border-blue-200 bg-blue-50/30">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <AlertTriangle className="h-5 w-5 text-amber-500" />
+                    <CardTitle className="text-lg flex items-center gap-2 text-blue-900">
+                      <Clock className="h-5 w-5 text-blue-600" />
                       Priority Deals
+                      <Badge className="ml-2 bg-blue-100 text-blue-700 border-blue-200">
+                        {briefing.priorityDeals.length}
+                      </Badge>
                     </CardTitle>
-                    <Button variant="ghost" size="sm" asChild>
+                    <Button variant="ghost" size="sm" asChild className="text-blue-700 hover:text-blue-900 hover:bg-blue-100/50">
                       <Link href="/deals">
                         View All
                         <ChevronRight className="h-4 w-4 ml-1" />
@@ -592,15 +618,15 @@ export default function DashboardPage() {
                     <Link
                       key={deal.id}
                       href={`/deals/${deal.id}`}
-                      className="block p-3 rounded-lg border hover:bg-gray-50 transition-colors"
+                      className="block p-3 rounded-lg border border-blue-100 bg-blue-50/50 hover:border-blue-200 hover:bg-blue-100/50 transition-colors"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
                           <h4 className="font-medium text-gray-900 truncate">{deal.name}</h4>
                           <p className="text-sm text-gray-600 mt-0.5">{deal.reason}</p>
                           {deal.suggestedAction && (
-                            <p className="text-sm text-blue-600 mt-1 flex items-center gap-1">
-                              <ArrowRight className="h-3 w-3" />
+                            <p className="text-sm text-blue-700 mt-1 flex items-center gap-1">
+                              <ArrowRight className="h-3 w-3 text-blue-600" />
                               {deal.suggestedAction}
                             </p>
                           )}
@@ -609,7 +635,7 @@ export default function DashboardPage() {
                           {deal.value && (
                             <p className="font-semibold text-gray-900">{formatCurrency(deal.value)}</p>
                           )}
-                          <Badge variant="secondary" className="text-xs mt-1">
+                          <Badge variant="secondary" className="text-xs mt-1 bg-gray-100 text-gray-700">
                             {deal.stage}
                           </Badge>
                         </div>
@@ -622,11 +648,14 @@ export default function DashboardPage() {
 
             {/* Risk Alerts */}
             {briefing?.riskAlerts && briefing.riskAlerts.length > 0 && (
-              <Card className="border-red-200 bg-red-50/30">
+              <Card className="border-orange-200 bg-orange-50/30">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-2 text-red-700">
-                    <AlertCircle className="h-5 w-5" />
+                  <CardTitle className="text-lg flex items-center gap-2 text-orange-900">
+                    <AlertCircle className="h-5 w-5 text-orange-600" />
                     Deals at Risk
+                    <Badge className="ml-2 bg-orange-100 text-orange-700 border-orange-200">
+                      {briefing.riskAlerts.length}
+                    </Badge>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
@@ -634,10 +663,10 @@ export default function DashboardPage() {
                     <Link
                       key={i}
                       href={`/deals/${alert.dealId}`}
-                      className="flex items-center justify-between p-2 rounded-lg bg-white border border-red-100 hover:border-red-300 transition-colors"
+                      className="flex items-center justify-between p-3 rounded-lg border border-orange-100 bg-orange-50/50 hover:border-orange-200 hover:bg-orange-100/50 transition-colors"
                     >
                       <span className="font-medium text-gray-900">{alert.dealName}</span>
-                      <span className="text-sm text-red-600">{alert.message}</span>
+                      <span className="text-sm text-orange-700">{alert.message}</span>
                     </Link>
                   ))}
                 </CardContent>
@@ -674,24 +703,24 @@ export default function DashboardPage() {
                     {overdueTasks.slice(0, 3).map((task) => (
                       <div
                         key={task.id}
-                        className="flex items-center gap-3 p-2 rounded-lg bg-red-50 border border-red-100"
+                        className="flex items-center gap-3 p-2 rounded-lg border border-gray-200 hover:bg-gray-50/50 transition-colors"
                       >
-                        <div className="w-2 h-2 rounded-full bg-red-500" />
+                        <div className="w-2 h-2 rounded-full bg-orange-400" />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-gray-900 truncate">{task.title}</p>
-                          <p className="text-xs text-red-600">Overdue</p>
+                          <p className="text-xs text-gray-600">Overdue</p>
                         </div>
                       </div>
                     ))}
                     {dueTodayTasks.slice(0, 3).map((task) => (
                       <div
                         key={task.id}
-                        className="flex items-center gap-3 p-2 rounded-lg bg-amber-50 border border-amber-100"
+                        className="flex items-center gap-3 p-2 rounded-lg border border-gray-200 hover:bg-gray-50/50 transition-colors"
                       >
-                        <div className="w-2 h-2 rounded-full bg-amber-500" />
+                        <div className="w-2 h-2 rounded-full bg-blue-400" />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-gray-900 truncate">{task.title}</p>
-                          <p className="text-xs text-amber-600">Due today</p>
+                          <p className="text-xs text-gray-600">Due today</p>
                         </div>
                       </div>
                     ))}
@@ -705,14 +734,14 @@ export default function DashboardPage() {
           <div className="space-y-6">
             {/* Pending Signatures */}
             {briefing?.pendingSignatures && briefing.pendingSignatures.count > 0 && (
-              <Card>
+              <Card className="border-purple-200 bg-purple-50/30">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <FileSignature className="h-4 w-4 text-purple-500" />
+                    <CardTitle className="text-base flex items-center gap-2 text-purple-900">
+                      <FileSignature className="h-4 w-4 text-purple-600" />
                       Awaiting Signatures
                     </CardTitle>
-                    <Badge variant="secondary">{briefing.pendingSignatures.count}</Badge>
+                    <Badge className="bg-purple-100 text-purple-700 border-purple-200">{briefing.pendingSignatures.count}</Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-2">
@@ -720,13 +749,13 @@ export default function DashboardPage() {
                     <Link
                       key={sig.id}
                       href={`/esign`}
-                      className="block p-2 rounded-lg border hover:bg-gray-50 transition-colors"
+                      className="block p-2 rounded-lg border border-purple-100 bg-purple-50/50 hover:border-purple-200 hover:bg-purple-100/50 transition-colors"
                     >
                       <p className="text-sm font-medium text-gray-900 truncate">{sig.title}</p>
-                      <p className="text-xs text-gray-500">Waiting on: {sig.recipientName}</p>
+                      <p className="text-xs text-gray-600">Waiting on: {sig.recipientName}</p>
                     </Link>
                   ))}
-                  <Button variant="ghost" size="sm" asChild className="w-full">
+                  <Button variant="ghost" size="sm" asChild className="w-full text-purple-700 hover:text-purple-900 hover:bg-purple-100/50">
                     <Link href="/esign">
                       View All E-Signatures
                       <ChevronRight className="h-4 w-4 ml-1" />
@@ -741,11 +770,11 @@ export default function DashboardPage() {
               <Card className="border-amber-200 bg-amber-50/30">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-base flex items-center gap-2 text-amber-700">
-                      <FileCheck className="h-4 w-4" />
+                    <CardTitle className="text-base flex items-center gap-2 text-amber-900">
+                      <FileCheck className="h-4 w-4 text-amber-600" />
                       NDA Approvals Needed
                     </CardTitle>
-                    <Badge className="bg-amber-500">{briefing.pendingApprovals.count}</Badge>
+                    <Badge className="bg-amber-100 text-amber-700 border-amber-200">{briefing.pendingApprovals.count}</Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-2">
@@ -753,13 +782,13 @@ export default function DashboardPage() {
                     <Link
                       key={i}
                       href={`/analytics`}
-                      className="block p-2 rounded-lg bg-white border border-amber-100 hover:border-amber-300 transition-colors"
+                      className="block p-2 rounded-lg border border-amber-100 bg-amber-50/50 hover:border-amber-200 hover:bg-amber-100/50 transition-colors"
                     >
                       <p className="text-sm font-medium text-gray-900 truncate">{approval.documentTitle}</p>
-                      <p className="text-xs text-gray-500">From: {approval.signerEmail}</p>
+                      <p className="text-xs text-gray-600">From: {approval.signerEmail}</p>
                     </Link>
                   ))}
-                  <Button variant="ghost" size="sm" asChild className="w-full">
+                  <Button variant="ghost" size="sm" asChild className="w-full text-amber-700 hover:text-amber-900 hover:bg-amber-100/50">
                     <Link href="/analytics">
                       Review All Approvals
                       <ChevronRight className="h-4 w-4 ml-1" />
@@ -771,14 +800,14 @@ export default function DashboardPage() {
 
             {/* Unread Messages */}
             {briefing?.unreadMessages && briefing.unreadMessages.count > 0 && (
-              <Card className="border-blue-200 bg-blue-50/30">
+              <Card className="border-teal-200 bg-teal-50/30">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-base flex items-center gap-2 text-blue-700">
-                      <MessageSquare className="h-4 w-4" />
+                    <CardTitle className="text-base flex items-center gap-2 text-teal-900">
+                      <MessageSquare className="h-4 w-4 text-teal-600" />
                       Unread Messages
                     </CardTitle>
-                    <Badge className="bg-blue-500">{briefing.unreadMessages.count}</Badge>
+                    <Badge className="bg-teal-100 text-teal-700 border-teal-200">{briefing.unreadMessages.count}</Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-2">
@@ -786,14 +815,14 @@ export default function DashboardPage() {
                     <Link
                       key={i}
                       href={`/messages/${msg.threadId}`}
-                      className="block p-2 rounded-lg bg-white border border-blue-100 hover:border-blue-300 transition-colors"
+                      className="block p-2 rounded-lg border border-teal-100 bg-teal-50/50 hover:border-teal-200 hover:bg-teal-100/50 transition-colors"
                     >
                       <p className="text-sm font-medium text-gray-900 truncate">{msg.subject || 'No subject'}</p>
                       <p className="text-xs text-gray-600 truncate">{msg.preview}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">From: {msg.inquirerName}</p>
+                      <p className="text-xs text-gray-600 mt-0.5">From: {msg.inquirerName}</p>
                     </Link>
                   ))}
-                  <Button variant="ghost" size="sm" asChild className="w-full">
+                  <Button variant="ghost" size="sm" asChild className="w-full text-teal-700 hover:text-teal-900 hover:bg-teal-100/50">
                     <Link href="/messages">
                       View All Messages
                       <ChevronRight className="h-4 w-4 ml-1" />
@@ -858,7 +887,12 @@ export default function DashboardPage() {
                         <div className="w-1.5 h-1.5 rounded-full bg-gray-300 mt-2" />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm text-gray-700 truncate">{activity.description}</p>
-                          <p className="text-xs text-gray-400">{formatTimeAgo(activity.timestamp)}</p>
+                          <div className="flex items-center gap-2">
+                            {activity.dealName && (
+                              <span className="text-xs text-blue-600 font-medium">{activity.dealName}</span>
+                            )}
+                            <span className="text-xs text-gray-400">{formatTimeAgo(activity.timestamp)}</span>
+                          </div>
                         </div>
                       </div>
                     ))}

@@ -33,9 +33,13 @@ import {
   Contact,
   Building2,
   CheckSquare,
+  Settings,
+  Menu,
+  ChevronLeft,
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { NotificationBell } from "@/components/ui/notification-bell";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 
 interface QuickCreateDialogProps {
   type: "deal" | "contact" | "company" | "task" | null;
@@ -276,7 +280,7 @@ interface SearchResult {
 }
 
 export function GlobalHeader() {
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFilter, setSearchFilter] = useState<"all" | "deal" | "contact" | "company">("all");
@@ -284,6 +288,9 @@ export function GlobalHeader() {
   const inputRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
+
+  // Check if we're on a detail page
+  const isDetailPage = /^\/(deals|contacts|companies)\/\d+/.test(location);
 
   // Keyboard shortcut for search (Cmd/Ctrl + K)
   useEffect(() => {
@@ -356,9 +363,172 @@ export function GlobalHeader() {
     }
   };
 
-  // Don't render header on mobile - use bottom nav instead
+  // Get back navigation path
+  const getBackPath = () => {
+    if (location.startsWith('/deals/')) return '/deals';
+    if (location.startsWith('/contacts/')) return '/contacts';
+    if (location.startsWith('/companies/')) return '/companies';
+    return '/dashboard';
+  };
+
+  // Mobile header - simplified with hamburger and quick create
   if (isMobile) {
-    return <QuickCreateDialog type={quickCreateType} onClose={() => setQuickCreateType(null)} />;
+    return (
+      <>
+        <header className="sticky top-0 z-40 h-12 border-b border-gray-200 bg-white flex items-center px-3 gap-3">
+          {/* Back Button (detail pages) or Hamburger Menu (list pages) */}
+          {isDetailPage ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-9 w-9 p-0"
+              onClick={() => navigate(getBackPath())}
+            >
+              <ChevronLeft className="h-5 w-5 text-gray-700" />
+            </Button>
+          ) : (
+            <SidebarTrigger className="h-9 w-9 p-0">
+              <Menu className="h-5 w-5 text-gray-700" />
+            </SidebarTrigger>
+          )}
+
+          {/* App Title/Logo */}
+          <div className="flex-1 font-semibold text-gray-900">
+            VenueVision
+          </div>
+
+          {/* Search Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-9 w-9 p-0"
+            onClick={() => setSearchFocused(true)}
+          >
+            <Search className="h-4 w-4 text-gray-600" />
+          </Button>
+
+          {/* Quick Actions */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" className="h-9 px-3 gap-1.5">
+                <Plus className="h-4 w-4" />
+                <span className="text-sm">Create</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setQuickCreateType("deal")}>
+                <Kanban className="h-4 w-4 mr-2 text-green-600" />
+                New Deal
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setQuickCreateType("contact")}>
+                <Contact className="h-4 w-4 mr-2 text-blue-600" />
+                New Contact
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setQuickCreateType("company")}>
+                <Building2 className="h-4 w-4 mr-2 text-purple-600" />
+                New Company
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setQuickCreateType("task")}>
+                <CheckSquare className="h-4 w-4 mr-2 text-orange-600" />
+                New Task
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </header>
+
+        {/* Full-screen Mobile Search Modal */}
+        <Dialog open={searchFocused} onOpenChange={setSearchFocused}>
+          <DialogContent className="p-0 gap-0 max-w-full h-full m-0 rounded-none">
+            <div className="flex flex-col h-full">
+              {/* Search Header */}
+              <div className="p-4 border-b">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 w-9 p-0 flex-shrink-0"
+                    onClick={handleCloseSearch}
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </Button>
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      ref={inputRef}
+                      placeholder="Search deals, contacts, companies..."
+                      className="pl-9 h-10"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      autoFocus
+                    />
+                  </div>
+                </div>
+
+                {/* Quick Filters */}
+                <div className="flex items-center gap-2 mt-3">
+                  {[
+                    { value: "all", label: "All" },
+                    { value: "deal", label: "Deals", icon: Kanban, color: "text-green-600" },
+                    { value: "contact", label: "Contacts", icon: Contact, color: "text-blue-600" },
+                    { value: "company", label: "Companies", icon: Building2, color: "text-purple-600" },
+                  ].map((filter) => (
+                    <button
+                      key={filter.value}
+                      onClick={() => setSearchFilter(filter.value as typeof searchFilter)}
+                      className={`px-3 py-1.5 text-xs rounded-md flex items-center gap-1 transition-colors ${
+                        searchFilter === filter.value
+                          ? "bg-blue-100 text-blue-700"
+                          : "bg-gray-100 text-gray-700"
+                      }`}
+                    >
+                      {filter.icon && <filter.icon className={`h-3 w-3 ${filter.color}`} />}
+                      {filter.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Search Results */}
+              <div className="flex-1 overflow-y-auto">
+                {searchQuery.length < 2 ? (
+                  <div className="p-8 text-center text-gray-600">
+                    <Search className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                    <p className="text-sm">Type at least 2 characters to search</p>
+                  </div>
+                ) : results.length === 0 ? (
+                  <div className="p-8 text-center text-gray-600">
+                    <p className="text-sm">No results found</p>
+                  </div>
+                ) : (
+                  <div className="divide-y">
+                    {results.map((result) => (
+                      <button
+                        key={`${result.type}-${result.id}`}
+                        onClick={() => handleSelect(result)}
+                        className="w-full flex items-center gap-3 px-4 py-4 hover:bg-gray-50 text-left"
+                      >
+                        <div className="flex-shrink-0">
+                          {getIcon(result.type)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-gray-900 truncate">{result.title}</div>
+                          {result.subtitle && (
+                            <div className="text-sm text-gray-600 truncate">{result.subtitle}</div>
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-500 capitalize flex-shrink-0">{result.type}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <QuickCreateDialog type={quickCreateType} onClose={() => setQuickCreateType(null)} />
+      </>
+    );
   }
 
   return (
@@ -443,6 +613,17 @@ export function GlobalHeader() {
 
         {/* Actions - pushed to right */}
         <div className="ml-auto flex items-center gap-2">
+          {/* Settings */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-9 w-9 p-0"
+            onClick={() => navigate("/settings")}
+            title="Settings"
+          >
+            <Settings className="h-4 w-4 text-gray-600" />
+          </Button>
+
           {/* Notifications */}
           <NotificationBell />
 

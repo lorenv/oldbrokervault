@@ -121,7 +121,7 @@ async function getGmailAccessToken(userId: number): Promise<string | null> {
         and(
           eq(integrationConnections.userId, userId),
           eq(integrationConnections.provider, 'gmail'),
-          eq(integrationConnections.status, 'connected')
+          eq(integrationConnections.status, 'active')
         )
       )
       .limit(1);

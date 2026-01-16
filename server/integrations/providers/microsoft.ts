@@ -81,7 +81,66 @@ export class MicrosoftProvider extends BaseProvider {
   }
 
   /**
+   * Handle OAuth callback - exchange code for tokens
+   * Returns unencrypted tokens (encryption handled by route)
+   */
+  async handleCallback(code: string, userId: number): Promise<OAuthResult> {
+    if (!this.isConfigured()) {
+      throw new Error('Microsoft OAuth is not configured');
+    }
+
+    // Debug: Log lengths only (not actual values)
+    console.error('[Microsoft] Token exchange debug:', JSON.stringify({
+      clientIdLength: MICROSOFT_CLIENT_ID.length,
+      clientSecretLength: MICROSOFT_CLIENT_SECRET.length,
+      clientSecretFirst3: MICROSOFT_CLIENT_SECRET.substring(0, 3),
+      clientSecretLast3: MICROSOFT_CLIENT_SECRET.substring(MICROSOFT_CLIENT_SECRET.length - 3),
+      redirectUri: MICROSOFT_REDIRECT_URI,
+    }));
+
+    const response = await fetch(getTokenUrl(), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        client_id: MICROSOFT_CLIENT_ID,
+        client_secret: MICROSOFT_CLIENT_SECRET,
+        code: code,
+        grant_type: 'authorization_code',
+        redirect_uri: MICROSOFT_REDIRECT_URI,
+        scope: MICROSOFT_SCOPES.join(' '),
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('[Microsoft] Token exchange failed:', errorData);
+      throw new Error(errorData.error_description || 'Failed to exchange code for tokens');
+    }
+
+    const tokenData = await response.json();
+
+    // Get user info
+    const userInfo = await this.getUserInfo(tokenData.access_token);
+
+    return {
+      tokens: {
+        accessToken: tokenData.access_token,
+        refreshToken: tokenData.refresh_token,
+        expiresAt: tokenData.expires_in
+          ? new Date(Date.now() + tokenData.expires_in * 1000)
+          : undefined,
+        scopes: MICROSOFT_SCOPES,
+      },
+      accountId: userInfo.email,
+      accountName: userInfo.name || userInfo.email,
+    };
+  }
+
+  /**
    * Exchange authorization code for tokens
+   * @deprecated Use handleCallback instead
    */
   async exchangeCodeForTokens(code: string): Promise<OAuthResult> {
     if (!this.isConfigured()) {

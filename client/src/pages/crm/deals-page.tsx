@@ -32,13 +32,13 @@ import {
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { apiRequest } from "@/lib/queryClient";
 import {
   Plus,
   Search,
   LayoutGrid,
   List,
-  GripVertical,
   Building2,
   DollarSign,
   Calendar,
@@ -52,6 +52,7 @@ import {
   X,
   Clock,
   Download,
+  User,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -62,7 +63,7 @@ import {
 
 import { useDealFilters, DEFAULT_FILTERS, DEFAULT_SORTING, DEFAULT_COLUMNS } from "@/hooks/use-deal-filters";
 import { DealsQuickFilters } from "@/components/crm/deals-quick-filters";
-import { DealsAdvancedFilters } from "@/components/crm/deals-advanced-filters";
+import { DealsFilterBuilderIntegration } from "@/components/crm/deals-filter-builder-integration";
 import { DealsViewManager } from "@/components/crm/deals-view-manager";
 import { DealsColumnConfig } from "@/components/crm/deals-column-config";
 
@@ -79,6 +80,7 @@ interface Deal {
   priority: string | null;
   source: string | null;
   company?: { id: number; name: string } | null;
+  owner?: { id: number; email: string; firstName: string | null; lastName: string | null } | null;
   stage?: { id: number; name: string; color: string; probability: number };
   createdAt: string;
 }
@@ -136,6 +138,7 @@ function DealCard({ deal, isDragging, isOverlay }: { deal: Deal; isDragging?: bo
     id: deal.id,
     data: deal,
   });
+  const isMobile = useIsMobile();
 
   const style: React.CSSProperties = {
     transform: transform ? CSS.Translate.toString(transform) : undefined,
@@ -143,56 +146,81 @@ function DealCard({ deal, isDragging, isOverlay }: { deal: Deal; isDragging?: bo
     transition: isCurrentlyDragging ? 'none' : undefined,
   };
 
+  const ownerName = deal.owner
+    ? (deal.owner.name ||
+       (deal.owner.firstName && deal.owner.lastName
+         ? `${deal.owner.firstName} ${deal.owner.lastName}`
+         : deal.owner.email))
+    : null;
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`bg-white border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing ${
-        isOverlay ? "ring-2 ring-blue-500 shadow-lg" : ""
-      }`}
+      className={`bg-white border rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing ${
+        isMobile ? "p-5 min-h-[120px]" : "p-4"
+      } ${isOverlay ? "ring-2 ring-blue-500 shadow-lg" : ""}`}
       {...listeners}
       {...attributes}
     >
-      <div className="flex items-start gap-3">
-        <GripVertical className="h-4 w-4 text-gray-400 mt-1 flex-shrink-0" />
-        <div className="flex-1 min-w-0">
-          <Link href={`/deals/${deal.id}`}>
-            <h4 className="font-medium text-base text-gray-900 truncate hover:text-blue-600">
-              {deal.name}
-            </h4>
-          </Link>
-          {deal.company && (
-            <div className="flex items-center gap-1.5 text-sm text-gray-500 mt-2">
-              <Building2 className="h-3.5 w-3.5" />
-              <span className="truncate">{deal.company.name}</span>
-            </div>
-          )}
-          {deal.amount && (
-            <div className="flex items-center gap-1.5 text-sm font-semibold text-green-600 mt-2">
-              <DollarSign className="h-3.5 w-3.5" />
-              <span>
-                {new Intl.NumberFormat("en-US", {
-                  style: "currency",
-                  currency: deal.currency || "USD",
-                  minimumFractionDigits: 0,
-                }).format(parseFloat(deal.amount))}
-              </span>
-            </div>
-          )}
-          {deal.closeDate && (
-            <div className="flex items-center gap-1.5 text-sm text-gray-500 mt-2">
-              <Calendar className="h-3.5 w-3.5" />
-              <span>{new Date(deal.closeDate).toLocaleDateString()}</span>
-            </div>
-          )}
-          {/* Days in pipeline indicator */}
-          {deal.createdAt && (
-            <div className={`flex items-center gap-1.5 text-xs mt-2 ${getDaysColor(getDaysSince(deal.createdAt))}`}>
-              <Clock className="h-3 w-3" />
-              <span>{getDaysSince(deal.createdAt)}d in pipeline</span>
-            </div>
-          )}
-        </div>
+      <div className="flex-1 min-w-0">
+        <Link href={`/deals/${deal.id}`}>
+          <h4 className={`font-medium text-gray-900 truncate hover:text-blue-600 ${
+            isMobile ? "text-lg mb-3" : "text-base"
+          }`}>
+            {deal.name}
+          </h4>
+        </Link>
+        {deal.company && (
+          <div className={`flex items-center gap-1.5 text-gray-500 ${isMobile ? "text-base mt-3" : "text-sm mt-2"}`}>
+            <Building2 className={isMobile ? "h-4 w-4" : "h-3.5 w-3.5"} />
+            <span className="truncate">{deal.company.name}</span>
+          </div>
+        )}
+        {deal.amount && (
+          <div className={`flex items-center gap-1.5 font-semibold text-green-600 ${isMobile ? "text-base mt-3" : "text-sm mt-2"}`}>
+            <DollarSign className={isMobile ? "h-4 w-4" : "h-3.5 w-3.5"} />
+            <span>
+              {new Intl.NumberFormat("en-US", {
+                style: "currency",
+                currency: deal.currency || "USD",
+                minimumFractionDigits: 0,
+              }).format(parseFloat(deal.amount))}
+            </span>
+          </div>
+        )}
+        {deal.closeDate && (
+          <div className={`flex items-center gap-1.5 text-gray-500 ${isMobile ? "text-sm mt-3" : "text-sm mt-2"}`}>
+            <Calendar className={isMobile ? "h-4 w-4" : "h-3.5 w-3.5"} />
+            <span>{new Date(deal.closeDate).toLocaleDateString()}</span>
+          </div>
+        )}
+        {/* Owner name */}
+        {ownerName && (
+          <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-2">
+            {deal.owner?.profilePhoto ? (
+              <img
+                src={deal.owner.profilePhoto}
+                alt={ownerName}
+                className="w-5 h-5 rounded-full object-cover flex-shrink-0"
+              />
+            ) : (
+              <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <span className="text-xs font-medium text-blue-600">
+                  {ownerName.charAt(0).toUpperCase()}
+                </span>
+              </div>
+            )}
+            <span className="truncate">{ownerName}</span>
+          </div>
+        )}
+        {/* Days in pipeline indicator */}
+        {deal.createdAt && (
+          <div className={`flex items-center gap-1.5 text-xs mt-2 ${getDaysColor(getDaysSince(deal.createdAt))}`}>
+            <Clock className="h-3 w-3" />
+            <span>{getDaysSince(deal.createdAt)}d in pipeline</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -330,13 +358,16 @@ function InlineEditableCell({
     );
   }
 
+  const displayValue = renderValue ? renderValue(value) : (value ?? '-');
+
   return (
     <div
       className="cursor-pointer hover:bg-gray-100 rounded px-1 py-0.5 -mx-1 min-h-[24px] flex items-center"
       onDoubleClick={() => setIsEditing(true)}
       title="Double-click to edit"
+      style={{ color: 'rgb(17, 24, 39)', display: 'flex', alignItems: 'center' }}
     >
-      {renderValue ? renderValue(value) : (value ?? '-')}
+      <span style={{ color: 'rgb(17, 24, 39)' }}>{displayValue}</span>
     </div>
   );
 }
@@ -385,6 +416,7 @@ export default function DealsPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [activeDeal, setActiveDeal] = useState<Deal | null>(null);
   const [newDeal, setNewDeal] = useState({
@@ -392,6 +424,7 @@ export default function DealsPage() {
     amount: "",
     closeDate: "",
     companyId: "",
+    ownerId: "",
   });
 
   // Use the filters hook
@@ -426,7 +459,12 @@ export default function DealsPage() {
   const queryParams = buildQueryParams();
   const { data: dealsData, isLoading: dealsLoading } = useQuery<DealsResponse>({
     queryKey: ["/api/crm/deals", queryParams],
-    queryFn: () => apiRequest("GET", `/api/crm/deals?${queryParams}`).then(res => res.json()),
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/crm/deals?${queryParams}`);
+      const data = await res.json();
+      console.log('[DealsPage] First deal owner:', data.deals?.[0]?.owner);
+      return data;
+    },
     enabled: viewMode === 'list',
   });
 
@@ -447,10 +485,11 @@ export default function DealsPage() {
   const companies = (companiesData as any)?.companies || [];
 
   // Fetch organization members for owners
-  const { data: membersData } = useQuery({
-    queryKey: ["/api/crm/members"],
+  const { data: membersData } = useQuery<{ id: number; userId: number; email: string; firstName: string | null; lastName: string | null }[]>({
+    queryKey: ["/api/crm/organization/members"],
+    queryFn: () => apiRequest("GET", "/api/crm/organization/members").then(res => res.json()),
   });
-  const members = (membersData as any)?.members || [];
+  const members = membersData || [];
 
   // Fetch custom fields for deals
   const { data: customFieldsData } = useQuery<{ fields: { id: number; name: string; label: string; fieldType: string; options?: { value: string; label: string }[] }[] }>({
@@ -531,7 +570,7 @@ export default function DealsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"] });
       queryClient.invalidateQueries({ queryKey: ["/api/crm/deals/kanban"] });
       setIsCreateDialogOpen(false);
-      setNewDeal({ name: "", amount: "", closeDate: "", companyId: "" });
+      setNewDeal({ name: "", amount: "", closeDate: "", companyId: "", ownerId: "" });
       toast({ title: "Deal created", description: "Your new deal has been created successfully." });
     },
     onError: (error: any) => {
@@ -581,6 +620,7 @@ export default function DealsPage() {
       amount: newDeal.amount || null,
       closeDate: newDeal.closeDate || null,
       companyId: newDeal.companyId ? parseInt(newDeal.companyId) : null,
+      ownerId: newDeal.ownerId ? parseInt(newDeal.ownerId) : null,
     });
   };
 
@@ -728,13 +768,12 @@ export default function DealsPage() {
           activeFilterCount={activeFilterCount}
         />
         <div className="flex items-center gap-2 ml-auto">
-          <DealsAdvancedFilters
+          <DealsFilterBuilderIntegration
             filters={filters}
             onFilterChange={updateFilter}
-            onCustomFieldFilterChange={updateCustomFieldFilter}
             onClearFilters={clearFilters}
             companies={companies}
-            owners={members.map((m: any) => ({ id: m.userId, name: m.user?.email || `User ${m.userId}` }))}
+            owners={members.map((m) => ({ id: m.userId, name: m.firstName && m.lastName ? `${m.firstName} ${m.lastName}` : m.email }))}
             customFields={customFields}
             activeFilterCount={activeFilterCount}
           />
@@ -821,7 +860,7 @@ export default function DealsPage() {
               </thead>
               <tbody>
                 {deals.map((deal) => (
-                  <tr key={deal.id} className="border-b hover:bg-gray-50">
+                  <tr key={deal.id} className={`border-b hover:bg-gray-50 ${isMobile ? "h-16" : ""}`}>
                     {visibleColumns.map((col) => (
                       <td
                         key={col.id}
@@ -859,15 +898,18 @@ export default function DealsPage() {
                             value={deal.amount}
                             type="currency"
                             onSave={(val) => handleInlineEdit(deal.id, 'amount', val)}
-                            renderValue={(val) =>
-                              val
-                                ? new Intl.NumberFormat("en-US", {
-                                    style: "currency",
-                                    currency: deal.currency || "USD",
-                                    minimumFractionDigits: 0,
-                                  }).format(parseFloat(val))
-                                : '-'
-                            }
+                            renderValue={(val) => {
+                              if (!val) return '-';
+                              try {
+                                return new Intl.NumberFormat("en-US", {
+                                  style: "currency",
+                                  currency: deal.currency || "USD",
+                                  minimumFractionDigits: 0,
+                                }).format(parseFloat(val));
+                              } catch (e) {
+                                return '-';
+                              }
+                            }}
                           />
                         )}
                         {col.id === 'closeDate' && (
@@ -897,7 +939,33 @@ export default function DealsPage() {
                           />
                         )}
                         {col.id === 'owner' && (
-                          <span className="text-gray-500">{deal.ownerId ? `User ${deal.ownerId}` : '-'}</span>
+                          <div className="flex items-center gap-2">
+                            {deal.owner ? (
+                              <>
+                                {deal.owner.profilePhoto ? (
+                                  <img
+                                    src={deal.owner.profilePhoto}
+                                    alt={deal.owner.name || deal.owner.email}
+                                    className="w-6 h-6 rounded-full object-cover flex-shrink-0"
+                                  />
+                                ) : (
+                                  <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                    <span className="text-xs font-medium text-blue-600">
+                                      {(deal.owner.name || deal.owner.email || '?').charAt(0).toUpperCase()}
+                                    </span>
+                                  </div>
+                                )}
+                                <span className="text-gray-900 truncate">
+                                  {deal.owner.name ||
+                                   (deal.owner.firstName && deal.owner.lastName
+                                    ? `${deal.owner.firstName} ${deal.owner.lastName}`
+                                    : deal.owner.email)}
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-gray-500">-</span>
+                            )}
+                          </div>
                         )}
                         {col.id === 'source' && (
                           <span className="text-gray-500">{deal.source || '-'}</span>
@@ -1024,9 +1092,29 @@ export default function DealsPage() {
                   <SelectValue placeholder="Select a company" />
                 </SelectTrigger>
                 <SelectContent>
-                  {companies.map((company: any) => (
+                  {companies.filter((company: any) => company.id != null).map((company: any) => (
                     <SelectItem key={company.id} value={company.id.toString()}>
                       {company.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="owner">Deal Owner</Label>
+              <Select
+                value={newDeal.ownerId}
+                onValueChange={(value) => setNewDeal({ ...newDeal, ownerId: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select an owner" />
+                </SelectTrigger>
+                <SelectContent>
+                  {members.filter((member) => member.userId != null).map((member) => (
+                    <SelectItem key={member.userId} value={member.userId.toString()}>
+                      {member.firstName && member.lastName
+                        ? `${member.firstName} ${member.lastName}`
+                        : member.email}
                     </SelectItem>
                   ))}
                 </SelectContent>

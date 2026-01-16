@@ -13,11 +13,13 @@ import { TaskList } from "@/components/crm/task-list";
 import { InlineEdit } from "@/components/ui/inline-edit";
 import { DetailPageCustomizer } from "@/components/crm/detail-page-customizer";
 import { useDetailPageLayout } from "@/hooks/use-detail-page-layout";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   ArrowLeft,
   User,
   Mail,
   Phone,
+  MessageSquare,
   Building2,
   Briefcase,
   Eye,
@@ -53,6 +55,7 @@ export default function ContactDetailPage() {
   const { id } = useParams();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<any>(null);
   const [isCustomizerOpen, setIsCustomizerOpen] = useState(false);
@@ -183,6 +186,42 @@ export default function ContactDetailPage() {
         </Button>
       </div>
 
+      {/* Mobile Quick Actions */}
+      {isMobile && (contact as any).email && (
+        <div className="flex gap-2 mb-4">
+          {(contact as any).email && (
+            <Button
+              variant="outline"
+              className="flex-1 gap-2"
+              onClick={() => window.location.href = `mailto:${(contact as any).email}`}
+            >
+              <Mail className="h-4 w-4" />
+              Email
+            </Button>
+          )}
+          {(contact as any).phone && (
+            <Button
+              variant="outline"
+              className="flex-1 gap-2"
+              onClick={() => window.location.href = `tel:${(contact as any).phone}`}
+            >
+              <Phone className="h-4 w-4" />
+              Call
+            </Button>
+          )}
+          {(contact as any).phone && (
+            <Button
+              variant="outline"
+              className="flex-1 gap-2"
+              onClick={() => window.location.href = `sms:${(contact as any).phone}`}
+            >
+              <MessageSquare className="h-4 w-4" />
+              Text
+            </Button>
+          )}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Column */}
         <div className="lg:col-span-2 space-y-6">
@@ -239,11 +278,6 @@ export default function ContactDetailPage() {
                     emptyText="Add email"
                     displayClassName="text-blue-600"
                   />
-                  {(contact as any).email && (
-                    <a href={`mailto:${(contact as any).email}`} className="text-gray-400 hover:text-blue-600">
-                      <Mail className="h-3.5 w-3.5" />
-                    </a>
-                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <Phone className="h-4 w-4 text-gray-400 flex-shrink-0" />

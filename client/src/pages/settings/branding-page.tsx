@@ -2,9 +2,9 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { UnifiedPdfTemplateSelector } from "@/components/unified-pdf-template-selector";
 import { DocumentDefaultsSettings } from "@/components/document-defaults-settings";
-import { PageHeader } from "@/components/layout/page-header";
+import { SettingsLayout } from "@/components/layout/settings-layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Palette, FileImage, Globe } from "lucide-react";
+import { FileImage, Globe } from "lucide-react";
 
 export default function BrandingPage() {
   const { user } = useAuth();
@@ -18,13 +18,10 @@ export default function BrandingPage() {
   const [activeTab, setActiveTab] = useState(getInitialTab);
 
   return (
-    <div className="px-4 md:px-6 py-4 md:py-6 overflow-x-hidden">
-      <PageHeader
-        title="Branding"
-        description="Customize the appearance of your CIM documents"
-        icon={<Palette className="h-5 w-5" />}
-      />
-
+    <SettingsLayout
+      title="Branding"
+      description="Customize the appearance of your CIM documents"
+    >
       <Tabs
         value={activeTab}
         onValueChange={(v) => {
@@ -52,6 +49,6 @@ export default function BrandingPage() {
           <DocumentDefaultsSettings user={user} />
         </TabsContent>
       </Tabs>
-    </div>
+    </SettingsLayout>
   );
 }

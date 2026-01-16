@@ -115,45 +115,61 @@ async function gatherBriefingData(userId: number, orgId: number): Promise<any> {
   weekFromNow.setDate(weekFromNow.getDate() + 7);
 
   // Get all open deals with stages
-  const openDeals = await db
-    .select({
-      id: deals.id,
-      name: deals.name,
-      amount: deals.amount,
-      stageId: deals.stageId,
-      stageName: pipelineStages.name,
-      closeDate: deals.closeDate,
-      updatedAt: deals.updatedAt,
-      createdAt: deals.createdAt
-    })
-    .from(deals)
-    .leftJoin(pipelineStages, eq(deals.stageId, pipelineStages.id))
-    .where(
-      and(
-        eq(deals.organizationId, orgId),
-        isNull(deals.closedAt)
-      )
-    )
-    .orderBy(desc(deals.updatedAt));
-
-  // Get last activity for each deal
-  const dealIds = openDeals.map(d => d.id);
-  let dealActivities: any[] = [];
-  if (dealIds.length > 0) {
-    dealActivities = await db
+  // Get open deals (with error handling)
+  console.log('[Dashboard] Step 1: Fetching open deals...');
+  let openDeals: any[] = [];
+  try {
+    openDeals = await db
       .select({
-        dealId: crmActivities.objectId,
-        lastActivity: sql<Date>`MAX(${crmActivities.timestamp})`
+        id: deals.id,
+        name: deals.name,
+        amount: deals.amount,
+        stageId: deals.stageId,
+        stageName: pipelineStages.name,
+        closeDate: deals.closeDate,
+        updatedAt: deals.updatedAt,
+        createdAt: deals.createdAt
       })
-      .from(crmActivities)
+      .from(deals)
+      .leftJoin(pipelineStages, eq(deals.stageId, pipelineStages.id))
       .where(
         and(
-          eq(crmActivities.organizationId, orgId),
-          eq(crmActivities.objectType, 'deal'),
-          inArray(crmActivities.objectId, dealIds)
+          eq(deals.organizationId, orgId),
+          isNull(deals.closedAt)
         )
       )
-      .groupBy(crmActivities.objectId);
+      .orderBy(desc(deals.updatedAt));
+    console.log('[Dashboard] Open deals count:', openDeals.length);
+  } catch (error) {
+    console.error('[Dashboard] Error fetching open deals:', error);
+    openDeals = [];
+  }
+
+  // Get last activity for each deal (with error handling)
+  console.log('[Dashboard] Step 2: Fetching deal activities...');
+  let dealActivities: any[] = [];
+  try {
+    const dealIds = openDeals.map(d => d.id);
+    if (dealIds.length > 0) {
+      dealActivities = await db
+        .select({
+          dealId: crmActivities.objectId,
+          lastActivity: sql<Date>`MAX(${crmActivities.timestamp})`
+        })
+        .from(crmActivities)
+        .where(
+          and(
+            eq(crmActivities.organizationId, orgId),
+            eq(crmActivities.objectType, 'deal'),
+            inArray(crmActivities.objectId, dealIds)
+          )
+        )
+        .groupBy(crmActivities.objectId);
+    }
+    console.log('[Dashboard] Deal activities count:', dealActivities.length);
+  } catch (error) {
+    console.error('[Dashboard] Error fetching deal activities:', error);
+    dealActivities = [];
   }
 
   // Create activity map
@@ -170,18 +186,26 @@ async function gatherBriefingData(userId: number, orgId: number): Promise<any> {
     };
   });
 
-  // Get my tasks
-  const myTasks = await db
-    .select()
-    .from(crmTasks)
-    .where(
-      and(
-        eq(crmTasks.organizationId, orgId),
-        eq(crmTasks.assignedTo, userId),
-        inArray(crmTasks.status, ['pending', 'in_progress'])
+  // Get my tasks (with error handling)
+  console.log('[Dashboard] Step 3: Fetching my tasks...');
+  let myTasks: any[] = [];
+  try {
+    myTasks = await db
+      .select()
+      .from(crmTasks)
+      .where(
+        and(
+          eq(crmTasks.organizationId, orgId),
+          eq(crmTasks.assignedTo, userId),
+          inArray(crmTasks.status, ['pending', 'in_progress'])
+        )
       )
-    )
-    .orderBy(crmTasks.dueDate);
+      .orderBy(crmTasks.dueDate);
+    console.log('[Dashboard] My tasks count:', myTasks.length);
+  } catch (error) {
+    console.error('[Dashboard] Error fetching my tasks:', error);
+    myTasks = [];
+  }
 
   // Categorize tasks
   const overdueTasks = myTasks.filter(t => t.dueDate && new Date(t.dueDate) < now);
@@ -196,115 +220,173 @@ async function gatherBriefingData(userId: number, orgId: number): Promise<any> {
     return due >= todayEnd && due <= weekFromNow;
   });
 
-  // Get pending e-signature requests (envelopes I sent that are awaiting signatures)
-  const pendingSignatures = await db
-    .select({
-      envelopeId: esignEnvelopes.id,
-      title: esignEnvelopes.title,
-      recipientId: esignRecipients.id,
-      recipientName: esignRecipients.name,
-      recipientEmail: esignRecipients.email,
-      recipientStatus: esignRecipients.status
-    })
-    .from(esignEnvelopes)
-    .innerJoin(esignRecipients, eq(esignRecipients.envelopeId, esignEnvelopes.id))
-    .where(
-      and(
-        eq(esignEnvelopes.userId, userId),
-        eq(esignEnvelopes.status, 'sent'),
-        inArray(esignRecipients.status, ['pending', 'sent', 'viewed'])
+  // Get pending e-signature requests (with error handling)
+  console.log('[Dashboard] Step 4: Fetching pending signatures...');
+  let pendingSignatures: any[] = [];
+  try {
+    pendingSignatures = await db
+      .select({
+        envelopeId: esignEnvelopes.id,
+        title: esignEnvelopes.title,
+        recipientId: esignRecipients.id,
+        recipientName: esignRecipients.name,
+        recipientEmail: esignRecipients.email,
+        recipientStatus: esignRecipients.status
+      })
+      .from(esignEnvelopes)
+      .innerJoin(esignRecipients, eq(esignRecipients.envelopeId, esignEnvelopes.id))
+      .where(
+        and(
+          eq(esignEnvelopes.userId, userId),
+          eq(esignEnvelopes.status, 'sent'),
+          inArray(esignRecipients.status, ['pending', 'sent', 'viewed'])
+        )
       )
-    )
-    .limit(10);
+      .limit(10);
+    console.log('[Dashboard] Pending signatures count:', pendingSignatures.length);
+  } catch (error) {
+    console.error('[Dashboard] Error fetching pending signatures:', error);
+    pendingSignatures = [];
+  }
 
-  // Get pending NDA approvals (signatures awaiting my approval)
-  const pendingApprovals = await db
-    .select({
-      signatureId: ndaSignatures.id,
-      documentId: ndaSignatures.documentId,
-      documentTitle: cimDocuments.title,
-      signerEmail: ndaSignatures.signerEmail,
-      signedAt: ndaSignatures.signedAt
-    })
-    .from(ndaSignatures)
-    .innerJoin(cimDocuments, eq(cimDocuments.id, ndaSignatures.documentId))
-    .where(
-      and(
-        eq(cimDocuments.userId, userId),
-        eq(cimDocuments.ndaApprovalRequired, true),
-        eq(ndaSignatures.approved, false),
-        eq(ndaSignatures.rejected, false),
-        isNull(cimDocuments.deletedAt)
+  // Get pending NDA approvals (with error handling)
+  console.log('[Dashboard] Step 5: Fetching pending approvals...');
+  let pendingApprovals: any[] = [];
+  try {
+    const pendingApprovalsResult = await db.execute(sql`
+      SELECT
+        ns.id as "signatureId",
+        ns.cim_document_id as "documentId",
+        cd.title as "documentTitle",
+        ns.signer_email as "signerEmail",
+        ns.signed_at as "signedAt"
+      FROM nda_signatures ns
+      INNER JOIN cim_documents cd ON cd.id = ns.cim_document_id
+      WHERE cd.user_id = ${userId}
+        AND cd.nda_approval_required = true
+        AND ns.approved = false
+        AND ns.rejected = false
+        AND cd.deleted_at IS NULL
+      LIMIT 10
+    `);
+    pendingApprovals = pendingApprovalsResult.rows || [];
+    console.log('[Dashboard] Pending approvals count:', pendingApprovals.length);
+  } catch (error) {
+    console.error('[Dashboard] Error fetching pending approvals:', error);
+    pendingApprovals = [];
+  }
+
+  // Get unread messages (with error handling)
+  console.log('[Dashboard] Step 6: Fetching unread messages...');
+  let unreadMessages: any[] = [];
+  try {
+    unreadMessages = await db
+      .select({
+        messageId: messages.id,
+        threadId: messages.threadId,
+        content: messages.content,
+        senderEmail: messages.senderEmail,
+        createdAt: messages.createdAt,
+        subject: messageThreads.subject,
+        inquirerName: messageThreads.inquirerName
+      })
+      .from(messages)
+      .innerJoin(messageThreads, eq(messageThreads.id, messages.threadId))
+      .where(
+        and(
+          eq(messageThreads.userId, userId),
+          eq(messages.senderType, 'inquirer'),
+          eq(messages.isRead, false)
+        )
       )
-    )
-    .limit(10);
+      .orderBy(desc(messages.createdAt))
+      .limit(10);
+    console.log('[Dashboard] Unread messages count:', unreadMessages.length);
+  } catch (error) {
+    console.error('[Dashboard] Error fetching unread messages:', error);
+    unreadMessages = [];
+  }
 
-  // Get unread messages (messages from inquirers that haven't been read)
-  const unreadMessages = await db
-    .select({
-      messageId: messages.id,
-      threadId: messages.threadId,
-      content: messages.content,
-      senderEmail: messages.senderEmail,
-      createdAt: messages.createdAt,
-      subject: messageThreads.subject,
-      inquirerName: messageThreads.inquirerName
-    })
-    .from(messages)
-    .innerJoin(messageThreads, eq(messageThreads.id, messages.threadId))
-    .where(
-      and(
-        eq(messageThreads.userId, userId),
-        eq(messages.senderType, 'inquirer'),
-        eq(messages.isRead, false)
+  // Get deals won this month (with error handling)
+  console.log('[Dashboard] Calculating won deals this month...');
+  let dealsWonThisMonth: any = { rows: [{ count: 0, totalValue: 0 }] };
+  try {
+    dealsWonThisMonth = await db.execute(sql`
+      SELECT
+        COUNT(*)::int as count,
+        COALESCE(SUM(CAST(amount AS DECIMAL)), 0)::float as "totalValue"
+      FROM deals d
+      INNER JOIN pipeline_stages ps ON d.stage_id = ps.id
+      WHERE d.organization_id = ${orgId}
+        AND ps.is_won = true
+        AND d.closed_at >= ${monthStart}
+    `);
+  } catch (error) {
+    console.error('[Dashboard] Error calculating deals won this month:', error);
+  }
+
+  // Calculate pipeline value (with error handling)
+  let pipelineStats: any[] = [{ totalValue: 0, count: 0 }];
+  try {
+    pipelineStats = await db
+      .select({
+        totalValue: sql<number>`COALESCE(SUM(CAST(${deals.amount} AS DECIMAL)), 0)::float`,
+        count: sql<number>`COUNT(*)::int`
+      })
+      .from(deals)
+      .where(
+        and(
+          eq(deals.organizationId, orgId),
+          isNull(deals.closedAt)
+        )
+      );
+    console.log('[Dashboard] Pipeline stats result:', pipelineStats[0]);
+  } catch (error) {
+    console.error('[Dashboard] Error calculating pipeline stats:', error);
+  }
+
+  // Get recent activity with deal names (with error handling)
+  let recentActivity: any[] = [];
+  try {
+    recentActivity = await db
+      .select({
+        id: crmActivities.id,
+        type: crmActivities.activityType,
+        title: crmActivities.title,
+        timestamp: crmActivities.timestamp,
+        objectId: crmActivities.objectId,
+        objectType: crmActivities.objectType,
+        dealName: deals.name
+      })
+      .from(crmActivities)
+      .leftJoin(
+        deals,
+        and(
+          eq(crmActivities.objectType, 'deal'),
+          eq(crmActivities.objectId, deals.id)
+        )
       )
-    )
-    .orderBy(desc(messages.createdAt))
-    .limit(10);
+      .where(eq(crmActivities.organizationId, orgId))
+      .orderBy(desc(crmActivities.timestamp))
+      .limit(10);
+  } catch (error) {
+    console.error('[Dashboard] Error fetching recent activity:', error);
+    recentActivity = [];
+  }
 
-  // Get deals won this month
-  const dealsWonThisMonth = await db
-    .select({
-      count: sql<number>`COUNT(*)::int`,
-      totalValue: sql<number>`COALESCE(SUM(CAST(${deals.amount} AS DECIMAL)), 0)::float`
-    })
-    .from(deals)
-    .where(
-      and(
-        eq(deals.organizationId, orgId),
-        eq(deals.status, 'won'),
-        gte(deals.closedAt, monthStart)
-      )
-    );
+  const statsResult = {
+    pipelineValue: pipelineStats[0]?.totalValue || 0,
+    openDeals: pipelineStats[0]?.count || 0,
+    dealsWonThisMonth: (dealsWonThisMonth.rows?.[0] as any)?.count || 0,
+    wonValueThisMonth: (dealsWonThisMonth.rows?.[0] as any)?.totalValue || 0
+  };
 
-  // Calculate pipeline value
-  const pipelineStats = await db
-    .select({
-      totalValue: sql<number>`COALESCE(SUM(CAST(${deals.amount} AS DECIMAL)), 0)::float`,
-      count: sql<number>`COUNT(*)::int`
-    })
-    .from(deals)
-    .where(
-      and(
-        eq(deals.organizationId, orgId),
-        isNull(deals.closedAt)
-      )
-    );
-
-  // Get recent activity (last 5)
-  const recentActivity = await db
-    .select({
-      id: crmActivities.id,
-      type: crmActivities.activityType,
-      title: crmActivities.title,
-      timestamp: crmActivities.timestamp,
-      objectId: crmActivities.objectId,
-      objectType: crmActivities.objectType
-    })
-    .from(crmActivities)
-    .where(eq(crmActivities.organizationId, orgId))
-    .orderBy(desc(crmActivities.timestamp))
-    .limit(10);
+  console.log('[Dashboard] Calculated stats:', statsResult);
+  console.log('[Dashboard] Sample open deals with amounts:', openDeals.slice(0, 3).map(d => ({ name: d.name, amount: d.amount })));
+  console.log('[Dashboard] Deals with activity data:', dealsWithActivity.map(d => ({
+    name: d.name,
+    daysSinceActivity: d.daysSinceActivity
+  })));
 
   return {
     deals: dealsWithActivity,
@@ -317,12 +399,7 @@ async function gatherBriefingData(userId: number, orgId: number): Promise<any> {
     pendingSignatures,
     pendingApprovals,
     unreadMessages,
-    stats: {
-      pipelineValue: pipelineStats[0]?.totalValue || 0,
-      openDeals: pipelineStats[0]?.count || 0,
-      dealsWonThisMonth: dealsWonThisMonth[0]?.count || 0,
-      wonValueThisMonth: dealsWonThisMonth[0]?.totalValue || 0
-    },
+    stats: statsResult,
     recentActivity
   };
 }
@@ -340,7 +417,7 @@ function generateBasicBriefing(data: any): BriefingData {
   if (overdueCount > 0) summaryParts.push(`${overdueCount} overdue task${overdueCount > 1 ? 's' : ''}`);
   if (dueTodayCount > 0) summaryParts.push(`${dueTodayCount} task${dueTodayCount > 1 ? 's' : ''} due today`);
   if (unreadCount > 0) summaryParts.push(`${unreadCount} unread message${unreadCount > 1 ? 's' : ''}`);
-  if (data.pendingApprovals.length > 0) summaryParts.push(`${data.pendingApprovals.length} NDA approval${data.pendingApprovals.length > 1 ? 's' : ''} pending`);
+  if ((data.pendingApprovals?.length || 0) > 0) summaryParts.push(`${data.pendingApprovals.length} NDA approval${data.pendingApprovals.length > 1 ? 's' : ''} pending`);
 
   const summary = summaryParts.length > 0
     ? `You have ${summaryParts.join(', ')}. ${dealCount > 0 ? `Managing ${dealCount} open deal${dealCount > 1 ? 's' : ''} worth ${formatCurrency(data.stats.pipelineValue)}.` : ''}`
@@ -373,6 +450,9 @@ function generateBasicBriefing(data: any): BriefingData {
       message: `${d.daysSinceActivity} days without activity`
     }));
 
+  console.log('[Dashboard] Basic Priority Deals:', priorityDeals);
+  console.log('[Dashboard] Basic Risk Alerts:', riskAlerts);
+
   return {
     summary,
     priorityDeals,
@@ -399,13 +479,13 @@ function generateBasicBriefing(data: any): BriefingData {
         : 'No pending signatures'
     },
     pendingApprovals: {
-      count: data.pendingApprovals.length,
-      items: data.pendingApprovals.slice(0, 5).map((a: any) => ({
+      count: data.pendingApprovals?.length || 0,
+      items: (data.pendingApprovals || []).slice(0, 5).map((a: any) => ({
         documentId: a.documentId,
         documentTitle: a.documentTitle,
         signerEmail: a.signerEmail
       })),
-      message: data.pendingApprovals.length > 0
+      message: (data.pendingApprovals?.length || 0) > 0
         ? `${data.pendingApprovals.length} NDA approvals pending`
         : 'No pending approvals'
     },
@@ -426,7 +506,8 @@ function generateBasicBriefing(data: any): BriefingData {
       id: a.id,
       type: a.type,
       description: a.title,
-      timestamp: a.timestamp
+      timestamp: a.timestamp,
+      dealName: a.dealName || undefined
     }))
   };
 }
@@ -459,7 +540,7 @@ ${data.deals.slice(0, 10).map((d: any) => `  * "${d.name}" - $${d.amount || 0} -
   * Upcoming (next 7 days): ${data.tasks.upcoming.length}
 
 - Pending E-Signatures awaiting others: ${data.pendingSignatures.length}
-- Pending NDA Approvals needing my action: ${data.pendingApprovals.length}
+- Pending NDA Approvals needing my action: ${data.pendingApprovals?.length || 0}
 - Unread Messages: ${data.unreadMessages?.length || 0}
 
 - Pipeline Stats:
@@ -498,29 +579,50 @@ Be concise, actionable, and prioritize by business impact. Focus on what matters
 
     const aiResponse = JSON.parse(response.choices[0].message.content || '{}');
 
+    // Build priority deals and risk alerts directly from data (more reliable than AI matching)
+    const priorityDealsFromData = data.deals
+      .filter((d: any) => d.daysSinceActivity >= 3)
+      .sort((a: any, b: any) => b.daysSinceActivity - a.daysSinceActivity)
+      .slice(0, 5)
+      .map((d: any) => {
+        // Find AI suggestion for this deal if available
+        const aiSuggestion = (aiResponse.priorityDeals || []).find((p: any) =>
+          p.name === d.name || p.id === d.id
+        );
+        return {
+          id: d.id,
+          name: d.name,
+          value: d.amount ? parseFloat(d.amount) : null,
+          stage: d.stageName || 'Unknown',
+          daysSinceActivity: d.daysSinceActivity,
+          reason: aiSuggestion?.reason || `No activity in ${d.daysSinceActivity} days`,
+          suggestedAction: aiSuggestion?.suggestedAction || 'Follow up with contact'
+        };
+      });
+
+    const riskAlertsFromData = data.deals
+      .filter((d: any) => d.daysSinceActivity >= 7)
+      .slice(0, 3)
+      .map((d: any) => {
+        // Find AI message for this deal if available
+        const aiAlert = (aiResponse.riskAlerts || []).find((r: any) =>
+          r.name === d.name || r.dealName === d.name
+        );
+        return {
+          dealId: d.id,
+          dealName: d.name,
+          message: aiAlert?.message || `${d.daysSinceActivity} days without activity`
+        };
+      });
+
+    console.log('[Dashboard] AI Priority Deals from data:', priorityDealsFromData);
+    console.log('[Dashboard] AI Risk Alerts from data:', riskAlertsFromData);
+
     // Build the final briefing data combining AI insights with raw data
     const briefing: BriefingData = {
       summary: aiResponse.summary || "Welcome back! Here's your daily overview.",
-      priorityDeals: (aiResponse.priorityDeals || []).map((p: any) => {
-        const deal = data.deals.find((d: any) => d.name === p.name || d.id === p.id);
-        return {
-          id: deal?.id || 0,
-          name: p.name || deal?.name || 'Unknown',
-          value: deal?.amount ? parseFloat(deal.amount) : null,
-          stage: deal?.stageName || 'Unknown',
-          daysSinceActivity: deal?.daysSinceActivity || 0,
-          reason: p.reason || '',
-          suggestedAction: p.suggestedAction || ''
-        };
-      }),
-      riskAlerts: (aiResponse.riskAlerts || []).map((r: any) => {
-        const deal = data.deals.find((d: any) => d.name === r.name || d.name === r.dealName);
-        return {
-          dealId: deal?.id || 0,
-          dealName: r.dealName || r.name || 'Unknown',
-          message: r.message || r.reason || ''
-        };
-      }),
+      priorityDeals: priorityDealsFromData,
+      riskAlerts: riskAlertsFromData,
       tasksOverview: {
         dueToday: data.tasks.dueToday.length,
         overdue: data.tasks.overdue.length,
@@ -539,13 +641,13 @@ Be concise, actionable, and prioritize by business impact. Focus on what matters
           : 'No pending signatures.')
       },
       pendingApprovals: {
-        count: data.pendingApprovals.length,
-        items: data.pendingApprovals.slice(0, 5).map((a: any) => ({
+        count: data.pendingApprovals?.length || 0,
+        items: (data.pendingApprovals || []).slice(0, 5).map((a: any) => ({
           documentId: a.documentId,
           documentTitle: a.documentTitle,
           signerEmail: a.signerEmail
         })),
-        message: aiResponse.approvalsMessage || (data.pendingApprovals.length > 0
+        message: aiResponse.approvalsMessage || ((data.pendingApprovals?.length || 0) > 0
           ? `${data.pendingApprovals.length} NDA approvals need your attention.`
           : 'No pending approvals.')
       },
@@ -572,7 +674,7 @@ Be concise, actionable, and prioritize by business impact. Focus on what matters
         type: a.type,
         description: a.title,
         timestamp: a.timestamp,
-        dealName: undefined // Could enhance with deal name lookup
+        dealName: a.dealName || undefined
       }))
     };
 
@@ -617,6 +719,7 @@ router.get('/ai-briefing', async (req, res) => {
         .limit(1);
 
       if (cached.length > 0) {
+        console.log('[Dashboard] Returning cached briefing with stats:', cached[0].briefing.quickStats);
         return res.json({
           briefing: cached[0].briefing,
           generatedAt: cached[0].generatedAt,
@@ -641,6 +744,7 @@ router.get('/ai-briefing', async (req, res) => {
 
     // Cache the new briefing
     const generatedAt = new Date();
+    console.log('[Dashboard] Caching new briefing with stats:', briefing.quickStats);
     await db.insert(dashboardBriefings).values({
       organizationId: orgId,
       userId: userId,
@@ -693,20 +797,17 @@ router.get('/stats', async (req, res) => {
         )
       );
 
-    // Won this month
-    const wonThisMonth = await db
-      .select({
-        count: sql<number>`COUNT(*)::int`,
-        totalValue: sql<number>`COALESCE(SUM(CAST(${deals.amount} AS DECIMAL)), 0)::float`
-      })
-      .from(deals)
-      .where(
-        and(
-          eq(deals.organizationId, orgId),
-          eq(deals.status, 'won'),
-          gte(deals.closedAt, monthStart)
-        )
-      );
+    // Won this month - use raw SQL
+    const wonThisMonth = await db.execute(sql`
+      SELECT
+        COUNT(*)::int as count,
+        COALESCE(SUM(CAST(amount AS DECIMAL)), 0)::float as "totalValue"
+      FROM deals d
+      INNER JOIN pipeline_stages ps ON d.stage_id = ps.id
+      WHERE d.organization_id = ${orgId}
+        AND ps.is_won = true
+        AND d.closed_at >= ${monthStart}
+    `);
 
     // My overdue tasks
     const overdueTasks = await db
@@ -737,14 +838,75 @@ router.get('/stats', async (req, res) => {
     res.json({
       pipelineValue: pipelineStats[0]?.totalValue || 0,
       openDeals: pipelineStats[0]?.count || 0,
-      dealsWonThisMonth: wonThisMonth[0]?.count || 0,
-      wonValueThisMonth: wonThisMonth[0]?.totalValue || 0,
+      dealsWonThisMonth: (wonThisMonth.rows?.[0] as any)?.count || 0,
+      wonValueThisMonth: (wonThisMonth.rows?.[0] as any)?.totalValue || 0,
       overdueTasks: overdueTasks[0]?.count || 0,
       pendingSignatures: pendingSigs[0]?.count || 0
     });
   } catch (error: any) {
     console.error('[Dashboard] Error fetching stats:', error);
     res.status(500).json({ error: 'Failed to fetch stats' });
+  }
+});
+
+// DEBUG endpoint - Get raw deals data for troubleshooting
+router.get('/debug-deals', async (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  try {
+    const userId = req.user!.id;
+    const orgData = await getUserOrganization(userId);
+
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    const orgId = orgData.organization.id;
+
+    // Get first 10 open deals with raw data
+    const openDeals = await db
+      .select({
+        id: deals.id,
+        name: deals.name,
+        amount: deals.amount,
+        currency: deals.currency,
+        closedAt: deals.closedAt
+      })
+      .from(deals)
+      .where(
+        and(
+          eq(deals.organizationId, orgId),
+          isNull(deals.closedAt)
+        )
+      )
+      .limit(10);
+
+    // Try the sum query
+    const sumQuery = await db
+      .select({
+        totalValue: sql<number>`COALESCE(SUM(CAST(${deals.amount} AS DECIMAL)), 0)::float`,
+        count: sql<number>`COUNT(*)::int`,
+        countWithAmount: sql<number>`COUNT(${deals.amount})::int`,
+        avgAmount: sql<number>`AVG(CAST(${deals.amount} AS DECIMAL))::float`
+      })
+      .from(deals)
+      .where(
+        and(
+          eq(deals.organizationId, orgId),
+          isNull(deals.closedAt)
+        )
+      );
+
+    res.json({
+      openDeals,
+      stats: sumQuery[0],
+      message: 'Debug data for open deals'
+    });
+  } catch (error: any) {
+    console.error('[Dashboard] Debug endpoint error:', error);
+    res.status(500).json({ error: 'Failed to fetch debug data', details: error.message });
   }
 });
 

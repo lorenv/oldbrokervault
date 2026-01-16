@@ -45,7 +45,7 @@ export const DEFAULT_COLUMNS: ColumnConfig[] = [
   { id: 'stage', label: 'Stage', visible: true, order: 2 },
   { id: 'amount', label: 'Value', visible: true, order: 3 },
   { id: 'closeDate', label: 'Close Date', visible: true, order: 4 },
-  { id: 'owner', label: 'Owner', visible: false, order: 5 },
+  { id: 'owner', label: 'Owner', visible: true, order: 5 },
   { id: 'priority', label: 'Priority', visible: false, order: 6 },
   { id: 'source', label: 'Source', visible: false, order: 7 },
   { id: 'createdAt', label: 'Created', visible: false, order: 8 },

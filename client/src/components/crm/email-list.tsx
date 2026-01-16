@@ -166,7 +166,7 @@ export function EmailList({ contactId, contactEmail, dealId }: EmailListProps) {
           Connect your Gmail or Outlook account to view and send emails.
         </p>
         <Button variant="outline" asChild>
-          <a href="/integrations">Connect Email</a>
+          <a href="/settings/email">Connect Email</a>
         </Button>
       </div>
     );

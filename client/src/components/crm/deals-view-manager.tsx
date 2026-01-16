@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -90,11 +90,41 @@ export function DealsViewManager({
   const [editViewName, setEditViewName] = useState("");
 
   // Fetch saved views
-  const { data: views = [] } = useQuery<DealView[]>({
+  const { data: views = [], isLoading: viewsLoading } = useQuery<DealView[]>({
     queryKey: ["/api/crm/deal-views"],
   });
 
   const selectedView = views.find(v => v.id === selectedViewId);
+
+  // Restore last selected view from localStorage on mount
+  useEffect(() => {
+    if (viewsLoading || views.length === 0) return;
+
+    const savedViewId = localStorage.getItem('lastSelectedDealViewId');
+    if (savedViewId) {
+      const viewId = parseInt(savedViewId);
+      const view = views.find(v => v.id === viewId);
+      if (view) {
+        setSelectedViewId(viewId);
+        onApplyView({
+          filters: view.filters as Partial<DealFilters>,
+          columns: view.columns,
+          sorting: view.sorting as DealSorting,
+          viewMode: view.viewMode as 'list' | 'kanban',
+        });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [views, viewsLoading]); // Only run when views are loaded
+
+  // Save selected view ID to localStorage whenever it changes
+  useEffect(() => {
+    if (selectedViewId !== null) {
+      localStorage.setItem('lastSelectedDealViewId', selectedViewId.toString());
+    } else {
+      localStorage.removeItem('lastSelectedDealViewId');
+    }
+  }, [selectedViewId]);
 
   // Create view mutation
   const createViewMutation = useMutation({
@@ -229,7 +259,7 @@ export function DealsViewManager({
           </SelectItem>
           {views.length > 0 && (
             <>
-              {views.map((view) => (
+              {views.filter(view => view.id != null).map((view) => (
                 <SelectItem key={view.id} value={view.id.toString()}>
                   <div className="flex items-center gap-2">
                     {view.isDefault && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}

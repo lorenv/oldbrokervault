@@ -148,7 +148,8 @@ interface Deal {
   description: string | null;
   companyId: number | null;
   ownerId?: number | null;
-  owner?: { id: number; email: string; firstName: string; lastName: string } | null;
+  lostReason?: string | null;
+  owner?: { id: number; email: string; name?: string; firstName: string; lastName: string; profilePhoto?: string } | null;
   company?: { id: number; name: string } | null;
   stage?: { id: number; name: string; color: string; probability: number };
   pipeline?: { id: number; name: string };
@@ -158,6 +159,19 @@ interface Deal {
   createdAt: string;
   updatedAt: string;
 }
+
+// Common lost reasons
+const LOST_REASONS = [
+  "Price too high",
+  "Went with competitor",
+  "No budget",
+  "Timing not right",
+  "No decision made",
+  "Project cancelled",
+  "Unresponsive",
+  "Not a good fit",
+  "Other",
+];
 
 interface Note {
   id: number;
@@ -235,6 +249,10 @@ export default function DealDetailPage() {
   const [editingTask, setEditingTask] = useState<any>(null);
   const [isCustomizerOpen, setIsCustomizerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("activity");
+  const [isLostReasonDialogOpen, setIsLostReasonDialogOpen] = useState(false);
+  const [pendingLostStageId, setPendingLostStageId] = useState<number | null>(null);
+  const [selectedLostReason, setSelectedLostReason] = useState("");
+  const [customLostReason, setCustomLostReason] = useState("");
 
   // Use detail page layout hook
   const {
@@ -309,6 +327,13 @@ export default function DealDetailPage() {
     enabled: !!id,
     retry: 1,
   });
+
+  // Fetch organization members for owner assignment
+  const { data: membersData } = useQuery<{ id: number; userId: number; email: string; firstName: string | null; lastName: string | null }[]>({
+    queryKey: ["/api/crm/organization/members"],
+    queryFn: () => apiRequest("GET", "/api/crm/organization/members").then(res => res.json()),
+  });
+  const members = membersData || [];
 
   // Upload file mutation
   const uploadFileMutation = useMutation({
@@ -390,18 +415,63 @@ export default function DealDetailPage() {
     },
   });
 
+  // Delete note mutation
+  const deleteNoteMutation = useMutation({
+    mutationFn: (noteId: number) =>
+      apiRequest("DELETE", `/api/crm/notes/${noteId}`).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/notes/deal", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/activity-feed/deal", id] });
+      toast({ title: "Note deleted" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to delete note", variant: "destructive" });
+    },
+  });
+
   // Move to stage mutation
   const moveToStageMutation = useMutation({
-    mutationFn: (stageId: number) =>
+    mutationFn: ({ stageId, lostReason }: { stageId: number; lostReason?: string }) =>
       apiRequest("POST", `/api/crm/deals/${id}/move`, {
-        body: { stageId },
+        body: { stageId, lostReason },
       }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/deals", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/crm/activities/deal", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/activity-feed/deal", id] });
       toast({ title: "Deal moved", description: "Stage updated successfully." });
+      // Reset lost reason state
+      setIsLostReasonDialogOpen(false);
+      setPendingLostStageId(null);
+      setSelectedLostReason("");
+      setCustomLostReason("");
     },
   });
+
+  // Helper to check if a stage is a "lost" stage
+  const isLostStage = (stage: any) => {
+    const name = stage.name?.toLowerCase() || '';
+    return name.includes('lost') || name.includes('closed lost') || stage.probability === 0;
+  };
+
+  // Handle stage click - show lost reason dialog if moving to lost stage
+  const handleStageClick = (stage: any) => {
+    if (stage.id === deal?.stageId) return; // Already on this stage
+
+    if (isLostStage(stage)) {
+      setPendingLostStageId(stage.id);
+      setIsLostReasonDialogOpen(true);
+    } else {
+      moveToStageMutation.mutate({ stageId: stage.id });
+    }
+  };
+
+  // Confirm lost reason and move
+  const confirmLostReason = () => {
+    if (!pendingLostStageId) return;
+    const reason = selectedLostReason === "Other" ? customLostReason : selectedLostReason;
+    moveToStageMutation.mutate({ stageId: pendingLostStageId, lostReason: reason || undefined });
+  };
 
   // Add contact to deal mutation
   const addContactMutation = useMutation({
@@ -549,7 +619,7 @@ export default function DealDetailPage() {
                   return (
                     <button
                       key={stage.id}
-                      onClick={() => moveToStageMutation.mutate(stage.id)}
+                      onClick={() => handleStageClick(stage)}
                       className={`
                         relative h-11 flex-1 min-w-0 flex items-center justify-center
                         text-xs font-medium transition-all duration-200
@@ -557,8 +627,8 @@ export default function DealDetailPage() {
                         ${isFuture ? 'opacity-50' : ''}
                       `}
                       style={{
-                        backgroundColor: stage.color,
-                        color: getContrastColor(stage.color),
+                        backgroundColor: toPastelColor(stage.color),
+                        color: getPastelTextColor(stage.color),
                         // Left indent for non-first items (arrow from previous)
                         marginLeft: isFirst ? 0 : -arrowWidth,
                         // Right side clips to arrow shape
@@ -822,11 +892,23 @@ export default function DealDetailPage() {
                       {notes.map((note) => (
                         <div
                           key={note.id}
-                          className="p-4 bg-gray-50 rounded-lg"
+                          className="p-4 bg-gray-50 rounded-lg group"
                         >
-                          <p className="text-sm whitespace-pre-wrap">
-                            {highlightMentions(note.content)}
-                          </p>
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-sm whitespace-pre-wrap flex-1 text-gray-700">
+                              {highlightMentions(note.content)}
+                            </p>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-600 hover:bg-red-50"
+                              onClick={() => deleteNoteMutation.mutate(note.id)}
+                              disabled={deleteNoteMutation.isPending}
+                              title="Delete note"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                           <div className="flex items-center justify-between mt-2">
                             <span className="text-xs text-gray-500">
                               {note.author?.firstName || note.author?.email}
@@ -1175,19 +1257,54 @@ export default function DealDetailPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               {/* Deal Owner */}
-              {deal.owner && (
-                <div className="flex items-center gap-3 p-2 rounded-lg bg-blue-50/50">
-                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                    <User className="h-4 w-4 text-blue-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate text-gray-900">
-                      {deal.owner.firstName} {deal.owner.lastName}
-                    </p>
-                    <p className="text-xs text-blue-600">Deal Owner</p>
-                  </div>
-                </div>
-              )}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-gray-500">Deal Owner</label>
+                <Select
+                  value={deal.ownerId?.toString() || ""}
+                  onValueChange={(value) => {
+                    updateDealMutation.mutate({
+                      ownerId: value ? parseInt(value) : null,
+                    });
+                  }}
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Select owner">
+                      {deal.owner ? (
+                        <span className="flex items-center gap-2">
+                          {deal.owner.profilePhoto ? (
+                            <img
+                              src={deal.owner.profilePhoto}
+                              alt={deal.owner.name || deal.owner.email}
+                              className="w-6 h-6 rounded-full object-cover flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                              <span className="text-xs font-medium text-blue-600">
+                                {(deal.owner.name || deal.owner.email || '?').charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                          <span className="truncate text-gray-900">
+                            {deal.owner.name ||
+                             (deal.owner.firstName && deal.owner.lastName
+                              ? `${deal.owner.firstName} ${deal.owner.lastName}`
+                              : deal.owner.email)}
+                          </span>
+                        </span>
+                      ) : null}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {members.map((member) => (
+                      <SelectItem key={member.userId} value={member.userId.toString()}>
+                        {member.firstName && member.lastName
+                          ? `${member.firstName} ${member.lastName}`
+                          : member.email}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
               {/* Company */}
               {deal.company && (
@@ -1263,9 +1380,9 @@ export default function DealDetailPage() {
                 </p>
               )}
 
-              {!deal.owner && !deal.company && (!deal.contacts || deal.contacts.length === 0) && (
+              {!deal.company && (!deal.contacts || deal.contacts.length === 0) && (
                 <div className="text-center py-3">
-                  <p className="text-sm text-gray-500 mb-2">No people linked yet</p>
+                  <p className="text-sm text-gray-500 mb-2">No company or contacts linked yet</p>
                   <Button
                     variant="outline"
                     size="sm"
@@ -1328,6 +1445,17 @@ export default function DealDetailPage() {
                   {new Date(deal.updatedAt).toLocaleDateString()}
                 </p>
               </div>
+
+              {/* Lost Reason - only show if deal is lost */}
+              {deal.lostReason && (
+                <div className="pt-2 border-t">
+                  <Label className="text-xs text-red-500 flex items-center gap-1">
+                    <X className="h-3 w-3" />
+                    Lost Reason
+                  </Label>
+                  <p className="text-sm text-red-600 font-medium mt-0.5">{deal.lostReason}</p>
+                </div>
+              )}
             </CardContent>
           </Card>
           )}
@@ -1524,6 +1652,76 @@ export default function DealDetailPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Lost Reason Dialog */}
+      <Dialog open={isLostReasonDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          setIsLostReasonDialogOpen(false);
+          setPendingLostStageId(null);
+          setSelectedLostReason("");
+          setCustomLostReason("");
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Why was this deal lost?</DialogTitle>
+            <DialogDescription>
+              Select a reason to help track and analyze lost deals.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Lost Reason</Label>
+              <Select value={selectedLostReason} onValueChange={setSelectedLostReason}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a reason..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {LOST_REASONS.map((reason) => (
+                    <SelectItem key={reason} value={reason}>
+                      {reason}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {selectedLostReason === "Other" && (
+              <div className="space-y-2">
+                <Label>Custom reason</Label>
+                <Input
+                  value={customLostReason}
+                  onChange={(e) => setCustomLostReason(e.target.value)}
+                  placeholder="Enter a custom reason..."
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter className="flex-row gap-2 sm:justify-between">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                // Move without reason
+                if (pendingLostStageId) {
+                  moveToStageMutation.mutate({ stageId: pendingLostStageId });
+                }
+              }}
+            >
+              Skip
+            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setIsLostReasonDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={confirmLostReason}
+                disabled={!selectedLostReason || (selectedLostReason === "Other" && !customLostReason.trim())}
+              >
+                Mark as Lost
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Detail Page Customizer */}
       <DetailPageCustomizer
         objectType="deal"
@@ -1532,6 +1730,63 @@ export default function DealDetailPage() {
       />
     </div>
   );
+}
+
+// Helper function to convert a color to a softer pastel version
+function toPastelColor(hexColor: string | undefined | null): string {
+  if (!hexColor) return '#e5e7eb'; // gray-200 as fallback
+
+  try {
+    let hex = hexColor.replace('#', '');
+    if (hex.length === 3) {
+      hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+    }
+    if (hex.length !== 6) return '#e5e7eb';
+
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+
+    if (isNaN(r) || isNaN(g) || isNaN(b)) return '#e5e7eb';
+
+    // Mix with white to create pastel (70% original, 30% white gives nice pastel)
+    // Then boost saturation slightly for vibrancy
+    const pastelR = Math.round(r * 0.6 + 255 * 0.4);
+    const pastelG = Math.round(g * 0.6 + 255 * 0.4);
+    const pastelB = Math.round(b * 0.6 + 255 * 0.4);
+
+    return `#${pastelR.toString(16).padStart(2, '0')}${pastelG.toString(16).padStart(2, '0')}${pastelB.toString(16).padStart(2, '0')}`;
+  } catch {
+    return '#e5e7eb';
+  }
+}
+
+// Helper function to get appropriate text color for pastel backgrounds
+function getPastelTextColor(hexColor: string | undefined | null): string {
+  if (!hexColor) return '#374151'; // gray-700 as fallback
+
+  try {
+    let hex = hexColor.replace('#', '');
+    if (hex.length === 3) {
+      hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+    }
+    if (hex.length !== 6) return '#374151';
+
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+
+    if (isNaN(r) || isNaN(g) || isNaN(b)) return '#374151';
+
+    // Create a darker version of the original color for text (40% brightness)
+    const darkR = Math.round(r * 0.4);
+    const darkG = Math.round(g * 0.4);
+    const darkB = Math.round(b * 0.4);
+
+    return `#${darkR.toString(16).padStart(2, '0')}${darkG.toString(16).padStart(2, '0')}${darkB.toString(16).padStart(2, '0')}`;
+  } catch {
+    return '#374151';
+  }
 }
 
 // Helper function to determine if text should be dark or light based on background color

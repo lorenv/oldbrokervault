@@ -65,7 +65,8 @@
       "Bash(npm run check:*)",
       "Bash(timeout 30 npm run dev:*)",
       "Bash(npx eslint:*)",
-      "Bash(timeout 60 npm run:*)"
+      "Bash(timeout 60 npm run:*)",
+      "Bash(./scripts/kill-port.sh)"
     ],
     "deny": [],
     "ask": [],

@@ -25,6 +25,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useTaskFilters } from "@/hooks/use-task-filters";
 import { TasksColumnConfig } from "@/components/crm/tasks-column-config";
 import { TaskDialog } from "@/components/crm/task-dialog";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import {
   Plus,
@@ -141,6 +142,7 @@ function formatDueDate(dueDate: string | null, dueTime: string | null): string {
 export default function TasksPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
 
   const {
     filters,
@@ -1003,6 +1005,17 @@ export default function TasksPage() {
         onOpenChange={(open) => !open && setEditingTask(null)}
         task={editingTask}
       />
+
+      {/* Mobile FAB (Floating Action Button) */}
+      {isMobile && (
+        <Button
+          size="lg"
+          onClick={() => setIsCreateDialogOpen(true)}
+          className="fixed bottom-24 right-4 z-40 h-14 w-14 rounded-full shadow-lg hover:shadow-xl p-0"
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
+      )}
     </div>
   );
 }

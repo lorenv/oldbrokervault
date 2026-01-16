@@ -66,6 +66,9 @@ import {
 import { cn } from "@/lib/utils";
 
 // Field type options for the create field dialog
+// Import restrictToVerticalAxis for better UX
+import { restrictToVerticalAxis, restrictToParentElement } from "@dnd-kit/modifiers";
+
 const FIELD_TYPES = [
   { value: "text", label: "Text" },
   { value: "number", label: "Number" },
@@ -328,6 +331,117 @@ const getDefaultLayout = (objectType: string, customFields: CustomField[]): Sect
   return [];
 };
 
+// Sortable Field Component
+function SortableField({
+  field,
+  onToggleVisibility,
+}: {
+  field: FieldConfig;
+  onToggleVisibility: () => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: `field-${field.id}` });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 1 : 0,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "flex items-center gap-2 p-2 rounded border bg-gray-50",
+        !field.visible && "opacity-50",
+        isDragging && "ring-2 ring-blue-400"
+      )}
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        className="p-0.5 hover:bg-gray-200 rounded cursor-grab active:cursor-grabbing"
+      >
+        <GripVertical className="h-3.5 w-3.5 text-gray-400" />
+      </button>
+      <span className="text-sm flex-1 text-gray-700">
+        {field.label}
+        {field.isCustomField && (
+          <span className="ml-1.5 text-xs text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
+            Custom
+          </span>
+        )}
+      </span>
+      <Switch
+        checked={field.visible}
+        onCheckedChange={onToggleVisibility}
+        className="scale-75"
+      />
+    </div>
+  );
+}
+
+// Field Sortable List Component - handles drag and drop for fields within a section
+function FieldSortableList({
+  fields,
+  onFieldToggle,
+  onFieldReorder,
+}: {
+  fields: FieldConfig[];
+  onFieldToggle: (fieldId: string) => void;
+  onFieldReorder: (oldIndex: number, newIndex: number) => void;
+}) {
+  const sortedFields = [...fields].sort((a, b) => a.order - b.order);
+  const fieldIds = sortedFields.map((f) => `field-${f.id}`);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 5 },
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = fieldIds.indexOf(active.id as string);
+    const newIndex = fieldIds.indexOf(over.id as string);
+
+    if (oldIndex !== -1 && newIndex !== -1) {
+      onFieldReorder(oldIndex, newIndex);
+    }
+  };
+
+  return (
+    <div className="p-3 space-y-1">
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+        modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+      >
+        <SortableContext items={fieldIds} strategy={verticalListSortingStrategy}>
+          {sortedFields.map((field) => (
+            <SortableField
+              key={field.id}
+              field={field}
+              onToggleVisibility={() => onFieldToggle(field.id)}
+            />
+          ))}
+        </SortableContext>
+      </DndContext>
+    </div>
+  );
+}
+
 // Sortable Section Component
 function SortableSection({
   section,
@@ -421,34 +535,11 @@ function SortableSection({
       </div>
 
       {!section.collapsed && section.fields.length > 0 && (
-        <div className="p-3 space-y-1">
-          {section.fields
-            .sort((a, b) => a.order - b.order)
-            .map((field) => (
-              <div
-                key={field.id}
-                className={cn(
-                  "flex items-center gap-2 p-2 rounded border bg-gray-50",
-                  !field.visible && "opacity-50"
-                )}
-              >
-                <GripVertical className="h-3.5 w-3.5 text-gray-300" />
-                <span className="text-sm flex-1">
-                  {field.label}
-                  {field.isCustomField && (
-                    <span className="ml-1.5 text-xs text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
-                      Custom
-                    </span>
-                  )}
-                </span>
-                <Switch
-                  checked={field.visible}
-                  onCheckedChange={() => onFieldToggle(field.id)}
-                  className="scale-75"
-                />
-              </div>
-            ))}
-        </div>
+        <FieldSortableList
+          fields={section.fields}
+          onFieldToggle={onFieldToggle}
+          onFieldReorder={onFieldReorder}
+        />
       )}
 
       {!section.collapsed && section.fields.length === 0 && (
@@ -794,6 +885,29 @@ export function DetailPageCustomizer({
     setHasChanges(true);
   };
 
+  const reorderFieldsInSection = (sectionId: string, oldIndex: number, newIndex: number) => {
+    setSections((prev) =>
+      prev.map((s) => {
+        if (s.id !== sectionId) return s;
+
+        // Sort fields by order first
+        const sortedFields = [...s.fields].sort((a, b) => a.order - b.order);
+
+        // Perform the reorder using arrayMove
+        const reorderedFields = arrayMove(sortedFields, oldIndex, newIndex);
+
+        // Update the order property to reflect new positions
+        const updatedFields = reorderedFields.map((f, index) => ({
+          ...f,
+          order: index,
+        }));
+
+        return { ...s, fields: updatedFields };
+      })
+    );
+    setHasChanges(true);
+  };
+
   const activeSection = sections.find((s) => s.id === activeId);
 
   // Group sections by zone
@@ -828,7 +942,7 @@ export function DetailPageCustomizer({
               onToggleVisibility={() => toggleSectionVisibility(section.id)}
               onToggleCollapsed={() => toggleSectionCollapsed(section.id)}
               onFieldToggle={(fieldId) => toggleFieldVisibility(section.id, fieldId)}
-              onFieldReorder={() => {}}
+              onFieldReorder={(oldIndex, newIndex) => reorderFieldsInSection(section.id, oldIndex, newIndex)}
               onAddField={() => openCreateFieldDialog(section.id)}
               supportsCustomFields={section.supportsCustomFields}
             />

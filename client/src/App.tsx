@@ -53,7 +53,14 @@ import IntegrationsPage from "@/pages/integrations-page";
 // New settings pages
 import ListingsSettingsPage from "@/pages/listings-settings-page";
 import AccountSettingsPage from "@/pages/settings/account-settings-page";
+import ProfilePage from "@/pages/settings/profile-page";
+import BillingPage from "@/pages/settings/billing-page";
+import EmailSettingsPage from "@/pages/settings/email-settings-page";
+import NotificationsPage from "@/pages/settings/notifications-page";
+import PermissionsPage from "@/pages/settings/permissions-page";
+import CustomFieldsPage from "@/pages/settings/custom-fields-page";
 import BrandingPage from "@/pages/settings/branding-page";
+import SettingsIndexPage from "@/pages/settings/settings-index-page";
 
 // CRM Pages
 import DealsPage from "@/pages/crm/deals-page";
@@ -161,20 +168,29 @@ function AuthenticatedRouter() {
         {/* Listings Settings (main nav) */}
         <ProtectedRoute path="/listings-settings" component={ListingsSettingsPage} />
 
-        {/* Settings Routes (sidebar settings section) */}
-        <ProtectedRoute path="/settings/account" component={AccountSettingsPage} />
-        <ProtectedRoute path="/settings/team" component={TeamSettingsPage} />
-        <ProtectedRoute path="/settings/customization" component={PipelineSettingsPage} />
-        <ProtectedRoute path="/settings/branding" component={BrandingPage} />
+        {/* Settings Index Page */}
+        <ProtectedRoute path="/settings" component={SettingsIndexPage} />
 
-        {/* Legacy settings routes - redirect to new consolidated pages */}
-        <ProtectedRoute path="/settings/billing" component={AccountSettingsPage} />
-        <ProtectedRoute path="/settings/email" component={AccountSettingsPage} />
+        {/* Settings Routes (sidebar settings section) */}
+        <ProtectedRoute path="/settings/profile" component={ProfilePage} />
+        <ProtectedRoute path="/settings/billing" component={BillingPage} />
+        <ProtectedRoute path="/settings/notifications" component={NotificationsPage} />
+        <ProtectedRoute path="/settings/team" component={TeamSettingsPage} />
+        <ProtectedRoute path="/settings/permissions" component={PermissionsPage} />
         <ProtectedRoute path="/settings/pipelines" component={PipelineSettingsPage} />
+        <ProtectedRoute path="/settings/custom-fields" component={CustomFieldsPage} />
+        <ProtectedRoute path="/settings/email" component={EmailSettingsPage} />
+        <ProtectedRoute path="/settings/integrations" component={IntegrationsPage} />
+        <ProtectedRoute path="/settings/branding" component={BrandingPage} />
+        <ProtectedRoute path="/settings/nda-templates" component={NdaTemplatesPage} />
+
+        {/* Legacy settings routes - redirect to new pages */}
+        <ProtectedRoute path="/settings/account" component={ProfilePage} />
+        <ProtectedRoute path="/settings/customization" component={PipelineSettingsPage} />
         <ProtectedRoute path="/settings/pdf-branding" component={BrandingPage} />
         <ProtectedRoute path="/settings/online-branding" component={BrandingPage} />
-        <ProtectedRoute path="/account" component={AccountSettingsPage} />
-        <ProtectedRoute path="/profile" component={AccountSettingsPage} />
+        <ProtectedRoute path="/account" component={ProfilePage} />
+        <ProtectedRoute path="/profile" component={ProfilePage} />
 
         <ProtectedRoute path="/integrations" component={IntegrationsPage} />
         <ProtectedRoute path="/nda-templates" component={NdaTemplatesPage} />

@@ -2388,6 +2388,37 @@ export const crmAttachments = pgTable("crm_attachments", {
   uploadedAt: timestamp("uploaded_at").defaultNow().notNull()
 });
 
+// Email Templates - Reusable email templates for CRM
+export const emailTemplates = pgTable("email_templates", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
+
+  // Template info
+  name: text("name").notNull(),
+  subject: text("subject").notNull(),
+  body: text("body").notNull(), // HTML content
+
+  // Categorization
+  category: text("category"), // e.g., 'follow-up', 'introduction', 'proposal', etc.
+
+  // Tracking
+  createdBy: integer("created_by").notNull(), // FK to users
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+
+  // Usage tracking
+  usageCount: integer("usage_count").default(0).notNull(),
+  lastUsedAt: timestamp("last_used_at"),
+});
+
+export const insertEmailTemplateSchema = createInsertSchema(emailTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  usageCount: true,
+  lastUsedAt: true,
+});
+
 // Task Constants
 export const TASK_REMINDER_OPTIONS = [
   'none',           // No reminder
@@ -2634,6 +2665,23 @@ export const mentions = pgTable("mentions", {
   mentionText: text("mention_text").notNull(),
 
   createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Scheduled task execution logs - prevents duplicate executions in autoscaled environments
+export const scheduledTaskLogs = pgTable("scheduled_task_logs", {
+  id: serial("id").primaryKey(),
+
+  // Task identifier (e.g., "daily_signup_summary", "monitoring_alert_database")
+  taskName: text("task_name").notNull(),
+
+  // Date key for daily tasks (YYYY-MM-DD format) - enables "once per day" checks
+  executionDate: text("execution_date").notNull(),
+
+  // Optional metadata about the execution
+  metadata: jsonb("metadata"),
+
+  // Timestamp of execution
+  executedAt: timestamp("executed_at").defaultNow().notNull(),
 });
 
 // Insert schema for deal views

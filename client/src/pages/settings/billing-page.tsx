@@ -4,8 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { SubscriptionCard } from "@/components/ui/subscription-card";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { PageHeader } from "@/components/layout/page-header";
-import { CreditCard } from "lucide-react";
+import { SettingsLayout } from "@/components/layout/settings-layout";
 
 export default function BillingPage() {
   const { user } = useAuth();
@@ -59,22 +58,19 @@ export default function BillingPage() {
   };
 
   return (
-    <div className="px-4 md:px-6 py-4 md:py-6 overflow-x-hidden">
-      <PageHeader
-        title="Billing & Subscription"
-        description="Manage your subscription plan and billing details"
-        icon={<CreditCard className="h-5 w-5" />}
-      />
-
+    <SettingsLayout
+      title="Billing & Subscription"
+      description="Manage your subscription plan and billing details"
+    >
       <div className="max-w-4xl">
         <SubscriptionCard
-        status={user?.subscriptionStatus}
-        endsAt={user?.subscriptionEndsAt ? new Date(user.subscriptionEndsAt).toISOString() : null}
-        monthlyUsage={user?.monthlyUsage}
-        monthlyDocumentsCreated={user?.monthlyDocumentsCreated}
-        monthlyRegenerationsUsed={user?.monthlyRegenerationsUsed}
+          status={user?.subscriptionStatus}
+          endsAt={user?.subscriptionEndsAt ? new Date(user.subscriptionEndsAt).toISOString() : null}
+          monthlyUsage={user?.monthlyUsage}
+          monthlyDocumentsCreated={user?.monthlyDocumentsCreated}
+          monthlyRegenerationsUsed={user?.monthlyRegenerationsUsed}
         />
       </div>
-    </div>
+    </SettingsLayout>
   );
 }

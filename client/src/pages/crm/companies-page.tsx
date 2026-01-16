@@ -15,10 +15,10 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import {
-  CompaniesAdvancedFilters,
   type CompanyFilters,
   DEFAULT_COMPANY_FILTERS,
 } from "@/components/crm/companies-advanced-filters";
+import { CompaniesFilterBuilderIntegration } from "@/components/crm/companies-filter-builder-integration";
 import { Plus, Search, Building2, Globe, MapPin, Users, X, Briefcase, List, LayoutGrid } from "lucide-react";
 
 export default function CompaniesPage() {
@@ -120,7 +120,7 @@ export default function CompaniesPage() {
             />
           </div>
           <div className="flex items-center gap-2">
-            <CompaniesAdvancedFilters
+            <CompaniesFilterBuilderIntegration
               filters={filters}
               updateFilter={updateFilter}
               clearFilters={clearFilters}

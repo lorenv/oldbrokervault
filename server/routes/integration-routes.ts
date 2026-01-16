@@ -499,7 +499,11 @@ router.get('/oauth/callback/:provider', async (req: Request, res: Response) => {
         })
         .where(eq(integrationConnections.id, existing.id));
 
-      return res.redirect(`/integrations?connected=${provider}&reconnected=true`);
+      // Redirect to appropriate page based on provider type
+      const redirectPath = (provider === 'gmail' || provider === 'microsoft')
+        ? '/settings/email'
+        : '/integrations';
+      return res.redirect(`${redirectPath}?connected=${provider}&reconnected=true`);
     }
 
     // Create new connection
@@ -519,10 +523,19 @@ router.get('/oauth/callback/:provider', async (req: Request, res: Response) => {
         updatedAt: new Date(),
       });
 
-    res.redirect(`/integrations?connected=${provider}`);
+    // Redirect to appropriate page based on provider type
+    const redirectPath = (provider === 'gmail' || provider === 'microsoft')
+      ? '/settings/email'
+      : '/integrations';
+    res.redirect(`${redirectPath}?connected=${provider}`);
   } catch (error: any) {
     console.error('OAuth callback error:', error);
-    res.redirect(`/integrations?error=${encodeURIComponent(error.message || 'oauth_failed')}`);
+    // Redirect errors to appropriate page based on provider type
+    const providerName = req.params.provider;
+    const redirectPath = (providerName === 'gmail' || providerName === 'microsoft')
+      ? '/settings/email'
+      : '/integrations';
+    res.redirect(`${redirectPath}?error=${encodeURIComponent(error.message || 'oauth_failed')}`);
   }
 });
 

@@ -53,6 +53,19 @@ export interface SendEmailOptions {
 }
 
 /**
+ * Map database connection fields to provider expected field names
+ * Database uses: accessTokenEncrypted, refreshTokenEncrypted
+ * Providers expect: accessToken, refreshToken
+ */
+function mapConnectionForProvider(connection: any) {
+  return {
+    ...connection,
+    accessToken: connection.accessTokenEncrypted,
+    refreshToken: connection.refreshTokenEncrypted,
+  };
+}
+
+/**
  * Get the user's connected email provider and connection
  */
 export async function getEmailConnection(userId: number) {
@@ -64,7 +77,7 @@ export async function getEmailConnection(userId: number) {
       and(
         eq(integrationConnections.userId, userId),
         eq(integrationConnections.provider, 'gmail'),
-        eq(integrationConnections.status, 'connected')
+        eq(integrationConnections.status, 'active')
       )
     )
     .limit(1);
@@ -81,7 +94,7 @@ export async function getEmailConnection(userId: number) {
       and(
         eq(integrationConnections.userId, userId),
         eq(integrationConnections.provider, 'microsoft'),
-        eq(integrationConnections.status, 'connected')
+        eq(integrationConnections.status, 'active')
       )
     )
     .limit(1);
@@ -108,12 +121,13 @@ export async function getEmailsForContact(
 
   const { provider, connection } = emailConn;
   const { maxResults = 20 } = options;
+  const mappedConnection = mapConnectionForProvider(connection);
 
   try {
     if (provider === 'gmail') {
-      return await getGmailEmailsForContact(connection, contactEmail, maxResults);
+      return await getGmailEmailsForContact(mappedConnection, contactEmail, maxResults);
     } else {
-      return await getMicrosoftEmailsForContact(connection, contactEmail, maxResults);
+      return await getMicrosoftEmailsForContact(mappedConnection, contactEmail, maxResults);
     }
   } catch (error) {
     console.error(`[EmailSync] Error fetching emails for ${contactEmail}:`, error);
@@ -224,6 +238,9 @@ async function getMicrosoftEmailsForContact(
   );
 
   if (!response.ok) {
+    const errorBody = await response.text();
+    console.error('[EmailSync] Microsoft filter failed:', response.status, errorBody);
+
     // If filter fails, try search instead
     const searchParams = new URLSearchParams({
       $top: maxResults.toString(),
@@ -240,6 +257,8 @@ async function getMicrosoftEmailsForContact(
     );
 
     if (!searchResponse.ok) {
+      const searchErrorBody = await searchResponse.text();
+      console.error('[EmailSync] Microsoft search also failed:', searchResponse.status, searchErrorBody);
       throw new Error('Failed to fetch emails from Microsoft');
     }
 
@@ -281,12 +300,13 @@ export async function getEmailById(
   }
 
   const { connection } = emailConn;
+  const mappedConnection = mapConnectionForProvider(connection);
 
   try {
     if (provider === 'gmail') {
-      return await getGmailEmailById(connection, emailId);
+      return await getGmailEmailById(mappedConnection, emailId);
     } else {
-      return await getMicrosoftEmailById(connection, emailId);
+      return await getMicrosoftEmailById(mappedConnection, emailId);
     }
   } catch (error) {
     console.error(`[EmailSync] Error fetching email ${emailId}:`, error);
@@ -452,12 +472,13 @@ export async function sendEmail(
   }
 
   const { provider, connection } = emailConn;
+  const mappedConnection = mapConnectionForProvider(connection);
 
   try {
     if (provider === 'gmail') {
-      return await gmailProvider.sendEmail(connection, options);
+      return await gmailProvider.sendEmail(mappedConnection as any, options);
     } else {
-      return await microsoftProvider.sendEmail(connection, options);
+      return await microsoftProvider.sendEmail(mappedConnection as any, options);
     }
   } catch (error) {
     console.error('[EmailSync] Error sending email:', error);
@@ -517,5 +538,5 @@ export async function getConnectedEmailAddress(userId: number): Promise<string |
     return null;
   }
 
-  return emailConn.connection.accountId || null;
+  return emailConn.connection.providerAccountId || null;
 }

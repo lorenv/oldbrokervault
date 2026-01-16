@@ -25,6 +25,7 @@ import {
   dealViews,
   notifications,
   mentions,
+  emailTemplates,
   insertOrganizationSchema,
   insertDealViewSchema,
   insertOrganizationMemberSchema,
@@ -2511,14 +2512,18 @@ router.get('/deals', async (req, res) => {
         deal: deals,
         stage: pipelineStages,
         company: companies,
+        owner: users,
       })
       .from(deals)
       .leftJoin(pipelineStages, eq(pipelineStages.id, deals.stageId))
       .leftJoin(companies, eq(companies.id, deals.companyId))
+      .leftJoin(users, eq(users.id, deals.ownerId))
       .where(and(...conditions))
       .orderBy(orderDirection)
       .limit(parseInt(limit as string))
       .offset(offset);
+
+    console.log('[CRM] First deal owner from DB:', dealList[0]?.owner);
 
     // Get aggregates for filtered results (without pagination)
     const [aggregates] = await db
@@ -2538,6 +2543,14 @@ router.get('/deals', async (req, res) => {
         ...d.deal,
         stage: d.stage,
         company: d.company,
+        owner: d.owner ? {
+          id: d.owner.id,
+          email: d.owner.email,
+          name: d.owner.name,
+          firstName: d.owner.firstName,
+          lastName: d.owner.lastName,
+          profilePhoto: d.owner.profilePhoto,
+        } : null,
       })),
       total: Number(aggregates?.count || 0),
       page: parseInt(page as string),
@@ -2592,9 +2605,18 @@ router.get('/deals/kanban/:pipelineId', async (req, res) => {
           .select({
             deal: deals,
             company: companies,
+            owner: {
+              id: users.id,
+              email: users.email,
+              name: users.name,
+              firstName: users.firstName,
+              lastName: users.lastName,
+              profilePhoto: users.profilePhoto,
+            },
           })
           .from(deals)
           .leftJoin(companies, eq(companies.id, deals.companyId))
+          .leftJoin(users, eq(users.id, deals.ownerId))
           .where(
             and(
               eq(deals.stageId, stage.id),
@@ -2606,7 +2628,11 @@ router.get('/deals/kanban/:pipelineId', async (req, res) => {
 
         return {
           ...stage,
-          deals: stageDeals.map((d) => ({ ...d.deal, company: d.company })),
+          deals: stageDeals.map((d) => ({
+            ...d.deal,
+            company: d.company,
+            owner: d.owner?.id ? d.owner : null,
+          })),
         };
       })
     );
@@ -2639,8 +2665,10 @@ router.get('/deals/:id', async (req, res) => {
         owner: {
           id: users.id,
           email: users.email,
+          name: users.name,
           firstName: users.firstName,
           lastName: users.lastName,
+          profilePhoto: users.profilePhoto,
         },
       })
       .from(deals)
@@ -2922,7 +2950,7 @@ router.post('/deals/:id/move', async (req, res) => {
 
   try {
     const dealId = parseInt(req.params.id);
-    const { stageId } = req.body;
+    const { stageId, lostReason } = req.body;
 
     const orgData = await getUserOrganization(req.user!.id);
     if (!orgData) {
@@ -2971,6 +2999,16 @@ router.post('/deals/:id/move', async (req, res) => {
     } else if (oldStage?.isWon || oldStage?.isLost) {
       // Reopening a closed deal
       updateData.closedAt = null;
+      // Clear lost reason when reopening
+      updateData.lostReason = null;
+    }
+
+    // Set lost reason if moving to lost stage
+    if (newStage?.isLost && lostReason) {
+      updateData.lostReason = lostReason;
+    } else if (!newStage?.isLost) {
+      // Clear lost reason if not moving to lost stage
+      updateData.lostReason = null;
     }
 
     const [updated] = await db
@@ -2980,19 +3018,26 @@ router.post('/deals/:id/move', async (req, res) => {
       .returning();
 
     // Log activity
+    const activityMetadata: Record<string, any> = {
+      fromStage: oldStage?.name,
+      toStage: newStage?.name,
+      fromStageId: oldStageId,
+      toStageId: stageId,
+    };
+    if (newStage?.isLost && lostReason) {
+      activityMetadata.lostReason = lostReason;
+    }
+
     await logActivity(
       orgData.organization.id,
       'stage_change',
       'deal',
       dealId,
       req.user!.id,
-      {
-        fromStage: oldStage?.name,
-        toStage: newStage?.name,
-        fromStageId: oldStageId,
-        toStageId: stageId,
-      },
-      `Moved from ${oldStage?.name || 'Unknown'} to ${newStage?.name || 'Unknown'}`
+      activityMetadata,
+      newStage?.isLost && lostReason
+        ? `Moved to ${newStage?.name || 'Lost'} - Reason: ${lostReason}`
+        : `Moved from ${oldStage?.name || 'Unknown'} to ${newStage?.name || 'Unknown'}`
     );
 
     res.json(updated);
@@ -5302,6 +5347,12 @@ router.get('/emails/contact/:contactId', async (req, res) => {
     const contactId = parseInt(req.params.contactId);
     const { maxResults = '30' } = req.query;
 
+    // Get user's organization
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
     // Get contact email address
     const [contact] = await db
       .select()
@@ -5309,7 +5360,7 @@ router.get('/emails/contact/:contactId', async (req, res) => {
       .where(
         and(
           eq(crmContacts.id, contactId),
-          eq(crmContacts.organizationId, req.user!.organizationId!)
+          eq(crmContacts.organizationId, orgData.organization.id)
         )
       )
       .limit(1);
@@ -5384,17 +5435,21 @@ router.post('/emails/send', async (req, res) => {
 
   try {
     const { to, subject, body, isHtml, contactId, dealId } = req.body;
+    console.log('[CRM] /emails/send - request body:', { to, subject, bodyLength: body?.length, isHtml, contactId, dealId });
 
     if (!to || !subject || !body) {
+      console.log('[CRM] /emails/send - missing fields:', { to: !!to, subject: !!subject, body: !!body });
       return res.status(400).json({ error: 'to, subject, and body are required' });
     }
 
+    console.log('[CRM] /emails/send - calling sendEmailService for user:', req.user!.id);
     const result = await sendEmailService(req.user!.id, {
       to,
       subject,
       body,
       isHtml: isHtml || false,
     });
+    console.log('[CRM] /emails/send - result:', result);
 
     if (!result.success) {
       return res.status(400).json({ error: result.error || 'Failed to send email' });
@@ -5402,24 +5457,29 @@ router.post('/emails/send', async (req, res) => {
 
     // Log activity if contactId or dealId provided
     if (contactId || dealId) {
-      const activityData = {
-        organizationId: req.user!.organizationId!,
-        objectType: dealId ? 'deal' : 'contact',
-        objectId: dealId || contactId,
-        activityType: 'email',
-        title: `Sent email: ${subject}`,
-        description: `Email sent to ${to}`,
-        metadata: { to, subject, direction: 'sent' },
-        performedBy: req.user!.id,
-      };
+      // Get organization ID
+      const orgData = await getUserOrganization(req.user!.id);
+      if (orgData) {
+        const activityData = {
+          organizationId: orgData.organization.id,
+          objectType: dealId ? 'deal' : 'contact',
+          objectId: dealId || contactId,
+          activityType: 'email',
+          title: `Sent email: ${subject}`,
+          description: `Email sent to ${to}`,
+          metadata: { to, subject, direction: 'sent' },
+          performedBy: req.user!.id,
+        };
 
-      await db.insert(crmActivities).values(activityData);
+        await db.insert(crmActivities).values(activityData);
+      }
     }
 
     res.json({ success: true, messageId: result.messageId });
-  } catch (error) {
+  } catch (error: any) {
     console.error('[CRM] Error sending email:', error);
-    res.status(500).json({ error: 'Failed to send email' });
+    console.error('[CRM] Error stack:', error?.stack);
+    res.status(500).json({ error: error?.message || 'Failed to send email' });
   }
 });
 
@@ -5451,18 +5511,21 @@ router.post('/emails/reply', async (req, res) => {
 
     // Log activity if contactId or dealId provided
     if (contactId || dealId) {
-      const activityData = {
-        organizationId: req.user!.organizationId!,
-        objectType: dealId ? 'deal' : 'contact',
-        objectId: dealId || contactId,
-        activityType: 'email',
-        title: `Replied to: ${originalEmail.subject}`,
-        description: `Reply sent to ${originalEmail.from}`,
-        metadata: { to: originalEmail.from, subject: originalEmail.subject, direction: 'sent', replyTo: emailId },
-        performedBy: req.user!.id,
-      };
+      const orgData = await getUserOrganization(req.user!.id);
+      if (orgData) {
+        const activityData = {
+          organizationId: orgData.organization.id,
+          objectType: dealId ? 'deal' : 'contact',
+          objectId: dealId || contactId,
+          activityType: 'email',
+          title: `Replied to: ${originalEmail.subject}`,
+          description: `Reply sent to ${originalEmail.from}`,
+          metadata: { to: originalEmail.from, subject: originalEmail.subject, direction: 'sent', replyTo: emailId },
+          performedBy: req.user!.id,
+        };
 
-      await db.insert(crmActivities).values(activityData);
+        await db.insert(crmActivities).values(activityData);
+      }
     }
 
     res.json({ success: true, messageId: result.messageId });
@@ -5476,10 +5539,19 @@ router.post('/emails/reply', async (req, res) => {
  * Get connected email info (for compose dialogs)
  */
 router.get('/emails/connection/info', async (req, res) => {
-  if (!req.isAuthenticated()) return res.sendStatus(401);
+  console.log('[CRM] /emails/connection/info called, user:', req.user?.id);
+  if (!req.isAuthenticated()) {
+    console.log('[CRM] /emails/connection/info - not authenticated');
+    return res.sendStatus(401);
+  }
 
   try {
     const emailConn = await getEmailConnection(req.user!.id);
+    console.log('[CRM] /emails/connection/info - emailConn:', emailConn ? {
+      provider: emailConn.provider,
+      providerAccountId: emailConn.connection.providerAccountId,
+      providerAccountName: emailConn.connection.providerAccountName
+    } : null);
 
     if (!emailConn) {
       return res.json({
@@ -5491,12 +5563,178 @@ router.get('/emails/connection/info', async (req, res) => {
     res.json({
       connected: true,
       provider: emailConn.provider,
-      email: emailConn.connection.accountId,
-      accountName: emailConn.connection.accountName,
+      email: emailConn.connection.providerAccountId,
+      accountName: emailConn.connection.providerAccountName,
     });
   } catch (error) {
     console.error('[CRM] Error getting email connection info:', error);
     res.status(500).json({ error: 'Failed to get email connection info' });
+  }
+});
+
+// ============================================
+// EMAIL TEMPLATES
+// ============================================
+
+// Get all email templates for organization
+router.get('/email-templates', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    const templates = await db
+      .select()
+      .from(emailTemplates)
+      .where(eq(emailTemplates.organizationId, orgData.organization.id))
+      .orderBy(desc(emailTemplates.updatedAt));
+
+    res.json(templates);
+  } catch (error) {
+    console.error('[CRM] Error fetching email templates:', error);
+    res.status(500).json({ error: 'Failed to fetch email templates' });
+  }
+});
+
+// Create email template
+router.post('/email-templates', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    const { name, subject, body, category } = req.body;
+
+    if (!name || !subject || !body) {
+      return res.status(400).json({ error: 'name, subject, and body are required' });
+    }
+
+    const [template] = await db
+      .insert(emailTemplates)
+      .values({
+        organizationId: orgData.organization.id,
+        name,
+        subject,
+        body,
+        category: category || null,
+        createdBy: req.user!.id,
+      })
+      .returning();
+
+    res.json(template);
+  } catch (error) {
+    console.error('[CRM] Error creating email template:', error);
+    res.status(500).json({ error: 'Failed to create email template' });
+  }
+});
+
+// Update email template
+router.patch('/email-templates/:id', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const templateId = parseInt(req.params.id);
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    const { name, subject, body, category } = req.body;
+
+    const [updated] = await db
+      .update(emailTemplates)
+      .set({
+        ...(name && { name }),
+        ...(subject && { subject }),
+        ...(body && { body }),
+        ...(category !== undefined && { category: category || null }),
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(emailTemplates.id, templateId),
+          eq(emailTemplates.organizationId, orgData.organization.id)
+        )
+      )
+      .returning();
+
+    if (!updated) {
+      return res.status(404).json({ error: 'Template not found' });
+    }
+
+    res.json(updated);
+  } catch (error) {
+    console.error('[CRM] Error updating email template:', error);
+    res.status(500).json({ error: 'Failed to update email template' });
+  }
+});
+
+// Delete email template
+router.delete('/email-templates/:id', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const templateId = parseInt(req.params.id);
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    const [deleted] = await db
+      .delete(emailTemplates)
+      .where(
+        and(
+          eq(emailTemplates.id, templateId),
+          eq(emailTemplates.organizationId, orgData.organization.id)
+        )
+      )
+      .returning();
+
+    if (!deleted) {
+      return res.status(404).json({ error: 'Template not found' });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[CRM] Error deleting email template:', error);
+    res.status(500).json({ error: 'Failed to delete email template' });
+  }
+});
+
+// Track template usage
+router.post('/email-templates/:id/use', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const templateId = parseInt(req.params.id);
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    await db
+      .update(emailTemplates)
+      .set({
+        usageCount: sql`${emailTemplates.usageCount} + 1`,
+        lastUsedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(emailTemplates.id, templateId),
+          eq(emailTemplates.organizationId, orgData.organization.id)
+        )
+      );
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[CRM] Error tracking template usage:', error);
+    res.status(500).json({ error: 'Failed to track template usage' });
   }
 });
 

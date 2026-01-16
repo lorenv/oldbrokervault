@@ -336,7 +336,7 @@ export function TaskList({
                       {task.title}
                     </h4>
                     {/* Association badge - shows what record this task is linked to */}
-                    {association && (
+                    {showLinkedEntity && association && (
                       <Link
                         href={association.href}
                         onClick={(e) => e.stopPropagation()}

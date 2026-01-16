@@ -65,7 +65,7 @@ import {
   Settings,
 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
-import { PageHeader } from "@/components/layout/page-header";
+import { SettingsLayout } from "@/components/layout/settings-layout";
 
 // Types
 interface Connection {
@@ -1309,13 +1309,10 @@ export default function IntegrationsPage() {
 
   // Main view with tabs
   return (
-    <div className="container mx-auto px-4 md:px-6 py-4 md:py-6 overflow-x-hidden">
-      <PageHeader
-        title="Integrations"
-        description="Connect external apps and automate workflows based on events"
-        icon={<Workflow className="h-5 w-5" />}
-      />
-
+    <SettingsLayout
+      title="Integrations"
+      description="Connect external apps and automate workflows based on events"
+    >
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-6 w-full grid grid-cols-3 h-12 p-1 bg-gray-100 rounded-lg">
           <TabsTrigger
@@ -2406,6 +2403,6 @@ export default function IntegrationsPage() {
           <ExternalLink className="h-3 w-3" />
         </a>
       </div>
-    </div>
+    </SettingsLayout>
   );
 }

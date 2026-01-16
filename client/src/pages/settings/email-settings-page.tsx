@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { SettingsLayout } from "@/components/layout/settings-layout";
+import { useLocation } from "wouter";
 import {
   Mail,
   Check,
@@ -47,7 +49,36 @@ interface ProviderConfig {
 export default function EmailSettingsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   const [disconnectingId, setDisconnectingId] = useState<number | null>(null);
+
+  // Handle OAuth callback results (success or error)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const connected = params.get('connected');
+    const error = params.get('error');
+
+    if (connected) {
+      const providerName = connected === 'microsoft' ? 'Microsoft 365 (Outlook)' : 'Gmail';
+      toast({
+        title: "Email Connected!",
+        description: `Your ${providerName} account has been successfully connected.`,
+      });
+      // Refresh connections data
+      queryClient.invalidateQueries({ queryKey: ["/api/integrations/email-connections"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/integrations/connections"] });
+      // Clear URL params
+      window.history.replaceState({}, '', '/settings/email');
+    } else if (error) {
+      toast({
+        title: "Connection Failed",
+        description: decodeURIComponent(error),
+        variant: "destructive",
+      });
+      // Clear URL params
+      window.history.replaceState({}, '', '/settings/email');
+    }
+  }, [toast, queryClient]);
 
   // Fetch email connections
   const { data: connections = [], isLoading } = useQuery<EmailConnection[]>({
@@ -80,25 +111,11 @@ export default function EmailSettingsPage() {
     },
   });
 
-  // Connect email mutation
-  const connectMutation = useMutation({
-    mutationFn: async (provider: 'gmail' | 'microsoft') => {
-      const res = await apiRequest("GET", `/api/integrations/auth/${provider}`);
-      const data = await res.json();
-      return data.authUrl;
-    },
-    onSuccess: (authUrl: string) => {
-      // Redirect to OAuth provider
-      window.location.href = authUrl;
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Connection failed",
-        description: error.message || "Failed to start OAuth flow",
-        variant: "destructive",
-      });
-    },
-  });
+  // Connect to email provider - navigates directly to OAuth flow
+  const handleConnect = (provider: 'gmail' | 'microsoft') => {
+    // Navigate directly to the auth endpoint which handles the OAuth redirect
+    window.location.href = `/api/integrations/auth/${provider}`;
+  };
 
   // Disconnect email mutation
   const disconnectMutation = useMutation({
@@ -160,23 +177,26 @@ export default function EmailSettingsPage() {
     }
   };
 
-  const getProviderIcon = (provider: string) => {
+  const getProviderIcon = (provider: string, size: 'sm' | 'md' = 'md') => {
+    const sizeClasses = size === 'sm' ? 'w-10 h-10' : 'w-12 h-12';
+    const imgSize = size === 'sm' ? 'w-6 h-6' : 'w-7 h-7';
+
     switch (provider) {
       case 'gmail':
         return (
-          <div className="w-12 h-12 rounded-lg bg-red-50 flex items-center justify-center">
-            <Mail className="h-6 w-6 text-red-500" />
+          <div className={`${sizeClasses} rounded-lg bg-gray-50 flex items-center justify-center`}>
+            <img src="/gmail.png" alt="Gmail" className={imgSize} />
           </div>
         );
       case 'microsoft':
         return (
-          <div className="w-12 h-12 rounded-lg bg-blue-50 flex items-center justify-center">
-            <Mail className="h-6 w-6 text-blue-500" />
+          <div className={`${sizeClasses} rounded-lg bg-gray-50 flex items-center justify-center`}>
+            <img src="/outlook.png" alt="Outlook" className={imgSize} />
           </div>
         );
       default:
         return (
-          <div className="w-12 h-12 rounded-lg bg-gray-50 flex items-center justify-center">
+          <div className={`${sizeClasses} rounded-lg bg-gray-50 flex items-center justify-center`}>
             <Mail className="h-6 w-6 text-gray-500" />
           </div>
         );
@@ -189,13 +209,11 @@ export default function EmailSettingsPage() {
   const microsoftConfigured = providers.find(p => p.name === 'Microsoft 365')?.configured;
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-gray-900">Email Integration</h1>
-        <p className="text-gray-500 mt-1">
-          Connect your email account to sync email activity with your CRM contacts
-        </p>
-      </div>
+    <SettingsLayout
+      title="Email Integration"
+      description="Connect your email account to sync email activity with your CRM contacts"
+    >
+      <div className="max-w-4xl">
 
       {/* Connected Accounts */}
       {connections.length > 0 && (
@@ -254,12 +272,10 @@ export default function EmailSettingsPage() {
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Gmail */}
-          <Card className={!gmailConfigured ? 'opacity-60' : ''}>
+          <Card className={!gmailConfigured && !hasGmailConnection ? 'opacity-60' : ''}>
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center">
-                  <Mail className="h-5 w-5 text-red-500" />
-                </div>
+                {getProviderIcon('gmail', 'sm')}
                 <div>
                   <CardTitle className="text-base">Gmail</CardTitle>
                   <CardDescription className="text-xs">Google Workspace</CardDescription>
@@ -270,10 +286,10 @@ export default function EmailSettingsPage() {
               <p className="text-sm text-gray-600 mb-4">
                 Connect your Gmail account to automatically track email conversations with contacts.
               </p>
-              {gmailConfigured ? (
+              {gmailConfigured || hasGmailConnection ? (
                 <Button
-                  onClick={() => connectMutation.mutate('gmail')}
-                  disabled={connectMutation.isPending || hasGmailConnection}
+                  onClick={() => handleConnect('gmail')}
+                  disabled={hasGmailConnection}
                   className="w-full"
                 >
                   {hasGmailConnection ? (
@@ -302,12 +318,10 @@ export default function EmailSettingsPage() {
           </Card>
 
           {/* Microsoft 365 */}
-          <Card className={!microsoftConfigured ? 'opacity-60' : ''}>
+          <Card className={!microsoftConfigured && !hasMicrosoftConnection ? 'opacity-60' : ''}>
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-                  <Mail className="h-5 w-5 text-blue-500" />
-                </div>
+                {getProviderIcon('microsoft', 'sm')}
                 <div>
                   <CardTitle className="text-base">Microsoft 365</CardTitle>
                   <CardDescription className="text-xs">Outlook</CardDescription>
@@ -318,10 +332,10 @@ export default function EmailSettingsPage() {
               <p className="text-sm text-gray-600 mb-4">
                 Connect your Outlook account to automatically track email conversations with contacts.
               </p>
-              {microsoftConfigured ? (
+              {microsoftConfigured || hasMicrosoftConnection ? (
                 <Button
-                  onClick={() => connectMutation.mutate('microsoft')}
-                  disabled={connectMutation.isPending || hasMicrosoftConnection}
+                  onClick={() => handleConnect('microsoft')}
+                  disabled={hasMicrosoftConnection}
                   className="w-full"
                 >
                   {hasMicrosoftConnection ? (
@@ -352,17 +366,17 @@ export default function EmailSettingsPage() {
       </div>
 
       {/* Info Section */}
-      <Card className="mt-8 bg-blue-50 border-blue-200">
+      <Card className="mt-8 bg-gray-50 border-gray-200">
         <CardContent className="p-4">
           <div className="flex gap-3">
-            <Mail className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <Mail className="h-5 w-5 text-gray-400 flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-medium text-blue-900">How Email Sync Works</h3>
-              <p className="text-sm text-blue-700 mt-1">
+              <h3 className="font-medium text-gray-700">How Email Sync Works</h3>
+              <p className="text-sm text-gray-600 mt-1">
                 When you connect your email, we'll automatically track email conversations with contacts in your CRM.
                 Email activity will appear in the contact's timeline, helping you keep track of all interactions.
               </p>
-              <ul className="text-sm text-blue-700 mt-2 space-y-1">
+              <ul className="text-sm text-gray-600 mt-2 space-y-1">
                 <li>• View sent and received emails in contact timelines</li>
                 <li>• Track email open rates (when supported)</li>
                 <li>• Send emails directly from CRM contact pages</li>
@@ -392,6 +406,7 @@ export default function EmailSettingsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+      </div>
+    </SettingsLayout>
   );
 }
