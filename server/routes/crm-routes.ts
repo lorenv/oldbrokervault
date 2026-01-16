@@ -1689,6 +1689,7 @@ router.patch('/companies/:id', async (req, res) => {
       name,
       domain,
       website,
+      logoUrl,
       industry,
       size,
       annualRevenue,
@@ -1709,6 +1710,7 @@ router.patch('/companies/:id', async (req, res) => {
         ...(name && { name }),
         ...(domain !== undefined && { domain }),
         ...(website !== undefined && { website }),
+        ...(logoUrl !== undefined && { logoUrl }),
         ...(industry !== undefined && { industry }),
         ...(size !== undefined && { size }),
         ...(annualRevenue !== undefined && { annualRevenue }),
@@ -1981,6 +1983,7 @@ router.patch('/contacts/:id', async (req, res) => {
       'customProperties',
       'source',
       'linkedinUrl',
+      'avatarUrl',
       'notes',
       'tags',
     ];
@@ -5359,11 +5362,11 @@ router.get('/companies/:id/emails', async (req, res) => {
     // Get the company
     const [company] = await db
       .select()
-      .from(crmCompanies)
+      .from(companies)
       .where(
         and(
-          eq(crmCompanies.id, companyId),
-          eq(crmCompanies.organizationId, orgData.organization.id)
+          eq(companies.id, companyId),
+          eq(companies.organizationId, orgData.organization.id)
         )
       );
 
@@ -5410,6 +5413,8 @@ router.get('/companies/:id/emails', async (req, res) => {
         emails: [],
         connected: true,
         provider: connection.provider,
+        contactCount: 0,
+        noContacts: true,
         message: 'No contacts with email addresses associated with this company'
       });
     }

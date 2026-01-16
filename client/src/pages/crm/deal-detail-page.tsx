@@ -55,6 +55,8 @@ import {
   Video,
   MessageSquarePlus,
   Settings2,
+  Handshake,
+  ChevronRight,
 } from "lucide-react";
 
 // Helper function to get activity icon based on type
@@ -254,6 +256,11 @@ export default function DealDetailPage() {
   const [selectedLostReason, setSelectedLostReason] = useState("");
   const [customLostReason, setCustomLostReason] = useState("");
 
+  // Company link dialog state
+  const [isLinkCompanyOpen, setIsLinkCompanyOpen] = useState(false);
+  const [companySearch, setCompanySearch] = useState("");
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
+
   // Use detail page layout hook
   const {
     isSectionVisible,
@@ -280,6 +287,23 @@ export default function DealDetailPage() {
     queryFn: () => apiRequest("GET", "/api/crm/contacts").then(res => res.json()),
   });
   const allContacts = contactsData?.contacts;
+
+  // Fetch all companies for linking
+  const { data: companiesData } = useQuery<{ companies: any[] }>({
+    queryKey: ["/api/crm/companies"],
+    queryFn: () => apiRequest("GET", "/api/crm/companies").then(res => res.json()),
+  });
+  const allCompanies = companiesData?.companies || [];
+
+  // Filter available companies (exclude current company)
+  const availableCompanies = allCompanies.filter(
+    (company) => company.id !== deal?.company?.id
+  );
+
+  // Filtered companies based on search
+  const filteredCompanies = availableCompanies.filter((company) =>
+    company.name?.toLowerCase().includes(companySearch.toLowerCase())
+  );
 
   // Fetch notes
   const { data: notes } = useQuery<Note[]>({
@@ -491,6 +515,23 @@ export default function DealDetailPage() {
     },
   });
 
+  // Link company to deal mutation
+  const linkCompanyMutation = useMutation({
+    mutationFn: (companyId: number) =>
+      apiRequest("PATCH", `/api/crm/deals/${id}`, { body: { companyId } }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"] });
+      setIsLinkCompanyOpen(false);
+      setSelectedCompanyId("");
+      setCompanySearch("");
+      toast({ title: "Company linked", description: "Company has been associated with this deal." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to link company.", variant: "destructive" });
+    },
+  });
+
   // Update contact mutation (for inline editing)
   const updateContactMutation = useMutation({
     mutationFn: ({ contactId, data }: { contactId: number; data: Record<string, any> }) =>
@@ -559,24 +600,29 @@ export default function DealDetailPage() {
               Deals
             </Link>
           </Button>
-          <div>
-            <h1 className="text-xl md:text-2xl font-semibold text-gray-900">{deal.name}</h1>
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-1">
-              {deal.company && (
-                <Link
-                  href={`/companies/${deal.company.id}`}
-                  className="text-sm text-gray-500 hover:text-blue-600 flex items-center gap-1"
-                >
-                  <Building2 className="h-3 w-3" />
-                  {deal.company.name}
-                </Link>
-              )}
-              {deal.owner && (
-                <span className="text-sm text-gray-500 flex items-center gap-1">
-                  <User className="h-3 w-3" />
-                  Owner: {deal.owner.firstName || deal.owner.email}
-                </span>
-              )}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-sm">
+              <Handshake className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl md:text-2xl font-semibold text-gray-900">{deal.name}</h1>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-1">
+                {deal.company && (
+                  <Link
+                    href={`/companies/${deal.company.id}`}
+                    className="text-sm text-gray-500 hover:text-blue-600 flex items-center gap-1"
+                  >
+                    <Building2 className="h-3 w-3" />
+                    {deal.company.name}
+                  </Link>
+                )}
+                {deal.owner && (
+                  <span className="text-sm text-gray-500 flex items-center gap-1">
+                    <User className="h-3 w-3" />
+                    Owner: {deal.owner.firstName || deal.owner.email}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -802,16 +848,13 @@ export default function DealDetailPage() {
 
                               {/* Stage Change Details */}
                               {activity.activityType === 'stage_change' && activity.metadata && (
-                                <div className="mt-2 p-3 bg-slate-50 rounded-lg border border-slate-200">
-                                  <p className="text-sm text-gray-700 flex items-center gap-2">
-                                    <span className="text-gray-500">Stage changed:</span>
-                                    <Badge variant="outline">{(activity.metadata as any).fromStage || 'None'}</Badge>
-                                    <ArrowRight className="h-3 w-3 text-gray-400" />
-                                    <Badge variant="outline" className="bg-slate-100 border-slate-300">
-                                      {(activity.metadata as any).toStage}
-                                    </Badge>
-                                  </p>
-                                </div>
+                                <p className="text-sm text-gray-600 mt-1 flex items-center gap-2 flex-wrap">
+                                  <Badge variant="outline">{(activity.metadata as any).fromStage || 'None'}</Badge>
+                                  <ArrowRight className="h-3 w-3 text-gray-400" />
+                                  <Badge variant="outline">
+                                    {(activity.metadata as any).toStage}
+                                  </Badge>
+                                </p>
                               )}
 
                               {/* Fallback description for other activity types */}
@@ -827,9 +870,9 @@ export default function DealDetailPage() {
                     </div>
                   ) : (
                     <div className="text-center py-8">
-                      <Clock className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                      <p className="text-gray-500 font-medium">No activity yet</p>
-                      <p className="text-sm text-gray-400 mt-1">
+                      <Clock className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-700 font-medium">No activity yet</p>
+                      <p className="text-sm text-gray-500 mt-1">
                         Activity will appear here as you work on this deal
                       </p>
                     </div>
@@ -929,7 +972,7 @@ export default function DealDetailPage() {
                     </div>
                   ) : (
                     <div className="text-center py-4">
-                      <MessageSquare className="h-10 w-10 text-gray-300 mx-auto mb-2" />
+                      <MessageSquare className="h-10 w-10 text-gray-400 mx-auto mb-2" />
                       <p className="text-gray-500 text-sm">No notes yet</p>
                     </div>
                   )}
@@ -995,9 +1038,9 @@ export default function DealDetailPage() {
                     </div>
                   ) : (
                     <div className="text-center py-8">
-                      <WandSparkles className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                      <p className="text-gray-500 font-medium">No CIMs yet</p>
-                      <p className="text-sm text-gray-400 mt-1 mb-4">
+                      <WandSparkles className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-700 font-medium">No CIMs yet</p>
+                      <p className="text-sm text-gray-500 mt-1 mb-4">
                         Create a CIM to showcase this deal to potential buyers
                       </p>
                       <Button asChild size="sm">
@@ -1117,9 +1160,9 @@ export default function DealDetailPage() {
                     </div>
                   ) : (
                     <div className="text-center py-8">
-                      <FolderOpen className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                      <p className="text-gray-500 font-medium">No files yet</p>
-                      <p className="text-sm text-gray-400 mt-1 mb-4">
+                      <FolderOpen className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-700 font-medium">No files yet</p>
+                      <p className="text-sm text-gray-500 mt-1 mb-4">
                         Upload contracts, NDAs, and other supporting documents
                       </p>
                       <Button
@@ -1141,98 +1184,103 @@ export default function DealDetailPage() {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Contacts Card */}
+          {/* Associations Card */}
           {isSectionVisible("key-people") && (
           <Card>
-            <CardHeader className="pb-3 flex flex-row items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Contacts
-              </CardTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsAddContactDialogOpen(true)}
-                title="Link a contact"
-              >
-                <UserPlus className="h-4 w-4" />
-              </Button>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Associations</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-4">
               {/* Company */}
-              {deal.company && (
-                <Link
-                  href={`/companies/${deal.company.id}`}
-                  className="flex items-center gap-3 hover:bg-gray-50 rounded-lg p-2 -mx-2 transition-colors"
-                >
-                  <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
-                    <Building2 className="h-4 w-4 text-purple-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate text-gray-900">{deal.company.name}</p>
-                    <p className="text-xs text-gray-500">Company</p>
-                  </div>
-                </Link>
-              )}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Company</h4>
+                  {!deal.company && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsLinkCompanyOpen(true)}
+                      className="h-6 px-2 text-gray-500 hover:text-gray-700"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Add
+                    </Button>
+                  )}
+                </div>
+                {deal.company ? (
+                  <Link
+                    href={`/companies/${deal.company.id}`}
+                    className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                      <Building2 className="h-4 w-4 text-purple-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900 truncate">{deal.company.name}</p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                  </Link>
+                ) : (
+                  <p className="text-sm text-gray-500 py-2">No company linked</p>
+                )}
+              </div>
 
-              {/* All Contacts */}
-              {deal.contacts && deal.contacts.length > 0 && (
-                <div className="space-y-3">
-                  {deal.contacts.map((contact: any) => (
-                    <div key={contact.id} className="rounded-lg p-2 -mx-2 hover:bg-gray-50 transition-colors">
-                      <div className="flex items-start gap-3">
-                        <Link href={`/contacts/${contact.id}`}>
-                          {contact.avatarUrl ? (
-                            <img
-                              src={contact.avatarUrl}
-                              alt={`${contact.firstName} ${contact.lastName}`}
-                              className="w-8 h-8 rounded-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-medium">
-                              {(contact.firstName?.[0] || '').toUpperCase()}{(contact.lastName?.[0] || '').toUpperCase()}
-                            </div>
-                          )}
-                        </Link>
+              {/* Contacts */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Contacts</h4>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsAddContactDialogOpen(true)}
+                    className="h-6 px-2 text-gray-500 hover:text-gray-700"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Add
+                  </Button>
+                </div>
+                {deal.contacts && deal.contacts.length > 0 ? (
+                  <div className="space-y-2">
+                    {deal.contacts.map((contact: any) => (
+                      <Link
+                        key={contact.id}
+                        href={`/contacts/${contact.id}`}
+                        className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition-colors"
+                      >
+                        {contact.avatarUrl ? (
+                          <img
+                            src={contact.avatarUrl}
+                            alt={`${contact.firstName} ${contact.lastName}`}
+                            className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
+                            {(contact.firstName?.[0] || '').toUpperCase()}{(contact.lastName?.[0] || '').toUpperCase()}
+                          </div>
+                        )}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <Link href={`/contacts/${contact.id}`} className="text-sm font-medium truncate text-gray-900 hover:text-blue-600">
+                            <p className="font-medium text-gray-900 truncate">
                               {contact.firstName} {contact.lastName}
-                            </Link>
+                            </p>
                             {contact.role && (
                               <Badge variant="secondary" className="text-xs flex-shrink-0">
                                 {contact.role}
                               </Badge>
                             )}
                           </div>
-                          <div className="mt-1 space-y-0.5">
-                            <div className="flex items-center gap-1">
-                              <Mail className="h-3 w-3 text-gray-400 flex-shrink-0" />
-                              <InlineEditEmail
-                                value={contact.email}
-                                onSave={(val) => handleContactUpdate(contact.id, 'email', val)}
-                                emptyText="Add email"
-                                displayClassName="text-xs"
-                              />
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Phone className="h-3 w-3 text-gray-400 flex-shrink-0" />
-                              <InlineEdit
-                                value={contact.phone}
-                                onSave={(val) => handleContactUpdate(contact.id, 'phone', val)}
-                                type="phone"
-                                emptyText="Add phone"
-                                displayClassName="text-xs text-gray-600"
-                                inputClassName="h-6 text-xs"
-                              />
-                            </div>
-                          </div>
+                          {contact.email && (
+                            <p className="text-sm text-gray-500 truncate">{contact.email}</p>
+                          )}
                         </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                        <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 py-2">No contacts linked</p>
+                )}
+              </div>
 
               {!deal.company && (!deal.contacts || deal.contacts.length === 0) && (
                 <div className="text-center py-3">
@@ -1510,7 +1558,7 @@ export default function DealDetailPage() {
             </div>
           ) : (
             <div className="py-4 text-center">
-              <UserPlus className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+              <UserPlus className="h-12 w-12 text-gray-400 mx-auto mb-3" />
               <p className="text-gray-600 mb-4">Create a new contact in your CRM</p>
               <Button asChild>
                 <Link href={`/contacts/new?dealId=${id}`}>
@@ -1620,6 +1668,75 @@ export default function DealDetailPage() {
         open={isCustomizerOpen}
         onOpenChange={setIsCustomizerOpen}
       />
+
+      {/* Link Company Dialog */}
+      <Dialog open={isLinkCompanyOpen} onOpenChange={setIsLinkCompanyOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Link Company</DialogTitle>
+            <DialogDescription>
+              Associate a company with this deal.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search companies..."
+                value={companySearch}
+                onChange={(e) => setCompanySearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+
+            {/* Company List */}
+            <div className="max-h-64 overflow-y-auto border rounded-lg">
+              {filteredCompanies.length > 0 ? (
+                filteredCompanies.map((company) => (
+                  <button
+                    key={company.id}
+                    onClick={() => setSelectedCompanyId(company.id.toString())}
+                    className={`w-full flex items-center gap-3 p-3 hover:bg-gray-50 border-b last:border-b-0 text-left transition-colors ${
+                      selectedCompanyId === company.id.toString() ? "bg-blue-50 border-blue-200" : ""
+                    }`}
+                  >
+                    <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                      <Building2 className="h-4 w-4 text-purple-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm text-gray-900 truncate">{company.name}</p>
+                      {company.industry && (
+                        <p className="text-xs text-gray-500 truncate">{company.industry}</p>
+                      )}
+                    </div>
+                    {selectedCompanyId === company.id.toString() && (
+                      <Check className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                    )}
+                  </button>
+                ))
+              ) : (
+                <div className="p-4 text-center text-gray-500 text-sm">
+                  {companySearch ? "No companies match your search" : "No available companies"}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsLinkCompanyOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => linkCompanyMutation.mutate(parseInt(selectedCompanyId))}
+              disabled={!selectedCompanyId || linkCompanyMutation.isPending}
+            >
+              {linkCompanyMutation.isPending ? "Linking..." : "Link Company"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

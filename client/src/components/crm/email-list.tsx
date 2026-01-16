@@ -20,6 +20,7 @@ import {
   ArrowDownLeft,
   ChevronLeft,
   ChevronRight,
+  Users,
 } from "lucide-react";
 import { EmailComposer } from "./email-composer";
 import DOMPurify from "dompurify";
@@ -165,6 +166,7 @@ export function EmailList({ contactId, contactEmail, dealId, companyId }: EmailL
   const provider = (data as any)?.provider;
   const expired = (data as any)?.expired;
   const fetchError = (data as any)?.error;
+  const noContacts = (data as any)?.noContacts;
   const apiContactEmail = (data as any)?.contactEmail?.toLowerCase();
 
   // Pagination calculations
@@ -196,7 +198,23 @@ export function EmailList({ contactId, contactEmail, dealId, companyId }: EmailL
     );
   }
 
-  if (!connected) {
+  // Handle query errors (network issues, server errors, etc.)
+  if (error && !data) {
+    return (
+      <div className="text-center py-8 px-4">
+        <AlertCircle className="h-10 w-10 text-red-400 mx-auto mb-3" />
+        <h3 className="font-medium text-gray-900 mb-1">Unable to load emails</h3>
+        <p className="text-sm text-gray-500 mb-4">
+          There was an error loading emails. Please try again.
+        </p>
+        <Button variant="outline" onClick={() => window.location.reload()}>
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
+  if (connected === false) {
     return (
       <div className="text-center py-8 px-4">
         <AlertCircle className="h-10 w-10 text-gray-400 mx-auto mb-3" />
@@ -226,6 +244,20 @@ export function EmailList({ contactId, contactEmail, dealId, companyId }: EmailL
     );
   }
 
+  if (noContacts && (companyId || dealId)) {
+    return (
+      <div className="text-center py-8 px-4">
+        <Users className="h-10 w-10 text-gray-400 mx-auto mb-3" />
+        <h3 className="font-medium text-gray-900 mb-1">No contacts associated</h3>
+        <p className="text-sm text-gray-500 mb-4">
+          {companyId
+            ? "Add contacts to this company to view email history with them."
+            : "Add contacts to this deal to view email history with them."}
+        </p>
+      </div>
+    );
+  }
+
   if (fetchError && emails.length === 0) {
     return (
       <div className="text-center py-8 px-4">
@@ -245,14 +277,11 @@ export function EmailList({ contactId, contactEmail, dealId, companyId }: EmailL
     <div className="space-y-4">
       {/* Header with compose button */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <Mail className="h-4 w-4" />
-          <span>
-            {emails.length} email{emails.length !== 1 ? "s" : ""}
-            {provider && (
-              <span className="text-xs ml-1">via {provider === "gmail" ? "Gmail" : "Outlook"}</span>
-            )}
-          </span>
+        <div className="text-sm text-gray-500">
+          {emails.length} email{emails.length !== 1 ? "s" : ""}
+          {provider && (
+            <span className="text-xs ml-1">via {provider === "gmail" ? "Gmail" : "Outlook"}</span>
+          )}
         </div>
         <Button size="sm" onClick={handleCompose}>
           <Send className="h-4 w-4 mr-2" />

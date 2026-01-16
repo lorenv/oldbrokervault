@@ -16,6 +16,21 @@ import { DetailPageCustomizer } from "@/components/crm/detail-page-customizer";
 import { useDetailPageLayout } from "@/hooks/use-detail-page-layout";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   ArrowLeft,
   User,
   Mail,
@@ -36,7 +51,12 @@ import {
   CheckSquare,
   Plus,
   Settings2,
+  X,
+  ChevronRight,
+  Search,
+  Check,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 interface ContactCustomProperties {
   totalDocumentViews?: number;
@@ -60,6 +80,17 @@ export default function ContactDetailPage() {
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<any>(null);
   const [isCustomizerOpen, setIsCustomizerOpen] = useState(false);
+  const [showTagInput, setShowTagInput] = useState(false);
+  const [newTagValue, setNewTagValue] = useState("");
+
+  // Association dialog state
+  const [isLinkCompanyOpen, setIsLinkCompanyOpen] = useState(false);
+  const [isLinkDealOpen, setIsLinkDealOpen] = useState(false);
+  const [companySearch, setCompanySearch] = useState("");
+  const [dealSearch, setDealSearch] = useState("");
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
+  const [selectedDealId, setSelectedDealId] = useState<string>("");
+  const [dealRole, setDealRole] = useState("other");
 
   // Use detail page layout hook
   const { isSectionVisible, getVisibleCustomFields } = useDetailPageLayout("contact");
@@ -75,6 +106,76 @@ export default function ContactDetailPage() {
     queryKey: [`/api/crm/tasks/contact/${id}`],
     queryFn: () => apiRequest("GET", `/api/crm/tasks/contact/${id}`).then(res => res.json()),
     enabled: !!id,
+  });
+
+  // Fetch all companies for linking
+  const { data: companiesData } = useQuery<{ companies: any[] }>({
+    queryKey: ["/api/crm/companies"],
+    queryFn: () => apiRequest("GET", "/api/crm/companies").then(res => res.json()),
+  });
+  const allCompanies = companiesData?.companies || [];
+
+  // Fetch all deals for linking
+  const { data: dealsData } = useQuery<{ deals: any[] }>({
+    queryKey: ["/api/crm/deals"],
+    queryFn: () => apiRequest("GET", "/api/crm/deals").then(res => res.json()),
+  });
+  const allDeals = dealsData?.deals || [];
+
+  // Filter available companies (exclude current company)
+  const availableCompanies = allCompanies.filter(
+    (company) => company.id !== (contact as any)?.company?.id
+  );
+
+  // Filter available deals (exclude already associated deals)
+  const availableDeals = allDeals.filter(
+    (deal) => !(contact as any)?.deals?.some((d: any) => d.id === deal.id)
+  );
+
+  // Filtered lists based on search
+  const filteredCompanies = availableCompanies.filter((company) =>
+    company.name?.toLowerCase().includes(companySearch.toLowerCase())
+  );
+
+  const filteredDeals = availableDeals.filter((deal) =>
+    deal.name?.toLowerCase().includes(dealSearch.toLowerCase())
+  );
+
+  // Mutation to link company to contact
+  const linkCompanyMutation = useMutation({
+    mutationFn: (companyId: number) =>
+      apiRequest("PATCH", `/api/crm/contacts/${id}`, { body: { companyId } }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"] });
+      setIsLinkCompanyOpen(false);
+      setSelectedCompanyId("");
+      setCompanySearch("");
+      toast({ title: "Company linked", description: "Company has been associated with this contact." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to link company.", variant: "destructive" });
+    },
+  });
+
+  // Mutation to link deal to contact
+  const linkDealMutation = useMutation({
+    mutationFn: ({ dealId, role }: { dealId: number; role: string }) =>
+      apiRequest("POST", `/api/crm/deals/${dealId}/contacts`, {
+        body: { contactId: parseInt(id!), role },
+      }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"] });
+      setIsLinkDealOpen(false);
+      setSelectedDealId("");
+      setDealSearch("");
+      setDealRole("other");
+      toast({ title: "Deal linked", description: "Deal has been associated with this contact." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to link deal.", variant: "destructive" });
+    },
   });
 
   // Update contact mutation
@@ -95,6 +196,28 @@ export default function ContactDetailPage() {
     await updateContactMutation.mutateAsync({ [field]: value || null });
   }, [updateContactMutation]);
 
+  // Tag management functions
+  const handleAddTag = useCallback(async (tagName: string) => {
+    const trimmedTag = tagName.trim();
+    if (!trimmedTag) return;
+
+    const currentTags = (contact as any)?.tags || [];
+    if (currentTags.includes(trimmedTag)) {
+      toast({ title: "Tag already exists", variant: "destructive" });
+      return;
+    }
+
+    await updateContactMutation.mutateAsync({ tags: [...currentTags, trimmedTag] });
+    setNewTagValue("");
+    setShowTagInput(false);
+  }, [contact, updateContactMutation, toast]);
+
+  const handleRemoveTag = useCallback(async (tagToRemove: string) => {
+    const currentTags = (contact as any)?.tags || [];
+    const updatedTags = currentTags.filter((tag: string) => tag !== tagToRemove);
+    await updateContactMutation.mutateAsync({ tags: updatedTags });
+  }, [contact, updateContactMutation]);
+
   if (isLoading) {
     return <div className="p-6"><div className="animate-pulse h-64 bg-gray-200 rounded" /></div>;
   }
@@ -102,7 +225,8 @@ export default function ContactDetailPage() {
   if (!contact) {
     return (
       <div className="p-6 text-center py-12">
-        <h2 className="text-xl font-semibold">Contact not found</h2>
+        <h2 className="text-xl font-semibold text-gray-900">Contact not found</h2>
+        <p className="text-gray-600 mt-2">This contact may have been deleted or you don't have access to it.</p>
         <Button asChild className="mt-4"><Link href="/contacts">Back to Contacts</Link></Button>
       </div>
     );
@@ -294,14 +418,6 @@ export default function ContactDetailPage() {
                     </a>
                   )}
                 </div>
-                {(contact as any).company && (
-                  <div className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4 text-gray-400" />
-                    <Link href={`/companies/${(contact as any).company.id}`} className="text-blue-600 hover:underline">
-                      {(contact as any).company.name}
-                    </Link>
-                  </div>
-                )}
                 {(contact as any).linkedinUrl && (
                   <div className="flex items-center gap-2">
                     <Linkedin className="h-4 w-4 text-gray-400" />
@@ -313,19 +429,86 @@ export default function ContactDetailPage() {
               </div>
 
               {/* Tags */}
-              {tags.length > 0 && (
-                <div className="pt-4 border-t">
-                  <div className="flex items-center gap-2 mb-2">
+              <div className="pt-4 border-t">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
                     <Tag className="h-4 w-4 text-gray-400" />
                     <span className="text-sm font-medium text-gray-700">Tags</span>
                   </div>
+                  {!showTagInput && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowTagInput(true)}
+                      className="h-7 px-2 text-gray-500 hover:text-gray-700"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Add
+                    </Button>
+                  )}
+                </div>
+
+                {/* Tag input */}
+                {showTagInput && (
+                  <div className="flex gap-2 mb-3">
+                    <Input
+                      placeholder="Enter tag name..."
+                      value={newTagValue}
+                      onChange={(e) => setNewTagValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddTag(newTagValue);
+                        } else if (e.key === 'Escape') {
+                          setShowTagInput(false);
+                          setNewTagValue("");
+                        }
+                      }}
+                      className="h-8 text-sm"
+                      autoFocus
+                    />
+                    <Button
+                      size="sm"
+                      onClick={() => handleAddTag(newTagValue)}
+                      disabled={!newTagValue.trim()}
+                      className="h-8"
+                    >
+                      Add
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setShowTagInput(false);
+                        setNewTagValue("");
+                      }}
+                      className="h-8 px-2"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+
+                {/* Tags list */}
+                {tags.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
                     {tags.map((tag: string, index: number) => (
-                      <Badge key={index} variant="outline" className="bg-gray-50">{tag}</Badge>
+                      <Badge key={index} variant="outline" className="bg-gray-50 pr-1 flex items-center gap-1 text-gray-700">
+                        {tag}
+                        <button
+                          onClick={() => handleRemoveTag(tag)}
+                          className="ml-1 hover:bg-gray-200 rounded p-0.5 transition-colors"
+                          title={`Remove ${tag}`}
+                        >
+                          <X className="h-3 w-3 text-gray-500 hover:text-gray-700" />
+                        </button>
+                      </Badge>
                     ))}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <p className="text-sm text-gray-500">No tags added</p>
+                )}
+              </div>
 
               {/* Source */}
               {source && (
@@ -476,26 +659,82 @@ export default function ContactDetailPage() {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Associated Deals */}
+          {/* Associations */}
           {isSectionVisible("associated-deals") && (
           <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><Briefcase className="h-5 w-5" />Associated Deals</CardTitle></CardHeader>
-            <CardContent>
-              {(contact as any).deals?.length > 0 ? (
-                <div className="space-y-2">
-                  {(contact as any).deals.map((deal: any) => (
-                    <Link key={deal.id} href={`/deals/${deal.id}`} className="flex items-center gap-2 p-3 rounded-lg hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-colors">
-                      <Briefcase className="h-4 w-4 text-gray-500" />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{deal.name}</p>
-                        {deal.amount && <p className="text-sm text-green-600">${parseFloat(deal.amount).toLocaleString()}</p>}
-                      </div>
-                    </Link>
-                  ))}
+            <CardHeader><CardTitle className="text-base">Associations</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              {/* Company */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Company</h4>
+                  {!(contact as any).company && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsLinkCompanyOpen(true)}
+                      className="h-6 px-2 text-gray-500 hover:text-gray-700"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Add
+                    </Button>
+                  )}
                 </div>
-              ) : (
-                <p className="text-gray-500 text-center py-4">No deals associated</p>
-              )}
+                {(contact as any).company ? (
+                  <Link
+                    href={`/companies/${(contact as any).company.id}`}
+                    className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                      <Building2 className="h-4 w-4 text-purple-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900 truncate">{(contact as any).company.name}</p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                  </Link>
+                ) : (
+                  <p className="text-sm text-gray-500 py-2">No company linked</p>
+                )}
+              </div>
+
+              {/* Deals */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Deals</h4>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsLinkDealOpen(true)}
+                    className="h-6 px-2 text-gray-500 hover:text-gray-700"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Add
+                  </Button>
+                </div>
+                {(contact as any).deals?.length > 0 ? (
+                  <div className="space-y-2">
+                    {(contact as any).deals.map((deal: any) => (
+                      <Link
+                        key={deal.id}
+                        href={`/deals/${deal.id}`}
+                        className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition-colors"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                          <Briefcase className="h-4 w-4 text-green-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-900 truncate">{deal.name}</p>
+                          {deal.amount && <p className="text-sm text-green-600">${parseFloat(deal.amount).toLocaleString()}</p>}
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 py-2">No deals associated</p>
+                )}
+              </div>
             </CardContent>
           </Card>
           )}
@@ -549,6 +788,163 @@ export default function ContactDetailPage() {
         open={isCustomizerOpen}
         onOpenChange={setIsCustomizerOpen}
       />
+
+      {/* Link Company Dialog */}
+      <Dialog open={isLinkCompanyOpen} onOpenChange={setIsLinkCompanyOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Link Company</DialogTitle>
+            <DialogDescription>
+              Associate a company with this contact.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search companies..."
+                value={companySearch}
+                onChange={(e) => setCompanySearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+
+            {/* Company List */}
+            <div className="max-h-64 overflow-y-auto border rounded-lg">
+              {filteredCompanies.length > 0 ? (
+                filteredCompanies.map((company) => (
+                  <button
+                    key={company.id}
+                    onClick={() => setSelectedCompanyId(company.id.toString())}
+                    className={`w-full flex items-center gap-3 p-3 hover:bg-gray-50 border-b last:border-b-0 text-left transition-colors ${
+                      selectedCompanyId === company.id.toString() ? "bg-blue-50 border-blue-200" : ""
+                    }`}
+                  >
+                    <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                      <Building2 className="h-4 w-4 text-purple-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm text-gray-900 truncate">{company.name}</p>
+                      {company.industry && (
+                        <p className="text-xs text-gray-500 truncate">{company.industry}</p>
+                      )}
+                    </div>
+                    {selectedCompanyId === company.id.toString() && (
+                      <Check className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                    )}
+                  </button>
+                ))
+              ) : (
+                <div className="p-4 text-center text-gray-500 text-sm">
+                  {companySearch ? "No companies match your search" : "No available companies"}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsLinkCompanyOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => linkCompanyMutation.mutate(parseInt(selectedCompanyId))}
+              disabled={!selectedCompanyId || linkCompanyMutation.isPending}
+            >
+              {linkCompanyMutation.isPending ? "Linking..." : "Link Company"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Link Deal Dialog */}
+      <Dialog open={isLinkDealOpen} onOpenChange={setIsLinkDealOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Link Deal</DialogTitle>
+            <DialogDescription>
+              Associate a deal with this contact.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search deals..."
+                value={dealSearch}
+                onChange={(e) => setDealSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+
+            {/* Deal List */}
+            <div className="max-h-64 overflow-y-auto border rounded-lg">
+              {filteredDeals.length > 0 ? (
+                filteredDeals.map((deal) => (
+                  <button
+                    key={deal.id}
+                    onClick={() => setSelectedDealId(deal.id.toString())}
+                    className={`w-full flex items-center gap-3 p-3 hover:bg-gray-50 border-b last:border-b-0 text-left transition-colors ${
+                      selectedDealId === deal.id.toString() ? "bg-blue-50 border-blue-200" : ""
+                    }`}
+                  >
+                    <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                      <Briefcase className="h-4 w-4 text-green-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm text-gray-900 truncate">{deal.name}</p>
+                      {deal.amount && (
+                        <p className="text-xs text-green-600">${parseFloat(deal.amount).toLocaleString()}</p>
+                      )}
+                    </div>
+                    {selectedDealId === deal.id.toString() && (
+                      <Check className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                    )}
+                  </button>
+                ))
+              ) : (
+                <div className="p-4 text-center text-gray-500 text-sm">
+                  {dealSearch ? "No deals match your search" : "No available deals"}
+                </div>
+              )}
+            </div>
+
+            {/* Role Selection */}
+            {selectedDealId && (
+              <div>
+                <Label className="text-sm text-gray-700">Contact Role</Label>
+                <Select value={dealRole} onValueChange={setDealRole}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="decision_maker">Decision Maker</SelectItem>
+                    <SelectItem value="influencer">Influencer</SelectItem>
+                    <SelectItem value="champion">Champion</SelectItem>
+                    <SelectItem value="end_user">End User</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsLinkDealOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => linkDealMutation.mutate({ dealId: parseInt(selectedDealId), role: dealRole })}
+              disabled={!selectedDealId || linkDealMutation.isPending}
+            >
+              {linkDealMutation.isPending ? "Linking..." : "Link Deal"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
