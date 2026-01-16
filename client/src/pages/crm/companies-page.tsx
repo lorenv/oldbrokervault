@@ -391,16 +391,16 @@ export default function CompaniesPage() {
             </div>
 
             {/* Desktop Table View */}
-            <div className="hidden md:block bg-white rounded-lg border overflow-hidden">
+            <div className="hidden md:block w-full bg-white rounded-lg border overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full table-fixed">
+                <table className="w-full table-auto">
                   <thead className="bg-gray-50 border-b">
                     <tr>
                       {visibleColumns.map((column) => (
                         <th
                           key={column.id}
                           className="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 transition-colors"
-                          style={{ width: column.width || '15%' }}
+                          style={column.id === 'name' ? { width: '100%' } : { whiteSpace: 'nowrap' }}
                           onClick={() => toggleSort(column.id)}
                         >
                           <div className="flex items-center gap-1">
@@ -415,7 +415,11 @@ export default function CompaniesPage() {
                     {companies.map((company: any) => (
                       <tr key={company.id} className="border-b hover:bg-gray-50/50">
                         {visibleColumns.map((column) => (
-                          <td key={column.id} className="py-2 px-3">
+                          <td
+                            key={column.id}
+                            className="py-2 px-3"
+                            style={column.id === 'name' ? { width: '100%' } : { whiteSpace: 'nowrap' }}
+                          >
                             {renderCell(company, column.id)}
                           </td>
                         ))}

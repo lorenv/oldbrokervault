@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { EmailList } from "@/components/crm/email-list";
 import { TaskDialog } from "@/components/crm/task-dialog";
 import { TaskList } from "@/components/crm/task-list";
+import { PhotoUpload } from "@/components/crm/photo-upload";
 import { InlineEdit, InlineEditEmail } from "@/components/ui/inline-edit";
 import { DetailPageCustomizer } from "@/components/crm/detail-page-customizer";
 import { useDetailPageLayout } from "@/hooks/use-detail-page-layout";
@@ -148,20 +149,22 @@ export default function ContactDetailPage() {
       {/* Header - stacks on mobile */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
         <Button variant="ghost" size="sm" asChild className="w-fit">
-          <Link href="/contacts"><ArrowLeft className="h-4 w-4 mr-2" />Back</Link>
+          <Link href="/contacts"><ArrowLeft className="h-4 w-4 mr-2" />Contacts</Link>
         </Button>
         <div className="flex items-center gap-3 flex-1">
-          {(contact as any).avatarUrl ? (
-            <img
-              src={(contact as any).avatarUrl}
-              alt={`${(contact as any).firstName} ${(contact as any).lastName}`}
-              className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover shadow-sm"
-            />
-          ) : (
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-sm text-white text-base sm:text-lg font-semibold">
-              {((contact as any).firstName?.[0] || '').toUpperCase()}{((contact as any).lastName?.[0] || '').toUpperCase()}
-            </div>
-          )}
+          <PhotoUpload
+            currentPhotoUrl={(contact as any).avatarUrl}
+            onPhotoChange={async (photoUrl) => {
+              await handleContactUpdate('avatarUrl', photoUrl || '');
+            }}
+            placeholder={
+              <div className="w-full h-full rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-base sm:text-lg font-semibold">
+                {((contact as any).firstName?.[0] || '').toUpperCase()}{((contact as any).lastName?.[0] || '').toUpperCase()}
+              </div>
+            }
+            shape="circle"
+            size="md"
+          />
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-xl md:text-2xl font-semibold text-gray-900">{(contact as any).firstName} {(contact as any).lastName}</h1>

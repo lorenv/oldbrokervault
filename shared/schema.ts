@@ -2127,6 +2127,7 @@ export const companies = pgTable("companies", {
   name: text("name").notNull(),
   domain: text("domain"), // e.g., "acme.com"
   website: text("website"),
+  logoUrl: text("logo_url"), // Company logo/image
 
   // Industry and size
   industry: text("industry"),

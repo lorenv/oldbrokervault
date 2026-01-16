@@ -556,7 +556,7 @@ export default function DealDetailPage() {
           <Button variant="ghost" size="sm" asChild className="w-fit">
             <Link href="/deals">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
+              Deals
             </Link>
           </Button>
           <div>

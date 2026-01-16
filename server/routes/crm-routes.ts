@@ -4920,7 +4920,7 @@ router.delete('/tasks/:id', async (req, res) => {
 // EMAIL INTEGRATION ENDPOINTS
 // ============================================
 
-// Helper: Get user's active email connection (Gmail or Microsoft)
+// Helper: Get user's email connection (Gmail or Microsoft) - returns any status
 async function getUserEmailConnection(userId: number) {
   const [connection] = await db
     .select()
@@ -4928,10 +4928,10 @@ async function getUserEmailConnection(userId: number) {
     .where(
       and(
         eq(integrationConnections.userId, userId),
-        inArray(integrationConnections.provider, ['gmail', 'microsoft']),
-        eq(integrationConnections.status, 'active')
+        inArray(integrationConnections.provider, ['gmail', 'microsoft'])
       )
     )
+    .orderBy(desc(integrationConnections.lastUsedAt))
     .limit(1);
 
   return connection;
@@ -5023,11 +5023,10 @@ router.get('/contacts/:id/emails', async (req, res) => {
           query: contactEmail, // Gmail search query
         });
       } else if (connection.provider === 'microsoft') {
-        // Microsoft: Use OData filter
-        const filter = `from/emailAddress/address eq '${contactEmail}' or toRecipients/any(r: r/emailAddress/address eq '${contactEmail}')`;
+        // Microsoft: Use query parameter which uses $search (more reliable than $filter)
         emails = await microsoftProvider.getRecentEmails(connectionForProvider as any, {
           maxResults: 50,
-          filter: filter,
+          query: contactEmail,
         });
       }
 
@@ -5219,14 +5218,7 @@ router.get('/deals/:id/emails', async (req, res) => {
       .filter(c => c.email)
       .map(c => c.email!.toLowerCase());
 
-    if (contactEmails.length === 0) {
-      return res.json({
-        emails: [],
-        message: 'No contacts with email addresses associated with this deal'
-      });
-    }
-
-    // Get user's email connection
+    // Get user's email connection first to know the connection status
     const connection = await getUserEmailConnection(req.user!.id);
 
     if (!connection) {
@@ -5234,6 +5226,28 @@ router.get('/deals/:id/emails', async (req, res) => {
         emails: [],
         connected: false,
         message: 'No email account connected'
+      });
+    }
+
+    // Check if connection is active - if not, return appropriate status
+    if (connection.status !== 'active') {
+      return res.json({
+        emails: [],
+        connected: true,
+        expired: connection.status === 'expired' || connection.status === 'error',
+        provider: connection.provider,
+        message: connection.status === 'expired'
+          ? 'Email connection expired. Please reconnect in Settings > Email Sync.'
+          : `Email connection status: ${connection.status}. Please reconnect in Settings > Email Sync.`
+      });
+    }
+
+    if (contactEmails.length === 0) {
+      return res.json({
+        emails: [],
+        connected: true,
+        provider: connection.provider,
+        message: 'No contacts with email addresses associated with this deal'
       });
     }
 
@@ -5251,17 +5265,23 @@ router.get('/deals/:id/emails', async (req, res) => {
       for (const contactEmail of contactEmails) {
         let emails: any[] = [];
 
-        if (connection.provider === 'gmail') {
-          emails = await gmailProvider.getRecentEmails(connectionForProvider as any, {
-            maxResults: 25,
-            query: contactEmail,
-          });
-        } else if (connection.provider === 'microsoft') {
-          const filter = `from/emailAddress/address eq '${contactEmail}' or toRecipients/any(r: r/emailAddress/address eq '${contactEmail}')`;
-          emails = await microsoftProvider.getRecentEmails(connectionForProvider as any, {
-            maxResults: 25,
-            filter: filter,
-          });
+        try {
+          if (connection.provider === 'gmail') {
+            emails = await gmailProvider.getRecentEmails(connectionForProvider as any, {
+              maxResults: 25,
+              query: contactEmail,
+            });
+          } else if (connection.provider === 'microsoft') {
+            // Use query parameter which uses $search (more reliable than $filter for recipients)
+            emails = await microsoftProvider.getRecentEmails(connectionForProvider as any, {
+              maxResults: 25,
+              query: contactEmail,
+            });
+          }
+        } catch (fetchError: any) {
+          console.error('[CRM] Error fetching emails for contact:', fetchError.message);
+          // Continue with other contacts instead of failing entirely
+          continue;
         }
 
         // Filter and tag emails with contact info
@@ -5361,15 +5381,7 @@ router.get('/companies/:id/emails', async (req, res) => {
       .filter(c => c.email)
       .map(c => ({ email: c.email!.toLowerCase(), name: c.firstName && c.lastName ? `${c.firstName} ${c.lastName}` : c.firstName || c.lastName || c.email }));
 
-    if (contactEmails.length === 0) {
-      return res.json({
-        emails: [],
-        connected: true,
-        message: 'No contacts with email addresses associated with this company'
-      });
-    }
-
-    // Get user's email connection
+    // Get user's email connection first to know the connection status
     const connection = await getUserEmailConnection(req.user!.id);
 
     if (!connection) {
@@ -5377,6 +5389,28 @@ router.get('/companies/:id/emails', async (req, res) => {
         emails: [],
         connected: false,
         message: 'No email account connected'
+      });
+    }
+
+    // Check if connection is active - if not, return appropriate status
+    if (connection.status !== 'active') {
+      return res.json({
+        emails: [],
+        connected: true,
+        expired: connection.status === 'expired' || connection.status === 'error',
+        provider: connection.provider,
+        message: connection.status === 'expired'
+          ? 'Email connection expired. Please reconnect in Settings > Email Sync.'
+          : `Email connection status: ${connection.status}. Please reconnect in Settings > Email Sync.`
+      });
+    }
+
+    if (contactEmails.length === 0) {
+      return res.json({
+        emails: [],
+        connected: true,
+        provider: connection.provider,
+        message: 'No contacts with email addresses associated with this company'
       });
     }
 
@@ -5394,17 +5428,23 @@ router.get('/companies/:id/emails', async (req, res) => {
       for (const contactInfo of contactEmails) {
         let emails: any[] = [];
 
-        if (connection.provider === 'gmail') {
-          emails = await gmailProvider.getRecentEmails(connectionForProvider as any, {
-            maxResults: 25,
-            query: `from:${contactInfo.email} OR to:${contactInfo.email}`,
-          });
-        } else if (connection.provider === 'microsoft') {
-          const filter = `from/emailAddress/address eq '${contactInfo.email}' or toRecipients/any(r: r/emailAddress/address eq '${contactInfo.email}')`;
-          emails = await microsoftProvider.getRecentEmails(connectionForProvider as any, {
-            maxResults: 25,
-            filter: filter,
-          });
+        try {
+          if (connection.provider === 'gmail') {
+            emails = await gmailProvider.getRecentEmails(connectionForProvider as any, {
+              maxResults: 25,
+              query: contactInfo.email,
+            });
+          } else if (connection.provider === 'microsoft') {
+            // Use query parameter which uses $search (more reliable than $filter)
+            emails = await microsoftProvider.getRecentEmails(connectionForProvider as any, {
+              maxResults: 25,
+              query: contactInfo.email,
+            });
+          }
+        } catch (fetchError: any) {
+          console.error('[CRM] Error fetching emails for contact:', fetchError.message);
+          // Continue with other contacts instead of failing entirely
+          continue;
         }
 
         // Filter and tag emails with contact info

@@ -18,6 +18,8 @@ import {
   Inbox,
   ArrowUpRight,
   ArrowDownLeft,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { EmailComposer } from "./email-composer";
 import DOMPurify from "dompurify";
@@ -61,6 +63,8 @@ export function EmailList({ contactId, contactEmail, dealId, companyId }: EmailL
   const [expandedEmailContent, setExpandedEmailContent] = useState<EmailMessage | null>(null);
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [replyToEmail, setReplyToEmail] = useState<EmailMessage | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const emailsPerPage = 10;
 
   // Determine query key based on context
   const getQueryKey = () => {
@@ -163,6 +167,13 @@ export function EmailList({ contactId, contactEmail, dealId, companyId }: EmailL
   const fetchError = (data as any)?.error;
   const apiContactEmail = (data as any)?.contactEmail?.toLowerCase();
 
+  // Pagination calculations
+  const totalEmails = emails.length;
+  const totalPages = Math.ceil(totalEmails / emailsPerPage);
+  const startIndex = (currentPage - 1) * emailsPerPage;
+  const endIndex = startIndex + emailsPerPage;
+  const paginatedEmails = emails.slice(startIndex, endIndex);
+
   // Determine if an email is outgoing (sent to contact) or incoming (from contact)
   const isOutgoing = (email: EmailMessage) => {
     const targetEmail = apiContactEmail || contactEmail?.toLowerCase();
@@ -264,7 +275,7 @@ export function EmailList({ contactId, contactEmail, dealId, companyId }: EmailL
         </div>
       ) : (
         <div className="space-y-2">
-          {emails.map((email: EmailMessage) => {
+          {paginatedEmails.map((email: EmailMessage) => {
             const isExpanded = expandedEmailId === email.id;
             const outgoing = isOutgoing(email);
 
@@ -421,6 +432,36 @@ export function EmailList({ contactId, contactEmail, dealId, companyId }: EmailL
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Pagination controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-4 border-t">
+          <p className="text-sm text-gray-500">
+            Showing {startIndex + 1}-{Math.min(endIndex, totalEmails)} of {totalEmails} emails
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm text-gray-600 min-w-[80px] text-center">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       )}
 

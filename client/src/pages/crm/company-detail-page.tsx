@@ -13,6 +13,7 @@ import { InlineEdit, InlineEditEmail } from "@/components/ui/inline-edit";
 import { DetailPageCustomizer } from "@/components/crm/detail-page-customizer";
 import { useDetailPageLayout } from "@/hooks/use-detail-page-layout";
 import { ArrowLeft, Building2, Globe, MapPin, Phone, Users, Briefcase, CheckSquare, Plus, Mail, ExternalLink, Settings2 } from "lucide-react";
+import { PhotoUpload } from "@/components/crm/photo-upload";
 
 // Helper to ensure URL has protocol
 const ensureProtocol = (url: string): string => {
@@ -106,12 +107,22 @@ export default function CompanyDetailPage() {
       {/* Header - stacks on mobile */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
         <Button variant="ghost" size="sm" asChild className="w-fit">
-          <Link href="/companies"><ArrowLeft className="h-4 w-4 mr-2" />Back</Link>
+          <Link href="/companies"><ArrowLeft className="h-4 w-4 mr-2" />Companies</Link>
         </Button>
         <div className="flex items-center gap-3 flex-1">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-blue-100 flex items-center justify-center">
-            <Building2 className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
-          </div>
+          <PhotoUpload
+            currentPhotoUrl={(company as any).logoUrl}
+            onPhotoChange={async (photoUrl) => {
+              await handleCompanyUpdate('logoUrl', photoUrl || '');
+            }}
+            placeholder={
+              <div className="w-full h-full rounded-lg bg-blue-100 flex items-center justify-center">
+                <Building2 className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+              </div>
+            }
+            shape="rounded"
+            size="md"
+          />
           <div className="min-w-0">
             <h1 className="text-xl md:text-2xl font-semibold truncate">{(company as any).name}</h1>
             {(company as any).industry && <p className="text-gray-500 text-sm">{(company as any).industry}</p>}
@@ -179,8 +190,8 @@ export default function CompanyDetailPage() {
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Briefcase className="h-4 w-4 text-gray-400 flex-shrink-0" />
+              <div className="flex items-start gap-2">
+                <Briefcase className="h-4 w-4 text-gray-400 flex-shrink-0 mt-1" />
                 <div className="flex-1">
                   <Label className="text-xs text-gray-500">Industry</Label>
                   <InlineEdit

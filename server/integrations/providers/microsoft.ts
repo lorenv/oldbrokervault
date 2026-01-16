@@ -328,6 +328,7 @@ export class MicrosoftProvider extends BaseProvider {
     options: {
       maxResults?: number;
       filter?: string;
+      query?: string; // Search query (email address to search for)
       after?: Date;
     } = {}
   ): Promise<any[]> {
@@ -336,21 +337,29 @@ export class MicrosoftProvider extends BaseProvider {
       throw new Error('Failed to get valid access token');
     }
 
-    const { maxResults = 20, filter = '', after } = options;
+    const { maxResults = 20, filter = '', query = '', after } = options;
 
     // Build OData query parameters
     const params = new URLSearchParams({
       $top: maxResults.toString(),
       $select: 'id,subject,from,toRecipients,receivedDateTime,bodyPreview,isRead',
-      $orderby: 'receivedDateTime desc',
     });
 
-    // Add filter for date if provided
-    if (after) {
-      const afterFilter = `receivedDateTime ge ${after.toISOString()}`;
-      params.append('$filter', filter ? `${filter} and ${afterFilter}` : afterFilter);
-    } else if (filter) {
-      params.append('$filter', filter);
+    // Use $search for email address queries (more reliable than $filter for recipients)
+    // Note: $orderby is not supported with $search, so we'll sort results in code
+    if (query) {
+      // Microsoft Graph $search uses KQL syntax
+      params.append('$search', `"participants:${query}"`);
+    } else {
+      // Only add $orderby when not using $search
+      params.append('$orderby', 'receivedDateTime desc');
+
+      if (after) {
+        const afterFilter = `receivedDateTime ge ${after.toISOString()}`;
+        params.append('$filter', filter ? `${filter} and ${afterFilter}` : afterFilter);
+      } else if (filter) {
+        params.append('$filter', filter);
+      }
     }
 
     const response = await fetch(
@@ -363,7 +372,9 @@ export class MicrosoftProvider extends BaseProvider {
     );
 
     if (!response.ok) {
-      throw new Error('Failed to fetch emails');
+      const errorText = await response.text();
+      console.error('[Microsoft] Email fetch failed:', response.status, errorText);
+      throw new Error(`Failed to fetch emails: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
