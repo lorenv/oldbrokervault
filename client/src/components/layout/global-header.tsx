@@ -59,8 +59,8 @@ function QuickCreateDialog({ type, onClose }: QuickCreateDialogProps) {
   const [contactSearch, setContactSearch] = useState("");
 
   // Fetch team members for owner/assignee dropdowns
-  const { data: teamMembers = [] } = useQuery<Array<{ id: number; email: string; firstName: string | null; lastName: string | null; profilePhoto?: string | null }>>({
-    queryKey: ["/api/team-members"],
+  const { data: teamMembers = [] } = useQuery<Array<{ id: number; userId: number; email: string; firstName: string | null; lastName: string | null; profilePhoto?: string | null }>>({
+    queryKey: ["/api/crm/organization/members"],
     enabled: type === "deal" || type === "task",
   });
 
@@ -204,8 +204,8 @@ function QuickCreateDialog({ type, onClose }: QuickCreateDialogProps) {
                     <SelectValue placeholder="Select owner" />
                   </SelectTrigger>
                   <SelectContent>
-                    {teamMembers.map((member) => (
-                      <SelectItem key={member.id} value={member.id.toString()}>
+                    {teamMembers.filter(m => m.userId != null).map((member) => (
+                      <SelectItem key={member.userId} value={member.userId.toString()}>
                         <div className="flex items-center gap-2">
                           {member.profilePhoto ? (
                             <img src={member.profilePhoto} alt="" className="w-5 h-5 rounded-full object-cover" />
@@ -340,11 +340,11 @@ function QuickCreateDialog({ type, onClose }: QuickCreateDialogProps) {
                 <Label>Assign To</Label>
                 <Select value={taskForm.assignedTo} onValueChange={(v) => setTaskForm({ ...taskForm, assignedTo: v })}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select owner" />
+                    <SelectValue placeholder="Select assignee" />
                   </SelectTrigger>
                   <SelectContent>
-                    {teamMembers.map((member) => (
-                      <SelectItem key={member.id} value={member.id.toString()}>
+                    {teamMembers.filter(m => m.userId != null).map((member) => (
+                      <SelectItem key={member.userId} value={member.userId.toString()}>
                         <div className="flex items-center gap-2">
                           {member.profilePhoto ? (
                             <img src={member.profilePhoto} alt="" className="w-5 h-5 rounded-full object-cover" />

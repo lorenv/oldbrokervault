@@ -4093,6 +4093,111 @@ router.get('/activity-feed/:objectType/:objectId', async (req, res) => {
       } as any);
     }
 
+    // Fetch emails for deals and add to activity feed
+    if (objectType === 'deal') {
+      try {
+        // Get the deal's contacts
+        const dealContactsResult = await db
+          .select({ contact: crmContacts })
+          .from(dealContacts)
+          .innerJoin(crmContacts, eq(crmContacts.id, dealContacts.contactId))
+          .where(eq(dealContacts.dealId, objId));
+
+        const contacts = dealContactsResult.map(dc => dc.contact);
+        const contactEmails = contacts
+          .filter(c => c.email)
+          .map(c => c.email!.toLowerCase());
+
+        if (contactEmails.length > 0) {
+          // Get user's email connection
+          const connection = await getUserEmailConnection(req.user!.id);
+
+          if (connection && connection.status === 'active') {
+            const connectionForProvider = {
+              ...connection,
+              accessToken: connection.accessTokenEncrypted,
+              refreshToken: connection.refreshTokenEncrypted,
+            };
+
+            let allEmails: any[] = [];
+
+            for (const contactEmail of contactEmails) {
+              try {
+                let emails: any[] = [];
+
+                if (connection.provider === 'gmail') {
+                  emails = await gmailProvider.getRecentEmails(connectionForProvider as any, {
+                    maxResults: 15,
+                    query: contactEmail,
+                  });
+                } else if (connection.provider === 'microsoft') {
+                  emails = await microsoftProvider.getRecentEmails(connectionForProvider as any, {
+                    maxResults: 15,
+                    query: contactEmail,
+                  });
+                }
+
+                // Filter to only include emails actually involving the contact
+                emails = emails.filter(email => {
+                  const fromMatch = email.from?.toLowerCase() === contactEmail;
+                  const toMatch = email.to?.toLowerCase().includes(contactEmail);
+                  return fromMatch || toMatch;
+                });
+
+                allEmails = [...allEmails, ...emails];
+              } catch (fetchError: any) {
+                console.error('[CRM] Error fetching emails for activity feed:', fetchError.message);
+                continue;
+              }
+            }
+
+            // Deduplicate by message ID
+            const seen = new Set();
+            allEmails = allEmails.filter(email => {
+              if (seen.has(email.id)) return false;
+              seen.add(email.id);
+              return true;
+            });
+
+            // Convert emails to activity feed items
+            for (const email of allEmails) {
+              const isOutgoing = !contactEmails.includes(email.from?.toLowerCase());
+              feedItems.push({
+                id: `email-${email.id}`,
+                activityType: 'email',
+                objectType: 'deal',
+                objectId: objId,
+                timestamp: email.date,
+                title: isOutgoing ? 'Sent an email' : 'Received an email',
+                description: email.subject,
+                performedByUser: isOutgoing ? { email: email.from } : null,
+                metadata: {
+                  direction: isOutgoing ? 'sent' : 'received',
+                  emailId: email.id,
+                  provider: connection.provider,
+                },
+                embeddedContent: {
+                  type: 'email',
+                  id: email.id,
+                  subject: email.subject,
+                  snippet: email.snippet,
+                  from: email.from,
+                  fromName: email.fromName,
+                  to: email.to,
+                  date: email.date,
+                  direction: isOutgoing ? 'sent' : 'received',
+                  provider: connection.provider,
+                },
+              } as any);
+            }
+          }
+        }
+      } catch (emailError) {
+        // Log but don't fail the entire activity feed if emails fail
+        console.error('[CRM] Error adding emails to activity feed:', emailError);
+      }
+    }
+
     // Sort by timestamp descending
     feedItems.sort((a, b) => {
       const timeA = new Date(a.timestamp).getTime();

@@ -846,6 +846,47 @@ export default function DealDetailPage() {
                                 </div>
                               )}
 
+                              {/* Embedded Email Content */}
+                              {embedded?.type === 'email' && (
+                                <div className={`mt-2 p-3 rounded-lg border ${
+                                  embedded.direction === 'sent'
+                                    ? 'bg-blue-50 border-blue-100'
+                                    : 'bg-cyan-50 border-cyan-100'
+                                }`}>
+                                  <div className="flex items-start gap-3">
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                      embedded.direction === 'sent' ? 'bg-blue-100' : 'bg-cyan-100'
+                                    }`}>
+                                      <Mail className={`h-4 w-4 ${
+                                        embedded.direction === 'sent' ? 'text-blue-600' : 'text-cyan-600'
+                                      }`} />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <Badge variant="secondary" className={`text-xs ${
+                                          embedded.direction === 'sent'
+                                            ? 'bg-blue-100 text-blue-700'
+                                            : 'bg-cyan-100 text-cyan-700'
+                                        }`}>
+                                          {embedded.direction === 'sent' ? 'Sent' : 'Received'}
+                                        </Badge>
+                                        <span className="text-xs text-gray-500">
+                                          {embedded.direction === 'sent' ? `To: ${embedded.to}` : `From: ${embedded.fromName || embedded.from}`}
+                                        </span>
+                                      </div>
+                                      <p className="text-sm font-medium text-gray-800 mb-1">
+                                        {embedded.subject || '(No subject)'}
+                                      </p>
+                                      {embedded.snippet && (
+                                        <p className="text-sm text-gray-600 line-clamp-2">
+                                          {embedded.snippet}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
                               {/* Stage Change Details */}
                               {activity.activityType === 'stage_change' && activity.metadata && (
                                 <p className="text-sm text-gray-600 mt-1 flex items-center gap-2 flex-wrap">
