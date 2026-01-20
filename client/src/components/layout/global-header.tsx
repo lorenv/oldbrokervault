@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +42,18 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { NotificationBell } from "@/components/ui/notification-bell";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+
+// Convert hex color to a very light tint (pastel version)
+function hexToLightTint(hex: string, lightness: number = 0.92): string {
+  const cleanHex = hex.replace('#', '');
+  const r = parseInt(cleanHex.substring(0, 2), 16);
+  const g = parseInt(cleanHex.substring(2, 4), 16);
+  const b = parseInt(cleanHex.substring(4, 6), 16);
+  const newR = Math.round(r + (255 - r) * lightness);
+  const newG = Math.round(g + (255 - g) * lightness);
+  const newB = Math.round(b + (255 - b) * lightness);
+  return `rgb(${newR}, ${newG}, ${newB})`;
+}
 
 interface QuickCreateDialogProps {
   type: "deal" | "contact" | "company" | "task" | null;
@@ -394,6 +406,15 @@ export function GlobalHeader() {
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
 
+  // Fetch profile data for logo and brand colors
+  const { data: profile } = useQuery({
+    queryKey: ["/api/profile"],
+  });
+
+  // Get brand color and create light tint for header background
+  const brandColor = (profile as any)?.brandColors?.[0];
+  const headerBgColor = brandColor ? hexToLightTint(brandColor, 0.92) : '#ffffff';
+
   // Check if we're on a detail page
   const isDetailPage = /^\/(deals|contacts|companies)\/\d+/.test(location);
 
@@ -485,7 +506,10 @@ export function GlobalHeader() {
   if (isMobile) {
     return (
       <>
-        <header className="sticky top-0 z-40 h-12 border-b border-gray-200 bg-white flex items-center px-3 gap-3">
+        <header
+          className="fixed top-0 left-0 right-0 z-50 h-16 flex items-center px-3 gap-3"
+          style={{ backgroundColor: headerBgColor }}
+        >
           {/* Back Button (detail pages) or Hamburger Menu (list pages) */}
           {isDetailPage ? (
             <Button
@@ -502,10 +526,14 @@ export function GlobalHeader() {
             </SidebarTrigger>
           )}
 
-          {/* App Title/Logo */}
-          <div className="flex-1 font-semibold text-gray-900">
-            VenueVision
-          </div>
+          {/* Logo */}
+          <Link href="/dashboard" className="flex-1">
+            <img
+              src={(profile as any)?.businessLogo || "/cim-share-logo.png"}
+              alt={(profile as any)?.businessName || "CIM Share"}
+              className="h-8 max-w-[140px] object-contain"
+            />
+          </Link>
 
           {/* Search Button */}
           <Button
@@ -655,14 +683,26 @@ export function GlobalHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 h-12 border-b border-gray-200 bg-white flex items-center px-4 gap-4">
-        {/* Global Search - always visible */}
-        <div ref={searchContainerRef} className="relative flex-1 max-w-md">
+      <header
+        className="fixed top-0 left-0 right-0 z-50 h-16 flex items-center px-4 gap-4"
+        style={{ backgroundColor: headerBgColor }}
+      >
+        {/* Logo */}
+        <Link href="/dashboard" className="flex-shrink-0">
+          <img
+            src={(profile as any)?.businessLogo || "/cim-share-logo.png"}
+            alt={(profile as any)?.businessName || "CIM Share"}
+            className="h-10 max-w-[160px] object-contain"
+          />
+        </Link>
+
+        {/* Global Search - wider search bar */}
+        <div ref={searchContainerRef} className="relative flex-1 max-w-2xl">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             ref={inputRef}
             placeholder="Search deals, contacts, companies..."
-            className="pl-9 pr-16 h-9 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
+            className="pl-9 pr-16 h-10 bg-white/80 border-gray-200 focus:bg-white transition-colors"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => setSearchFocused(true)}
@@ -674,9 +714,9 @@ export function GlobalHeader() {
           {/* Search Results Dropdown */}
           {searchFocused && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-md border border-gray-200 shadow-lg z-50 overflow-hidden">
-              {/* Quick Filters */}
-              <div className="px-3 py-2 border-b border-gray-100 flex items-center gap-1 flex-wrap">
-                <span className="text-xs text-gray-500 mr-0.5">Filter:</span>
+              {/* Quick Filters - larger buttons */}
+              <div className="px-3 py-2.5 border-b border-gray-100 flex items-center gap-1.5 flex-wrap">
+                <span className="text-sm text-gray-500 mr-1">Filter:</span>
                 {[
                   { value: "all", label: "All" },
                   { value: "deal", label: "Deals", icon: Kanban, color: "text-green-600" },
@@ -688,13 +728,13 @@ export function GlobalHeader() {
                   <button
                     key={filter.value}
                     onClick={() => setSearchFilter(filter.value as typeof searchFilter)}
-                    className={`px-1.5 py-0.5 text-xs rounded flex items-center gap-0.5 transition-colors ${
+                    className={`px-3 py-1.5 text-sm rounded-md flex items-center gap-1 transition-colors ${
                       searchFilter === filter.value
                         ? "bg-blue-100 text-blue-700 ring-1 ring-blue-300"
                         : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                     }`}
                   >
-                    {filter.icon && <filter.icon className={`h-3 w-3 ${searchFilter === filter.value ? "text-blue-600" : filter.color}`} />}
+                    {filter.icon && <filter.icon className={`h-3.5 w-3.5 ${searchFilter === filter.value ? "text-blue-600" : filter.color}`} />}
                     {filter.label}
                   </button>
                 ))}

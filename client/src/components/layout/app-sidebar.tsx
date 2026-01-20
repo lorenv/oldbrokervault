@@ -75,26 +75,6 @@ const secondaryNavItems: NavItem[] = [
 ];
 
 
-// Convert hex color to a very light tint (pastel version)
-// This ensures the background is always light regardless of the original color
-function hexToLightTint(hex: string, lightness: number = 0.92): string {
-  // Remove # if present
-  const cleanHex = hex.replace('#', '');
-
-  // Parse RGB values
-  const r = parseInt(cleanHex.substring(0, 2), 16);
-  const g = parseInt(cleanHex.substring(2, 4), 16);
-  const b = parseInt(cleanHex.substring(4, 6), 16);
-
-  // Mix with white to create light tint
-  // lightness of 0.92 means 92% white, 8% original color
-  const newR = Math.round(r + (255 - r) * lightness);
-  const newG = Math.round(g + (255 - g) * lightness);
-  const newB = Math.round(b + (255 - b) * lightness);
-
-  return `rgb(${newR}, ${newG}, ${newB})`;
-}
-
 export function AppSidebar() {
   const { user, logoutMutation } = useAuth();
   const [location] = useLocation();
@@ -150,9 +130,6 @@ export function AppSidebar() {
 
   // Get brand color from profile
   const brandColor = (profile as any)?.brandColors?.[0];
-
-  // Create light tint of the brand color for logo background (always light)
-  const lightTintBg = brandColor ? hexToLightTint(brandColor, 0.92) : '#ffffff';
 
   // Render a navigation item
   const renderNavItem = (item: NavItem) => {
@@ -224,31 +201,13 @@ export function AppSidebar() {
 
   return (
     <>
-      <Sidebar collapsible="icon">
-        {/* Logo Header - aligned with page header */}
-        <Link href="/dashboard" className="block">
-          <div
-            className={`transition-all flex items-center justify-center ${
-              isCollapsed ? 'p-2 min-h-[52px]' : 'py-[22px] px-4'
-            }`}
-            style={{
-              // Apply light tint of brand color as background (always light)
-              backgroundColor: lightTintBg,
-              borderBottom: `2px solid ${brandColor || '#e2e8f0'}`,
-              boxShadow: `inset 0 -6px 12px -8px ${brandColor || '#94a3b8'}40`
-            }}
-          >
-            {/* Logo sits directly on the tinted background - transparent areas show the tint */}
-            <img
-              src={(profile as any)?.businessLogo || "/cim-share-logo.png"}
-              alt={(profile as any)?.businessName || "CIM Share"}
-              className={`object-contain transition-all ${
-                isCollapsed ? 'h-6 max-w-[40px]' : 'h-12 max-w-[180px]'
-              }`}
-            />
-          </div>
-        </Link>
-
+      <Sidebar
+        collapsible="icon"
+        style={{
+          top: '4rem',
+          height: 'calc(100vh - 4rem)',
+        }}
+      >
         <SidebarContent>
           {/* Main Navigation - Deal-centric */}
           <SidebarGroup>
