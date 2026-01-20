@@ -36,6 +36,8 @@ import {
   Settings,
   Menu,
   ChevronLeft,
+  FileSignature,
+  FileText,
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { NotificationBell } from "@/components/ui/notification-bell";
@@ -375,17 +377,18 @@ function QuickCreateDialog({ type, onClose }: QuickCreateDialogProps) {
 }
 
 interface SearchResult {
-  type: "deal" | "contact" | "company";
+  type: "deal" | "contact" | "company" | "cim" | "esign";
   id: number;
   title: string;
   subtitle?: string;
+  envelopeId?: string; // For esign results
 }
 
 export function GlobalHeader() {
   const [location, navigate] = useLocation();
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchFilter, setSearchFilter] = useState<"all" | "deal" | "contact" | "company">("all");
+  const [searchFilter, setSearchFilter] = useState<"all" | "deal" | "contact" | "company" | "cim" | "esign">("all");
   const [quickCreateType, setQuickCreateType] = useState<"deal" | "contact" | "company" | "task" | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
@@ -429,25 +432,28 @@ export function GlobalHeader() {
   // Global search query
   const { data: searchResults } = useQuery<{ results: SearchResult[] }>({
     queryKey: ["/api/crm/search", searchQuery, searchFilter],
-    queryFn: () => {
-      const params = new URLSearchParams({ q: searchQuery });
-      if (searchFilter !== "all") params.set("type", searchFilter);
-      return apiRequest("GET", `/api/crm/search?${params.toString()}`).then(r => r.json());
+    queryFn: async () => {
+      const params = new URLSearchParams({ q: searchQuery, type: searchFilter });
+      const response = await apiRequest("GET", `/api/crm/search?${params.toString()}`);
+      return response.json();
     },
     enabled: searchQuery.length >= 2,
+    staleTime: 0, // Always refetch when filter changes
   });
 
-  const allResults = searchResults?.results || [];
-  // Client-side filter as backup (in case backend doesn't support type filter)
-  const results = searchFilter === "all"
-    ? allResults
-    : allResults.filter(r => r.type === searchFilter);
+  const results = searchResults?.results || [];
 
   const handleSelect = (result: SearchResult) => {
     setSearchFocused(false);
     setSearchQuery("");
     setSearchFilter("all");
-    navigate(`/${result.type}s/${result.id}`);
+    if (result.type === "esign") {
+      navigate(`/esign/${result.envelopeId || result.id}`);
+    } else if (result.type === "cim") {
+      navigate(`/cim/${result.id}`);
+    } else {
+      navigate(`/${result.type}s/${result.id}`);
+    }
   };
 
   const handleCloseSearch = () => {
@@ -461,6 +467,8 @@ export function GlobalHeader() {
       case "deal": return <Kanban className="h-4 w-4 text-green-600" />;
       case "contact": return <Contact className="h-4 w-4 text-blue-600" />;
       case "company": return <Building2 className="h-4 w-4 text-purple-600" />;
+      case "cim": return <FileText className="h-4 w-4 text-rose-600" />;
+      case "esign": return <FileSignature className="h-4 w-4 text-amber-600" />;
       default: return null;
     }
   };
@@ -567,17 +575,19 @@ export function GlobalHeader() {
                 </div>
 
                 {/* Quick Filters */}
-                <div className="flex items-center gap-2 mt-3">
+                <div className="flex items-center gap-1.5 mt-3 flex-wrap">
                   {[
                     { value: "all", label: "All" },
                     { value: "deal", label: "Deals", icon: Kanban, color: "text-green-600" },
                     { value: "contact", label: "Contacts", icon: Contact, color: "text-blue-600" },
                     { value: "company", label: "Companies", icon: Building2, color: "text-purple-600" },
+                    { value: "cim", label: "CIMs", icon: FileText, color: "text-rose-600" },
+                    { value: "esign", label: "eSign", icon: FileSignature, color: "text-amber-600" },
                   ].map((filter) => (
                     <button
                       key={filter.value}
                       onClick={() => setSearchFilter(filter.value as typeof searchFilter)}
-                      className={`px-3 py-1.5 text-xs rounded-md flex items-center gap-1 transition-colors ${
+                      className={`px-2.5 py-1.5 text-xs rounded-md flex items-center gap-1 transition-colors ${
                         searchFilter === filter.value
                           ? "bg-blue-100 text-blue-700"
                           : "bg-gray-100 text-gray-700"
@@ -599,7 +609,15 @@ export function GlobalHeader() {
                   </div>
                 ) : results.length === 0 ? (
                   <div className="p-8 text-center text-gray-600">
-                    <p className="text-sm">No results found</p>
+                    <p className="text-sm">
+                      No results found{searchFilter !== "all" && ` in ${
+                        searchFilter === "deal" ? "Deals" :
+                        searchFilter === "contact" ? "Contacts" :
+                        searchFilter === "company" ? "Companies" :
+                        searchFilter === "cim" ? "CIMs" :
+                        searchFilter === "esign" ? "eSignatures" : ""
+                      }`}
+                    </p>
                   </div>
                 ) : (
                   <div className="divide-y">
@@ -618,7 +636,9 @@ export function GlobalHeader() {
                             <div className="text-sm text-gray-600 truncate">{result.subtitle}</div>
                           )}
                         </div>
-                        <span className="text-xs text-gray-500 capitalize flex-shrink-0">{result.type}</span>
+                        <span className="text-xs text-gray-500 capitalize flex-shrink-0">
+                          {result.type === "esign" ? "eSign" : result.type === "cim" ? "CIM" : result.type}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -655,18 +675,20 @@ export function GlobalHeader() {
           {searchFocused && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-md border border-gray-200 shadow-lg z-50 overflow-hidden">
               {/* Quick Filters */}
-              <div className="px-3 py-2 border-b border-gray-100 flex items-center gap-1.5">
-                <span className="text-xs text-gray-500 mr-1">Filter:</span>
+              <div className="px-3 py-2 border-b border-gray-100 flex items-center gap-1 flex-wrap">
+                <span className="text-xs text-gray-500 mr-0.5">Filter:</span>
                 {[
                   { value: "all", label: "All" },
                   { value: "deal", label: "Deals", icon: Kanban, color: "text-green-600" },
                   { value: "contact", label: "Contacts", icon: Contact, color: "text-blue-600" },
                   { value: "company", label: "Companies", icon: Building2, color: "text-purple-600" },
+                  { value: "cim", label: "CIMs", icon: FileText, color: "text-rose-600" },
+                  { value: "esign", label: "eSign", icon: FileSignature, color: "text-amber-600" },
                 ].map((filter) => (
                   <button
                     key={filter.value}
                     onClick={() => setSearchFilter(filter.value as typeof searchFilter)}
-                    className={`px-2 py-1 text-xs rounded-md flex items-center gap-1 transition-colors ${
+                    className={`px-1.5 py-0.5 text-xs rounded flex items-center gap-0.5 transition-colors ${
                       searchFilter === filter.value
                         ? "bg-blue-100 text-blue-700 ring-1 ring-blue-300"
                         : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -684,7 +706,13 @@ export function GlobalHeader() {
                 </div>
               ) : results.length === 0 ? (
                 <div className="px-4 py-3 text-sm text-gray-600">
-                  No results found{searchFilter !== "all" && ` for ${searchFilter}s`}
+                  No results found{searchFilter !== "all" && ` in ${
+                    searchFilter === "deal" ? "Deals" :
+                    searchFilter === "contact" ? "Contacts" :
+                    searchFilter === "company" ? "Companies" :
+                    searchFilter === "cim" ? "CIMs" :
+                    searchFilter === "esign" ? "eSignatures" : ""
+                  }`}
                 </div>
               ) : (
                 <div className="py-1 max-h-80 overflow-y-auto">
@@ -704,7 +732,9 @@ export function GlobalHeader() {
                           <div className="text-xs text-gray-600 truncate">{result.subtitle}</div>
                         )}
                       </div>
-                      <span className="text-xs text-gray-500 capitalize flex-shrink-0">{result.type}</span>
+                      <span className="text-xs text-gray-500 capitalize flex-shrink-0">
+                        {result.type === "esign" ? "eSign" : result.type === "cim" ? "CIM" : result.type}
+                      </span>
                     </button>
                   ))}
                 </div>

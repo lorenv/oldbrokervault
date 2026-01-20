@@ -26,6 +26,7 @@ import {
   notifications,
   mentions,
   emailTemplates,
+  esignEnvelopes,
   insertOrganizationSchema,
   insertDealViewSchema,
   insertOrganizationMemberSchema,
@@ -6499,7 +6500,8 @@ router.post('/email-templates/:id/use', async (req, res) => {
 // GLOBAL SEARCH ENDPOINT
 // ============================================
 
-// Search across deals, contacts, and companies
+// Search across deals, contacts, companies, CIMs, and e-signatures
+// type filter: "all" | "deal" | "contact" | "company" | "cim" | "esign"
 router.get('/search', async (req, res) => {
   if (!req.isAuthenticated()) return res.sendStatus(401);
 
@@ -6509,95 +6511,168 @@ router.get('/search', async (req, res) => {
       return res.status(404).json({ error: 'Organization not found' });
     }
 
-    const { q } = req.query;
+    const { q, type } = req.query;
     if (!q || typeof q !== 'string' || q.length < 2) {
       return res.json({ results: [] });
     }
 
     const searchTerm = `%${q}%`;
     const limit = 10;
+    const searchType = type && typeof type === 'string' ? type : 'all';
+
+    let results: any[] = [];
 
     // Search deals
-    const dealResults = await db
-      .select({
-        id: deals.id,
-        name: deals.name,
-        companyName: companies.name,
-      })
-      .from(deals)
-      .leftJoin(companies, eq(companies.id, deals.companyId))
-      .where(
-        and(
-          eq(deals.organizationId, orgData.organization.id),
-          isNull(deals.deletedAt),
-          ilike(deals.name, searchTerm)
+    if (searchType === 'all' || searchType === 'deal') {
+      const dealResults = await db
+        .select({
+          id: deals.id,
+          name: deals.name,
+          companyName: companies.name,
+        })
+        .from(deals)
+        .leftJoin(companies, eq(companies.id, deals.companyId))
+        .where(
+          and(
+            eq(deals.organizationId, orgData.organization.id),
+            isNull(deals.deletedAt),
+            ilike(deals.name, searchTerm)
+          )
         )
-      )
-      .limit(limit);
+        .limit(limit);
+
+      results.push(
+        ...dealResults.map(d => ({
+          type: 'deal' as const,
+          id: d.id,
+          title: d.name,
+          subtitle: d.companyName || undefined,
+        }))
+      );
+    }
 
     // Search contacts
-    const contactResults = await db
-      .select({
-        id: crmContacts.id,
-        firstName: crmContacts.firstName,
-        lastName: crmContacts.lastName,
-        email: crmContacts.email,
-        companyName: companies.name,
-      })
-      .from(crmContacts)
-      .leftJoin(companies, eq(companies.id, crmContacts.companyId))
-      .where(
-        and(
-          eq(crmContacts.organizationId, orgData.organization.id),
-          or(
-            ilike(crmContacts.firstName, searchTerm),
-            ilike(crmContacts.lastName, searchTerm),
-            ilike(crmContacts.email, searchTerm)
+    if (searchType === 'all' || searchType === 'contact') {
+      const contactResults = await db
+        .select({
+          id: crmContacts.id,
+          firstName: crmContacts.firstName,
+          lastName: crmContacts.lastName,
+          email: crmContacts.email,
+          companyName: companies.name,
+        })
+        .from(crmContacts)
+        .leftJoin(companies, eq(companies.id, crmContacts.companyId))
+        .where(
+          and(
+            eq(crmContacts.organizationId, orgData.organization.id),
+            or(
+              ilike(crmContacts.firstName, searchTerm),
+              ilike(crmContacts.lastName, searchTerm),
+              ilike(crmContacts.email, searchTerm)
+            )
           )
         )
-      )
-      .limit(limit);
+        .limit(limit);
+
+      results.push(
+        ...contactResults.map(c => ({
+          type: 'contact' as const,
+          id: c.id,
+          title: [c.firstName, c.lastName].filter(Boolean).join(' ') || c.email,
+          subtitle: c.companyName || c.email,
+        }))
+      );
+    }
 
     // Search companies
-    const companyResults = await db
-      .select({
-        id: companies.id,
-        name: companies.name,
-        website: companies.website,
-      })
-      .from(companies)
-      .where(
-        and(
-          eq(companies.organizationId, orgData.organization.id),
-          or(
-            ilike(companies.name, searchTerm),
-            ilike(companies.website, searchTerm)
+    if (searchType === 'all' || searchType === 'company') {
+      const companyResults = await db
+        .select({
+          id: companies.id,
+          name: companies.name,
+          website: companies.website,
+        })
+        .from(companies)
+        .where(
+          and(
+            eq(companies.organizationId, orgData.organization.id),
+            or(
+              ilike(companies.name, searchTerm),
+              ilike(companies.website, searchTerm)
+            )
           )
         )
-      )
-      .limit(limit);
+        .limit(limit);
 
-    // Format results
-    const results = [
-      ...dealResults.map(d => ({
-        type: 'deal' as const,
-        id: d.id,
-        title: d.name,
-        subtitle: d.companyName || undefined,
-      })),
-      ...contactResults.map(c => ({
-        type: 'contact' as const,
-        id: c.id,
-        title: [c.firstName, c.lastName].filter(Boolean).join(' ') || c.email,
-        subtitle: c.companyName || c.email,
-      })),
-      ...companyResults.map(c => ({
-        type: 'company' as const,
-        id: c.id,
-        title: c.name,
-        subtitle: c.website || undefined,
-      })),
-    ].slice(0, 15); // Limit total results
+      results.push(
+        ...companyResults.map(c => ({
+          type: 'company' as const,
+          id: c.id,
+          title: c.name,
+          subtitle: c.website || undefined,
+        }))
+      );
+    }
+
+    // Search CIM documents
+    if (searchType === 'all' || searchType === 'cim') {
+      const cimResults = await db
+        .select({
+          id: cimDocuments.id,
+          title: cimDocuments.title,
+        })
+        .from(cimDocuments)
+        .where(
+          and(
+            eq(cimDocuments.userId, req.user!.id),
+            isNull(cimDocuments.deletedAt),
+            ilike(cimDocuments.title, searchTerm)
+          )
+        )
+        .limit(limit);
+
+      results.push(
+        ...cimResults.map(c => ({
+          type: 'cim' as const,
+          id: c.id,
+          title: c.title,
+          subtitle: 'CIM Document',
+        }))
+      );
+    }
+
+    // Search e-signature envelopes
+    if (searchType === 'all' || searchType === 'esign') {
+      const esignResults = await db
+        .select({
+          id: esignEnvelopes.id,
+          title: esignEnvelopes.title,
+          status: esignEnvelopes.status,
+          envelopeId: esignEnvelopes.envelopeId,
+        })
+        .from(esignEnvelopes)
+        .where(
+          and(
+            eq(esignEnvelopes.userId, req.user!.id),
+            ilike(esignEnvelopes.title, searchTerm)
+          )
+        )
+        .limit(limit);
+
+      results.push(
+        ...esignResults.map(e => ({
+          type: 'esign' as const,
+          id: e.id,
+          title: e.title,
+          subtitle: e.status.charAt(0).toUpperCase() + e.status.slice(1),
+          envelopeId: e.envelopeId,
+        }))
+      );
+    }
+
+    // Limit total results
+    results = results.slice(0, 20);
 
     res.json({ results });
   } catch (error) {
