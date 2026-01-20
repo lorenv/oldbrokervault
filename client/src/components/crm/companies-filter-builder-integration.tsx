@@ -111,6 +111,7 @@ function applyConditionsToFilters(
   updateFilter: <K extends keyof CompanyFilters>(key: K, value: CompanyFilters[K]) => void
 ) {
   // Reset relevant filters first
+  updateFilter('search', '');
   updateFilter('industry', '');
   updateFilter('city', '');
   updateFilter('state', '');
@@ -124,6 +125,12 @@ function applyConditionsToFilters(
     const value = condition.value;
 
     switch (condition.fieldId) {
+      case 'name':
+        if (condition.operator === 'contains' || condition.operator === 'equals') {
+          updateFilter('search', value);
+        }
+        break;
+
       case 'industry':
         if (condition.operator === 'equals') {
           updateFilter('industry', value);

@@ -1544,31 +1544,153 @@ router.get('/companies', async (req, res) => {
       return res.status(404).json({ error: 'Organization not found' });
     }
 
-    const { search, page = '1', limit = '50' } = req.query;
+    const {
+      search,
+      industry,
+      city,
+      state,
+      hasDeals,
+      hasContacts,
+      createdFrom,
+      createdTo,
+      sortField = 'createdAt',
+      sortOrder = 'desc',
+      page = '1',
+      limit = '50'
+    } = req.query;
     const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
 
     let conditions = [eq(companies.organizationId, orgData.organization.id)];
 
     if (search) {
-      conditions.push(sql`${companies.name} ILIKE ${'%' + search + '%'}`);
+      const searchTerm = `%${search}%`;
+      conditions.push(
+        or(
+          ilike(companies.name, searchTerm),
+          ilike(companies.industry, searchTerm),
+          ilike(companies.website, searchTerm)
+        )!
+      );
     }
 
-    const companyList = await db
+    // Filter by industry
+    if (industry) {
+      conditions.push(ilike(companies.industry, `%${industry}%`));
+    }
+
+    // Filter by city
+    if (city) {
+      conditions.push(ilike(companies.city, `%${city}%`));
+    }
+
+    // Filter by state
+    if (state) {
+      conditions.push(ilike(companies.state, `%${state}%`));
+    }
+
+    // Filter by created date range
+    if (createdFrom) {
+      conditions.push(sql`${companies.createdAt} >= ${createdFrom}::timestamp`);
+    }
+    if (createdTo) {
+      conditions.push(sql`${companies.createdAt} <= ${createdTo}::timestamp + interval '1 day'`);
+    }
+
+    // Determine sort order
+    let orderClause;
+    const sortDir = sortOrder === 'asc' ? asc : desc;
+    switch (sortField) {
+      case 'name':
+        orderClause = sortDir(companies.name);
+        break;
+      case 'industry':
+        orderClause = sortDir(companies.industry);
+        break;
+      case 'website':
+        orderClause = sortDir(companies.website);
+        break;
+      case 'location':
+        orderClause = sortDir(companies.city);
+        break;
+      default:
+        orderClause = sortDir(companies.createdAt);
+    }
+
+    // For hasDeals and hasContacts, we need subqueries
+    // These are post-filtered for now to keep the query simpler
+    let companyList = await db
       .select()
       .from(companies)
       .where(and(...conditions))
-      .orderBy(desc(companies.createdAt))
-      .limit(parseInt(limit as string))
+      .orderBy(orderClause)
+      .limit(parseInt(limit as string) * 2) // Fetch extra to account for hasDeals/hasContacts filtering
       .offset(offset);
 
-    // Get total count
+    // Get contact and deal counts for each company
+    const companyIds = companyList.map(c => c.id);
+
+    let contactCounts: Record<number, number> = {};
+    let dealCounts: Record<number, number> = {};
+
+    if (companyIds.length > 0) {
+      const contactCountResults = await db
+        .select({
+          companyId: crmContacts.companyId,
+          count: sql<number>`count(*)`,
+        })
+        .from(crmContacts)
+        .where(inArray(crmContacts.companyId, companyIds))
+        .groupBy(crmContacts.companyId);
+
+      contactCounts = Object.fromEntries(
+        contactCountResults.map(r => [r.companyId, Number(r.count)])
+      );
+
+      const dealCountResults = await db
+        .select({
+          companyId: deals.companyId,
+          count: sql<number>`count(*)`,
+        })
+        .from(deals)
+        .where(and(
+          inArray(deals.companyId, companyIds),
+          isNull(deals.deletedAt)
+        ))
+        .groupBy(deals.companyId);
+
+      dealCounts = Object.fromEntries(
+        dealCountResults.map(r => [r.companyId, Number(r.count)])
+      );
+    }
+
+    // Apply hasDeals and hasContacts filters
+    if (hasDeals === 'true') {
+      companyList = companyList.filter(c => (dealCounts[c.id] || 0) > 0);
+    } else if (hasDeals === 'false') {
+      companyList = companyList.filter(c => (dealCounts[c.id] || 0) === 0);
+    }
+
+    if (hasContacts === 'true') {
+      companyList = companyList.filter(c => (contactCounts[c.id] || 0) > 0);
+    } else if (hasContacts === 'false') {
+      companyList = companyList.filter(c => (contactCounts[c.id] || 0) === 0);
+    }
+
+    // Trim to requested limit
+    companyList = companyList.slice(0, parseInt(limit as string));
+
+    // Get total count for base conditions
     const [countResult] = await db
       .select({ count: sql<number>`count(*)` })
       .from(companies)
-      .where(eq(companies.organizationId, orgData.organization.id));
+      .where(and(...conditions));
 
     res.json({
-      companies: companyList,
+      companies: companyList.map(c => ({
+        ...c,
+        contactCount: contactCounts[c.id] || 0,
+        dealCount: dealCounts[c.id] || 0,
+      })),
       total: Number(countResult?.count || 0),
       page: parseInt(page as string),
       limit: parseInt(limit as string),
@@ -1790,13 +1912,39 @@ router.get('/contacts', async (req, res) => {
       return res.status(404).json({ error: 'Organization not found' });
     }
 
-    const { search, companyId, contactType, page = '1', limit = '50' } = req.query;
+    const {
+      search,
+      companyId,
+      contactType,
+      leadStatus,
+      source,
+      tags,
+      hasEmail,
+      hasPhone,
+      createdFrom,
+      createdTo,
+      companies: companiesFilter,
+      sortField = 'createdAt',
+      sortOrder = 'desc',
+      page = '1',
+      limit = '50'
+    } = req.query;
     const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
 
     let conditions = [eq(crmContacts.organizationId, orgData.organization.id)];
 
     if (companyId) {
       conditions.push(eq(crmContacts.companyId, parseInt(companyId as string)));
+    }
+
+    // Filter by companies (comma-separated IDs)
+    if (companiesFilter) {
+      const companyIds = (companiesFilter as string).split(',').map(id => parseInt(id.trim()));
+      if (companyIds.length === 1) {
+        conditions.push(eq(crmContacts.companyId, companyIds[0]));
+      } else {
+        conditions.push(inArray(crmContacts.companyId, companyIds));
+      }
     }
 
     // Filter by contact type(s) - supports comma-separated values like "buyer,investor"
@@ -1807,6 +1955,74 @@ router.get('/contacts', async (req, res) => {
       } else {
         conditions.push(inArray(crmContacts.contactType, types));
       }
+    }
+
+    // Filter by lead status(es)
+    if (leadStatus) {
+      const statuses = (leadStatus as string).split(',').map(s => s.trim());
+      if (statuses.length === 1) {
+        conditions.push(eq(crmContacts.leadStatus, statuses[0]));
+      } else {
+        conditions.push(inArray(crmContacts.leadStatus, statuses));
+      }
+    }
+
+    // Filter by source(s)
+    if (source) {
+      const sources = (source as string).split(',').map(s => s.trim());
+      if (sources.length === 1) {
+        conditions.push(eq(crmContacts.source, sources[0]));
+      } else {
+        conditions.push(inArray(crmContacts.source, sources));
+      }
+    }
+
+    // Filter by tags (comma-separated - checks if contact's tags array contains any of these)
+    if (tags) {
+      const tagList = (tags as string).split(',').map(t => t.trim());
+      // Use JSON array containment to check if any tag matches
+      const tagConditions = tagList.map(tag =>
+        sql`${crmContacts.tags}::jsonb @> ${JSON.stringify([tag])}::jsonb`
+      );
+      if (tagConditions.length === 1) {
+        conditions.push(tagConditions[0]);
+      } else {
+        conditions.push(or(...tagConditions)!);
+      }
+    }
+
+    // Filter by hasEmail
+    if (hasEmail === 'true') {
+      conditions.push(and(
+        sql`${crmContacts.email} IS NOT NULL`,
+        sql`${crmContacts.email} != ''`
+      )!);
+    } else if (hasEmail === 'false') {
+      conditions.push(or(
+        sql`${crmContacts.email} IS NULL`,
+        sql`${crmContacts.email} = ''`
+      )!);
+    }
+
+    // Filter by hasPhone
+    if (hasPhone === 'true') {
+      conditions.push(and(
+        sql`${crmContacts.phone} IS NOT NULL`,
+        sql`${crmContacts.phone} != ''`
+      )!);
+    } else if (hasPhone === 'false') {
+      conditions.push(or(
+        sql`${crmContacts.phone} IS NULL`,
+        sql`${crmContacts.phone} = ''`
+      )!);
+    }
+
+    // Filter by created date range
+    if (createdFrom) {
+      conditions.push(sql`${crmContacts.createdAt} >= ${createdFrom}::timestamp`);
+    }
+    if (createdTo) {
+      conditions.push(sql`${crmContacts.createdAt} <= ${createdTo}::timestamp + interval '1 day'`);
     }
 
     // Search by name, email, or company name
@@ -1823,6 +2039,29 @@ router.get('/contacts', async (req, res) => {
       );
     }
 
+    // Determine sort order
+    let orderClause;
+    const sortDir = sortOrder === 'asc' ? asc : desc;
+    switch (sortField) {
+      case 'name':
+        orderClause = sortDir(crmContacts.firstName);
+        break;
+      case 'email':
+        orderClause = sortDir(crmContacts.email);
+        break;
+      case 'phone':
+        orderClause = sortDir(crmContacts.phone);
+        break;
+      case 'contactType':
+        orderClause = sortDir(crmContacts.contactType);
+        break;
+      case 'leadStatus':
+        orderClause = sortDir(crmContacts.leadStatus);
+        break;
+      default:
+        orderClause = sortDir(crmContacts.createdAt);
+    }
+
     const contactList = await db
       .select({
         contact: crmContacts,
@@ -1831,7 +2070,7 @@ router.get('/contacts', async (req, res) => {
       .from(crmContacts)
       .leftJoin(companies, eq(companies.id, crmContacts.companyId))
       .where(and(...conditions))
-      .orderBy(desc(crmContacts.createdAt))
+      .orderBy(orderClause)
       .limit(parseInt(limit as string))
       .offset(offset);
 
@@ -4061,6 +4300,31 @@ router.get('/activity-feed/:objectType/:objectId', async (req, res) => {
         };
       }
 
+      // Enrich email activities from database with embeddedContent
+      if (activity.activityType === 'email') {
+        // Extract subject from title if it contains "Sent email:" or "Replied to:"
+        let subject = metadata.subject || '';
+        if (!subject && activity.title) {
+          if (activity.title.startsWith('Sent email: ')) {
+            subject = activity.title.replace('Sent email: ', '');
+          } else if (activity.title.startsWith('Replied to: ')) {
+            subject = activity.title.replace('Replied to: ', '');
+          }
+        }
+
+        return {
+          ...activity,
+          embeddedContent: {
+            type: 'email',
+            subject: subject,
+            snippet: activity.description || '',
+            from: metadata.direction === 'sent' ? (a.user?.email || 'You') : metadata.to,
+            to: metadata.to || '',
+            direction: metadata.direction || 'sent',
+          },
+        };
+      }
+
       return activity;
     });
 
@@ -4181,6 +4445,7 @@ router.get('/activity-feed/:objectType/:objectId', async (req, res) => {
                   id: email.id,
                   subject: email.subject,
                   snippet: email.snippet,
+                  body: email.body,
                   from: email.from,
                   fromName: email.fromName,
                   to: email.to,
@@ -4195,6 +4460,198 @@ router.get('/activity-feed/:objectType/:objectId', async (req, res) => {
       } catch (emailError) {
         // Log but don't fail the entire activity feed if emails fail
         console.error('[CRM] Error adding emails to activity feed:', emailError);
+      }
+    }
+
+    // Fetch emails for contacts and add to activity feed
+    if (objectType === 'contact') {
+      try {
+        // Get the contact's email
+        const contact = await db
+          .select()
+          .from(crmContacts)
+          .where(eq(crmContacts.id, objId))
+          .limit(1);
+
+        if (contact.length > 0 && contact[0].email) {
+          const contactEmail = contact[0].email.toLowerCase();
+
+          // Get user's email connection
+          const connection = await getUserEmailConnection(req.user!.id);
+
+          if (connection && connection.status === 'active') {
+            const connectionForProvider = {
+              ...connection,
+              accessToken: connection.accessTokenEncrypted,
+              refreshToken: connection.refreshTokenEncrypted,
+            };
+
+            let emails: any[] = [];
+
+            try {
+              if (connection.provider === 'gmail') {
+                emails = await gmailProvider.getRecentEmails(connectionForProvider as any, {
+                  maxResults: 25,
+                  query: contactEmail,
+                });
+              } else if (connection.provider === 'microsoft') {
+                emails = await microsoftProvider.getRecentEmails(connectionForProvider as any, {
+                  maxResults: 25,
+                  query: contactEmail,
+                });
+              }
+
+              // Filter to only include emails actually involving the contact
+              emails = emails.filter(email => {
+                const fromMatch = email.from?.toLowerCase() === contactEmail;
+                const toMatch = email.to?.toLowerCase().includes(contactEmail);
+                return fromMatch || toMatch;
+              });
+
+              // Convert emails to activity feed items
+              for (const email of emails) {
+                const isOutgoing = email.from?.toLowerCase() !== contactEmail;
+                feedItems.push({
+                  id: `email-${email.id}`,
+                  activityType: 'email',
+                  objectType: 'contact',
+                  objectId: objId,
+                  timestamp: email.date,
+                  title: isOutgoing ? 'Sent an email' : 'Received an email',
+                  description: email.subject,
+                  performedByUser: isOutgoing ? { email: email.from } : null,
+                  metadata: {
+                    direction: isOutgoing ? 'sent' : 'received',
+                    emailId: email.id,
+                    provider: connection.provider,
+                  },
+                  embeddedContent: {
+                    type: 'email',
+                    id: email.id,
+                    subject: email.subject,
+                    snippet: email.snippet,
+                    body: email.body,
+                    from: email.from,
+                    fromName: email.fromName,
+                    to: email.to,
+                    date: email.date,
+                    direction: isOutgoing ? 'sent' : 'received',
+                    provider: connection.provider,
+                  },
+                } as any);
+              }
+            } catch (fetchError: any) {
+              console.error('[CRM] Error fetching emails for contact activity feed:', fetchError.message);
+            }
+          }
+        }
+      } catch (emailError) {
+        // Log but don't fail the entire activity feed if emails fail
+        console.error('[CRM] Error adding emails to contact activity feed:', emailError);
+      }
+    }
+
+    // Fetch emails for companies and add to activity feed
+    if (objectType === 'company') {
+      try {
+        // Get all contacts for this company
+        const companyContacts = await db
+          .select()
+          .from(crmContacts)
+          .where(eq(crmContacts.companyId, objId));
+
+        const contactEmails = companyContacts
+          .filter(c => c.email)
+          .map(c => c.email!.toLowerCase());
+
+        if (contactEmails.length > 0) {
+          // Get user's email connection
+          const connection = await getUserEmailConnection(req.user!.id);
+
+          if (connection && connection.status === 'active') {
+            const connectionForProvider = {
+              ...connection,
+              accessToken: connection.accessTokenEncrypted,
+              refreshToken: connection.refreshTokenEncrypted,
+            };
+
+            let allEmails: any[] = [];
+
+            for (const contactEmail of contactEmails) {
+              try {
+                let emails: any[] = [];
+
+                if (connection.provider === 'gmail') {
+                  emails = await gmailProvider.getRecentEmails(connectionForProvider as any, {
+                    maxResults: 15,
+                    query: contactEmail,
+                  });
+                } else if (connection.provider === 'microsoft') {
+                  emails = await microsoftProvider.getRecentEmails(connectionForProvider as any, {
+                    maxResults: 15,
+                    query: contactEmail,
+                  });
+                }
+
+                // Filter to only include emails actually involving the contact
+                emails = emails.filter(email => {
+                  const fromMatch = email.from?.toLowerCase() === contactEmail;
+                  const toMatch = email.to?.toLowerCase().includes(contactEmail);
+                  return fromMatch || toMatch;
+                });
+
+                allEmails = [...allEmails, ...emails];
+              } catch (fetchError: any) {
+                console.error('[CRM] Error fetching emails for company activity feed:', fetchError.message);
+                continue;
+              }
+            }
+
+            // Deduplicate by message ID
+            const seen = new Set();
+            allEmails = allEmails.filter(email => {
+              if (seen.has(email.id)) return false;
+              seen.add(email.id);
+              return true;
+            });
+
+            // Convert emails to activity feed items
+            for (const email of allEmails) {
+              const isOutgoing = !contactEmails.includes(email.from?.toLowerCase());
+              feedItems.push({
+                id: `email-${email.id}`,
+                activityType: 'email',
+                objectType: 'company',
+                objectId: objId,
+                timestamp: email.date,
+                title: isOutgoing ? 'Sent an email' : 'Received an email',
+                description: email.subject,
+                performedByUser: isOutgoing ? { email: email.from } : null,
+                metadata: {
+                  direction: isOutgoing ? 'sent' : 'received',
+                  emailId: email.id,
+                  provider: connection.provider,
+                },
+                embeddedContent: {
+                  type: 'email',
+                  id: email.id,
+                  subject: email.subject,
+                  snippet: email.snippet,
+                  body: email.body,
+                  from: email.from,
+                  fromName: email.fromName,
+                  to: email.to,
+                  date: email.date,
+                  direction: isOutgoing ? 'sent' : 'received',
+                  provider: connection.provider,
+                },
+              } as any);
+            }
+          }
+        }
+      } catch (emailError) {
+        // Log but don't fail the entire activity feed if emails fail
+        console.error('[CRM] Error adding emails to company activity feed:', emailError);
       }
     }
 

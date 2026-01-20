@@ -28,7 +28,10 @@ import {
   ArrowUp,
   ArrowDown,
   Clock,
+  Trash2,
+  Pencil,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -68,6 +71,13 @@ export default function ContactsPage() {
   const [hasMigrated, setHasMigrated] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [selectedContacts, setSelectedContacts] = useState<Set<number>>(new Set());
+  const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
+  const [bulkEditProperty, setBulkEditProperty] = useState<string>("");
+  const [bulkEditValue, setBulkEditValue] = useState<string>("");
+  const [bulkEditTagMode, setBulkEditTagMode] = useState<"add" | "remove">("add");
+  const [bulkEditTags, setBulkEditTags] = useState<string[]>([]);
+  const [newBulkTag, setNewBulkTag] = useState("");
 
   // Update filter when URL param changes
   useEffect(() => {
@@ -242,6 +252,139 @@ export default function ContactsPage() {
     toast({ title: `Exported ${allContacts.length} contacts` });
   };
 
+  // Selection handlers
+  const toggleSelectContact = (contactId: number) => {
+    setSelectedContacts(prev => {
+      const next = new Set(prev);
+      if (next.has(contactId)) {
+        next.delete(contactId);
+      } else {
+        next.add(contactId);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedContacts.size === contacts.length) {
+      setSelectedContacts(new Set());
+    } else {
+      setSelectedContacts(new Set(contacts.map((c: any) => c.id)));
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedContacts(new Set());
+  };
+
+  // Bulk actions
+  const handleBulkDelete = async () => {
+    if (selectedContacts.size === 0) return;
+    const promises = Array.from(selectedContacts).map(id =>
+      apiRequest("DELETE", `/api/crm/contacts/${id}`)
+    );
+    try {
+      await Promise.all(promises);
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"] });
+      toast({ title: `${selectedContacts.size} contact(s) deleted` });
+      clearSelection();
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to delete some contacts", variant: "destructive" });
+    }
+  };
+
+  const handleBulkEdit = async () => {
+    if (selectedContacts.size === 0 || !bulkEditProperty) return;
+
+    // For tags, check that there are tags selected
+    if (bulkEditProperty === 'tags' && bulkEditTags.length === 0) return;
+    // For other properties, check that a value is selected
+    if (bulkEditProperty !== 'tags' && !bulkEditValue) return;
+
+    try {
+      if (bulkEditProperty === 'tags') {
+        // Handle tags specially - need to get current tags and add/remove
+        const selectedContactsList = allContacts.filter((c: any) => selectedContacts.has(c.id));
+
+        const promises = selectedContactsList.map((contact: any) => {
+          const currentTags = contact.tags || [];
+          let newTags: string[];
+
+          if (bulkEditTagMode === 'add') {
+            // Add tags that aren't already present
+            newTags = [...new Set([...currentTags, ...bulkEditTags])];
+          } else {
+            // Remove specified tags
+            newTags = currentTags.filter((tag: string) => !bulkEditTags.includes(tag));
+          }
+
+          return apiRequest("PATCH", `/api/crm/contacts/${contact.id}`, { body: { tags: newTags } });
+        });
+
+        await Promise.all(promises);
+      } else {
+        const updateData: Record<string, any> = {};
+        if (bulkEditProperty === 'leadStatus') {
+          updateData.leadStatus = bulkEditValue;
+        } else if (bulkEditProperty === 'contactType') {
+          updateData.contactType = bulkEditValue;
+        } else if (bulkEditProperty === 'source') {
+          updateData.source = bulkEditValue;
+        }
+
+        const promises = Array.from(selectedContacts).map(id =>
+          apiRequest("PATCH", `/api/crm/contacts/${id}`, { body: updateData })
+        );
+
+        await Promise.all(promises);
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"] });
+      toast({ title: `${selectedContacts.size} contact(s) updated` });
+      clearSelection();
+      setIsBulkEditOpen(false);
+      setBulkEditProperty("");
+      setBulkEditValue("");
+      setBulkEditTags([]);
+      setNewBulkTag("");
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to update some contacts", variant: "destructive" });
+    }
+  };
+
+  const handleBulkExport = () => {
+    const selectedContactsList = allContacts.filter((c: any) => selectedContacts.has(c.id));
+    if (selectedContactsList.length === 0) return;
+
+    const headers = ["First Name", "Last Name", "Email", "Phone", "Company", "Title", "Type", "Status", "Source", "Created"];
+    const rows = selectedContactsList.map((c: any) => [
+      c.firstName || "",
+      c.lastName || "",
+      c.email || "",
+      c.phone || "",
+      c.company?.name || "",
+      c.title || "",
+      c.contactType || "",
+      c.leadStatus || "",
+      c.source || "",
+      c.createdAt ? new Date(c.createdAt).toLocaleDateString() : "",
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row: any) => row.map((cell: any) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `contacts-export-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+
+    toast({ title: `Exported ${selectedContactsList.length} contact(s)` });
+  };
+
   // Render cell content based on column
   const renderCell = (contact: any, columnId: string) => {
     switch (columnId) {
@@ -398,7 +541,6 @@ export default function ContactsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <h1 className="text-xl md:text-2xl font-semibold text-gray-900">Contacts</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage your contact relationships</p>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <div className="relative flex-1 sm:flex-none">
@@ -558,22 +700,72 @@ export default function ContactsPage() {
             ))}
           </div>
 
+          {/* Bulk Actions Bar */}
+          {selectedContacts.size > 0 && (
+            <div className="hidden md:flex bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 items-center justify-between">
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-medium text-blue-900">
+                  {selectedContacts.size} contact{selectedContacts.size !== 1 ? 's' : ''} selected
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8"
+                    onClick={() => setIsBulkEditOpen(true)}
+                  >
+                    <Pencil className="h-3.5 w-3.5 mr-1" />
+                    Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8"
+                    onClick={handleBulkExport}
+                  >
+                    <Download className="h-3.5 w-3.5 mr-1" />
+                    Export
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={handleBulkDelete}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />
+                    Delete
+                  </Button>
+                </div>
+              </div>
+              <Button variant="ghost" size="sm" onClick={clearSelection} className="h-8">
+                <X className="h-3.5 w-3.5 mr-1" />
+                Clear
+              </Button>
+            </div>
+          )}
+
           {/* Desktop Table View */}
           <div className="hidden md:block bg-white rounded-lg border overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full table-fixed">
                 <thead className="bg-gray-50 border-b">
                   <tr>
+                    <th className="py-2 px-3 w-10">
+                      <Checkbox
+                        checked={contacts.length > 0 && selectedContacts.size === contacts.length}
+                        onCheckedChange={toggleSelectAll}
+                      />
+                    </th>
                     {visibleColumns.map((column) => (
                       <th
                         key={column.id}
                         className="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 transition-colors"
                         style={{
-                          width: column.id === 'name' ? '25%' :
-                                 column.id === 'email' ? '25%' :
-                                 column.id === 'phone' ? '15%' :
-                                 column.id === 'company' ? '20%' :
-                                 '15%'
+                          width: column.id === 'name' ? '22%' :
+                                 column.id === 'email' ? '22%' :
+                                 column.id === 'phone' ? '14%' :
+                                 column.id === 'company' ? '18%' :
+                                 '12%'
                         }}
                         onClick={() => toggleSort(column.id)}
                       >
@@ -587,7 +779,13 @@ export default function ContactsPage() {
                 </thead>
                 <tbody>
                   {contacts.map((contact: any) => (
-                    <tr key={contact.id} className="border-b hover:bg-gray-50/50">
+                    <tr key={contact.id} className={`border-b hover:bg-gray-50/50 ${selectedContacts.has(contact.id) ? 'bg-blue-50/50' : ''}`}>
+                      <td className="py-2 px-3 w-10">
+                        <Checkbox
+                          checked={selectedContacts.has(contact.id)}
+                          onCheckedChange={() => toggleSelectContact(contact.id)}
+                        />
+                      </td>
                       {visibleColumns.map((column) => (
                         <td key={column.id} className="py-2 px-3">
                           {renderCell(contact, column.id)}
@@ -680,6 +878,167 @@ export default function ContactsPage() {
               disabled={!newContact.email.trim() || createContactMutation.isPending}
             >
               {createContactMutation.isPending ? "Creating..." : "Create Contact"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Edit Dialog */}
+      <Dialog open={isBulkEditOpen} onOpenChange={(open) => {
+        setIsBulkEditOpen(open);
+        if (!open) {
+          setBulkEditProperty("");
+          setBulkEditValue("");
+          setBulkEditTags([]);
+          setNewBulkTag("");
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit {selectedContacts.size} Contact{selectedContacts.size !== 1 ? 's' : ''}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Property to Edit</Label>
+              <Select value={bulkEditProperty} onValueChange={(val) => {
+                setBulkEditProperty(val);
+                setBulkEditValue("");
+                setBulkEditTags([]);
+                setNewBulkTag("");
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select property" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="leadStatus">Lead Status</SelectItem>
+                  <SelectItem value="contactType">Contact Type</SelectItem>
+                  <SelectItem value="source">Source</SelectItem>
+                  <SelectItem value="tags">Tags</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {bulkEditProperty && bulkEditProperty !== 'tags' && (
+              <div className="space-y-2">
+                <Label>New Value</Label>
+                {bulkEditProperty === 'leadStatus' && (
+                  <Select value={bulkEditValue} onValueChange={setBulkEditValue}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="new">New</SelectItem>
+                      <SelectItem value="contacted">Contacted</SelectItem>
+                      <SelectItem value="qualified">Qualified</SelectItem>
+                      <SelectItem value="unqualified">Unqualified</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+                {bulkEditProperty === 'contactType' && (
+                  <Select value={bulkEditValue} onValueChange={setBulkEditValue}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="buyer">Buyer</SelectItem>
+                      <SelectItem value="seller">Seller</SelectItem>
+                      <SelectItem value="advisor">Advisor</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+                {bulkEditProperty === 'source' && (
+                  <Select value={bulkEditValue} onValueChange={setBulkEditValue}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select source" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="website">Website</SelectItem>
+                      <SelectItem value="referral">Referral</SelectItem>
+                      <SelectItem value="linkedin">LinkedIn</SelectItem>
+                      <SelectItem value="cold_outreach">Cold Outreach</SelectItem>
+                      <SelectItem value="event">Event</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            )}
+
+            {bulkEditProperty === 'tags' && (
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label>Action</Label>
+                  <Select value={bulkEditTagMode} onValueChange={(val: "add" | "remove") => setBulkEditTagMode(val)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="add">Add Tags</SelectItem>
+                      <SelectItem value="remove">Remove Tags</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Tags to {bulkEditTagMode === 'add' ? 'Add' : 'Remove'}</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Enter tag name..."
+                      value={newBulkTag}
+                      onChange={(e) => setNewBulkTag(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && newBulkTag.trim()) {
+                          e.preventDefault();
+                          if (!bulkEditTags.includes(newBulkTag.trim())) {
+                            setBulkEditTags([...bulkEditTags, newBulkTag.trim()]);
+                          }
+                          setNewBulkTag("");
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        if (newBulkTag.trim() && !bulkEditTags.includes(newBulkTag.trim())) {
+                          setBulkEditTags([...bulkEditTags, newBulkTag.trim()]);
+                          setNewBulkTag("");
+                        }
+                      }}
+                      disabled={!newBulkTag.trim()}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                  {bulkEditTags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {bulkEditTags.map((tag, index) => (
+                        <Badge key={index} variant="outline" className="pr-1 flex items-center gap-1 text-sm">
+                          {tag}
+                          <button
+                            onClick={() => setBulkEditTags(bulkEditTags.filter((_, i) => i !== index))}
+                            className="ml-0.5 hover:bg-gray-200 rounded p-0.5 transition-colors"
+                          >
+                            <X className="h-3 w-3 text-gray-500 hover:text-gray-700" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsBulkEditOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleBulkEdit}
+              disabled={!bulkEditProperty || (bulkEditProperty === 'tags' ? bulkEditTags.length === 0 : !bulkEditValue)}
+            >
+              Update {selectedContacts.size} Contact{selectedContacts.size !== 1 ? 's' : ''}
             </Button>
           </DialogFooter>
         </DialogContent>

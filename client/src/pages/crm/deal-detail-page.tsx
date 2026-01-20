@@ -57,6 +57,8 @@ import {
   Settings2,
   Handshake,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 // Helper function to get activity icon based on type
@@ -251,6 +253,7 @@ export default function DealDetailPage() {
   const [editingTask, setEditingTask] = useState<any>(null);
   const [isCustomizerOpen, setIsCustomizerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("activity");
+  const [expandedEmails, setExpandedEmails] = useState<Set<number>>(new Set());
   const [isLostReasonDialogOpen, setIsLostReasonDialogOpen] = useState(false);
   const [pendingLostStageId, setPendingLostStageId] = useState<number | null>(null);
   const [selectedLostReason, setSelectedLostReason] = useState("");
@@ -726,32 +729,32 @@ export default function DealDetailPage() {
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="flex-wrap h-auto gap-1">
-              <TabsTrigger value="activity">
+            <TabsList variant="underline" className="w-full justify-start border-b">
+              <TabsTrigger variant="underline" value="activity">
                 <Clock className="h-4 w-4 mr-1" />
                 Activity
               </TabsTrigger>
-              <TabsTrigger value="notes">
+              <TabsTrigger variant="underline" value="notes">
                 <MessageSquare className="h-4 w-4 mr-1" />
                 Notes
               </TabsTrigger>
-              <TabsTrigger value="tasks">
+              <TabsTrigger variant="underline" value="tasks">
                 <CheckSquare className="h-4 w-4 mr-1" />
                 Tasks
               </TabsTrigger>
-              <TabsTrigger value="emails">
+              <TabsTrigger variant="underline" value="emails">
                 <Mail className="h-4 w-4 mr-1" />
                 Emails
               </TabsTrigger>
-              <TabsTrigger value="buyers">
+              <TabsTrigger variant="underline" value="buyers">
                 <Users className="h-4 w-4 mr-1" />
                 Buyers
               </TabsTrigger>
-              <TabsTrigger value="cims">
+              <TabsTrigger variant="underline" value="cims">
                 <FileText className="h-4 w-4 mr-1" />
                 CIMs
               </TabsTrigger>
-              <TabsTrigger value="files">
+              <TabsTrigger variant="underline" value="files">
                 <FolderOpen className="h-4 w-4 mr-1" />
                 Files
               </TabsTrigger>
@@ -848,42 +851,48 @@ export default function DealDetailPage() {
 
                               {/* Embedded Email Content */}
                               {embedded?.type === 'email' && (
-                                <div className={`mt-2 p-3 rounded-lg border ${
-                                  embedded.direction === 'sent'
-                                    ? 'bg-blue-50 border-blue-100'
-                                    : 'bg-cyan-50 border-cyan-100'
-                                }`}>
-                                  <div className="flex items-start gap-3">
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                                      embedded.direction === 'sent' ? 'bg-blue-100' : 'bg-cyan-100'
-                                    }`}>
-                                      <Mail className={`h-4 w-4 ${
-                                        embedded.direction === 'sent' ? 'text-blue-600' : 'text-cyan-600'
-                                      }`} />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center gap-2 mb-1">
-                                        <Badge variant="secondary" className={`text-xs ${
-                                          embedded.direction === 'sent'
-                                            ? 'bg-blue-100 text-blue-700'
-                                            : 'bg-cyan-100 text-cyan-700'
-                                        }`}>
-                                          {embedded.direction === 'sent' ? 'Sent' : 'Received'}
-                                        </Badge>
-                                        <span className="text-xs text-gray-500">
-                                          {embedded.direction === 'sent' ? `To: ${embedded.to}` : `From: ${embedded.fromName || embedded.from}`}
-                                        </span>
-                                      </div>
-                                      <p className="text-sm font-medium text-gray-800 mb-1">
-                                        {embedded.subject || '(No subject)'}
-                                      </p>
-                                      {embedded.snippet && (
-                                        <p className="text-sm text-gray-600 line-clamp-2">
-                                          {embedded.snippet}
+                                <div className="mt-1.5 border border-gray-200 rounded-md">
+                                  <button
+                                    onClick={() => {
+                                      setExpandedEmails(prev => {
+                                        const next = new Set(prev);
+                                        if (next.has(activity.id)) {
+                                          next.delete(activity.id);
+                                        } else {
+                                          next.add(activity.id);
+                                        }
+                                        return next;
+                                      });
+                                    }}
+                                    className="w-full text-left px-3 py-2"
+                                  >
+                                    <div className="flex items-center justify-between gap-2">
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm text-gray-900 truncate">
+                                          <span className="font-medium">{embedded.subject || '(No subject)'}</span>
+                                          <span className="text-gray-400 mx-1.5">·</span>
+                                          <span className="text-gray-500 text-xs">{embedded.fromName || embedded.from} → {embedded.to}</span>
                                         </p>
+                                        {!expandedEmails.has(activity.id) && embedded.snippet && (
+                                          <p className="text-xs text-gray-500 truncate mt-0.5">
+                                            {embedded.snippet}
+                                          </p>
+                                        )}
+                                      </div>
+                                      {expandedEmails.has(activity.id) ? (
+                                        <ChevronUp className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                                      ) : (
+                                        <ChevronDown className="h-4 w-4 text-gray-400 flex-shrink-0" />
                                       )}
                                     </div>
-                                  </div>
+                                  </button>
+                                  {expandedEmails.has(activity.id) && (
+                                    <div className="px-3 pb-2 border-t border-gray-100">
+                                      <p className="text-sm text-gray-700 whitespace-pre-wrap pt-2">
+                                        {embedded.body || embedded.snippet || '(No content)'}
+                                      </p>
+                                    </div>
+                                  )}
                                 </div>
                               )}
 

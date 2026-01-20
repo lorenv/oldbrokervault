@@ -160,6 +160,7 @@ function applyConditionsToFilters(
   onFilterChange: <K extends keyof DealFilters>(key: K, value: DealFilters[K]) => void
 ) {
   // Reset relevant filters first
+  onFilterChange('search', '');
   onFilterChange('amountMin', null);
   onFilterChange('amountMax', null);
   onFilterChange('closeDateFrom', null);
@@ -169,12 +170,19 @@ function applyConditionsToFilters(
   onFilterChange('companies', []);
   onFilterChange('owners', []);
   onFilterChange('priority', []);
+  onFilterChange('status', 'all');
 
   // Apply each condition
   conditions.forEach((condition) => {
     const value = condition.value;
 
     switch (condition.fieldId) {
+      case 'dealName':
+        if (condition.operator === 'contains' || condition.operator === 'equals') {
+          onFilterChange('search', value);
+        }
+        break;
+
       case 'amount':
         if (condition.operator === 'greaterThanOrEqual' || condition.operator === 'greaterThan') {
           onFilterChange('amountMin', parseFloat(value) || null);

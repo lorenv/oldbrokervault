@@ -244,8 +244,12 @@ export function InlineEdit({
 }
 
 // Specialized variants for common use cases
-export function InlineEditEmail(props: Omit<InlineEditProps, 'type'>) {
-  const { value, onSave, className, displayClassName, emptyText = 'Add email', disabled = false } = props;
+interface InlineEditEmailProps extends Omit<InlineEditProps, 'type'> {
+  onEmailClick?: () => void; // Custom handler for clicking the email (e.g., smart compose)
+}
+
+export function InlineEditEmail(props: InlineEditEmailProps) {
+  const { value, onSave, className, displayClassName, emptyText = 'Add email', disabled = false, onEmailClick } = props;
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(String(value ?? ''));
   const [isLoading, setIsLoading] = useState(false);
@@ -370,16 +374,32 @@ export function InlineEditEmail(props: Omit<InlineEditProps, 'type'>) {
         {hasValue ? (
           <Tooltip>
             <TooltipTrigger asChild>
-              <a
-                href={`mailto:${value}`}
-                className={cn(
-                  "text-sm hover:underline",
-                  displayClassName || "text-blue-600 hover:text-blue-700"
-                )}
-                onClick={(e) => e.stopPropagation()}
-              >
-                {String(value)}
-              </a>
+              {onEmailClick ? (
+                <button
+                  type="button"
+                  className={cn(
+                    "text-sm hover:underline text-left",
+                    displayClassName || "text-blue-600 hover:text-blue-700"
+                  )}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEmailClick();
+                  }}
+                >
+                  {String(value)}
+                </button>
+              ) : (
+                <a
+                  href={`mailto:${value}`}
+                  className={cn(
+                    "text-sm hover:underline",
+                    displayClassName || "text-blue-600 hover:text-blue-700"
+                  )}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {String(value)}
+                </a>
+              )}
             </TooltipTrigger>
             <TooltipContent side="top">
               <p>Send email</p>

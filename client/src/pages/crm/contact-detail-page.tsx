@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { apiRequest } from "@/lib/queryClient";
@@ -11,6 +12,7 @@ import { EmailList } from "@/components/crm/email-list";
 import { TaskDialog } from "@/components/crm/task-dialog";
 import { TaskList } from "@/components/crm/task-list";
 import { PhotoUpload } from "@/components/crm/photo-upload";
+import { MentionInput, highlightMentions } from "@/components/ui/mention-input";
 import { InlineEdit, InlineEditEmail } from "@/components/ui/inline-edit";
 import { DetailPageCustomizer } from "@/components/crm/detail-page-customizer";
 import { useDetailPageLayout } from "@/hooks/use-detail-page-layout";
@@ -53,10 +55,86 @@ import {
   Settings2,
   X,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Search,
   Check,
+  Trash2,
+  UserPlus,
+  Video,
+  FileUp,
+  Download,
+  ArrowRight,
+  Copy,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+
+// Helper function to get activity icon based on type
+function getActivityIcon(activityType: string) {
+  switch (activityType) {
+    case 'note':
+      return { icon: MessageSquare, bg: 'bg-blue-100', color: 'text-blue-600' };
+    case 'file_uploaded':
+      return { icon: FileUp, bg: 'bg-purple-100', color: 'text-purple-600' };
+    case 'task_created':
+      return { icon: CheckSquare, bg: 'bg-orange-100', color: 'text-orange-600' };
+    case 'task_completed':
+      return { icon: Check, bg: 'bg-green-100', color: 'text-green-600' };
+    case 'contact_created':
+      return { icon: UserPlus, bg: 'bg-indigo-100', color: 'text-indigo-600' };
+    case 'email':
+      return { icon: Mail, bg: 'bg-cyan-100', color: 'text-cyan-600' };
+    case 'call':
+      return { icon: Phone, bg: 'bg-yellow-100', color: 'text-yellow-600' };
+    case 'meeting':
+      return { icon: Video, bg: 'bg-pink-100', color: 'text-pink-600' };
+    default:
+      return { icon: Clock, bg: 'bg-gray-100', color: 'text-gray-500' };
+  }
+}
+
+// Helper function to format activity title
+function formatActivityTitle(activity: ActivityItem): string {
+  switch (activity.activityType) {
+    case 'note':
+      return 'added a note';
+    case 'file_uploaded':
+      return `uploaded ${activity.metadata?.fileName || 'a file'}`;
+    case 'task_created':
+      return `created task: ${activity.metadata?.taskTitle || 'Untitled'}`;
+    case 'task_completed':
+      return `completed task: ${activity.metadata?.taskTitle || 'Untitled'}`;
+    case 'contact_created':
+      return 'created this contact';
+    case 'email':
+      return activity.metadata?.direction === 'sent' ? 'sent an email' : 'received an email';
+    case 'call':
+      return 'logged a call';
+    case 'meeting':
+      return 'scheduled a meeting';
+    default:
+      return activity.title || activity.activityType.replace(/_/g, ' ');
+  }
+}
+
+interface Note {
+  id: number;
+  content: string;
+  isPinned: boolean;
+  createdAt: string;
+  author: { id: number; email: string; firstName: string; lastName: string };
+}
+
+interface ActivityItem {
+  id: number;
+  activityType: string;
+  title: string;
+  description: string;
+  metadata: Record<string, any>;
+  timestamp: string;
+  performedByUser: { id: number; email: string; firstName: string; lastName: string };
+  embeddedContent?: any;
+}
 
 interface ContactCustomProperties {
   totalDocumentViews?: number;
@@ -82,6 +160,13 @@ export default function ContactDetailPage() {
   const [isCustomizerOpen, setIsCustomizerOpen] = useState(false);
   const [showTagInput, setShowTagInput] = useState(false);
   const [newTagValue, setNewTagValue] = useState("");
+  const [activeTab, setActiveTab] = useState("activity");
+  const [newNote, setNewNote] = useState("");
+  const [mentionedUserIds, setMentionedUserIds] = useState<number[]>([]);
+  const [isEmailConnected, setIsEmailConnected] = useState(false);
+  const [triggerEmailCompose, setTriggerEmailCompose] = useState(false);
+  const [expandedEmails, setExpandedEmails] = useState<Set<number>>(new Set());
+  const [copiedEmail, setCopiedEmail] = useState(false);
 
   // Association dialog state
   const [isLinkCompanyOpen, setIsLinkCompanyOpen] = useState(false);
@@ -105,6 +190,20 @@ export default function ContactDetailPage() {
   const { data: tasks } = useQuery<any[]>({
     queryKey: [`/api/crm/tasks/contact/${id}`],
     queryFn: () => apiRequest("GET", `/api/crm/tasks/contact/${id}`).then(res => res.json()),
+    enabled: !!id,
+  });
+
+  // Fetch notes
+  const { data: notes } = useQuery<Note[]>({
+    queryKey: ["/api/crm/notes/contact", id],
+    queryFn: () => apiRequest("GET", `/api/crm/notes/contact/${id}`).then(res => res.json()),
+    enabled: !!id,
+  });
+
+  // Fetch unified activity feed
+  const { data: activities } = useQuery<ActivityItem[]>({
+    queryKey: ["/api/crm/activity-feed/contact", id],
+    queryFn: () => apiRequest("GET", `/api/crm/activity-feed/contact/${id}`).then(res => res.json()),
     enabled: !!id,
   });
 
@@ -178,22 +277,76 @@ export default function ContactDetailPage() {
     },
   });
 
-  // Update contact mutation
+  // Update contact mutation with optimistic updates
   const updateContactMutation = useMutation({
     mutationFn: (data: Record<string, any>) =>
       apiRequest("PATCH", `/api/crm/contacts/${id}`, { body: data }).then(res => res.json()),
-    onSuccess: () => {
+    onMutate: async (newData) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["/api/crm/contacts", id] });
+
+      // Snapshot previous value
+      const previousContact = queryClient.getQueryData(["/api/crm/contacts", id]);
+
+      // Optimistically update
+      queryClient.setQueryData(["/api/crm/contacts", id], (old: any) => ({
+        ...old,
+        ...newData,
+      }));
+
+      return { previousContact };
+    },
+    onError: (err, newData, context) => {
+      // Rollback on error
+      if (context?.previousContact) {
+        queryClient.setQueryData(["/api/crm/contacts", id], context.previousContact);
+      }
+      toast({ title: "Error", description: "Failed to update contact.", variant: "destructive" });
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"] });
     },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to update contact.", variant: "destructive" });
+  });
+
+  // Create note mutation
+  const createNoteMutation = useMutation({
+    mutationFn: (data: { content: string; mentionedUserIds: number[] }) =>
+      apiRequest("POST", "/api/crm/notes", {
+        body: {
+          objectType: "contact",
+          objectId: parseInt(id!),
+          content: data.content,
+          mentionedUserIds: data.mentionedUserIds,
+        },
+      }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/notes/contact", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/activity-feed/contact", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+      setNewNote("");
+      setMentionedUserIds([]);
+      toast({ title: "Note added" });
     },
   });
 
-  // Helper for inline contact updates
-  const handleContactUpdate = useCallback(async (field: string, value: string) => {
-    await updateContactMutation.mutateAsync({ [field]: value || null });
+  // Delete note mutation
+  const deleteNoteMutation = useMutation({
+    mutationFn: (noteId: number) =>
+      apiRequest("DELETE", `/api/crm/notes/${noteId}`).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/notes/contact", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/activity-feed/contact", id] });
+      toast({ title: "Note deleted" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to delete note", variant: "destructive" });
+    },
+  });
+
+  // Helper for inline contact updates (uses optimistic updates, no await needed)
+  const handleContactUpdate = useCallback((field: string, value: string) => {
+    updateContactMutation.mutate({ [field]: value || null });
   }, [updateContactMutation]);
 
   // Tag management functions
@@ -217,6 +370,16 @@ export default function ContactDetailPage() {
     const updatedTags = currentTags.filter((tag: string) => tag !== tagToRemove);
     await updateContactMutation.mutateAsync({ tags: updatedTags });
   }, [contact, updateContactMutation]);
+
+  // Smart email compose - uses CRM email if connected, else mailto
+  const handleSmartEmailCompose = useCallback(() => {
+    if (isEmailConnected) {
+      setTriggerEmailCompose(true);
+      setActiveTab("emails");
+    } else {
+      window.location.href = `mailto:${(contact as any)?.email}`;
+    }
+  }, [isEmailConnected, contact]);
 
   if (isLoading) {
     return <div className="p-6"><div className="animate-pulse h-64 bg-gray-200 rounded" /></div>;
@@ -290,16 +453,40 @@ export default function ContactDetailPage() {
             size="md"
           />
           <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-xl md:text-2xl font-semibold text-gray-900">{(contact as any).firstName} {(contact as any).lastName}</h1>
-              <Badge className={`${getContactTypeColor(contactType)} border text-xs`}>
-                {contactType.charAt(0).toUpperCase() + contactType.slice(1)}
-              </Badge>
-              <Badge className={`${getLeadStatusColor(leadStatus)} text-xs`}>
-                {leadStatus.charAt(0).toUpperCase() + leadStatus.slice(1)}
-              </Badge>
+            <div className="flex items-center gap-2">
+              <InlineEdit
+                value={(contact as any).firstName}
+                onSave={(val) => handleContactUpdate('firstName', val)}
+                emptyText="First"
+                displayClassName="text-xl md:text-2xl font-semibold text-gray-900"
+              />
+              <InlineEdit
+                value={(contact as any).lastName}
+                onSave={(val) => handleContactUpdate('lastName', val)}
+                emptyText="Last"
+                displayClassName="text-xl md:text-2xl font-semibold text-gray-900"
+              />
             </div>
-            <p className="text-gray-500 text-sm truncate">{(contact as any).title || (contact as any).email}</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-gray-500 text-sm truncate">{(contact as any).title || (contact as any).email}</p>
+              {(contact as any).email && (
+                <button
+                  onClick={async () => {
+                    await navigator.clipboard.writeText((contact as any).email);
+                    setCopiedEmail(true);
+                    setTimeout(() => setCopiedEmail(false), 2000);
+                  }}
+                  className="text-gray-400 hover:text-gray-600 p-0.5 rounded transition-colors"
+                  title="Copy email address"
+                >
+                  {copiedEmail ? (
+                    <Check className="h-3.5 w-3.5 text-green-500" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5" />
+                  )}
+                </button>
+              )}
+            </div>
           </div>
         </div>
         <Button
@@ -320,7 +507,7 @@ export default function ContactDetailPage() {
             <Button
               variant="outline"
               className="flex-1 gap-2"
-              onClick={() => window.location.href = `mailto:${(contact as any).email}`}
+              onClick={handleSmartEmailCompose}
             >
               <Mail className="h-4 w-4" />
               Email
@@ -352,107 +539,102 @@ export default function ContactDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Column */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Contact Information */}
+          {/* Contact Information - Compact */}
           {isSectionVisible("contact-info") && (
-          <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><User className="h-5 w-5" />Contact Information</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              {/* Name and Title - Inline Editable */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4 border-b">
-                <div className="space-y-1">
-                  <Label className="text-xs text-gray-500">First Name</Label>
-                  <div>
-                    <InlineEdit
-                      value={(contact as any).firstName}
-                      onSave={(val) => handleContactUpdate('firstName', val)}
-                      emptyText="Add first name"
-                      displayClassName="font-medium"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-gray-500">Last Name</Label>
-                  <div>
-                    <InlineEdit
-                      value={(contact as any).lastName}
-                      onSave={(val) => handleContactUpdate('lastName', val)}
-                      emptyText="Add last name"
-                      displayClassName="font-medium"
-                    />
-                  </div>
-                </div>
-                <div className="md:col-span-2 space-y-1">
-                  <Label className="text-xs text-gray-500">Title</Label>
-                  <div>
-                    <InlineEdit
-                      value={(contact as any).title}
-                      onSave={(val) => handleContactUpdate('title', val)}
-                      emptyText="Add title"
-                      placeholder="e.g., CEO, VP of Sales"
-                    />
-                  </div>
-                </div>
+          <div className="bg-gray-50 rounded-lg border border-gray-200 p-3 mb-2">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 text-sm">
+              {/* Email */}
+              <div className="space-y-0.5">
+                <Label className="text-xs text-gray-500 block">Email</Label>
+                <InlineEditEmail
+                  value={(contact as any).email}
+                  onSave={(val) => handleContactUpdate('email', val)}
+                  emptyText="Add email"
+                  onEmailClick={handleSmartEmailCompose}
+                />
               </div>
-
-              {/* Contact Details - Inline Editable */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                  <InlineEditEmail
-                    value={(contact as any).email}
-                    onSave={(val) => handleContactUpdate('email', val)}
-                    emptyText="Add email"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                  <InlineEdit
-                    value={(contact as any).phone}
-                    onSave={(val) => handleContactUpdate('phone', val)}
-                    type="phone"
-                    emptyText="Add phone"
-                  />
-                  {(contact as any).phone && (
-                    <a href={`tel:${(contact as any).phone}`} className="text-gray-400 hover:text-green-600">
-                      <Phone className="h-3.5 w-3.5" />
-                    </a>
-                  )}
-                </div>
-                {(contact as any).linkedinUrl && (
-                  <div className="flex items-center gap-2">
-                    <Linkedin className="h-4 w-4 text-gray-400" />
-                    <a href={(contact as any).linkedinUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                      LinkedIn Profile
-                    </a>
-                  </div>
-                )}
+              {/* Phone */}
+              <div className="space-y-0.5">
+                <Label className="text-xs text-gray-500 block">Phone</Label>
+                <InlineEdit
+                  value={(contact as any).phone}
+                  onSave={(val) => handleContactUpdate('phone', val)}
+                  type="phone"
+                  emptyText="Add phone"
+                />
               </div>
+              {/* Title */}
+              <div className="space-y-0.5">
+                <Label className="text-xs text-gray-500 block">Title</Label>
+                <InlineEdit
+                  value={(contact as any).title}
+                  onSave={(val) => handleContactUpdate('title', val)}
+                  emptyText="Add title"
+                  placeholder="e.g., CEO"
+                />
+              </div>
+              {/* Source */}
+              <div className="space-y-0.5">
+                <Label className="text-xs text-gray-500 block">Source</Label>
+                <p className="text-sm text-gray-900">{source ? source.replace(/_/g, ' ') : <span className="text-gray-400">—</span>}</p>
+              </div>
+            </div>
 
-              {/* Tags */}
-              <div className="pt-4 border-t">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Tag className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm font-medium text-gray-700">Tags</span>
-                  </div>
+            {/* Contact Type, Lead Status & Tags row */}
+            {isSectionVisible("contact-classification") && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 mt-3 pt-3 border-t border-gray-200">
+              <div>
+                <Label className="text-xs text-gray-500">Contact Type</Label>
+                <Select
+                  value={contactType}
+                  onValueChange={(value) => handleContactUpdate('contactType', value)}
+                >
+                  <SelectTrigger className={`h-7 w-full text-xs ${getContactTypeColor(contactType)}`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="buyer">Buyer</SelectItem>
+                    <SelectItem value="seller">Seller</SelectItem>
+                    <SelectItem value="advisor">Advisor</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs text-gray-500">Lead Status</Label>
+                <Select
+                  value={leadStatus}
+                  onValueChange={(value) => handleContactUpdate('leadStatus', value)}
+                >
+                  <SelectTrigger className={`h-7 w-full text-xs ${getLeadStatusColor(leadStatus)}`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new">New</SelectItem>
+                    <SelectItem value="contacted">Contacted</SelectItem>
+                    <SelectItem value="qualified">Qualified</SelectItem>
+                    <SelectItem value="unqualified">Unqualified</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="md:col-span-2">
+                <div className="flex items-center gap-1">
+                  <Label className="text-xs text-gray-500">Tags</Label>
                   {!showTagInput && (
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => setShowTagInput(true)}
-                      className="h-7 px-2 text-gray-500 hover:text-gray-700"
+                      className="h-4 w-4 p-0 text-gray-500 hover:text-gray-700"
                     >
-                      <Plus className="h-3 w-3 mr-1" />
-                      Add
+                      <Plus className="h-3 w-3" />
                     </Button>
                   )}
                 </div>
-
-                {/* Tag input */}
-                {showTagInput && (
-                  <div className="flex gap-2 mb-3">
+                {showTagInput ? (
+                  <div className="flex gap-1">
                     <Input
-                      placeholder="Enter tag name..."
+                      placeholder="Tag name..."
                       value={newTagValue}
                       onChange={(e) => setNewTagValue(e.target.value)}
                       onKeyDown={(e) => {
@@ -464,14 +646,14 @@ export default function ContactDetailPage() {
                           setNewTagValue("");
                         }
                       }}
-                      className="h-8 text-sm"
+                      className="h-6 text-xs flex-1"
                       autoFocus
                     />
                     <Button
                       size="sm"
                       onClick={() => handleAddTag(newTagValue)}
                       disabled={!newTagValue.trim()}
-                      className="h-8"
+                      className="h-6 px-2 text-xs"
                     >
                       Add
                     </Button>
@@ -482,22 +664,19 @@ export default function ContactDetailPage() {
                         setShowTagInput(false);
                         setNewTagValue("");
                       }}
-                      className="h-8 px-2"
+                      className="h-6 px-1"
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-3 w-3" />
                     </Button>
                   </div>
-                )}
-
-                {/* Tags list */}
-                {tags.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
+                ) : tags.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5 mt-1">
                     {tags.map((tag: string, index: number) => (
-                      <Badge key={index} variant="outline" className="bg-gray-50 pr-1 flex items-center gap-1 text-gray-700">
+                      <Badge key={index} variant="outline" className="bg-white pr-1 flex items-center gap-1 text-sm text-gray-700">
                         {tag}
                         <button
                           onClick={() => handleRemoveTag(tag)}
-                          className="ml-1 hover:bg-gray-200 rounded p-0.5 transition-colors"
+                          className="ml-0.5 hover:bg-gray-200 rounded p-0.5 transition-colors"
                           title={`Remove ${tag}`}
                         >
                           <X className="h-3 w-3 text-gray-500 hover:text-gray-700" />
@@ -506,33 +685,22 @@ export default function ContactDetailPage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500">No tags added</p>
+                  <p className="text-sm text-gray-400 mt-1">No tags</p>
                 )}
               </div>
+            </div>
+            )}
 
-              {/* Source */}
-              {source && (
-                <div className="pt-4 border-t">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm text-gray-500">Source:</span>
-                    <span className="text-sm font-medium">{source.replace(/_/g, ' ')}</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Notes */}
-              {(contact as any).notes && (
-                <div className="pt-4 border-t">
-                  <h4 className="font-medium mb-2 flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-gray-400" />
-                    Notes
-                  </h4>
-                  <p className="text-gray-600 whitespace-pre-wrap">{(contact as any).notes}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+            {/* LinkedIn link if present */}
+            {(contact as any).linkedinUrl && (
+              <div className="mt-2 pt-2 border-t border-gray-200">
+                <a href={(contact as any).linkedinUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+                  <Linkedin className="h-3 w-3" />
+                  LinkedIn Profile
+                </a>
+              </div>
+            )}
+          </div>
           )}
 
           {/* Engagement Data - Only show if there's engagement data */}
@@ -610,51 +778,309 @@ export default function ContactDetailPage() {
             </Card>
           )}
 
-          {/* Email Activity */}
-          {isSectionVisible("email-activity") && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Mail className="h-5 w-5" />
-                Email Activity
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <EmailList
-                contactId={parseInt(id!)}
-                contactEmail={(contact as any).email}
-              />
-            </CardContent>
-          </Card>
-          )}
-
-          {/* Tasks */}
-          {isSectionVisible("tasks") && (
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="flex items-center gap-2">
-                <CheckSquare className="h-5 w-5" />
+          {/* Tabs */}
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList variant="underline" className="w-full justify-start border-b">
+              <TabsTrigger variant="underline" value="activity">
+                <Clock className="h-4 w-4 mr-1" />
+                Activity
+              </TabsTrigger>
+              <TabsTrigger variant="underline" value="notes">
+                <MessageSquare className="h-4 w-4 mr-1" />
+                Notes
+              </TabsTrigger>
+              <TabsTrigger variant="underline" value="tasks">
+                <CheckSquare className="h-4 w-4 mr-1" />
                 Tasks
-              </CardTitle>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setIsTaskDialogOpen(true)}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Task
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <TaskList
-                tasks={tasks || []}
-                objectType="contact"
-                objectId={parseInt(id!)}
-                onEditTask={(task) => setEditingTask(task)}
-              />
-            </CardContent>
-          </Card>
-          )}
+              </TabsTrigger>
+              <TabsTrigger variant="underline" value="emails">
+                <Mail className="h-4 w-4 mr-1" />
+                Emails
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Activity Tab */}
+            <TabsContent value="activity" className="mt-4">
+              <Card>
+                <CardContent className="pt-6">
+                  {activities && activities.length > 0 ? (
+                    <div className="space-y-4">
+                      {activities.map((activity: ActivityItem) => {
+                        const { icon: ActivityIcon, bg, color } = getActivityIcon(activity.activityType);
+                        const embedded = activity.embeddedContent;
+
+                        return (
+                          <div
+                            key={activity.id}
+                            className="flex gap-3 pb-4 border-b last:border-0"
+                          >
+                            <div className={`w-8 h-8 rounded-full ${bg} flex items-center justify-center flex-shrink-0 mt-1`}>
+                              <ActivityIcon className={`h-4 w-4 ${color}`} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <p className="text-sm text-gray-900">
+                                  <span className="font-medium">
+                                    {activity.performedByUser?.firstName || activity.performedByUser?.email || 'System'}
+                                  </span>{" "}
+                                  {formatActivityTitle(activity)}
+                                </p>
+                                <span className="text-xs text-gray-400">
+                                  {new Date(activity.timestamp).toLocaleString()}
+                                </span>
+                              </div>
+
+                              {/* Embedded Note Content */}
+                              {embedded?.type === 'note' && (
+                                <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                                  <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                                    {embedded.content}
+                                  </p>
+                                </div>
+                              )}
+
+                              {/* Embedded File Content */}
+                              {embedded?.type === 'file' && (
+                                <div className="mt-2 p-3 bg-purple-50 rounded-lg border border-purple-100 flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-purple-100 rounded flex items-center justify-center">
+                                      <FileText className="h-5 w-5 text-purple-600" />
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-medium text-gray-700">
+                                        {embedded.fileName}
+                                      </p>
+                                      <p className="text-xs text-gray-500">
+                                        {(embedded.fileSize / 1024).toFixed(1)} KB
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      window.open(embedded.downloadUrl, '_blank');
+                                    }}
+                                  >
+                                    <Download className="h-4 w-4 mr-1" />
+                                    Download
+                                  </Button>
+                                </div>
+                              )}
+
+                              {/* Embedded Task Content */}
+                              {(embedded?.type === 'task' || embedded?.type === 'task_completed') && (
+                                <div className={`mt-2 p-3 rounded-lg border ${
+                                  embedded.type === 'task_completed'
+                                    ? 'bg-green-50 border-green-100'
+                                    : 'bg-orange-50 border-orange-100'
+                                }`}>
+                                  <p className="text-sm text-gray-700 flex items-center gap-2">
+                                    <CheckSquare className={`h-4 w-4 ${
+                                      embedded.type === 'task_completed' ? 'text-green-600' : 'text-orange-600'
+                                    }`} />
+                                    {embedded.title}
+                                    {embedded.type === 'task_completed' && (
+                                      <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
+                                        Completed
+                                      </Badge>
+                                    )}
+                                  </p>
+                                </div>
+                              )}
+
+                              {/* Embedded Email Content */}
+                              {embedded?.type === 'email' && (
+                                <div className="mt-1.5 border border-gray-200 rounded-md">
+                                  <button
+                                    onClick={() => {
+                                      setExpandedEmails(prev => {
+                                        const next = new Set(prev);
+                                        if (next.has(activity.id)) {
+                                          next.delete(activity.id);
+                                        } else {
+                                          next.add(activity.id);
+                                        }
+                                        return next;
+                                      });
+                                    }}
+                                    className="w-full text-left px-3 py-2"
+                                  >
+                                    <div className="flex items-center justify-between gap-2">
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm text-gray-900 truncate">
+                                          <span className="font-medium">{embedded.subject || '(No subject)'}</span>
+                                          <span className="text-gray-400 mx-1.5">·</span>
+                                          <span className="text-gray-500 text-xs">{embedded.fromName || embedded.from} → {embedded.to}</span>
+                                        </p>
+                                        {!expandedEmails.has(activity.id) && embedded.snippet && (
+                                          <p className="text-xs text-gray-500 truncate mt-0.5">
+                                            {embedded.snippet}
+                                          </p>
+                                        )}
+                                      </div>
+                                      {expandedEmails.has(activity.id) ? (
+                                        <ChevronUp className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                                      ) : (
+                                        <ChevronDown className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                                      )}
+                                    </div>
+                                  </button>
+                                  {expandedEmails.has(activity.id) && (
+                                    <div className="px-3 pb-2 border-t border-gray-100">
+                                      <p className="text-sm text-gray-700 whitespace-pre-wrap pt-2">
+                                        {embedded.body || embedded.snippet || '(No content)'}
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Fallback description */}
+                              {!embedded && activity.description && (
+                                <p className="text-sm text-gray-500 mt-1">
+                                  {activity.description}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Clock className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-700 font-medium">No activity yet</p>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Activity will appear here as you work with this contact
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Notes Tab */}
+            <TabsContent value="notes" className="mt-4">
+              <Card>
+                <CardContent className="pt-6">
+                  {/* Add Note Form */}
+                  <div className="mb-6">
+                    <MentionInput
+                      value={newNote}
+                      onChange={(value, mentions) => {
+                        setNewNote(value);
+                        setMentionedUserIds(mentions.map(m => m.userId));
+                      }}
+                      placeholder="Add a note... Use @ to mention teammates"
+                      rows={3}
+                    />
+                    <Button
+                      className="mt-2"
+                      size="sm"
+                      onClick={() => createNoteMutation.mutate({ content: newNote, mentionedUserIds })}
+                      disabled={!newNote.trim() || createNoteMutation.isPending}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Note
+                    </Button>
+                  </div>
+
+                  {/* Notes List */}
+                  {notes && notes.length > 0 ? (
+                    <div className="space-y-4">
+                      {notes.map((note) => (
+                        <div
+                          key={note.id}
+                          className="p-4 bg-gray-50 rounded-lg group"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-sm whitespace-pre-wrap flex-1 text-gray-700">
+                              {highlightMentions(note.content)}
+                            </p>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-600 hover:bg-red-50"
+                              onClick={() => deleteNoteMutation.mutate(note.id)}
+                              disabled={deleteNoteMutation.isPending}
+                              title="Delete note"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="text-xs text-gray-500">
+                              {note.author?.firstName || note.author?.email}
+                            </span>
+                            <span className="text-xs text-gray-400">
+                              {new Date(note.createdAt).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <MessageSquare className="h-10 w-10 text-gray-400 mx-auto mb-2" />
+                      <p className="text-gray-500 text-sm">No notes yet</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Tasks Tab */}
+            <TabsContent value="tasks" className="mt-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-lg">Tasks</CardTitle>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setIsTaskDialogOpen(true)}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Task
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <TaskList
+                    tasks={tasks || []}
+                    objectType="contact"
+                    objectId={parseInt(id!)}
+                    onEditTask={(task) => setEditingTask(task)}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Emails Tab */}
+            <TabsContent value="emails" className="mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Mail className="h-5 w-5" />
+                    Emails
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <EmailList
+                    contactId={parseInt(id!)}
+                    contactEmail={(contact as any).email}
+                    initialComposeOpen={triggerEmailCompose}
+                    onConnectionStatusChange={(connected) => {
+                      setIsEmailConnected(connected);
+                      if (triggerEmailCompose && connected) {
+                        // Reset trigger after opening
+                        setTimeout(() => setTriggerEmailCompose(false), 100);
+                      }
+                    }}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
 
         {/* Sidebar */}

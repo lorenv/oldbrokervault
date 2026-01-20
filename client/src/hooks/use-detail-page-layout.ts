@@ -46,7 +46,7 @@ const DEFAULT_SECTION_CONFIG: Record<string, { main: string[]; sidebar: string[]
     sidebar: ["key-people", "deal-details", "quick-actions"],
   },
   contact: {
-    main: ["contact-info", "engagement-history", "email-activity", "tasks"],
+    main: ["contact-info", "contact-classification", "engagement-history", "email-activity", "tasks"],
     sidebar: ["associated-deals", "quick-info"],
   },
   company: {

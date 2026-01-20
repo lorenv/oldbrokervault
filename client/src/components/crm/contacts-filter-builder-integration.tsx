@@ -14,6 +14,7 @@ const getFilterFields = (): FilterField[] => [
   { id: 'name', label: 'Name', type: 'text' },
   { id: 'email', label: 'Email', type: 'text' },
   { id: 'phone', label: 'Phone', type: 'text' },
+  { id: 'tags', label: 'Tags', type: 'text' },
   {
     id: 'contactType',
     label: 'Contact Type',
@@ -125,6 +126,17 @@ function filtersToConditions(filters: ContactFilters): FilterCondition[] {
     });
   }
 
+  if (filters.tags.length > 0) {
+    filters.tags.forEach((tag) => {
+      conditions.push({
+        id: `tags-${tag}-${Date.now()}`,
+        fieldId: 'tags',
+        operator: 'contains',
+        value: tag,
+      });
+    });
+  }
+
   return conditions;
 }
 
@@ -134,9 +146,11 @@ function applyConditionsToFilters(
   updateFilter: <K extends keyof ContactFilters>(key: K, value: ContactFilters[K]) => void
 ) {
   // Reset relevant filters first
+  updateFilter('search', '');
   updateFilter('contactType', '');
   updateFilter('leadStatus', []);
   updateFilter('source', []);
+  updateFilter('tags', []);
   updateFilter('hasEmail', null);
   updateFilter('hasPhone', null);
   updateFilter('createdFrom', null);
@@ -147,6 +161,15 @@ function applyConditionsToFilters(
     const value = condition.value;
 
     switch (condition.fieldId) {
+      case 'name':
+      case 'email':
+      case 'phone':
+        // These all map to the search filter
+        if (condition.operator === 'contains' || condition.operator === 'equals') {
+          updateFilter('search', value);
+        }
+        break;
+
       case 'contactType':
         if (condition.operator === 'equals') {
           updateFilter('contactType', value);
@@ -185,6 +208,12 @@ function applyConditionsToFilters(
         } else if (condition.operator === 'equals') {
           updateFilter('createdFrom', value);
           updateFilter('createdTo', value);
+        }
+        break;
+
+      case 'tags':
+        if (condition.operator === 'contains' && value) {
+          updateFilter('tags', [value]);
         }
         break;
     }

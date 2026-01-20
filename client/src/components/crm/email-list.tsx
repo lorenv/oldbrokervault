@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -55,9 +55,11 @@ interface EmailListProps {
   contactEmail?: string;
   dealId?: number;
   companyId?: number;
+  initialComposeOpen?: boolean;
+  onConnectionStatusChange?: (connected: boolean) => void;
 }
 
-export function EmailList({ contactId, contactEmail, dealId, companyId }: EmailListProps) {
+export function EmailList({ contactId, contactEmail, dealId, companyId, initialComposeOpen, onConnectionStatusChange }: EmailListProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [expandedEmailId, setExpandedEmailId] = useState<string | null>(null);
@@ -168,6 +170,19 @@ export function EmailList({ contactId, contactEmail, dealId, companyId }: EmailL
   const fetchError = (data as any)?.error;
   const noContacts = (data as any)?.noContacts;
   const apiContactEmail = (data as any)?.contactEmail?.toLowerCase();
+
+  // Notify parent of connection status and handle initial compose
+  useEffect(() => {
+    if (data !== undefined) {
+      const isConnected = connected === true && !expired;
+      onConnectionStatusChange?.(isConnected);
+
+      // Auto-open composer if requested and connected
+      if (initialComposeOpen && isConnected && !isComposerOpen) {
+        setIsComposerOpen(true);
+      }
+    }
+  }, [data, connected, expired, initialComposeOpen, onConnectionStatusChange]);
 
   // Pagination calculations
   const totalEmails = emails.length;

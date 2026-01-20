@@ -42,24 +42,18 @@ import {
   Building2,
   DollarSign,
   Calendar,
-  MoreHorizontal,
   Trash2,
-  Eye,
   ArrowUp,
   ArrowDown,
   ArrowUpDown,
-  Check,
   X,
   Clock,
   Download,
   User,
+  Handshake,
+  Pencil,
 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import { useDealFilters, DEFAULT_FILTERS, DEFAULT_SORTING, DEFAULT_COLUMNS } from "@/hooks/use-deal-filters";
 import { DealsQuickFilters } from "@/components/crm/deals-quick-filters";
@@ -429,6 +423,10 @@ export default function DealsPage() {
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [selectedDeals, setSelectedDeals] = useState<Set<number>>(new Set());
+  const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
+  const [bulkEditProperty, setBulkEditProperty] = useState<string>("");
+  const [bulkEditValue, setBulkEditValue] = useState<string>("");
 
   // Use the filters hook
   const {
@@ -631,6 +629,114 @@ export default function DealsPage() {
     updateDealMutation.mutate({ dealId, data: { [field]: value || null } });
   };
 
+  // Selection handlers
+  const toggleSelectDeal = (dealId: number) => {
+    setSelectedDeals(prev => {
+      const next = new Set(prev);
+      if (next.has(dealId)) {
+        next.delete(dealId);
+      } else {
+        next.add(dealId);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedDeals.size === deals.length) {
+      setSelectedDeals(new Set());
+    } else {
+      setSelectedDeals(new Set(deals.map(d => d.id)));
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedDeals(new Set());
+  };
+
+  // Bulk actions
+  const handleBulkDelete = async () => {
+    if (selectedDeals.size === 0) return;
+    const promises = Array.from(selectedDeals).map(id =>
+      apiRequest("DELETE", `/api/crm/deals/${id}`)
+    );
+    try {
+      await Promise.all(promises);
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals/kanban"] });
+      toast({ title: `${selectedDeals.size} deal(s) deleted` });
+      clearSelection();
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to delete some deals", variant: "destructive" });
+    }
+  };
+
+  const handleBulkEdit = async () => {
+    if (selectedDeals.size === 0 || !bulkEditProperty || !bulkEditValue) return;
+
+    let promises;
+    if (bulkEditProperty === 'stage') {
+      promises = Array.from(selectedDeals).map(id =>
+        apiRequest("POST", `/api/crm/deals/${id}/move`, { body: { stageId: parseInt(bulkEditValue) } })
+      );
+    } else {
+      const updateData: Record<string, any> = {};
+      if (bulkEditProperty === 'owner') {
+        updateData.ownerId = parseInt(bulkEditValue);
+      } else if (bulkEditProperty === 'priority') {
+        updateData.priority = bulkEditValue;
+      }
+      promises = Array.from(selectedDeals).map(id =>
+        apiRequest("PATCH", `/api/crm/deals/${id}`, { body: updateData })
+      );
+    }
+
+    try {
+      await Promise.all(promises);
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals/kanban"] });
+      toast({ title: `${selectedDeals.size} deal(s) updated` });
+      clearSelection();
+      setIsBulkEditOpen(false);
+      setBulkEditProperty("");
+      setBulkEditValue("");
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to update some deals", variant: "destructive" });
+    }
+  };
+
+  const handleBulkExport = () => {
+    const selectedDealsList = allDeals.filter((d: Deal) => selectedDeals.has(d.id));
+    if (selectedDealsList.length === 0) return;
+
+    const headers = ["Name", "Company", "Stage", "Value", "Currency", "Close Date", "Priority", "Source", "Created"];
+    const rows = selectedDealsList.map((d: Deal) => [
+      d.name || "",
+      d.company?.name || "",
+      d.stage?.name || "",
+      d.amount || "",
+      d.currency || "USD",
+      d.closeDate ? new Date(d.closeDate).toLocaleDateString() : "",
+      d.priority || "",
+      d.source || "",
+      d.createdAt ? new Date(d.createdAt).toLocaleDateString() : "",
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `deals-export-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+
+    toast({ title: `Exported ${selectedDealsList.length} deal(s)` });
+  };
+
   const stages = (kanbanData as any)?.stages || [];
   const allDeals = dealsData?.deals || [];
   const aggregates = dealsData?.aggregates;
@@ -722,9 +828,6 @@ export default function DealsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl md:text-2xl font-semibold text-gray-900">Deals</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Manage your sales pipeline and track deal progress
-          </p>
         </div>
         <Button variant="outline" onClick={() => setIsCreateDialogOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
@@ -836,10 +939,60 @@ export default function DealsPage() {
 
       {/* List View */}
       {viewMode === "list" && (
+        <>
+        {/* Bulk Actions Bar */}
+        {selectedDeals.size > 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-medium text-blue-900">
+                {selectedDeals.size} deal{selectedDeals.size !== 1 ? 's' : ''} selected
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8"
+                  onClick={() => setIsBulkEditOpen(true)}
+                >
+                  <Pencil className="h-3.5 w-3.5 mr-1" />
+                  Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8"
+                  onClick={handleBulkExport}
+                >
+                  <Download className="h-3.5 w-3.5 mr-1" />
+                  Export
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                  onClick={handleBulkDelete}
+                >
+                  <Trash2 className="h-3.5 w-3.5 mr-1" />
+                  Delete
+                </Button>
+              </div>
+            </div>
+            <Button variant="ghost" size="sm" onClick={clearSelection} className="h-8">
+              <X className="h-3.5 w-3.5 mr-1" />
+              Clear
+            </Button>
+          </div>
+        )}
         <div className="w-full bg-white rounded-lg border overflow-x-auto">
           <table className="w-full table-auto">
               <thead className="bg-gray-50 border-b">
                 <tr>
+                  <th className="py-1.5 px-2 w-10">
+                    <Checkbox
+                      checked={deals.length > 0 && selectedDeals.size === deals.length}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                  </th>
                   {visibleColumns.map((col) => {
                     const sortable = ['name', 'amount', 'closeDate', 'createdAt', 'stage', 'company', 'priority'].includes(col.id);
                     // Name column expands to fill remaining space, others size to content
@@ -853,54 +1006,49 @@ export default function DealsPage() {
                           currentSort={sorting}
                           onSort={toggleSort}
                           style={widthStyle}
-                          className="py-2 px-3"
+                          className="py-1.5 px-2"
                         />
                       );
                     }
                     return (
                       <th
                         key={col.id}
-                        className="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase"
+                        className="text-left py-1.5 px-2 text-xs font-medium text-gray-500 uppercase"
                         style={widthStyle}
                       >
                         {col.label}
                       </th>
                     );
                   })}
-                  <th
-                    className="text-right py-2 px-3 text-xs font-medium text-gray-500 uppercase"
-                    style={{ whiteSpace: 'nowrap' }}
-                  >
-                    Actions
-                  </th>
                 </tr>
               </thead>
               <tbody>
                 {deals.map((deal) => (
-                  <tr key={deal.id} className={`border-b hover:bg-gray-50/50 ${isMobile ? "h-16" : ""}`}>
+                  <tr key={deal.id} className={`border-b hover:bg-gray-50/50 ${selectedDeals.has(deal.id) ? 'bg-blue-50/50' : ''} ${isMobile ? "h-14" : ""}`}>
+                    <td className="py-1.5 px-2 w-10">
+                      <Checkbox
+                        checked={selectedDeals.has(deal.id)}
+                        onCheckedChange={() => toggleSelectDeal(deal.id)}
+                      />
+                    </td>
                     {visibleColumns.map((col) => (
                       <td
                         key={col.id}
-                        className="py-2 px-3"
+                        className="py-1.5 px-2"
                         style={col.id === 'name' ? { width: '100%' } : { whiteSpace: 'nowrap' }}
                       >
                         {col.id === 'name' && (
-                          <InlineEditableCell
-                            value={deal.name}
-                            onSave={(val) => handleInlineEdit(deal.id, 'name', val)}
-                            renderValue={() => (
-                              <Link href={`/deals/${deal.id}`} className="font-medium text-gray-900 hover:text-blue-600">
-                                {deal.name}
-                              </Link>
-                            )}
-                          />
+                          <Link href={`/deals/${deal.id}`} className="flex items-center gap-1.5 text-sm font-medium text-gray-900 hover:text-blue-600">
+                            <Handshake className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                            <span className="truncate">{deal.name}</span>
+                          </Link>
                         )}
                         {col.id === 'company' && (
-                          <span className="text-gray-500">{deal.company?.name || '-'}</span>
+                          <span className="text-sm text-gray-500">{deal.company?.name || '-'}</span>
                         )}
                         {col.id === 'stage' && deal.stage && (
                           <span
-                            className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
+                            className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
                             style={{
                               backgroundColor: deal.stage.color + '20',
                               color: deal.stage.color,
@@ -956,23 +1104,23 @@ export default function DealsPage() {
                           />
                         )}
                         {col.id === 'owner' && (
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5">
                             {deal.owner ? (
                               <>
                                 {deal.owner.profilePhoto ? (
                                   <img
                                     src={deal.owner.profilePhoto}
                                     alt={deal.owner.name || deal.owner.email}
-                                    className="w-6 h-6 rounded-full object-cover flex-shrink-0"
+                                    className="w-5 h-5 rounded-full object-cover flex-shrink-0"
                                   />
                                 ) : (
-                                  <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                                    <span className="text-xs font-medium text-blue-600">
+                                  <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                    <span className="text-[10px] font-medium text-blue-600">
                                       {(deal.owner.name || deal.owner.email || '?').charAt(0).toUpperCase()}
                                     </span>
                                   </div>
                                 )}
-                                <span className="text-gray-900 truncate">
+                                <span className="text-sm text-gray-900 truncate">
                                   {deal.owner.name ||
                                    (deal.owner.firstName && deal.owner.lastName
                                     ? `${deal.owner.firstName} ${deal.owner.lastName}`
@@ -980,42 +1128,18 @@ export default function DealsPage() {
                                 </span>
                               </>
                             ) : (
-                              <span className="text-gray-500">-</span>
+                              <span className="text-sm text-gray-500">-</span>
                             )}
                           </div>
                         )}
                         {col.id === 'source' && (
-                          <span className="text-gray-500">{deal.source || '-'}</span>
+                          <span className="text-sm text-gray-500">{deal.source || '-'}</span>
                         )}
                         {col.id === 'createdAt' && (
-                          <span className="text-gray-500">{new Date(deal.createdAt).toLocaleDateString()}</span>
+                          <span className="text-sm text-gray-500">{new Date(deal.createdAt).toLocaleDateString()}</span>
                         )}
                       </td>
                     ))}
-                    <td className="py-3 px-4 text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <Link href={`/deals/${deal.id}`}>
-                              <Eye className="h-4 w-4 mr-2" />
-                              View Details
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-red-600"
-                            onClick={() => deleteDealMutation.mutate(deal.id)}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </td>
                   </tr>
                 ))}
                 {deals.length === 0 && (
@@ -1079,6 +1203,7 @@ export default function DealsPage() {
             onPageSizeChange={setPageSize}
           />
         </div>
+        </>
       )}
 
       {/* Create Deal Dialog */}
@@ -1205,6 +1330,96 @@ export default function DealsPage() {
             </Button>
             <Button onClick={handleCreateDeal} disabled={createDealMutation.isPending}>
               {createDealMutation.isPending ? "Creating..." : "Create Deal"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Edit Dialog */}
+      <Dialog open={isBulkEditOpen} onOpenChange={(open) => {
+        setIsBulkEditOpen(open);
+        if (!open) {
+          setBulkEditProperty("");
+          setBulkEditValue("");
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit {selectedDeals.size} Deal{selectedDeals.size !== 1 ? 's' : ''}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Property to Edit</Label>
+              <Select value={bulkEditProperty} onValueChange={(val) => {
+                setBulkEditProperty(val);
+                setBulkEditValue("");
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select property" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="stage">Stage</SelectItem>
+                  <SelectItem value="owner">Owner</SelectItem>
+                  <SelectItem value="priority">Priority</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {bulkEditProperty && (
+              <div className="space-y-2">
+                <Label>New Value</Label>
+                {bulkEditProperty === 'stage' && (
+                  <Select value={bulkEditValue} onValueChange={setBulkEditValue}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select stage" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allStages.map((stage: Stage) => (
+                        <SelectItem key={stage.id} value={stage.id.toString()}>
+                          {stage.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                {bulkEditProperty === 'owner' && (
+                  <Select value={bulkEditValue} onValueChange={setBulkEditValue}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select owner" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {members.map((member) => (
+                        <SelectItem key={member.id} value={member.userId.toString()}>
+                          {member.firstName && member.lastName
+                            ? `${member.firstName} ${member.lastName}`
+                            : member.email}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                {bulkEditProperty === 'priority' && (
+                  <Select value={bulkEditValue} onValueChange={setBulkEditValue}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select priority" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="normal">Normal</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="urgent">Urgent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsBulkEditOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleBulkEdit} disabled={!bulkEditProperty || !bulkEditValue}>
+              Update {selectedDeals.size} Deal{selectedDeals.size !== 1 ? 's' : ''}
             </Button>
           </DialogFooter>
         </DialogContent>

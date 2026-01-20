@@ -12,6 +12,13 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useCompanyFilters } from "@/hooks/use-company-filters";
@@ -33,7 +40,10 @@ import {
   ArrowUp,
   ArrowDown,
   Download,
+  Trash2,
+  Pencil,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function CompaniesPage() {
   const { toast } = useToast();
@@ -43,6 +53,10 @@ export default function CompaniesPage() {
   const [newCompany, setNewCompany] = useState({ name: "", website: "", industry: "", city: "", state: "" });
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [selectedCompanies, setSelectedCompanies] = useState<Set<number>>(new Set());
+  const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
+  const [bulkEditProperty, setBulkEditProperty] = useState<string>("");
+  const [bulkEditValue, setBulkEditValue] = useState<string>("");
 
   // Use the company filters hook
   const {
@@ -150,6 +164,103 @@ export default function CompaniesPage() {
     toast({ title: `Exported ${allCompanies.length} companies` });
   };
 
+  // Selection handlers
+  const toggleSelectCompany = (companyId: number) => {
+    setSelectedCompanies(prev => {
+      const next = new Set(prev);
+      if (next.has(companyId)) {
+        next.delete(companyId);
+      } else {
+        next.add(companyId);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedCompanies.size === companies.length) {
+      setSelectedCompanies(new Set());
+    } else {
+      setSelectedCompanies(new Set(companies.map((c: any) => c.id)));
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedCompanies(new Set());
+  };
+
+  // Bulk actions
+  const handleBulkDelete = async () => {
+    if (selectedCompanies.size === 0) return;
+    const promises = Array.from(selectedCompanies).map(id =>
+      apiRequest("DELETE", `/api/crm/companies/${id}`)
+    );
+    try {
+      await Promise.all(promises);
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"] });
+      toast({ title: `${selectedCompanies.size} company(ies) deleted` });
+      clearSelection();
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to delete some companies", variant: "destructive" });
+    }
+  };
+
+  const handleBulkEdit = async () => {
+    if (selectedCompanies.size === 0 || !bulkEditProperty || !bulkEditValue) return;
+
+    const updateData: Record<string, any> = {};
+    if (bulkEditProperty === 'industry') {
+      updateData.industry = bulkEditValue;
+    }
+
+    const promises = Array.from(selectedCompanies).map(id =>
+      apiRequest("PATCH", `/api/crm/companies/${id}`, { body: updateData })
+    );
+
+    try {
+      await Promise.all(promises);
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"] });
+      toast({ title: `${selectedCompanies.size} company(ies) updated` });
+      clearSelection();
+      setIsBulkEditOpen(false);
+      setBulkEditProperty("");
+      setBulkEditValue("");
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to update some companies", variant: "destructive" });
+    }
+  };
+
+  const handleBulkExport = () => {
+    const selectedCompaniesList = allCompanies.filter((c: any) => selectedCompanies.has(c.id));
+    if (selectedCompaniesList.length === 0) return;
+
+    const headers = ["Name", "Industry", "Website", "City", "State", "Contacts", "Deals", "Created"];
+    const rows = selectedCompaniesList.map((c: any) => [
+      c.name || "",
+      c.industry || "",
+      c.website || "",
+      c.city || "",
+      c.state || "",
+      c._count?.contacts || 0,
+      c._count?.deals || 0,
+      c.createdAt ? new Date(c.createdAt).toLocaleDateString() : "",
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row: any) => row.map((cell: any) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `companies-export-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+
+    toast({ title: `Exported ${selectedCompaniesList.length} company(ies)` });
+  };
+
   // Render cell content based on column
   const renderCell = (company: any, columnId: string) => {
     switch (columnId) {
@@ -226,7 +337,6 @@ export default function CompaniesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <h1 className="text-xl md:text-2xl font-semibold text-gray-900">Companies</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage your company relationships</p>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <div className="relative flex-1 sm:flex-none">
@@ -390,12 +500,62 @@ export default function CompaniesPage() {
               ))}
             </div>
 
+            {/* Bulk Actions Bar */}
+            {selectedCompanies.size > 0 && (
+              <div className="hidden md:flex bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <span className="text-sm font-medium text-blue-900">
+                    {selectedCompanies.size} company(ies) selected
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8"
+                      onClick={() => setIsBulkEditOpen(true)}
+                    >
+                      <Pencil className="h-3.5 w-3.5 mr-1" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8"
+                      onClick={handleBulkExport}
+                    >
+                      <Download className="h-3.5 w-3.5 mr-1" />
+                      Export
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      onClick={handleBulkDelete}
+                    >
+                      <Trash2 className="h-3.5 w-3.5 mr-1" />
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+                <Button variant="ghost" size="sm" onClick={clearSelection} className="h-8">
+                  <X className="h-3.5 w-3.5 mr-1" />
+                  Clear
+                </Button>
+              </div>
+            )}
+
             {/* Desktop Table View */}
             <div className="hidden md:block w-full bg-white rounded-lg border overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full table-auto">
                   <thead className="bg-gray-50 border-b">
                     <tr>
+                      <th className="py-2 px-3 w-10">
+                        <Checkbox
+                          checked={companies.length > 0 && selectedCompanies.size === companies.length}
+                          onCheckedChange={toggleSelectAll}
+                        />
+                      </th>
                       {visibleColumns.map((column) => (
                         <th
                           key={column.id}
@@ -413,7 +573,13 @@ export default function CompaniesPage() {
                   </thead>
                   <tbody>
                     {companies.map((company: any) => (
-                      <tr key={company.id} className="border-b hover:bg-gray-50/50">
+                      <tr key={company.id} className={`border-b hover:bg-gray-50/50 ${selectedCompanies.has(company.id) ? 'bg-blue-50/50' : ''}`}>
+                        <td className="py-2 px-3 w-10">
+                          <Checkbox
+                            checked={selectedCompanies.has(company.id)}
+                            onCheckedChange={() => toggleSelectCompany(company.id)}
+                          />
+                        </td>
                         {visibleColumns.map((column) => (
                           <td
                             key={column.id}
@@ -558,6 +724,69 @@ export default function CompaniesPage() {
               disabled={!newCompany.name.trim() || createCompanyMutation.isPending}
             >
               {createCompanyMutation.isPending ? "Creating..." : "Create Company"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Edit Dialog */}
+      <Dialog open={isBulkEditOpen} onOpenChange={(open) => {
+        setIsBulkEditOpen(open);
+        if (!open) {
+          setBulkEditProperty("");
+          setBulkEditValue("");
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit {selectedCompanies.size} Company(ies)</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Property to Edit</Label>
+              <Select value={bulkEditProperty} onValueChange={(val) => {
+                setBulkEditProperty(val);
+                setBulkEditValue("");
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select property" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="industry">Industry</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {bulkEditProperty && (
+              <div className="space-y-2">
+                <Label>New Value</Label>
+                {bulkEditProperty === 'industry' && (
+                  <Select value={bulkEditValue} onValueChange={setBulkEditValue}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select industry" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Technology">Technology</SelectItem>
+                      <SelectItem value="Healthcare">Healthcare</SelectItem>
+                      <SelectItem value="Finance">Finance</SelectItem>
+                      <SelectItem value="Manufacturing">Manufacturing</SelectItem>
+                      <SelectItem value="Retail">Retail</SelectItem>
+                      <SelectItem value="Real Estate">Real Estate</SelectItem>
+                      <SelectItem value="Professional Services">Professional Services</SelectItem>
+                      <SelectItem value="Education">Education</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsBulkEditOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleBulkEdit} disabled={!bulkEditProperty || !bulkEditValue}>
+              Update {selectedCompanies.size} Company(ies)
             </Button>
           </DialogFooter>
         </DialogContent>
