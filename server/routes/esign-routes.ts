@@ -464,6 +464,7 @@ router.put('/branding', async (req: Request, res: Response) => {
       .where(eq(userBranding.userId, req.user.id))
       .limit(1);
 
+    let result;
     if (existing) {
       // Update
       const [updated] = await db
@@ -474,7 +475,7 @@ router.put('/branding', async (req: Request, res: Response) => {
         })
         .where(eq(userBranding.userId, req.user.id))
         .returning();
-      res.json(updated);
+      result = updated;
     } else {
       // Insert
       const [created] = await db
@@ -484,8 +485,33 @@ router.put('/branding', async (req: Request, res: Response) => {
           ...validated,
         })
         .returning();
-      res.json(created);
+      result = created;
     }
+
+    // Sync logo and primary color changes to user profile
+    if ('logoUrl' in validated || 'primaryColor' in validated) {
+      try {
+        const profileUpdate: any = {};
+        if ('logoUrl' in validated) {
+          profileUpdate.businessLogo = validated.logoUrl || null;
+        }
+        if ('primaryColor' in validated && validated.primaryColor) {
+          profileUpdate.pdfPrimaryColor = validated.primaryColor;
+        }
+        if (Object.keys(profileUpdate).length > 0) {
+          await db
+            .update(users)
+            .set(profileUpdate)
+            .where(eq(users.id, req.user.id));
+          console.log('[ESIGN] Synced branding changes to user profile');
+        }
+      } catch (syncError) {
+        console.warn('[ESIGN] Failed to sync branding to user profile:', syncError);
+        // Continue - branding was updated successfully
+      }
+    }
+
+    res.json(result);
   } catch (error) {
     console.error('[ESIGN] Error updating branding:', error);
     if (error instanceof z.ZodError) {

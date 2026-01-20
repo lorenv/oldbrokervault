@@ -554,6 +554,7 @@ export default function CompaniesPage() {
                         <Checkbox
                           checked={companies.length > 0 && selectedCompanies.size === companies.length}
                           onCheckedChange={toggleSelectAll}
+                          className="border-gray-300 data-[state=checked]:bg-gray-400 data-[state=checked]:border-gray-400"
                         />
                       </th>
                       {visibleColumns.map((column) => (
@@ -578,6 +579,7 @@ export default function CompaniesPage() {
                           <Checkbox
                             checked={selectedCompanies.has(company.id)}
                             onCheckedChange={() => toggleSelectCompany(company.id)}
+                            className="border-gray-300 data-[state=checked]:bg-gray-400 data-[state=checked]:border-gray-400"
                           />
                         </td>
                         {visibleColumns.map((column) => (

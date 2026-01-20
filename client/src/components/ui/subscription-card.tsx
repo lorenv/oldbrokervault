@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useState } from "react";
@@ -14,9 +14,9 @@ interface SubscriptionCardProps {
   monthlyDocumentsCreated?: number;
   monthlyRegenerationsUsed?: number;
   subtle?: boolean;
-  hideProButtons?: boolean; // New prop to hide buttons for Pro users
-  hideActiveUntil?: boolean; // Hide the "active until" date
-  hideRegenerations?: boolean; // Hide regenerations section
+  hideProButtons?: boolean;
+  hideActiveUntil?: boolean;
+  hideRegenerations?: boolean;
 }
 
 export function SubscriptionCard({
@@ -38,33 +38,6 @@ export function SubscriptionCard({
   const isAdmin = status === "admin";
   const isCanceled = status === "canceled";
   const isFree = status === "free" || !status;
-
-  const getLimit = () => {
-    switch (status) {
-      case "admin":
-      case "enterprise":
-        return "Unlimited";
-      case "standard":
-      case "canceled": // Canceled subscriptions maintain access until end date
-        return 10;
-      case "starter":
-        return 3;
-      default:
-        return 1; // Free trial
-    }
-  };
-
-  const getRegenerationLimit = () => {
-    switch (status) {
-      case "admin":
-      case "enterprise":
-      case "standard":
-      case "canceled": // Canceled subscriptions maintain access until end date
-        return "Unlimited";
-      default:
-        return 2; // Free trial
-    }
-  };
 
   const handleUpgrade = () => {
     window.location.href = "/pricing";
@@ -91,6 +64,26 @@ export function SubscriptionCard({
     }
   };
 
+  const getPlanName = () => {
+    switch (status) {
+      case "pro":
+      case "pro_monthly":
+      case "standard":
+        return "Pro";
+      case "starter":
+      case "starter_monthly":
+        return "Starter";
+      case "enterprise":
+        return "Enterprise";
+      case "admin":
+        return "Admin";
+      case "canceled":
+        return "Canceled";
+      default:
+        return "Free";
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -98,30 +91,24 @@ export function SubscriptionCard({
           <div>
             <CardTitle className="text-gray-900">Subscription</CardTitle>
             <CardDescription>
-              {status === "admin" ? "Administrator account with unlimited access" :
-               status !== "free" ? "Your subscription details and usage" :
+              {isAdmin ? "Administrator account with unlimited access" :
+               isPaidPlan ? "Unlimited CIM documents & features" :
                "Manage your subscription plan"}
             </CardDescription>
           </div>
           <Badge
-            variant={status === "free" ? "secondary" : isCanceled ? "destructive" : "default"}
+            variant={isFree ? "secondary" : isCanceled ? "destructive" : "default"}
             className={`${
-              status === "free" ? "bg-gray-100 text-gray-700" :
+              isFree ? "bg-gray-100 text-gray-700" :
               isCanceled ? "bg-red-100 text-red-700" :
               "bg-blue-100 text-blue-700"
             }`}
           >
-            {isCanceled ? "Canceled" :
-             status === "standard" ? "Pro" :
-             status === "starter" ? "Starter" :
-             status === "free" ? "Free" :
-             status === "admin" ? "Admin" :
-             status === "enterprise" ? "Enterprise" :
-             "Free"}
+            {getPlanName()}
           </Badge>
         </div>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4">
         {isCanceled && (
           <Alert className="border-red-200 bg-red-50">
             <AlertCircle className="h-4 w-4 text-red-600" />
@@ -137,38 +124,37 @@ export function SubscriptionCard({
           </Alert>
         )}
 
-        {!isFree && !hideActiveUntil && !isCanceled && (
-          <div className="flex items-center justify-between py-3 border-b">
+        {!isFree && !hideActiveUntil && !isCanceled && endsAt && (
+          <div className="flex items-center justify-between py-2">
             <span className="text-sm text-gray-600">Next billing date</span>
             <span className="font-medium text-gray-900">
-              {endsAt ? new Date(endsAt).toLocaleDateString() : "N/A"}
+              {new Date(endsAt).toLocaleDateString()}
             </span>
           </div>
         )}
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between py-3 border-b">
-            <span className="text-sm text-gray-600">Monthly documents</span>
+        {isFree && (
+          <div className="flex items-center justify-between py-2 border-b">
+            <span className="text-sm text-gray-600">CIM documents</span>
             <span className="font-medium text-gray-900">
-              {monthlyDocumentsCreated} / {getLimit()}
+              {monthlyDocumentsCreated} / 1
             </span>
           </div>
+        )}
 
-          {!hideRegenerations && (
-            <div className="flex items-center justify-between py-3 border-b">
-              <span className="text-sm text-gray-600">Monthly regenerations</span>
-              <span className="font-medium text-gray-900">
-                {monthlyRegenerationsUsed} / {getRegenerationLimit()}
-              </span>
-            </div>
-          )}
-        </div>
+        {isPaidPlan && (
+          <div className="flex items-center gap-2 py-2 text-green-600">
+            <Zap className="h-4 w-4" />
+            <span className="text-sm font-medium">Unlimited CIM documents</span>
+          </div>
+        )}
 
         {isFree && !isAdmin && (
           <Button
             className="w-full"
             onClick={handleUpgrade}
           >
+            <Zap className="h-4 w-4 mr-2" />
             Upgrade Plan
           </Button>
         )}

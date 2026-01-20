@@ -39,6 +39,7 @@ import {
   Lock,
   Globe,
   Clock,
+  Check,
 } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { SettingsLayout } from "@/components/layout/settings-layout";
@@ -201,7 +202,12 @@ export default function ProfilePage() {
       setProfileForm(updatedForm);
       await apiRequest("PUT", "/api/profile", { body: updatedForm });
       queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
-      toast({ title: "Image Saved", description: field === 'businessLogo' ? "Your logo has been uploaded." : "Your profile photo has been saved." });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      // Also invalidate eSignature branding when logo changes (server syncs automatically)
+      if (field === 'businessLogo') {
+        queryClient.invalidateQueries({ queryKey: ["/api/esign/branding"] });
+      }
+      toast({ title: "Image Saved", description: field === 'businessLogo' ? "Your logo has been uploaded and synced across settings." : "Your profile photo has been saved." });
     } catch (error) {
       toast({ title: "Upload Failed", description: "Failed to process the image.", variant: "destructive" });
     }
@@ -328,7 +334,21 @@ export default function ProfilePage() {
                       <img src={profileForm.businessLogo} alt="Logo" className="max-h-16 mx-auto object-contain" />
                       <div className="flex gap-2 justify-center">
                         <Button variant="outline" size="sm" onClick={() => document.getElementById('businessLogo')?.click()}>Change</Button>
-                        <Button variant="outline" size="sm" onClick={() => handleInputChange("businessLogo", "")}>Remove</Button>
+                        <Button variant="outline" size="sm" onClick={async () => {
+                          const updatedForm = { ...profileForm, businessLogo: "" };
+                          setProfileForm(updatedForm);
+                          await apiRequest("PUT", "/api/profile", { body: updatedForm });
+                          // Also sync removal to eSignature branding
+                          await apiRequest("PUT", "/api/esign/branding", { body: { logoUrl: null } });
+                          queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
+                          queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+                          queryClient.invalidateQueries({ queryKey: ["/api/esign/branding"] });
+                          toast({ title: "Logo Removed", description: "Logo removed from all settings." });
+                        }}>Remove</Button>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-green-600 justify-center">
+                        <Check className="h-3 w-3" />
+                        Synced to PDF, eSignature, and Branding
                       </div>
                     </div>
                   ) : (

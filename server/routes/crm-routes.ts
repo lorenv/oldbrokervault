@@ -53,7 +53,7 @@ import {
   TASK_REMINDER_OPTIONS,
   type OrganizationRole,
 } from '@shared/schema';
-import { eq, and, or, desc, asc, sql, isNull, inArray, ilike } from 'drizzle-orm';
+import { eq, and, or, desc, asc, sql, isNull, inArray, ilike, ne } from 'drizzle-orm';
 import * as crypto from 'crypto';
 import multer from 'multer';
 import path from 'path';
@@ -366,7 +366,7 @@ router.get('/organization', async (req, res) => {
       return res.status(404).json({ error: 'Organization not found' });
     }
 
-    // Get member count
+    // Get total member count
     const memberCount = await db
       .select({ count: sql<number>`count(*)` })
       .from(organizationMembers)
@@ -377,10 +377,41 @@ router.get('/organization', async (req, res) => {
         )
       );
 
+    // Get paid member count (non-viewer roles)
+    const paidMemberCount = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(organizationMembers)
+      .where(
+        and(
+          eq(organizationMembers.organizationId, orgData.organization.id),
+          eq(organizationMembers.status, 'active'),
+          ne(organizationMembers.role, 'viewer')
+        )
+      );
+
+    // Get viewer count
+    const viewerCount = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(organizationMembers)
+      .where(
+        and(
+          eq(organizationMembers.organizationId, orgData.organization.id),
+          eq(organizationMembers.status, 'active'),
+          eq(organizationMembers.role, 'viewer')
+        )
+      );
+
     res.json({
       ...orgData.organization,
       membership: orgData.membership,
       memberCount: Number(memberCount[0]?.count || 0),
+      // License information
+      licenses: {
+        totalSeats: orgData.organization.seatCount || 1,
+        usedSeats: Number(paidMemberCount[0]?.count || 0),
+        availableSeats: Math.max(0, (orgData.organization.seatCount || 1) - Number(paidMemberCount[0]?.count || 0)),
+        viewerCount: Number(viewerCount[0]?.count || 0),
+      },
     });
   } catch (error) {
     console.error('[CRM] Error fetching organization:', error);
@@ -705,6 +736,35 @@ router.post('/organization/members/invite', async (req, res) => {
     }
 
     const { email, role } = req.body;
+    const assignedRole = role || 'member';
+
+    // Check license availability for paid roles (owner, admin, member)
+    // Viewer role is free and unlimited
+    if (assignedRole !== 'viewer') {
+      // Count current paid members (non-viewer roles)
+      const paidMembers = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(organizationMembers)
+        .where(
+          and(
+            eq(organizationMembers.organizationId, orgData.organization.id),
+            eq(organizationMembers.status, 'active'),
+            ne(organizationMembers.role, 'viewer')
+          )
+        );
+
+      const currentPaidCount = Number(paidMembers[0]?.count || 0);
+      const availableSeats = orgData.organization.seatCount || 1;
+
+      if (currentPaidCount >= availableSeats) {
+        return res.status(403).json({
+          error: 'No available licenses',
+          message: `You have ${availableSeats} Pro license(s) and all are in use. Purchase additional licenses in Settings > Billing to invite more team members, or invite them as a free Viewer (read-only access).`,
+          currentUsed: currentPaidCount,
+          totalSeats: availableSeats,
+        });
+      }
+    }
 
     // Check if user exists
     const [existingUser] = await db.select().from(users).where(eq(users.email, email));
@@ -734,7 +794,7 @@ router.post('/organization/members/invite', async (req, res) => {
       .values({
         organizationId: orgData.organization.id,
         userId: existingUser.id,
-        role: role || 'member',
+        role: assignedRole,
         status: 'active',
         invitedBy: req.user!.id,
         invitedAt: new Date(),

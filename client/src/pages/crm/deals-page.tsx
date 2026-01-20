@@ -991,6 +991,7 @@ export default function DealsPage() {
                     <Checkbox
                       checked={deals.length > 0 && selectedDeals.size === deals.length}
                       onCheckedChange={toggleSelectAll}
+                      className="border-gray-300 data-[state=checked]:bg-gray-400 data-[state=checked]:border-gray-400"
                     />
                   </th>
                   {visibleColumns.map((col) => {
@@ -1029,6 +1030,7 @@ export default function DealsPage() {
                       <Checkbox
                         checked={selectedDeals.has(deal.id)}
                         onCheckedChange={() => toggleSelectDeal(deal.id)}
+                        className="border-gray-300 data-[state=checked]:bg-gray-400 data-[state=checked]:border-gray-400"
                       />
                     </td>
                     {visibleColumns.map((col) => (

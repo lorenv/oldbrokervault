@@ -1,7 +1,40 @@
 /**
- * Removes white/light backgrounds from images by making them transparent.
- * Uses canvas to process pixel data.
+ * Image utilities for processing, compressing, and manipulating images.
  */
+
+/**
+ * Compresses an image file to a smaller size using canvas.
+ * @param file - The image file to compress
+ * @param maxWidth - Maximum width of the output image (default: 800)
+ * @param quality - JPEG/PNG compression quality 0-1 (default: 0.7)
+ * @returns Promise resolving to a base64 data URL of the compressed image
+ */
+export function compressImage(file: File, maxWidth: number = 800, quality: number = 0.7): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > maxWidth) {
+        height = (height * maxWidth) / width;
+        width = maxWidth;
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const hasTransparency = file.type === 'image/png' || file.type === 'image/gif';
+      if (!hasTransparency) {
+        ctx!.fillStyle = 'white';
+        ctx!.fillRect(0, 0, width, height);
+      }
+      ctx?.drawImage(img, 0, 0, width, height);
+      const outputFormat = hasTransparency ? 'image/png' : 'image/jpeg';
+      resolve(canvas.toDataURL(outputFormat, quality));
+    };
+    img.onerror = () => reject(new Error('Failed to load image'));
+    img.src = URL.createObjectURL(file);
+  });
+}
 
 /**
  * Detects if an image has a predominantly white/light background

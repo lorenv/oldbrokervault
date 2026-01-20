@@ -12,28 +12,28 @@ export const subscriptionPlans = {
   },
   starter: {
     name: "Starter Plan",
-    limit: 3,
+    limit: Infinity,
     regenerationLimit: Infinity,
     price: 599,
     billing: "annual"
   },
   starter_monthly: {
     name: "Starter Plan",
-    limit: 3,
+    limit: Infinity,
     regenerationLimit: Infinity,
     price: 59,
     billing: "monthly"
   },
   pro: {
     name: "Pro Plan",
-    limit: 10,
+    limit: Infinity,
     regenerationLimit: Infinity,
     price: 999,
     billing: "annual"
   },
   pro_monthly: {
     name: "Pro Plan",
-    limit: 10,
+    limit: Infinity,
     regenerationLimit: Infinity,
     price: 99,
     billing: "monthly"
@@ -41,7 +41,7 @@ export const subscriptionPlans = {
   // Legacy name kept for backward compatibility
   standard: {
     name: "Pro Plan",
-    limit: 10,
+    limit: Infinity,
     regenerationLimit: Infinity,
     price: 999,
     billing: "annual"

@@ -119,6 +119,16 @@ export function FilterBuilder({
   activeFilterCount,
 }: FilterBuilderProps) {
   const [isOpen, setIsOpen] = useState(false);
+  // Local state for editing - only applied when user clicks "Apply"
+  const [localConditions, setLocalConditions] = useState<FilterCondition[]>(conditions);
+
+  // Sync local state when popover opens or external conditions change while closed
+  const handleOpenChange = (open: boolean) => {
+    if (open) {
+      setLocalConditions(conditions);
+    }
+    setIsOpen(open);
+  };
 
   const addCondition = () => {
     const newCondition: FilterCondition = {
@@ -127,25 +137,30 @@ export function FilterBuilder({
       operator: 'contains',
       value: '',
     };
-    onChange([...conditions, newCondition]);
+    setLocalConditions([...localConditions, newCondition]);
   };
 
   const updateCondition = (id: string, updates: Partial<FilterCondition>) => {
-    onChange(conditions.map(c => c.id === id ? { ...c, ...updates } : c));
+    setLocalConditions(localConditions.map(c => c.id === id ? { ...c, ...updates } : c));
   };
 
   const removeCondition = (id: string) => {
-    onChange(conditions.filter(c => c.id !== id));
+    setLocalConditions(localConditions.filter(c => c.id !== id));
   };
 
   const clearAll = () => {
-    onChange([]);
+    setLocalConditions([]);
+  };
+
+  const applyFilters = () => {
+    onChange(localConditions);
+    setIsOpen(false);
   };
 
   const getField = (fieldId: string) => fields.find(f => f.id === fieldId);
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <Popover open={isOpen} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <Button variant="outline" size="sm" className="h-8 gap-1.5">
           <Filter className="h-3.5 w-3.5" />
@@ -160,7 +175,7 @@ export function FilterBuilder({
       <PopoverContent className="w-[500px] p-4" align="end">
         <div className="flex items-center justify-between mb-4">
           <h4 className="font-medium text-gray-900">Filters</h4>
-          {conditions.length > 0 && (
+          {localConditions.length > 0 && (
             <Button
               variant="ghost"
               size="sm"
@@ -174,12 +189,12 @@ export function FilterBuilder({
         </div>
 
         <div className="space-y-2 max-h-[400px] overflow-y-auto">
-          {conditions.length === 0 ? (
+          {localConditions.length === 0 ? (
             <div className="text-center py-8 text-gray-500 text-sm">
               No filters applied. Click "Add filter" to get started.
             </div>
           ) : (
-            conditions.map((condition) => {
+            localConditions.map((condition) => {
               const field = getField(condition.fieldId);
               if (!field) return null;
 
@@ -336,7 +351,7 @@ export function FilterBuilder({
           </Button>
           <Button
             size="sm"
-            onClick={() => setIsOpen(false)}
+            onClick={applyFilters}
             className="flex-1"
           >
             Apply

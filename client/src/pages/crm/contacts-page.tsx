@@ -754,6 +754,7 @@ export default function ContactsPage() {
                       <Checkbox
                         checked={contacts.length > 0 && selectedContacts.size === contacts.length}
                         onCheckedChange={toggleSelectAll}
+                        className="border-gray-300 data-[state=checked]:bg-gray-400 data-[state=checked]:border-gray-400"
                       />
                     </th>
                     {visibleColumns.map((column) => (
@@ -784,6 +785,7 @@ export default function ContactsPage() {
                         <Checkbox
                           checked={selectedContacts.has(contact.id)}
                           onCheckedChange={() => toggleSelectContact(contact.id)}
+                          className="border-gray-300 data-[state=checked]:bg-gray-400 data-[state=checked]:border-gray-400"
                         />
                       </td>
                       {visibleColumns.map((column) => (

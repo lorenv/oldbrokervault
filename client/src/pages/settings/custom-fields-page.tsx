@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { SettingsLayout } from "@/components/layout/settings-layout";
@@ -70,6 +71,12 @@ const FIELD_TYPE_LABELS: Record<string, string> = {
   currency: "Currency",
 };
 
+const OBJECT_TYPES = [
+  { value: "deal", label: "Deals", icon: Briefcase },
+  { value: "contact", label: "Contacts", icon: Users },
+  { value: "company", label: "Companies", icon: Building2 },
+];
+
 function SortableCustomField({ field, onEdit, onDelete }: { field: CustomField; onEdit: () => void; onDelete: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: field.id });
   const Icon = FIELD_TYPE_ICONS[field.fieldType] || Type;
@@ -102,10 +109,9 @@ function SortableCustomField({ field, onEdit, onDelete }: { field: CustomField; 
   );
 }
 
-export default function CustomFieldsPage() {
+function CustomFieldsList({ objectType }: { objectType: string }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [selectedObjectType, setSelectedObjectType] = useState<string>("deal");
   const [isAddFieldOpen, setIsAddFieldOpen] = useState(false);
   const [editingField, setEditingField] = useState<CustomField | null>(null);
   const [newField, setNewField] = useState({
@@ -122,9 +128,9 @@ export default function CustomFieldsPage() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   const { data: customFieldsData, isLoading } = useQuery<{ fields: CustomField[]; fieldTypes: string[]; objectTypes: string[] }>({
-    queryKey: ["/api/crm/custom-fields", selectedObjectType],
+    queryKey: ["/api/crm/custom-fields", objectType],
     queryFn: () =>
-      apiRequest("GET", `/api/crm/custom-fields?objectType=${selectedObjectType}`).then(res => res.json()),
+      apiRequest("GET", `/api/crm/custom-fields?objectType=${objectType}`).then(res => res.json()),
   });
 
   const fields = customFieldsData?.fields || [];
@@ -163,7 +169,7 @@ export default function CustomFieldsPage() {
 
   const reorderMutation = useMutation({
     mutationFn: (fieldIds: number[]) =>
-      apiRequest("POST", "/api/crm/custom-fields/reorder", { body: { fieldIds, objectType: selectedObjectType } }),
+      apiRequest("POST", "/api/crm/custom-fields/reorder", { body: { fieldIds, objectType } }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/crm/custom-fields"] }),
   });
 
@@ -204,17 +210,254 @@ export default function CustomFieldsPage() {
   };
 
   const showOptionsField = ["select", "multiselect"].includes(newField.fieldType);
+  const objectLabel = OBJECT_TYPES.find(t => t.value === objectType)?.label.toLowerCase() || objectType;
 
   if (isLoading) {
-    return (
-      <SettingsLayout
-        title="Custom Fields"
-        description="Add custom properties to your CRM objects"
-      >
-        <div className="animate-pulse h-64 bg-gray-200 rounded" />
-      </SettingsLayout>
-    );
+    return <div className="animate-pulse h-32 bg-gray-100 rounded" />;
   }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-sm text-gray-600">
+          {fields.length} custom field{fields.length !== 1 ? 's' : ''}
+        </p>
+        <Button onClick={() => setIsAddFieldOpen(true)} size="sm">
+          <Plus className="h-4 w-4 mr-2" />
+          Add Field
+        </Button>
+      </div>
+
+      {fields.length > 0 ? (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={fields.map((f) => f.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-2">
+              {fields.map((field) => (
+                <SortableCustomField
+                  key={field.id}
+                  field={field}
+                  onEdit={() => setEditingField(field)}
+                  onDelete={() => deleteFieldMutation.mutate(field.id)}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      ) : (
+        <Card>
+          <CardContent className="py-8">
+            <div className="text-center">
+              <Database className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500">No custom fields for {objectLabel}</p>
+              <p className="text-sm text-gray-400 mt-1">Create fields to capture additional information</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Add Field Dialog */}
+      <Dialog open={isAddFieldOpen} onOpenChange={setIsAddFieldOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Add Custom Field</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+            <div className="space-y-2">
+              <Label className="text-gray-900">Field Label</Label>
+              <Input
+                value={newField.label}
+                onChange={(e) => setNewField({
+                  ...newField,
+                  label: e.target.value,
+                  name: generateFieldName(e.target.value),
+                })}
+                placeholder="e.g., Industry Sector"
+              />
+              {newField.name && (
+                <p className="text-xs text-gray-500">Internal name: {newField.name}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label className="text-gray-900">Field Type</Label>
+              <Select value={newField.fieldType} onValueChange={(v) => setNewField({ ...newField, fieldType: v })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(FIELD_TYPE_LABELS).map(([value, label]) => {
+                    const Icon = FIELD_TYPE_ICONS[value];
+                    return (
+                      <SelectItem key={value} value={value}>
+                        <div className="flex items-center gap-2">
+                          <Icon className="h-4 w-4" />
+                          {label}
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+            {showOptionsField && (
+              <div className="space-y-2">
+                <Label className="text-gray-900">Options</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={newOption}
+                    onChange={(e) => setNewOption(e.target.value)}
+                    placeholder="Add option..."
+                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddOption())}
+                  />
+                  <Button type="button" variant="outline" onClick={handleAddOption}>Add</Button>
+                </div>
+                {newField.options.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {newField.options.map((opt, i) => (
+                      <Badge key={i} variant="secondary" className="gap-1">
+                        {opt.label}
+                        <button onClick={() => handleRemoveOption(i)} className="ml-1 hover:text-red-500">×</button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label className="text-gray-900">Description (optional)</Label>
+              <Textarea
+                value={newField.description}
+                onChange={(e) => setNewField({ ...newField, description: e.target.value })}
+                placeholder="Help text for users"
+                rows={2}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-gray-900">Placeholder (optional)</Label>
+              <Input
+                value={newField.placeholder}
+                onChange={(e) => setNewField({ ...newField, placeholder: e.target.value })}
+                placeholder="Placeholder text..."
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-gray-900">Required Field</Label>
+                <p className="text-xs text-gray-500">Users must fill this field</p>
+              </div>
+              <Switch
+                checked={newField.isRequired}
+                onCheckedChange={(checked) => setNewField({ ...newField, isRequired: checked })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddFieldOpen(false)}>Cancel</Button>
+            <Button
+              onClick={() => createFieldMutation.mutate({
+                objectType,
+                name: newField.name,
+                label: newField.label,
+                fieldType: newField.fieldType,
+                description: newField.description || null,
+                placeholder: newField.placeholder || null,
+                isRequired: newField.isRequired,
+                options: newField.options,
+              })}
+              disabled={!newField.label || !newField.name || createFieldMutation.isPending}
+            >
+              {createFieldMutation.isPending ? "Creating..." : "Create Field"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Field Dialog */}
+      <Dialog open={!!editingField} onOpenChange={(open) => !open && setEditingField(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Edit Custom Field</DialogTitle></DialogHeader>
+          {editingField && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label className="text-gray-900">Field Label</Label>
+                <Input
+                  value={editingField.label}
+                  onChange={(e) => setEditingField({ ...editingField, label: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-gray-900">Field Type</Label>
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  {(() => { const Icon = FIELD_TYPE_ICONS[editingField.fieldType]; return <Icon className="h-4 w-4" />; })()}
+                  {FIELD_TYPE_LABELS[editingField.fieldType]}
+                  <span className="text-xs">(cannot be changed)</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-gray-900">Description</Label>
+                <Textarea
+                  value={editingField.description || ""}
+                  onChange={(e) => setEditingField({ ...editingField, description: e.target.value })}
+                  rows={2}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-gray-900">Placeholder</Label>
+                <Input
+                  value={editingField.placeholder || ""}
+                  onChange={(e) => setEditingField({ ...editingField, placeholder: e.target.value })}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-gray-900">Required Field</Label>
+                  <p className="text-xs text-gray-500">Users must fill this field</p>
+                </div>
+                <Switch
+                  checked={editingField.isRequired}
+                  onCheckedChange={(checked) => setEditingField({ ...editingField, isRequired: checked })}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-gray-900">Visible</Label>
+                  <p className="text-xs text-gray-500">Show this field in forms</p>
+                </div>
+                <Switch
+                  checked={editingField.isVisible}
+                  onCheckedChange={(checked) => setEditingField({ ...editingField, isVisible: checked })}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingField(null)}>Cancel</Button>
+            <Button
+              onClick={() => editingField && updateFieldMutation.mutate({
+                id: editingField.id,
+                data: {
+                  label: editingField.label,
+                  description: editingField.description,
+                  placeholder: editingField.placeholder,
+                  isRequired: editingField.isRequired,
+                  isVisible: editingField.isVisible,
+                },
+              })}
+              disabled={updateFieldMutation.isPending}
+            >
+              {updateFieldMutation.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+export default function CustomFieldsPage() {
+  const getInitialTab = () => {
+    const hash = window.location.hash.replace('#', '');
+    if (['deal', 'contact', 'company'].includes(hash)) return hash;
+    return 'deal';
+  };
+  const [activeTab, setActiveTab] = useState(getInitialTab);
 
   return (
     <SettingsLayout
@@ -222,259 +465,28 @@ export default function CustomFieldsPage() {
       description="Add custom properties to your CRM objects"
     >
       <div className="max-w-4xl">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-lg">Custom Fields</CardTitle>
-              <CardDescription>Add custom properties to your CRM objects</CardDescription>
-            </div>
-            <div className="flex items-center gap-3">
-              <Select value={selectedObjectType} onValueChange={setSelectedObjectType}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="deal">
-                    <div className="flex items-center gap-2">
-                      <Briefcase className="h-4 w-4" />
-                      Deals
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="contact">
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4" />
-                      Contacts
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="company">
-                    <div className="flex items-center gap-2">
-                      <Building2 className="h-4 w-4" />
-                      Companies
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              <Button onClick={() => setIsAddFieldOpen(true)} size="sm"><Plus className="h-4 w-4 mr-2" />Add Field</Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {fields.length > 0 ? (
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                <SortableContext items={fields.map((f) => f.id)} strategy={verticalListSortingStrategy}>
-                  <div className="space-y-2">
-                    {fields.map((field) => (
-                      <SortableCustomField
-                        key={field.id}
-                        field={field}
-                        onEdit={() => setEditingField(field)}
-                        onDelete={() => deleteFieldMutation.mutate(field.id)}
-                      />
-                    ))}
-                  </div>
-                </SortableContext>
-              </DndContext>
-            ) : (
-              <div className="text-center py-8">
-                <Database className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500">No custom fields for {selectedObjectType}s</p>
-                <p className="text-sm text-gray-400 mt-1">Create fields to capture additional information</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => {
+            setActiveTab(v);
+            window.history.replaceState({}, '', `/settings/custom-fields#${v}`);
+          }}
+        >
+          <TabsList className="mb-6">
+            {OBJECT_TYPES.map((type) => (
+              <TabsTrigger key={type.value} value={type.value} className="gap-2">
+                <type.icon className="h-4 w-4" />
+                {type.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-        {/* Add Field Dialog */}
-        <Dialog open={isAddFieldOpen} onOpenChange={setIsAddFieldOpen}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader><DialogTitle>Add Custom Field</DialogTitle></DialogHeader>
-            <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
-              <div className="space-y-2">
-                <Label>Field Label</Label>
-                <Input
-                  value={newField.label}
-                  onChange={(e) => setNewField({
-                    ...newField,
-                    label: e.target.value,
-                    name: generateFieldName(e.target.value),
-                  })}
-                  placeholder="e.g., Industry Sector"
-                />
-                {newField.name && (
-                  <p className="text-xs text-gray-500">Internal name: {newField.name}</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label>Field Type</Label>
-                <Select value={newField.fieldType} onValueChange={(v) => setNewField({ ...newField, fieldType: v })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(FIELD_TYPE_LABELS).map(([value, label]) => {
-                      const Icon = FIELD_TYPE_ICONS[value];
-                      return (
-                        <SelectItem key={value} value={value}>
-                          <div className="flex items-center gap-2">
-                            <Icon className="h-4 w-4" />
-                            {label}
-                          </div>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
-              {showOptionsField && (
-                <div className="space-y-2">
-                  <Label>Options</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      value={newOption}
-                      onChange={(e) => setNewOption(e.target.value)}
-                      placeholder="Add option..."
-                      onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddOption())}
-                    />
-                    <Button type="button" variant="outline" onClick={handleAddOption}>Add</Button>
-                  </div>
-                  {newField.options.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {newField.options.map((opt, i) => (
-                        <Badge key={i} variant="secondary" className="gap-1">
-                          {opt.label}
-                          <button onClick={() => handleRemoveOption(i)} className="ml-1 hover:text-red-500">×</button>
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-              <div className="space-y-2">
-                <Label>Description (optional)</Label>
-                <Textarea
-                  value={newField.description}
-                  onChange={(e) => setNewField({ ...newField, description: e.target.value })}
-                  placeholder="Help text for users"
-                  rows={2}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Placeholder (optional)</Label>
-                <Input
-                  value={newField.placeholder}
-                  onChange={(e) => setNewField({ ...newField, placeholder: e.target.value })}
-                  placeholder="Placeholder text..."
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Required Field</Label>
-                  <p className="text-xs text-gray-500">Users must fill this field</p>
-                </div>
-                <Switch
-                  checked={newField.isRequired}
-                  onCheckedChange={(checked) => setNewField({ ...newField, isRequired: checked })}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAddFieldOpen(false)}>Cancel</Button>
-              <Button
-                onClick={() => createFieldMutation.mutate({
-                  objectType: selectedObjectType,
-                  name: newField.name,
-                  label: newField.label,
-                  fieldType: newField.fieldType,
-                  description: newField.description || null,
-                  placeholder: newField.placeholder || null,
-                  isRequired: newField.isRequired,
-                  options: newField.options,
-                })}
-                disabled={!newField.label || !newField.name || createFieldMutation.isPending}
-              >
-                {createFieldMutation.isPending ? "Creating..." : "Create Field"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Edit Field Dialog */}
-        <Dialog open={!!editingField} onOpenChange={(open) => !open && setEditingField(null)}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader><DialogTitle>Edit Custom Field</DialogTitle></DialogHeader>
-            {editingField && (
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label>Field Label</Label>
-                  <Input
-                    value={editingField.label}
-                    onChange={(e) => setEditingField({ ...editingField, label: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Field Type</Label>
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                    {(() => { const Icon = FIELD_TYPE_ICONS[editingField.fieldType]; return <Icon className="h-4 w-4" />; })()}
-                    {FIELD_TYPE_LABELS[editingField.fieldType]}
-                    <span className="text-xs">(cannot be changed)</span>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Description</Label>
-                  <Textarea
-                    value={editingField.description || ""}
-                    onChange={(e) => setEditingField({ ...editingField, description: e.target.value })}
-                    rows={2}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Placeholder</Label>
-                  <Input
-                    value={editingField.placeholder || ""}
-                    onChange={(e) => setEditingField({ ...editingField, placeholder: e.target.value })}
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Required Field</Label>
-                    <p className="text-xs text-gray-500">Users must fill this field</p>
-                  </div>
-                  <Switch
-                    checked={editingField.isRequired}
-                    onCheckedChange={(checked) => setEditingField({ ...editingField, isRequired: checked })}
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Visible</Label>
-                    <p className="text-xs text-gray-500">Show this field in forms</p>
-                  </div>
-                  <Switch
-                    checked={editingField.isVisible}
-                    onCheckedChange={(checked) => setEditingField({ ...editingField, isVisible: checked })}
-                  />
-                </div>
-              </div>
-            )}
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setEditingField(null)}>Cancel</Button>
-              <Button
-                onClick={() => editingField && updateFieldMutation.mutate({
-                  id: editingField.id,
-                  data: {
-                    label: editingField.label,
-                    description: editingField.description,
-                    placeholder: editingField.placeholder,
-                    isRequired: editingField.isRequired,
-                    isVisible: editingField.isVisible,
-                  },
-                })}
-                disabled={updateFieldMutation.isPending}
-              >
-                {updateFieldMutation.isPending ? "Saving..." : "Save Changes"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+          {OBJECT_TYPES.map((type) => (
+            <TabsContent key={type.value} value={type.value}>
+              <CustomFieldsList objectType={type.value} />
+            </TabsContent>
+          ))}
+        </Tabs>
       </div>
     </SettingsLayout>
   );

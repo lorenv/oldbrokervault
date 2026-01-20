@@ -7361,9 +7361,31 @@ ${finalQuestion}
       // Process images with size limits and better error handling
       let processedBusinessLogo = businessLogo;
       let processedProfilePhoto = profilePhoto;
-      
+
       // Track if we need to extract brand colors from a new logo upload
       let extractedBrandColors: string[] | null = null;
+
+      // Handle logo removal - sync to eSignature branding
+      if (businessLogo === "" || businessLogo === null) {
+        try {
+          const [existingBranding] = await db
+            .select()
+            .from(userBranding)
+            .where(eq(userBranding.userId, req.user!.id))
+            .limit(1);
+
+          if (existingBranding) {
+            await db
+              .update(userBranding)
+              .set({ logoUrl: null, updatedAt: new Date() })
+              .where(eq(userBranding.userId, req.user!.id));
+            console.log('Synced logo removal to e-signature settings');
+          }
+        } catch (syncError) {
+          console.warn('E-signature branding logo removal sync failed:', syncError);
+        }
+        processedBusinessLogo = null;
+      }
 
       // Process business logo if it's a new upload - save as file instead of base64
       if (businessLogo && businessLogo.startsWith('data:image/')) {
