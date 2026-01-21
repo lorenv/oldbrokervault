@@ -131,8 +131,8 @@ export default function ContactsPage() {
     mutationFn: () =>
       apiRequest("POST", "/api/crm/migrate-contacts", {}).then(res => res.json()),
     onSuccess: (result: any) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"], refetchType: 'all' });
       setHasMigrated(true);
       if (result.contactsMigrated > 0) {
         toast({
@@ -158,7 +158,7 @@ export default function ContactsPage() {
     mutationFn: ({ contactId, data }: { contactId: number; data: Record<string, any> }) =>
       apiRequest("PATCH", `/api/crm/contacts/${contactId}`, { body: data }).then(res => res.json()),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"], refetchType: 'all' });
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to update contact.", variant: "destructive" });
@@ -286,7 +286,7 @@ export default function ContactsPage() {
     );
     try {
       await Promise.all(promises);
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"], refetchType: 'all' });
       toast({ title: `${selectedContacts.size} contact(s) deleted` });
       clearSelection();
     } catch (error) {
@@ -340,7 +340,7 @@ export default function ContactsPage() {
         await Promise.all(promises);
       }
 
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"], refetchType: 'all' });
       toast({ title: `${selectedContacts.size} contact(s) updated` });
       clearSelection();
       setIsBulkEditOpen(false);

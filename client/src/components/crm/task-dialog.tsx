@@ -145,7 +145,7 @@ export function TaskDialog({
         res.json()
       ),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/tasks"], refetchType: 'all' });
       if (objectType && objectId) {
         queryClient.invalidateQueries({
           queryKey: [`/api/crm/tasks/${objectType}/${objectId}`],
@@ -177,7 +177,7 @@ export function TaskDialog({
         (res) => res.json()
       ),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/tasks"], refetchType: 'all' });
       if (objectType && objectId) {
         queryClient.invalidateQueries({
           queryKey: [`/api/crm/tasks/${objectType}/${objectId}`],

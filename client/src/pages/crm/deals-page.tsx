@@ -40,7 +40,6 @@ import {
   LayoutGrid,
   List,
   Building2,
-  DollarSign,
   Calendar,
   Trash2,
   ArrowUp,
@@ -50,7 +49,7 @@ import {
   Clock,
   Download,
   User,
-  Handshake,
+  BriefcaseBusiness,
   Pencil,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -173,15 +172,12 @@ function DealCard({ deal, isDragging, isOverlay }: { deal: Deal; isDragging?: bo
           </div>
         )}
         {deal.amount && (
-          <div className={`flex items-center gap-1.5 font-semibold text-green-600 ${isMobile ? "text-base mt-3" : "text-sm mt-2"}`}>
-            <DollarSign className={isMobile ? "h-4 w-4" : "h-3.5 w-3.5"} />
-            <span>
-              {new Intl.NumberFormat("en-US", {
-                style: "currency",
-                currency: deal.currency || "USD",
-                minimumFractionDigits: 0,
-              }).format(parseFloat(deal.amount))}
-            </span>
+          <div className={`font-semibold text-green-600 ${isMobile ? "text-base mt-3" : "text-sm mt-2"}`}>
+            {new Intl.NumberFormat("en-US", {
+              style: "currency",
+              currency: deal.currency || "USD",
+              minimumFractionDigits: 0,
+            }).format(parseFloat(deal.amount))}
           </div>
         )}
         {deal.closeDate && (
@@ -357,12 +353,11 @@ function InlineEditableCell({
 
   return (
     <div
-      className="cursor-pointer hover:bg-gray-100 rounded px-1 py-0.5 -mx-1 min-h-[24px] flex items-center"
+      className="cursor-pointer hover:bg-gray-100 rounded px-1 py-0.5 -mx-1 min-h-[24px] flex items-center text-sm"
       onDoubleClick={() => setIsEditing(true)}
       title="Double-click to edit"
-      style={{ color: 'rgb(17, 24, 39)', display: 'flex', alignItems: 'center' }}
     >
-      <span style={{ color: 'rgb(17, 24, 39)' }}>{displayValue}</span>
+      <span className="text-sm text-gray-900">{displayValue}</span>
     </div>
   );
 }
@@ -545,8 +540,8 @@ export default function DealsPage() {
       toast({ title: "Error", description: "Failed to move deal", variant: "destructive" });
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals/kanban"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals/kanban"], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"], refetchType: 'all' });
     },
   });
 
@@ -555,8 +550,8 @@ export default function DealsPage() {
     mutationFn: ({ dealId, data }: { dealId: number; data: any }) =>
       apiRequest("PATCH", `/api/crm/deals/${dealId}`, { body: data }).then(res => res.json()),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals/kanban"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals/kanban"], refetchType: 'all' });
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to update deal", variant: "destructive" });
@@ -568,8 +563,8 @@ export default function DealsPage() {
     mutationFn: (data: any) =>
       apiRequest("POST", "/api/crm/deals", { body: data }).then(res => res.json()),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals/kanban"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals/kanban"], refetchType: 'all' });
       setIsCreateDialogOpen(false);
       setNewDeal({ name: "", amount: "", closeDate: "", companyId: "", ownerId: "" });
       toast({ title: "Deal created", description: "Your new deal has been created successfully." });
@@ -584,8 +579,8 @@ export default function DealsPage() {
     mutationFn: (dealId: number) =>
       apiRequest("DELETE", `/api/crm/deals/${dealId}`).then(res => res.json()),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals/kanban"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals/kanban"], refetchType: 'all' });
       toast({ title: "Deal deleted" });
     },
   });
@@ -662,8 +657,8 @@ export default function DealsPage() {
     );
     try {
       await Promise.all(promises);
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals/kanban"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals/kanban"], refetchType: 'all' });
       toast({ title: `${selectedDeals.size} deal(s) deleted` });
       clearSelection();
     } catch (error) {
@@ -693,8 +688,8 @@ export default function DealsPage() {
 
     try {
       await Promise.all(promises);
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals/kanban"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals/kanban"], refetchType: 'all' });
       toast({ title: `${selectedDeals.size} deal(s) updated` });
       clearSelection();
       setIsBulkEditOpen(false);
@@ -1040,8 +1035,8 @@ export default function DealsPage() {
                         style={col.id === 'name' ? { width: '100%' } : { whiteSpace: 'nowrap' }}
                       >
                         {col.id === 'name' && (
-                          <Link href={`/deals/${deal.id}`} className="flex items-center gap-1.5 text-sm font-medium text-gray-900 hover:text-blue-600">
-                            <Handshake className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                          <Link href={`/deals/${deal.id}`} className="flex items-center gap-2.5 text-sm font-medium text-gray-900 hover:text-blue-600">
+                            <BriefcaseBusiness className="h-4 w-4 text-gray-400 flex-shrink-0" />
                             <span className="truncate">{deal.name}</span>
                           </Link>
                         )}
@@ -1050,7 +1045,7 @@ export default function DealsPage() {
                         )}
                         {col.id === 'stage' && deal.stage && (
                           <span
-                            className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                            className="inline-flex items-center px-2 py-0.5 rounded-full text-sm font-medium"
                             style={{
                               backgroundColor: deal.stage.color + '20',
                               color: deal.stage.color,
@@ -1099,7 +1094,7 @@ export default function DealsPage() {
                             ]}
                             onSave={(val) => handleInlineEdit(deal.id, 'priority', val)}
                             renderValue={(val) => val ? (
-                              <span className={`capitalize ${val === 'high' || val === 'urgent' ? 'text-red-600' : 'text-gray-600'}`}>
+                              <span className={`capitalize text-sm ${val === 'high' || val === 'urgent' ? 'text-red-600' : 'text-gray-600'}`}>
                                 {val}
                               </span>
                             ) : '-'}

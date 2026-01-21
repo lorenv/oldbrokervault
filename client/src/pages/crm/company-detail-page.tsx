@@ -237,7 +237,8 @@ export default function CompanyDetailPage() {
       apiRequest("PATCH", `/api/crm/contacts/${contactId}`, { body: { companyId: parseInt(id!) } }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/companies", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"], refetchType: 'all' });
       setIsLinkContactOpen(false);
       setSelectedContactId("");
       setContactSearch("");
@@ -254,7 +255,8 @@ export default function CompanyDetailPage() {
       apiRequest("PATCH", `/api/crm/deals/${dealId}`, { body: { companyId: parseInt(id!) } }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/companies", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"], refetchType: 'all' });
       setIsLinkDealOpen(false);
       setSelectedDealId("");
       setDealSearch("");
@@ -271,6 +273,7 @@ export default function CompanyDetailPage() {
       apiRequest("PATCH", `/api/crm/companies/${id}`, { body: data }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/companies", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"], refetchType: 'all' });
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to update company.", variant: "destructive" });
@@ -283,7 +286,7 @@ export default function CompanyDetailPage() {
       apiRequest("PATCH", `/api/crm/contacts/${contactId}`, { body: data }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/companies", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"], refetchType: 'all' });
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to update contact.", variant: "destructive" });

@@ -55,7 +55,7 @@ import {
   Video,
   MessageSquarePlus,
   Settings2,
-  Handshake,
+  BriefcaseBusiness,
   ChevronRight,
   ChevronDown,
   ChevronUp,
@@ -133,6 +133,7 @@ import { TaskDialog } from "@/components/crm/task-dialog";
 import { TaskList } from "@/components/crm/task-list";
 import { DetailPageCustomizer } from "@/components/crm/detail-page-customizer";
 import { useDetailPageLayout } from "@/hooks/use-detail-page-layout";
+import { useBrandColor } from "@/hooks/use-brand-color";
 import {
   Dialog,
   DialogContent,
@@ -290,6 +291,9 @@ export default function DealDetailPage() {
     getVisibleCustomFields,
   } = useDetailPageLayout("deal");
 
+  // Get brand color for theming
+  const { brandColor, needsDarkText } = useBrandColor();
+
   // Fetch deal details
   const { data: deal, isLoading } = useQuery<Deal>({
     queryKey: ["/api/crm/deals", id],
@@ -433,8 +437,8 @@ export default function DealDetailPage() {
       }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/deals", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"] }); // Also refresh deals list
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals/kanban"] }); // Also refresh kanban view
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"], refetchType: 'all' }); // Refresh all deals queries including filtered
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals/kanban"], refetchType: 'all' }); // Refresh kanban view
       toast({ title: "Deal updated", description: "Changes saved successfully." });
     },
   });
@@ -482,6 +486,8 @@ export default function DealDetailPage() {
       }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/deals", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals/kanban"], refetchType: 'all' });
       queryClient.invalidateQueries({ queryKey: ["/api/crm/activities/deal", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/crm/activity-feed/deal", id] });
       toast({ title: "Deal moved", description: "Stage updated successfully." });
@@ -542,7 +548,8 @@ export default function DealDetailPage() {
       apiRequest("PATCH", `/api/crm/deals/${id}`, { body: { companyId } }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/deals", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"], refetchType: 'all' });
       setIsLinkCompanyOpen(false);
       setSelectedCompanyId("");
       setCompanySearch("");
@@ -559,7 +566,7 @@ export default function DealDetailPage() {
       apiRequest("PATCH", `/api/crm/contacts/${contactId}`, { body: data }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/deals", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"], refetchType: 'all' });
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to update contact.", variant: "destructive" });
@@ -622,11 +629,19 @@ export default function DealDetailPage() {
             </Link>
           </Button>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-sm">
-              <Handshake className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+            <div
+              className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center shadow-sm ${!brandColor ? 'bg-gradient-to-br from-emerald-500 to-teal-600' : ''}`}
+              style={brandColor ? { backgroundColor: brandColor } : undefined}
+            >
+              <BriefcaseBusiness className={`h-5 w-5 sm:h-6 sm:w-6 ${brandColor && needsDarkText ? 'text-gray-900' : 'text-white'}`} />
             </div>
             <div>
-              <h1 className="text-xl md:text-2xl font-semibold text-gray-900">{deal.name}</h1>
+              <InlineEdit
+                value={deal.name}
+                onSave={(val) => handleDealUpdate('name', val)}
+                emptyText="Deal Name"
+                displayClassName="text-xl md:text-2xl font-semibold text-gray-900"
+              />
               <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-1">
                 {deal.company && (
                   <Link
@@ -1540,7 +1555,12 @@ export default function DealDetailPage() {
           <div className="h-full flex flex-col">
             <div className="flex items-center justify-between px-6 py-4 border-b bg-gray-50">
               <div className="flex items-center gap-3">
-                <Handshake className="h-5 w-5 text-gray-600" />
+                <div
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center ${!brandColor ? 'bg-gradient-to-br from-emerald-500 to-teal-600' : ''}`}
+                  style={brandColor ? { backgroundColor: brandColor } : undefined}
+                >
+                  <BriefcaseBusiness className={`h-4 w-4 ${brandColor && needsDarkText ? 'text-gray-900' : 'text-white'}`} />
+                </div>
                 <h2 className="text-lg font-semibold text-gray-900">Buyer Pipeline - {deal?.name}</h2>
               </div>
               <Button

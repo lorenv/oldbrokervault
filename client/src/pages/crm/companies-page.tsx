@@ -198,7 +198,7 @@ export default function CompaniesPage() {
     );
     try {
       await Promise.all(promises);
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"], refetchType: 'all' });
       toast({ title: `${selectedCompanies.size} company(ies) deleted` });
       clearSelection();
     } catch (error) {
@@ -220,7 +220,7 @@ export default function CompaniesPage() {
 
     try {
       await Promise.all(promises);
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"], refetchType: 'all' });
       toast({ title: `${selectedCompanies.size} company(ies) updated` });
       clearSelection();
       setIsBulkEditOpen(false);

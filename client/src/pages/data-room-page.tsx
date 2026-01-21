@@ -17,7 +17,16 @@ export default function DataRoomPage() {
             </div>
             <h2 className="text-xl font-semibold text-gray-900 mb-2">Coming Soon</h2>
             <p className="text-gray-600 max-w-md mx-auto">
-              Integration with VettingVault.com coming soon
+              Integration with{" "}
+              <a
+                href="https://vettingvault.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-indigo-600 hover:text-indigo-700 underline"
+              >
+                VettingVault.com
+              </a>{" "}
+              coming soon
             </p>
           </div>
         </CardContent>

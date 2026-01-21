@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 
 // Custom field filter value types
 export type CustomFieldFilterValue =
@@ -78,7 +78,18 @@ export function useDealFilters() {
   const [filters, setFilters] = useState<DealFilters>(DEFAULT_FILTERS);
   const [sorting, setSorting] = useState<DealSorting>(DEFAULT_SORTING);
   const [columns, setColumns] = useState<ColumnConfig[]>(DEFAULT_COLUMNS);
-  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('deals-view-mode');
+      if (saved === 'kanban' || saved === 'list') return saved;
+    }
+    return 'list';
+  });
+
+  // Persist view mode to localStorage
+  useEffect(() => {
+    localStorage.setItem('deals-view-mode', viewMode);
+  }, [viewMode]);
 
   // Count active filters
   const activeFilterCount = useMemo(() => {

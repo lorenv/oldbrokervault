@@ -48,6 +48,33 @@ import {
   Download,
 } from "lucide-react";
 
+// Animated checkmark component for task completion
+function AnimatedCheckmark({ visible }: { visible: boolean }) {
+  return (
+    <svg
+      className={cn(
+        "h-3 w-3 transition-all duration-200",
+        visible ? "scale-100 opacity-100" : "scale-0 opacity-0"
+      )}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path
+        d="M5 12l5 5L20 7"
+        style={{
+          strokeDasharray: 24,
+          strokeDashoffset: visible ? 0 : 24,
+          transition: "stroke-dashoffset 0.3s ease-in-out 0.1s"
+        }}
+      />
+    </svg>
+  );
+}
+
 interface Task {
   id: number;
   title: string;
@@ -162,7 +189,24 @@ export default function TasksPage() {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [selectedTasks, setSelectedTasks] = useState<Set<number>>(new Set());
 
-  // Fetch tasks
+  // Fetch ALL tasks (for stats calculation - only filtered by assignedTo)
+  const statsQueryParams = useMemo(() => {
+    const params = new URLSearchParams();
+    if (filters.assignedTo === "my") {
+      params.append("myTasks", "true");
+    }
+    return params.toString();
+  }, [filters.assignedTo]);
+
+  const { data: allTasks = [] } = useQuery<Task[]>({
+    queryKey: ["/api/crm/tasks", "stats", statsQueryParams],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/crm/tasks?${statsQueryParams}`);
+      return res.json();
+    },
+  });
+
+  // Fetch filtered tasks (for display)
   const { data: tasks = [], isLoading } = useQuery<Task[]>({
     queryKey: ["/api/crm/tasks", buildQueryParams()],
     queryFn: async () => {
@@ -269,21 +313,21 @@ export default function TasksPage() {
     return result;
   }, [tasks, filters, sorting, isTaskOverdue]);
 
-  // Calculate stats
+  // Calculate stats from ALL tasks (not filtered by status)
   const stats = useMemo(() => ({
-    total: tasks.length,
-    pending: tasks.filter((t) => t.status === "pending").length,
-    inProgress: tasks.filter((t) => t.status === "in_progress").length,
-    completed: tasks.filter((t) => t.status === "completed").length,
-    overdue: tasks.filter(isTaskOverdue).length,
-  }), [tasks, isTaskOverdue]);
+    total: allTasks.length,
+    pending: allTasks.filter((t) => t.status === "pending").length,
+    inProgress: allTasks.filter((t) => t.status === "in_progress").length,
+    completed: allTasks.filter((t) => t.status === "completed").length,
+    overdue: allTasks.filter(isTaskOverdue).length,
+  }), [allTasks, isTaskOverdue]);
 
   // Mutations
   const completeTaskMutation = useMutation({
     mutationFn: (taskId: number) =>
       apiRequest("PATCH", `/api/crm/tasks/${taskId}/complete`).then((res) => res.json()),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/tasks"], refetchType: 'all' });
       toast({ title: "Task completed" });
     },
     onError: (error: any) => {
@@ -295,7 +339,7 @@ export default function TasksPage() {
     mutationFn: (taskId: number) =>
       apiRequest("PATCH", `/api/crm/tasks/${taskId}/uncomplete`).then((res) => res.json()),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/tasks"], refetchType: 'all' });
       toast({ title: "Task reopened" });
     },
     onError: (error: any) => {
@@ -307,7 +351,7 @@ export default function TasksPage() {
     mutationFn: ({ taskId, data }: { taskId: number; data: Record<string, any> }) =>
       apiRequest("PATCH", `/api/crm/tasks/${taskId}`, { body: data }).then((res) => res.json()),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/tasks"], refetchType: 'all' });
     },
     onError: (error: any) => {
       toast({ title: "Error", description: error.message || "Failed to update task", variant: "destructive" });
@@ -318,7 +362,7 @@ export default function TasksPage() {
     mutationFn: (taskId: number) =>
       apiRequest("DELETE", `/api/crm/tasks/${taskId}`).then((res) => res.json()),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/tasks"], refetchType: 'all' });
       toast({ title: "Task deleted" });
     },
     onError: (error: any) => {
@@ -448,19 +492,19 @@ export default function TasksPage() {
                 }
               }}
               className={cn(
-                "flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                "flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200",
                 isComplete
                   ? "bg-green-500 border-green-500 text-white hover:bg-green-600"
                   : "border-gray-300 hover:border-green-500 hover:bg-green-50"
               )}
               title={isComplete ? "Mark as incomplete" : "Mark as complete"}
             >
-              {isComplete && <CheckCircle2 className="h-3 w-3" />}
+              <AnimatedCheckmark visible={isComplete} />
             </button>
             <span
               className={cn(
-                "font-medium text-gray-900 cursor-pointer hover:text-blue-600",
-                isComplete && "line-through text-gray-500"
+                "font-medium cursor-pointer hover:text-blue-600 transition-all duration-200",
+                isComplete ? "line-through text-gray-400" : "text-gray-900"
               )}
               onClick={() => setEditingTask(task)}
             >
@@ -865,16 +909,21 @@ export default function TasksPage() {
                           }
                         }}
                         className={cn(
-                          "mt-0.5 flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center",
+                          "mt-0.5 flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200",
                           isComplete
                             ? "bg-green-500 border-green-500 text-white"
-                            : "border-gray-300"
+                            : "border-gray-300 hover:border-green-500 hover:bg-green-50"
                         )}
                       >
-                        {isComplete && <CheckCircle2 className="h-3 w-3" />}
+                        <AnimatedCheckmark visible={isComplete} />
                       </button>
                       <div className="flex-1 min-w-0">
-                        <h4 className={cn("font-medium text-gray-900", isComplete && "line-through text-gray-500")}>
+                        <h4
+                          className={cn(
+                            "font-medium transition-all duration-200",
+                            isComplete ? "line-through text-gray-400" : "text-gray-900"
+                          )}
+                        >
                           {task.title}
                         </h4>
                         <div className="flex flex-wrap items-center gap-2 mt-2 text-xs">

@@ -259,7 +259,8 @@ export default function ContactDetailPage() {
       apiRequest("PATCH", `/api/crm/contacts/${id}`, { body: { companyId } }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"], refetchType: 'all' });
       setIsLinkCompanyOpen(false);
       setSelectedCompanyId("");
       setCompanySearch("");
@@ -278,7 +279,8 @@ export default function ContactDetailPage() {
       }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"], refetchType: 'all' });
       setIsLinkDealOpen(false);
       setSelectedDealId("");
       setDealSearch("");
@@ -318,7 +320,7 @@ export default function ContactDetailPage() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"], refetchType: 'all' });
     },
   });
 

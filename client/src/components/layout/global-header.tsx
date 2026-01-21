@@ -42,10 +42,13 @@ import {
   LifeBuoy,
   Paperclip,
   X,
+  Keyboard,
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { NotificationBell } from "@/components/ui/notification-bell";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
+import { KeyboardShortcutsDialog } from "@/components/keyboard-shortcuts-dialog";
 
 // Convert hex color to a very light tint (pastel version)
 function hexToLightTint(hex: string, lightness: number = 0.92): string {
@@ -148,7 +151,7 @@ function QuickCreateDialog({ type, onClose }: QuickCreateDialogProps) {
   const createTaskMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/crm/tasks", { body: data }).then(r => r.json()),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/tasks"], refetchType: 'all' });
       toast({ title: "Task created" });
       onClose();
     },
@@ -641,9 +644,19 @@ export function GlobalHeader() {
   const [searchFilter, setSearchFilter] = useState<"all" | "deal" | "contact" | "company" | "cim" | "esign">("all");
   const [quickCreateType, setQuickCreateType] = useState<"deal" | "contact" | "company" | "task" | null>(null);
   const [supportDialogOpen, setSupportDialogOpen] = useState(false);
+  const [createMenuOpen, setCreateMenuOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
+
+  // Keyboard shortcuts
+  const {
+    enabled: shortcutsEnabled,
+    toggleEnabled: toggleShortcuts,
+    shortcuts,
+    showHelp: showShortcutsHelp,
+    setShowHelp: setShowShortcutsHelp,
+  } = useKeyboardShortcuts();
 
   // Fetch profile data for logo and brand colors
   const { data: profile } = useQuery({
@@ -687,6 +700,15 @@ export function GlobalHeader() {
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Listen for keyboard shortcut to open create menu
+  useEffect(() => {
+    const handleOpenCreateMenu = () => {
+      setCreateMenuOpen(true);
+    };
+    window.addEventListener('open-create-menu', handleOpenCreateMenu);
+    return () => window.removeEventListener('open-create-menu', handleOpenCreateMenu);
   }, []);
 
   // Global search query
@@ -958,8 +980,8 @@ export function GlobalHeader() {
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => setSearchFocused(true)}
           />
-          <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:inline-flex h-5 items-center gap-1 rounded border bg-gray-100 px-1.5 font-mono text-[10px] font-medium text-gray-500">
-            <span className="text-xs">⌘</span>K
+          <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:inline-flex h-5 items-center justify-center rounded border bg-gray-100 px-1.5 font-mono text-xs font-medium text-gray-500">
+            /
           </kbd>
 
           {/* Search Results Dropdown */}
@@ -1036,6 +1058,17 @@ export function GlobalHeader() {
 
         {/* Actions - pushed to right */}
         <div className="ml-auto flex items-center gap-2">
+          {/* Keyboard Shortcuts */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-9 w-9 p-0"
+            onClick={() => setShowShortcutsHelp(true)}
+            title="Keyboard shortcuts"
+          >
+            <Keyboard className="h-4 w-4 text-gray-600" />
+          </Button>
+
           {/* Support */}
           <Button
             variant="ghost"
@@ -1062,7 +1095,7 @@ export function GlobalHeader() {
           <NotificationBell />
 
           {/* Quick Create Button */}
-          <DropdownMenu>
+          <DropdownMenu open={createMenuOpen} onOpenChange={setCreateMenuOpen}>
             <DropdownMenuTrigger asChild>
               <Button size="sm" className="gap-1.5">
                 <Plus className="h-4 w-4" />
@@ -1070,19 +1103,19 @@ export function GlobalHeader() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setQuickCreateType("deal")}>
+              <DropdownMenuItem onClick={() => { setQuickCreateType("deal"); setCreateMenuOpen(false); }}>
                 <Kanban className="h-4 w-4 mr-2 text-green-600" />
                 New Deal
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setQuickCreateType("contact")}>
+              <DropdownMenuItem onClick={() => { setQuickCreateType("contact"); setCreateMenuOpen(false); }}>
                 <Contact className="h-4 w-4 mr-2 text-blue-600" />
                 New Contact
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setQuickCreateType("company")}>
+              <DropdownMenuItem onClick={() => { setQuickCreateType("company"); setCreateMenuOpen(false); }}>
                 <Building2 className="h-4 w-4 mr-2 text-purple-600" />
                 New Company
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setQuickCreateType("task")}>
+              <DropdownMenuItem onClick={() => { setQuickCreateType("task"); setCreateMenuOpen(false); }}>
                 <CheckSquare className="h-4 w-4 mr-2 text-orange-600" />
                 New Task
               </DropdownMenuItem>
@@ -1093,6 +1126,13 @@ export function GlobalHeader() {
 
       <QuickCreateDialog type={quickCreateType} onClose={() => setQuickCreateType(null)} />
       <SupportDialog open={supportDialogOpen} onClose={() => setSupportDialogOpen(false)} />
+      <KeyboardShortcutsDialog
+        open={showShortcutsHelp}
+        onOpenChange={setShowShortcutsHelp}
+        shortcuts={shortcuts}
+        enabled={shortcutsEnabled}
+        onToggleEnabled={toggleShortcuts}
+      />
     </>
   );
 }
