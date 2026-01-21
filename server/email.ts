@@ -1702,6 +1702,182 @@ The CIMShare Team
   });
 }
 
+// Team invitation email
+async function sendTeamInviteEmail(params: {
+  inviteeEmail: string;
+  inviteeName: string;
+  inviterName: string;
+  organizationName: string;
+  role: string;
+}): Promise<boolean> {
+  const { inviteeEmail, inviteeName, inviterName, organizationName, role } = params;
+  const baseUrl = process.env.BASE_URL || 'https://cimshare.com';
+  const loginUrl = `${baseUrl}/auth`;
+
+  const roleDescriptions: Record<string, string> = {
+    admin: 'As an Admin, you can manage team settings, invite members, and access all CRM features.',
+    member: 'As a Member, you can access deals, contacts, companies, and collaborate with your team.',
+    viewer: 'As a Viewer, you have read-only access to view deals, contacts, and company information.',
+  };
+
+  const roleDescription = roleDescriptions[role] || roleDescriptions.member;
+
+  return await sendEmail({
+    to: inviteeEmail,
+    from: 'system@cimshare.com',
+    subject: `You've been invited to join ${organizationName} on CIMShare`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 8px 8px 0 0; text-align: center;">
+          <h1 style="color: white; margin: 0; font-size: 24px;">You're Invited!</h1>
+        </div>
+
+        <div style="padding: 30px; background-color: #fff; border: 1px solid #eee; border-top: none;">
+          <p style="font-size: 16px; color: #333;">Hello ${inviteeName || 'there'},</p>
+
+          <p style="font-size: 16px; color: #333; line-height: 1.6;">
+            <strong>${inviterName}</strong> has invited you to join <strong>${organizationName}</strong> on CIMShare as a <strong>${role.charAt(0).toUpperCase() + role.slice(1)}</strong>.
+          </p>
+
+          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 25px 0;">
+            <p style="margin: 0; color: #555; font-size: 14px;">
+              ${roleDescription}
+            </p>
+          </div>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${loginUrl}"
+               style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 32px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600; font-size: 16px;">
+              Accept Invitation
+            </a>
+          </div>
+
+          <p style="font-size: 14px; color: #666;">
+            Click the button above to log in or create your account. Once signed in, you'll automatically have access to ${organizationName}.
+          </p>
+
+          <p style="font-size: 16px; color: #333; margin-top: 25px;">
+            Best regards,<br>
+            <strong>The CIMShare Team</strong>
+          </p>
+        </div>
+
+        <div style="background-color: #f8f9fa; padding: 20px 30px; border-radius: 0 0 8px 8px; border: 1px solid #eee; border-top: none;">
+          <p style="margin: 0; color: #666; font-size: 12px; text-align: center;">
+            If you didn't expect this invitation, you can safely ignore this email.
+          </p>
+        </div>
+      </div>
+    `,
+    text: `
+You're Invited!
+
+Hello ${inviteeName || 'there'},
+
+${inviterName} has invited you to join ${organizationName} on CIMShare as a ${role.charAt(0).toUpperCase() + role.slice(1)}.
+
+${roleDescription}
+
+Accept your invitation by visiting:
+${loginUrl}
+
+Once signed in, you'll automatically have access to ${organizationName}.
+
+Best regards,
+The CIMShare Team
+
+If you didn't expect this invitation, you can safely ignore this email.
+    `.trim()
+  });
+}
+
+// Mention notification email
+async function sendMentionNotificationEmail(params: {
+  mentionedUserEmail: string;
+  mentionedUserName: string;
+  mentionerName: string;
+  entityType: string; // 'deal', 'contact', 'company'
+  entityName: string;
+  entityId: number;
+  noteContent: string;
+}): Promise<boolean> {
+  const { mentionedUserEmail, mentionedUserName, mentionerName, entityType, entityName, entityId, noteContent } = params;
+  const baseUrl = process.env.BASE_URL || 'https://cimshare.com';
+
+  // Build the URL to the entity
+  const entityUrl = `${baseUrl}/${entityType}s/${entityId}`;
+
+  // Truncate note content if too long
+  const truncatedNote = noteContent.length > 500
+    ? noteContent.substring(0, 500) + '...'
+    : noteContent;
+
+  const entityTypeDisplay = entityType.charAt(0).toUpperCase() + entityType.slice(1);
+
+  return await sendEmail({
+    to: mentionedUserEmail,
+    from: 'system@cimshare.com',
+    subject: `${mentionerName} mentioned you in a note`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 25px 30px; border-radius: 8px 8px 0 0;">
+          <h1 style="color: white; margin: 0; font-size: 20px;">You were mentioned in a note</h1>
+        </div>
+
+        <div style="padding: 30px; background-color: #fff; border: 1px solid #eee; border-top: none;">
+          <p style="font-size: 16px; color: #333;">Hi ${mentionedUserName || 'there'},</p>
+
+          <p style="font-size: 16px; color: #333; line-height: 1.6;">
+            <strong>${mentionerName}</strong> mentioned you in a note on the ${entityTypeDisplay.toLowerCase()} <strong>"${entityName}"</strong>.
+          </p>
+
+          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #667eea;">
+            <p style="margin: 0; color: #555; font-size: 14px; white-space: pre-wrap; line-height: 1.6;">
+              ${truncatedNote.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
+            </p>
+          </div>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${entityUrl}"
+               style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 28px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600; font-size: 14px;">
+              View ${entityTypeDisplay}
+            </a>
+          </div>
+
+          <p style="font-size: 16px; color: #333; margin-top: 25px;">
+            Best regards,<br>
+            <strong>The CIMShare Team</strong>
+          </p>
+        </div>
+
+        <div style="background-color: #f8f9fa; padding: 15px 30px; border-radius: 0 0 8px 8px; border: 1px solid #eee; border-top: none;">
+          <p style="margin: 0; color: #666; font-size: 12px; text-align: center;">
+            You received this email because you were mentioned in CIMShare.
+            <a href="${baseUrl}/settings/notifications" style="color: #667eea;">Manage notification preferences</a>
+          </p>
+        </div>
+      </div>
+    `,
+    text: `
+You were mentioned in a note
+
+Hi ${mentionedUserName || 'there'},
+
+${mentionerName} mentioned you in a note on the ${entityTypeDisplay.toLowerCase()} "${entityName}".
+
+Note content:
+${truncatedNote}
+
+View the ${entityTypeDisplay.toLowerCase()}: ${entityUrl}
+
+Best regards,
+The CIMShare Team
+
+You received this email because you were mentioned in CIMShare.
+    `.trim()
+  });
+}
+
 export {
   sendEmail,
   sendNdaSignedEmail,
@@ -1723,5 +1899,8 @@ export {
   sendEsignDeclinedEmail,
   sendEsignVoidedEmail,
   // User milestone emails
-  sendFirstDocumentCongratulationsEmail
+  sendFirstDocumentCongratulationsEmail,
+  // Team and notification emails
+  sendTeamInviteEmail,
+  sendMentionNotificationEmail
 };

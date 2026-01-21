@@ -61,6 +61,7 @@ import teaserRoutes from "./routes/teaser-routes";
 import listingsRoutes from "./routes/listings-routes";
 import crmRoutes from "./routes/crm-routes";
 import dashboardRoutes from "./routes/dashboard-routes";
+import aiAssistantRoutes from "./routes/ai-assistant-routes";
 import { dispatchWebhookEvent } from "./webhook-dispatcher";
 import { dispatchIntegrationEvent } from "./integrations";
 
@@ -11431,6 +11432,9 @@ ${finalQuestion}
 
   // Register Dashboard routes (AI briefing, stats)
   app.use('/api/dashboard', dashboardRoutes);
+
+  // Register AI Assistant routes
+  app.use('/api/ai-assistant', aiAssistantRoutes);
 
   // Background job: Clean up stale document locks (15+ minutes old)
   async function cleanupStaleLocks() {

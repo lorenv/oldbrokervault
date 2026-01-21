@@ -1139,9 +1139,17 @@ export default function ContactDetailPage() {
                     href={`/companies/${(contact as any).company.id}`}
                     className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition-colors"
                   >
-                    <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-                      <Building2 className="h-4 w-4 text-purple-600" />
-                    </div>
+                    {(contact as any).company.logoUrl ? (
+                      <img
+                        src={(contact as any).company.logoUrl}
+                        alt={(contact as any).company.name}
+                        className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                        <Building2 className="h-4 w-4 text-purple-600" />
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-gray-900 truncate">{(contact as any).company.name}</p>
                     </div>

@@ -4,6 +4,7 @@ import { AppSidebar } from "./app-sidebar";
 import { MobileBottomNav } from "./mobile-bottom-nav";
 import { GlobalHeader } from "./global-header";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { AIChatWidget } from "@/components/ai-assistant/chat-widget";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -27,6 +28,8 @@ export function AppLayout({ children }: AppLayoutProps) {
         </SidebarInset>
       </div>
       <MobileBottomNav />
+      {/* AI Assistant Chat Widget */}
+      {!isMobile && <AIChatWidget />}
     </SidebarProvider>
   );
 }

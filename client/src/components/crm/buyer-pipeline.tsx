@@ -225,7 +225,7 @@ function StageColumn({
 }) {
   return (
     <div
-      className={`flex-1 min-w-[280px] max-w-[320px] bg-gray-50 rounded-lg p-3 ${
+      className={`w-[280px] flex-shrink-0 bg-gray-50 rounded-lg p-3 ${
         isOver ? "ring-2 ring-blue-400 bg-blue-50" : ""
       }`}
     >
@@ -234,7 +234,7 @@ function StageColumn({
           className="w-3 h-3 rounded-full"
           style={{ backgroundColor: stage.color }}
         />
-        <span className="font-medium text-sm">{stage.name}</span>
+        <span className="font-medium text-sm text-gray-900">{stage.name}</span>
         <Badge variant="secondary" className="ml-auto">
           {buyers.length}
         </Badge>
@@ -731,7 +731,7 @@ export function BuyerPipeline({
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
             >
-              <div className="flex gap-4 overflow-x-auto pb-4">
+              <div className="flex gap-4 overflow-x-auto pb-4 min-w-0">
                 {sortedStages.map((stage) => {
                   const stageBuyers = buyers.filter((b) => b.stageId === stage.id);
                   return (

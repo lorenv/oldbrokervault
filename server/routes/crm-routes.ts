@@ -67,6 +67,7 @@ import {
   canManagePermissions,
 } from '../middleware/permissions';
 import { PERMISSION_KEYS, CATEGORY_INFO, ALL_ROLES, DEFAULT_PERMISSIONS } from '@shared/permissions';
+import { sendTeamInviteEmail, sendMentionNotificationEmail } from '../email';
 
 const router = Router();
 
@@ -808,6 +809,27 @@ router.post('/organization/members/invite', async (req, res) => {
         joinedAt: new Date(),
       })
       .returning();
+
+    // Get inviter's info for the email
+    const [inviter] = await db.select().from(users).where(eq(users.id, req.user!.id));
+    const inviterName = inviter?.firstName
+      ? `${inviter.firstName} ${inviter.lastName || ''}`.trim()
+      : inviter?.email || 'A team member';
+
+    // Send invitation email notification
+    try {
+      await sendTeamInviteEmail({
+        inviteeEmail: existingUser.email,
+        inviteeName: existingUser.firstName || '',
+        inviterName,
+        organizationName: orgData.organization.name,
+        role: assignedRole,
+      });
+      console.log(`[CRM] Team invite email sent to ${existingUser.email}`);
+    } catch (emailError) {
+      console.error('[CRM] Failed to send team invite email:', emailError);
+      // Don't fail the request if email fails
+    }
 
     res.json({
       ...newMember,
@@ -4130,7 +4152,7 @@ router.post('/notes', async (req, res) => {
         });
 
         // Create notification
-        await db.insert(notifications).values({
+        const [notification] = await db.insert(notifications).values({
           organizationId: orgData.organization.id,
           userId: mentionedUserId,
           type: 'mention',
@@ -4139,10 +4161,42 @@ router.post('/notes', async (req, res) => {
           entityType: parsed.data.objectType,
           entityId: parsed.data.objectId,
           actorId: req.user!.id,
-        });
+        }).returning();
 
-        // TODO: Send email notification (requires email service integration)
-        // For now, we'll skip the email part
+        // Send email notification for the mention
+        try {
+          // Get mentioned user's email
+          const [mentionedUserData] = await db
+            .select({ email: users.email, firstName: users.firstName, lastName: users.lastName })
+            .from(users)
+            .where(eq(users.id, mentionedUserId));
+
+          if (mentionedUserData?.email) {
+            const mentionedUserName = mentionedUserData.firstName
+              ? `${mentionedUserData.firstName} ${mentionedUserData.lastName || ''}`.trim()
+              : '';
+
+            await sendMentionNotificationEmail({
+              mentionedUserEmail: mentionedUserData.email,
+              mentionedUserName,
+              mentionerName: authorName,
+              entityType: parsed.data.objectType,
+              entityName,
+              entityId: parsed.data.objectId,
+              noteContent: parsed.data.content,
+            });
+
+            // Mark email as sent in notification
+            await db.update(notifications)
+              .set({ emailSent: true, emailSentAt: new Date() })
+              .where(eq(notifications.id, notification.id));
+
+            console.log(`[CRM] Mention notification email sent to ${mentionedUserData.email}`);
+          }
+        } catch (emailError) {
+          console.error('[CRM] Failed to send mention notification email:', emailError);
+          // Don't fail the request if email fails
+        }
       }
     }
 

@@ -2751,6 +2751,44 @@ export const insertSupportTicketSchema = createInsertSchema(supportTickets).pick
   pageUrl: z.string().optional()
 });
 
+// AI Assistant - Token usage tracking and chat history
+export const aiTokenUsage = pgTable("ai_token_usage", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
+  userId: integer("user_id").notNull(),
+
+  // Token counts
+  promptTokens: integer("prompt_tokens").notNull(),
+  completionTokens: integer("completion_tokens").notNull(),
+  totalTokens: integer("total_tokens").notNull(),
+
+  // Model info
+  model: text("model").notNull(),
+
+  // Period tracking (for monthly caps)
+  periodStart: text("period_start").notNull(), // Format: YYYY-MM (e.g., "2024-01")
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const aiChatMessages = pgTable("ai_chat_messages", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
+  userId: integer("user_id").notNull(),
+
+  // Message content
+  role: text("role").notNull(), // 'user' or 'assistant'
+  content: text("content").notNull(),
+
+  // Token usage for this message
+  tokensUsed: integer("tokens_used"),
+
+  // Feedback
+  feedback: text("feedback"), // 'positive', 'negative', or null
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Insert schema for deal views
 export const insertDealViewSchema = createInsertSchema(dealViews).pick({
   organizationId: true,
