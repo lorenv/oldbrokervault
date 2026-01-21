@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useLocation, Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -59,6 +59,8 @@ import {
   ChevronRight,
   ChevronDown,
   ChevronUp,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 
 // Helper function to get activity icon based on type
@@ -263,6 +265,22 @@ export default function DealDetailPage() {
   const [isLinkCompanyOpen, setIsLinkCompanyOpen] = useState(false);
   const [companySearch, setCompanySearch] = useState("");
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
+
+  // Sidebar collapse state - persisted to localStorage
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('deal-detail-sidebar-collapsed') === 'true';
+    }
+    return false;
+  });
+
+  // Buyers fullscreen state
+  const [isBuyersFullscreen, setIsBuyersFullscreen] = useState(false);
+
+  // Persist sidebar state to localStorage
+  useEffect(() => {
+    localStorage.setItem('deal-detail-sidebar-collapsed', String(isSidebarCollapsed));
+  }, [isSidebarCollapsed]);
 
   // Use detail page layout hook
   const {
@@ -593,7 +611,7 @@ export default function DealDetailPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto">
+    <div className="p-4 md:p-6">
       {/* Header - stacks on mobile */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
@@ -640,9 +658,9 @@ export default function DealDetailPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr,auto] gap-6">
         {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6">
           {/* Pipeline Stages - Pipedrive Arrow Style */}
           <Card>
             <CardHeader className="pb-3">
@@ -947,11 +965,24 @@ export default function DealDetailPage() {
 
             <TabsContent value="buyers" className="mt-4">
               {buyerStages && buyerStages.length > 0 ? (
-                <BuyerPipeline
-                  dealId={parseInt(id!)}
-                  buyers={buyers || []}
-                  stages={buyerStages}
-                />
+                <div className="space-y-4">
+                  <div className="flex items-center justify-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsBuyersFullscreen(true)}
+                      className="flex items-center gap-2"
+                    >
+                      <Maximize2 className="h-4 w-4" />
+                      <span className="hidden sm:inline">Expand View</span>
+                    </Button>
+                  </div>
+                  <BuyerPipeline
+                    dealId={parseInt(id!)}
+                    buyers={buyers || []}
+                    stages={buyerStages}
+                  />
+                </div>
               ) : (
                 <Card>
                   <CardContent className="py-8">
@@ -1233,7 +1264,18 @@ export default function DealDetailPage() {
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-6">
+        <div className={`hidden lg:flex ${isSidebarCollapsed ? 'w-6' : 'w-80'} transition-all duration-200`}>
+          {/* Edge toggle button */}
+          <button
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            className="flex-shrink-0 w-6 flex items-start justify-center pt-2 group"
+            title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            <div className="w-1 h-8 rounded-full bg-gray-200 group-hover:bg-gray-400 transition-colors" />
+          </button>
+
+          {!isSidebarCollapsed && (
+          <div className="flex-1 space-y-6">
           {/* Associations Card */}
           {isSectionVisible("key-people") && (
           <Card>
@@ -1479,9 +1521,40 @@ export default function DealDetailPage() {
             </CardContent>
           </Card>
           )}
-
+          </div>
+          )}
         </div>
       </div>
+
+      {/* Buyers Fullscreen Dialog */}
+      {isBuyersFullscreen && buyerStages && buyerStages.length > 0 && (
+        <div className="fixed inset-0 z-50 bg-white">
+          <div className="h-full flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b bg-gray-50">
+              <div className="flex items-center gap-3">
+                <Handshake className="h-5 w-5 text-gray-600" />
+                <h2 className="text-lg font-semibold text-gray-900">Buyer Pipeline - {deal?.name}</h2>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsBuyersFullscreen(false)}
+                className="flex items-center gap-2"
+              >
+                <Minimize2 className="h-4 w-4" />
+                Exit Fullscreen
+              </Button>
+            </div>
+            <div className="flex-1 overflow-auto p-6">
+              <BuyerPipeline
+                dealId={parseInt(id!)}
+                buyers={buyers || []}
+                stages={buyerStages}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Task Dialogs */}
       <TaskDialog

@@ -2734,9 +2734,24 @@ export const insertOrganizationMemberSchema = createInsertSchema(organizationMem
   status: z.enum(ORGANIZATION_MEMBER_STATUSES as unknown as [string, ...string[]]).default('active')
 });
 
-// Helper for optional URL fields that converts empty strings to null
+// Helper to normalize URLs - automatically adds https:// if no protocol is present
+const normalizeUrlValue = (val: unknown): string | null => {
+  if (val === '' || val === undefined || val === null) return null;
+  if (typeof val !== 'string') return null;
+
+  let url = val.trim();
+  if (!url) return null;
+
+  // Add https:// if no protocol is present
+  if (!url.match(/^https?:\/\//i)) {
+    url = 'https://' + url;
+  }
+
+  return url;
+};
+
 const optionalUrl = z.preprocess(
-  (val) => (val === '' || val === undefined ? null : val),
+  normalizeUrlValue,
   z.string().url().nullable().optional()
 );
 

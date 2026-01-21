@@ -292,7 +292,7 @@ export default function EsignEnvelopeDetail() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
       {/* Header */}
       <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 border-b border-slate-200 shadow-lg">
-        <div className="container mx-auto px-4 py-6 md:py-8">
+        <div className="px-4 py-6 md:py-8">
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-3">
               <Button
@@ -326,7 +326,7 @@ export default function EsignEnvelopeDetail() {
         </div>
       </div>
 
-      <main className="container mx-auto px-4 py-6 md:py-8">
+      <main className="px-4 py-6 md:py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-4 md:space-y-6">

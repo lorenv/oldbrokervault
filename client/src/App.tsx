@@ -49,6 +49,7 @@ import { GetStartedChecklist } from "@/components/get-started-checklist";
 import VirtualDataRoomPage from "@/pages/virtual-data-room-page";
 import SDEAnalyzerPage from "@/pages/sde-analyzer-page";
 import IntegrationsPage from "@/pages/integrations-page";
+import DataRoomPage from "@/pages/data-room-page";
 
 // New settings pages
 import ListingsSettingsPage from "@/pages/listings-settings-page";
@@ -105,6 +106,7 @@ const authenticatedRoutes = [
   '/premium',
   '/investor-database',
   '/sde-analyzer',
+  '/data-room',
   '/messages',
   '/esign',
   '/account',
@@ -144,6 +146,7 @@ function AuthenticatedRouter() {
         <ProtectedRoute path="/premium" component={PremiumDashboard} />
         <ProtectedRoute path="/investor-database" component={InvestorDatabasePage} />
         <ProtectedRoute path="/sde-analyzer" component={SDEAnalyzerPage} />
+        <ProtectedRoute path="/data-room" component={DataRoomPage} />
         <ProtectedRoute path="/messages" component={Messages} />
 
         {/* CRM Routes */}

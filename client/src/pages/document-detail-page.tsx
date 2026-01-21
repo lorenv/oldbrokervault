@@ -277,7 +277,7 @@ export function DocumentDetailPage() {
     setLocation('/documents');
     return (
       <div className="min-h-screen bg-background">
-        <main className="container mx-auto px-4 py-8">
+        <main className="px-4 md:px-6 py-4 md:py-6">
           <div className="flex items-center gap-4 mb-6">
             <Link href="/documents">
               <Button variant="ghost" size="sm">
@@ -295,7 +295,7 @@ export function DocumentDetailPage() {
   if (docLoading) {
     return (
       <div className="min-h-screen bg-background">
-        <main className="container mx-auto px-4 py-8">
+        <main className="px-4 md:px-6 py-4 md:py-6">
           <div className="flex items-center gap-4 mb-6">
             <Link href="/documents">
               <Button variant="ghost" size="sm">
@@ -313,7 +313,7 @@ export function DocumentDetailPage() {
   if (docError || !cimDocument) {
     return (
       <div className="min-h-screen bg-background">
-        <main className="container mx-auto px-4 py-8">
+        <main className="px-4 md:px-6 py-4 md:py-6">
           <div className="flex items-center gap-4 mb-6">
             <Link href="/documents">
               <Button variant="ghost" size="sm">
@@ -344,7 +344,7 @@ export function DocumentDetailPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
+      <main className="px-4 md:px-6 py-4 md:py-6">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">

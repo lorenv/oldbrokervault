@@ -41,6 +41,7 @@ import {
   Settings,
   CheckSquare,
   LayoutDashboard,
+  FolderLock,
 } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -68,6 +69,7 @@ const mainNavItems: NavItem[] = [
 const secondaryNavItems: NavItem[] = [
   { label: "CIM Library", icon: FileText, href: "/documents", matchPaths: ["/documents"] },
   { label: "E-Signatures", icon: Signature, href: "/esign", matchPaths: ["/esign"] },
+  { label: "Data Room", icon: FolderLock, href: "/data-room", matchPaths: ["/data-room"] },
   { label: "Analytics", icon: BarChart3, href: "/analytics", matchPaths: ["/analytics"] },
   { label: "Messages", icon: MessageCircle, href: "/messages", matchPaths: ["/messages"] },
   { label: "Listings Page", icon: LayoutList, href: "/listings-settings", matchPaths: ["/listings-settings"] },

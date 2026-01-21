@@ -93,7 +93,8 @@ export default function CompaniesPage() {
       }).then(res => res.json());
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"] });
+      // Invalidate all company-related queries to ensure dropdowns and lists are fresh
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"], refetchType: 'all' });
       setIsCreateDialogOpen(false);
       setNewCompany({ name: "", website: "", industry: "", city: "", state: "" });
       toast({ title: "Company created" });
@@ -689,7 +690,7 @@ export default function CompaniesPage() {
               <Input
                 value={newCompany.website}
                 onChange={(e) => setNewCompany({ ...newCompany, website: e.target.value })}
-                placeholder="https://example.com"
+                placeholder="example.com"
               />
             </div>
             <div className="space-y-2">

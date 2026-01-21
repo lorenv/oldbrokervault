@@ -112,7 +112,8 @@ export default function ContactsPage() {
     mutationFn: (data: any) =>
       apiRequest("POST", "/api/crm/contacts", { body: data }).then(res => res.json()),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"] });
+      // Invalidate all contact-related queries to ensure dropdowns and lists are fresh
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"], refetchType: 'all' });
       setIsCreateDialogOpen(false);
       setNewContact({ email: "", firstName: "", lastName: "", phone: "", companyId: "" });
       toast({ title: "Contact created" });

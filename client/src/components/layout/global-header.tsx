@@ -72,6 +72,17 @@ function QuickCreateDialog({ type, onClose }: QuickCreateDialogProps) {
   const [taskForm, setTaskForm] = useState({ title: "", dueDate: "", assignedTo: "" });
   const [contactSearch, setContactSearch] = useState("");
 
+  // Reset forms when dialog opens
+  useEffect(() => {
+    if (type) {
+      setDealForm({ name: "", amount: "", ownerId: "", contactId: "" });
+      setContactForm({ firstName: "", lastName: "", email: "", phone: "" });
+      setCompanyForm({ name: "", website: "" });
+      setTaskForm({ title: "", dueDate: "", assignedTo: "" });
+      setContactSearch("");
+    }
+  }, [type]);
+
   // Fetch team members for owner/assignee dropdowns
   const { data: teamMembers = [] } = useQuery<Array<{ id: number; userId: number; email: string; firstName: string | null; lastName: string | null; profilePhoto?: string | null }>>({
     queryKey: ["/api/crm/organization/members"],
@@ -96,7 +107,8 @@ function QuickCreateDialog({ type, onClose }: QuickCreateDialogProps) {
   const createDealMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/crm/deals", { body: data }).then(r => r.json()),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"] });
+      // Use refetchType: 'all' to ensure all cached queries are refreshed
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"], refetchType: 'all' });
       toast({ title: "Deal created" });
       onClose();
       navigate(`/deals/${data.id}`);
@@ -107,7 +119,8 @@ function QuickCreateDialog({ type, onClose }: QuickCreateDialogProps) {
   const createContactMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/crm/contacts", { body: data }).then(r => r.json()),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"] });
+      // Use refetchType: 'all' to ensure all cached queries are refreshed
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"], refetchType: 'all' });
       toast({ title: "Contact created" });
       onClose();
       navigate(`/contacts/${data.id}`);
@@ -118,7 +131,8 @@ function QuickCreateDialog({ type, onClose }: QuickCreateDialogProps) {
   const createCompanyMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/crm/companies", { body: data }).then(r => r.json()),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"] });
+      // Use refetchType: 'all' to ensure all cached queries are refreshed
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"], refetchType: 'all' });
       toast({ title: "Company created" });
       onClose();
       navigate(`/companies/${data.id}`);
@@ -327,7 +341,7 @@ function QuickCreateDialog({ type, onClose }: QuickCreateDialogProps) {
                 <Input
                   value={companyForm.website}
                   onChange={(e) => setCompanyForm({ ...companyForm, website: e.target.value })}
-                  placeholder="https://example.com"
+                  placeholder="example.com"
                 />
               </div>
             </>

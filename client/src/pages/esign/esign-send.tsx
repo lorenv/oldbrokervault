@@ -1202,7 +1202,7 @@ export default function EsignSend() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
       {/* Header */}
       <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 border-b border-slate-200 shadow-lg">
-        <div className="container mx-auto px-4 py-6 md:py-8">
+        <div className="px-4 md:px-6 py-4 md:py-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1 md:mb-2 flex items-center gap-2 md:gap-3">
@@ -1228,7 +1228,7 @@ export default function EsignSend() {
         </div>
       </div>
 
-      <main className="container mx-auto px-4 py-6 md:py-8">
+      <main className="px-4 md:px-6 py-4 md:py-6">
         {/* Progress Steps */}
         <div className="flex items-center justify-center mb-6 md:mb-8 overflow-x-auto pb-2">
           <div className="flex items-center gap-2 md:gap-4">

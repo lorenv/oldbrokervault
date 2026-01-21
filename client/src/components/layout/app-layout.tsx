@@ -17,7 +17,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       {/* Global Header - fixed full-width at top */}
       <GlobalHeader />
       {/* Content area with top padding to offset fixed header */}
-      <div className="flex min-h-screen pt-16">
+      <div className="flex min-h-screen pt-16 w-full">
         <AppSidebar />
         <SidebarInset className="flex flex-col">
           {/* Main content area */}

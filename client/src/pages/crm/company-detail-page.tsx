@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -154,6 +154,19 @@ export default function CompanyDetailPage() {
   const [dealSearch, setDealSearch] = useState("");
   const [selectedContactId, setSelectedContactId] = useState<string>("");
   const [selectedDealId, setSelectedDealId] = useState<string>("");
+
+  // Sidebar collapse state - persisted to localStorage
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('company-detail-sidebar-collapsed') === 'true';
+    }
+    return false;
+  });
+
+  // Persist sidebar state to localStorage
+  useEffect(() => {
+    localStorage.setItem('company-detail-sidebar-collapsed', String(isSidebarCollapsed));
+  }, [isSidebarCollapsed]);
 
   const { isSectionVisible, getSectionOrder, getVisibleCustomFields } = useDetailPageLayout("company");
 
@@ -344,7 +357,7 @@ export default function CompanyDetailPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 max-w-5xl mx-auto">
+    <div className="p-4 md:p-6">
       {/* Header - stacks on mobile */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
         <Button variant="ghost" size="sm" asChild className="w-fit">
@@ -385,11 +398,13 @@ export default function CompanyDetailPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr,auto] gap-6">
+        <div className="space-y-6">
           {/* Company Information - Compact */}
           {isSectionVisible("company-info") && (
-          <div className="bg-gray-50 rounded-lg border border-gray-200 p-3 mb-2">
+          <div className="bg-white px-3 pb-5 mb-2 relative">
+            {/* Partial separator line at bottom */}
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-gray-200" />
             <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 text-sm">
               {/* Website */}
               <div className="space-y-0.5">
@@ -400,7 +415,7 @@ export default function CompanyDetailPage() {
                     onSave={(val) => handleCompanyUpdate('website', val)}
                     type="text"
                     emptyText="Add website"
-                    placeholder="https://example.com"
+                    placeholder="example.com"
                     displayClassName="text-blue-600"
                   />
                   {(company as any).website && (
@@ -454,7 +469,7 @@ export default function CompanyDetailPage() {
           )}
 
           {/* Tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="pt-2">
             <TabsList variant="underline" className="w-full justify-start border-b">
               <TabsTrigger variant="underline" value="activity">
                 <Clock className="h-4 w-4 mr-1" />
@@ -747,8 +762,20 @@ export default function CompanyDetailPage() {
           </Tabs>
         </div>
 
-        <div className="space-y-6">
-          {/* Associations */}
+        {/* Sidebar */}
+        <div className={`hidden lg:flex ${isSidebarCollapsed ? 'w-6' : 'w-80'} transition-all duration-200`}>
+          {/* Edge toggle button */}
+          <button
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            className="flex-shrink-0 w-6 flex items-start justify-center pt-2 group"
+            title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            <div className="w-1 h-8 rounded-full bg-gray-200 group-hover:bg-gray-400 transition-colors" />
+          </button>
+
+          {!isSidebarCollapsed && (
+          <div className="flex-1 space-y-6">
+            {/* Associations */}
           <Card>
             <CardHeader><CardTitle className="text-base">Associations</CardTitle></CardHeader>
             <CardContent className="space-y-4">
@@ -841,6 +868,8 @@ export default function CompanyDetailPage() {
               </div>
             </CardContent>
           </Card>
+          </div>
+          )}
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -176,6 +176,19 @@ export default function ContactDetailPage() {
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
   const [selectedDealId, setSelectedDealId] = useState<string>("");
   const [dealRole, setDealRole] = useState("other");
+
+  // Sidebar collapse state - persisted to localStorage
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('contact-detail-sidebar-collapsed') === 'true';
+    }
+    return false;
+  });
+
+  // Persist sidebar state to localStorage
+  useEffect(() => {
+    localStorage.setItem('contact-detail-sidebar-collapsed', String(isSidebarCollapsed));
+  }, [isSidebarCollapsed]);
 
   // Use detail page layout hook
   const { isSectionVisible, getVisibleCustomFields } = useDetailPageLayout("contact");
@@ -432,7 +445,7 @@ export default function ContactDetailPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 max-w-6xl mx-auto">
+    <div className="p-4 md:p-6">
       {/* Header - stacks on mobile */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
         <Button variant="ghost" size="sm" asChild className="w-fit">
@@ -536,12 +549,14 @@ export default function ContactDetailPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr,auto] gap-6">
         {/* Main Column */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6">
           {/* Contact Information - Compact */}
           {isSectionVisible("contact-info") && (
-          <div className="bg-gray-50 rounded-lg border border-gray-200 p-3 mb-2">
+          <div className="bg-white px-3 pb-5 mb-2 relative">
+            {/* Partial separator line at bottom */}
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-gray-200" />
             <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 text-sm">
               {/* Email */}
               <div className="space-y-0.5">
@@ -561,6 +576,7 @@ export default function ContactDetailPage() {
                   onSave={(val) => handleContactUpdate('phone', val)}
                   type="phone"
                   emptyText="Add phone"
+                  displayClassName="text-gray-900"
                 />
               </div>
               {/* Title */}
@@ -571,6 +587,7 @@ export default function ContactDetailPage() {
                   onSave={(val) => handleContactUpdate('title', val)}
                   emptyText="Add title"
                   placeholder="e.g., CEO"
+                  displayClassName="text-gray-900"
                 />
               </div>
               {/* Source */}
@@ -779,7 +796,7 @@ export default function ContactDetailPage() {
           )}
 
           {/* Tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="pt-2">
             <TabsList variant="underline" className="w-full justify-start border-b">
               <TabsTrigger variant="underline" value="activity">
                 <Clock className="h-4 w-4 mr-1" />
@@ -1084,8 +1101,19 @@ export default function ContactDetailPage() {
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Associations */}
+        <div className={`hidden lg:flex ${isSidebarCollapsed ? 'w-6' : 'w-80'} transition-all duration-200`}>
+          {/* Edge toggle button */}
+          <button
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            className="flex-shrink-0 w-6 flex items-start justify-center pt-2 group"
+            title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            <div className="w-1 h-8 rounded-full bg-gray-200 group-hover:bg-gray-400 transition-colors" />
+          </button>
+
+          {!isSidebarCollapsed && (
+          <div className="flex-1 space-y-6">
+            {/* Associations */}
           {isSectionVisible("associated-deals") && (
           <Card>
             <CardHeader><CardTitle className="text-base">Associations</CardTitle></CardHeader>
@@ -1188,6 +1216,8 @@ export default function ContactDetailPage() {
               )}
             </CardContent>
           </Card>
+          )}
+          </div>
           )}
         </div>
       </div>

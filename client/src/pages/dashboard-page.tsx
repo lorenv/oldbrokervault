@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { CimGenerator } from "@/components/cim-generator";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -65,6 +65,15 @@ function QuickCreateDialog({ type, onClose }: QuickCreateDialogProps) {
   const [contactForm, setContactForm] = useState({ firstName: "", lastName: "", email: "" });
   const [companyForm, setCompanyForm] = useState({ name: "", website: "" });
 
+  // Reset forms when dialog opens
+  useEffect(() => {
+    if (type) {
+      setDealForm({ name: "", amount: "", companyId: "" });
+      setContactForm({ firstName: "", lastName: "", email: "" });
+      setCompanyForm({ name: "", website: "" });
+    }
+  }, [type]);
+
   const { data: companiesData } = useQuery({
     queryKey: ["/api/crm/companies"],
     enabled: type === "deal",
@@ -74,7 +83,8 @@ function QuickCreateDialog({ type, onClose }: QuickCreateDialogProps) {
   const createDealMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/crm/deals", { body: data }).then(r => r.json()),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"] });
+      // Use refetchType: 'all' to ensure all cached queries are refreshed
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"], refetchType: 'all' });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/ai-briefing"] });
       toast({ title: "Deal created" });
       onClose();
@@ -86,7 +96,8 @@ function QuickCreateDialog({ type, onClose }: QuickCreateDialogProps) {
   const createContactMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/crm/contacts", { body: data }).then(r => r.json()),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"] });
+      // Use refetchType: 'all' to ensure all cached queries are refreshed
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"], refetchType: 'all' });
       toast({ title: "Contact created" });
       onClose();
       navigate(`/contacts/${data.id}`);
@@ -97,7 +108,8 @@ function QuickCreateDialog({ type, onClose }: QuickCreateDialogProps) {
   const createCompanyMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/crm/companies", { body: data }).then(r => r.json()),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"] });
+      // Use refetchType: 'all' to ensure all cached queries are refreshed
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"], refetchType: 'all' });
       toast({ title: "Company created" });
       onClose();
       navigate(`/companies/${data.id}`);
@@ -223,7 +235,7 @@ function QuickCreateDialog({ type, onClose }: QuickCreateDialogProps) {
                 <Input
                   value={companyForm.website}
                   onChange={(e) => setCompanyForm({ ...companyForm, website: e.target.value })}
-                  placeholder="https://example.com"
+                  placeholder="example.com"
                 />
               </div>
             </>
@@ -414,7 +426,7 @@ export default function DashboardPage() {
   if (mode === 'cim') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
-        <main className="container mx-auto px-4 md:px-6 py-4 md:py-6">
+        <main className="px-4 md:px-6 py-4 md:py-6">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-2xl font-semibold text-gray-900">Create CIM</h1>
@@ -435,7 +447,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
-      <main className="container mx-auto px-4 md:px-6 py-4 md:py-6">
+      <main className="px-4 md:px-6 py-4 md:py-6">
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-900">
