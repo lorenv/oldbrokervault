@@ -896,7 +896,7 @@ export default function TasksPage() {
                         checked={selectedTasks.has(task.id)}
                         onCheckedChange={() => toggleTaskSelection(task.id)}
                         onClick={(e) => e.stopPropagation()}
-                        className="mt-1"
+                        className="mt-1 border-gray-300 data-[state=checked]:bg-gray-400 data-[state=checked]:border-gray-400"
                       />
                       <button
                         type="button"
@@ -959,7 +959,7 @@ export default function TasksPage() {
                       <Checkbox
                         checked={isAllSelected}
                         onCheckedChange={toggleAllSelection}
-                        className={isSomeSelected ? "data-[state=checked]:bg-blue-300" : ""}
+                        className={`border-gray-300 data-[state=checked]:bg-gray-400 data-[state=checked]:border-gray-400 ${isSomeSelected ? "data-[state=checked]:bg-gray-300" : ""}`}
                       />
                     </th>
                     {visibleColumns.map((column) => (
@@ -1002,6 +1002,7 @@ export default function TasksPage() {
                           <Checkbox
                             checked={selectedTasks.has(task.id)}
                             onCheckedChange={() => toggleTaskSelection(task.id)}
+                            className="border-gray-300 data-[state=checked]:bg-gray-400 data-[state=checked]:border-gray-400"
                           />
                         </td>
                         {visibleColumns.map((column) => (

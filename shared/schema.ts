@@ -2148,6 +2148,9 @@ export const companies = pgTable("companies", {
   domain: text("domain"), // e.g., "acme.com"
   website: text("website"),
   logoUrl: text("logo_url"), // Company logo/image
+  logoSource: text("logo_source"), // 'auto' | 'manual' - tracks how logo was set
+  logoFetchAttempts: integer("logo_fetch_attempts").default(0).notNull(), // Number of auto-fetch attempts
+  logoLastFetchAt: timestamp("logo_last_fetch_at"), // When logo fetch was last attempted
 
   // Industry and size
   industry: text("industry"),

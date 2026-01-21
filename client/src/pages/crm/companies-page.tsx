@@ -268,9 +268,17 @@ export default function CompaniesPage() {
       case 'name':
         return (
           <Link href={`/companies/${company.id}`} className="flex items-center gap-2 group">
-            <div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-              <Building2 className="h-3.5 w-3.5 text-gray-600" />
-            </div>
+            {company.logoUrl ? (
+              <img
+                src={company.logoUrl}
+                alt={company.name}
+                className="w-7 h-7 rounded-lg object-cover flex-shrink-0"
+              />
+            ) : (
+              <div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                <Building2 className="h-3.5 w-3.5 text-gray-600" />
+              </div>
+            )}
             <div className="min-w-0">
               <span className="font-medium text-gray-900 group-hover:text-blue-600 truncate block">
                 {company.name}
@@ -546,9 +554,9 @@ export default function CompaniesPage() {
             )}
 
             {/* Desktop Table View */}
-            <div className="hidden md:block w-full bg-white rounded-lg border overflow-hidden">
+            <div className="hidden md:block bg-white rounded-lg border overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full table-auto">
+                <table className="w-full table-fixed">
                   <thead className="bg-gray-50 border-b">
                     <tr>
                       <th className="py-2 px-3 w-10">
@@ -562,7 +570,7 @@ export default function CompaniesPage() {
                         <th
                           key={column.id}
                           className="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 transition-colors"
-                          style={column.id === 'name' ? { width: '100%' } : { whiteSpace: 'nowrap' }}
+                          style={{ width: column.width || '15%' }}
                           onClick={() => toggleSort(column.id)}
                         >
                           <div className="flex items-center gap-1">
@@ -587,7 +595,6 @@ export default function CompaniesPage() {
                           <td
                             key={column.id}
                             className="py-2 px-3"
-                            style={column.id === 'name' ? { width: '100%' } : { whiteSpace: 'nowrap' }}
                           >
                             {renderCell(company, column.id)}
                           </td>

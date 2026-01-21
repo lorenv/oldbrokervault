@@ -25,13 +25,13 @@ export interface ColumnConfig {
 }
 
 export const DEFAULT_COMPANY_COLUMNS: ColumnConfig[] = [
-  { id: 'name', label: 'Company', visible: true, width: '25%', order: 0 },
-  { id: 'industry', label: 'Industry', visible: true, width: '15%', order: 1 },
-  { id: 'website', label: 'Website', visible: true, width: '20%', order: 2 },
-  { id: 'location', label: 'Location', visible: true, width: '15%', order: 3 },
-  { id: 'contacts', label: 'Contacts', visible: true, width: '10%', order: 4 },
-  { id: 'deals', label: 'Deals', visible: true, width: '10%', order: 5 },
-  { id: 'createdAt', label: 'Created', visible: false, width: '15%', order: 6 },
+  { id: 'name', label: 'Company', visible: true, width: '28%', order: 0 },
+  { id: 'industry', label: 'Industry', visible: true, width: '17%', order: 1 },
+  { id: 'website', label: 'Website', visible: true, width: '22%', order: 2 },
+  { id: 'location', label: 'Location', visible: true, width: '17%', order: 3 },
+  { id: 'contacts', label: 'Contacts', visible: true, width: '11%', order: 4 },
+  { id: 'deals', label: 'Deals', visible: true, width: '11%', order: 5 },
+  { id: 'createdAt', label: 'Created', visible: false, width: '17%', order: 6 },
 ];
 
 export const DEFAULT_COMPANY_FILTERS: CompanyFilters = {

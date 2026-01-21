@@ -68,6 +68,7 @@ import {
 } from '../middleware/permissions';
 import { PERMISSION_KEYS, CATEGORY_INFO, ALL_ROLES, DEFAULT_PERMISSIONS } from '@shared/permissions';
 import { sendTeamInviteEmail, sendMentionNotificationEmail } from '../email';
+import { queueLogoFetch, shouldFetchLogo } from '../services/company-logo-service';
 
 const router = Router();
 
@@ -1867,6 +1868,11 @@ router.post('/companies', async (req, res) => {
       { companyName: newCompany.name }
     );
 
+    // Queue logo fetch if website provided (non-blocking background task)
+    if (newCompany.website && shouldFetchLogo({}, newCompany.website)) {
+      queueLogoFetch(newCompany.id, orgData.organization.id, newCompany.website, { isNewCompany: true });
+    }
+
     res.json(newCompany);
   } catch (error) {
     console.error('[CRM] Error creating company:', error);
@@ -1916,6 +1922,9 @@ router.patch('/companies/:id', async (req, res) => {
       description,
     } = req.body;
 
+    // Track if logo is being manually set
+    const isManualLogoUpload = logoUrl !== undefined && logoUrl !== null && logoUrl !== existing.logoUrl;
+
     const [updated] = await db
       .update(companies)
       .set({
@@ -1923,6 +1932,8 @@ router.patch('/companies/:id', async (req, res) => {
         ...(domain !== undefined && { domain }),
         ...(website !== undefined && { website }),
         ...(logoUrl !== undefined && { logoUrl }),
+        // Mark logo as manual if user is explicitly setting it
+        ...(isManualLogoUpload && { logoSource: 'manual' }),
         ...(industry !== undefined && { industry }),
         ...(size !== undefined && { size }),
         ...(annualRevenue !== undefined && { annualRevenue }),
@@ -1939,6 +1950,12 @@ router.patch('/companies/:id', async (req, res) => {
       })
       .where(eq(companies.id, companyId))
       .returning();
+
+    // Queue logo fetch if website changed and not manually setting logo
+    const newWebsite = website !== undefined ? website : existing.website;
+    if (!isManualLogoUpload && newWebsite && shouldFetchLogo(existing, newWebsite, existing.website)) {
+      queueLogoFetch(updated.id, orgData.organization.id, newWebsite, { previousWebsite: existing.website });
+    }
 
     res.json(updated);
   } catch (error) {

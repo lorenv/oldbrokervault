@@ -978,8 +978,9 @@ export default function DealsPage() {
             </Button>
           </div>
         )}
-        <div className="w-full bg-white rounded-lg border overflow-x-auto">
-          <table className="w-full table-auto">
+        <div className="bg-white rounded-lg border overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full table-fixed">
               <thead className="bg-gray-50 border-b">
                 <tr>
                   <th className="py-1.5 px-2 w-10">
@@ -991,8 +992,14 @@ export default function DealsPage() {
                   </th>
                   {visibleColumns.map((col) => {
                     const sortable = ['name', 'amount', 'closeDate', 'createdAt', 'stage', 'company', 'priority'].includes(col.id);
-                    // Name column expands to fill remaining space, others size to content
-                    const widthStyle = col.id === 'name' ? { width: '100%' } : { whiteSpace: 'nowrap' as const };
+                    // Percentage-based widths for even column distribution (totals ~100% for typical 6 columns)
+                    const columnWidth = col.id === 'name' ? '28%' :
+                                       col.id === 'company' ? '20%' :
+                                       col.id === 'stage' ? '13%' :
+                                       col.id === 'amount' ? '13%' :
+                                       col.id === 'closeDate' ? '13%' :
+                                       col.id === 'owner' ? '13%' : '13%';
+                    const widthStyle = { width: columnWidth };
                     if (sortable) {
                       return (
                         <SortableHeader
@@ -1032,7 +1039,6 @@ export default function DealsPage() {
                       <td
                         key={col.id}
                         className="py-1.5 px-2"
-                        style={col.id === 'name' ? { width: '100%' } : { whiteSpace: 'nowrap' }}
                       >
                         {col.id === 'name' && (
                           <Link href={`/deals/${deal.id}`} className="flex items-center gap-2.5 text-sm font-medium text-gray-900 hover:text-blue-600">
@@ -1148,6 +1154,7 @@ export default function DealsPage() {
                 )}
               </tbody>
             </table>
+          </div>
 
           {/* Summary Row */}
           {aggregates && allDeals.length > 0 && (
