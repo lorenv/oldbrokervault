@@ -1,4 +1,4 @@
-import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, uploadedFiles, customSections, ndaTemplates, ndaSignatures, ndaAccessTokens, ndaRedirectLinks, documentViews, documentDownloads, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, NdaAccessToken, InsertNdaAccessToken, NdaRedirectLink, InsertNdaRedirectLink, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator, documentLocks, DocumentLock, documentActivityLog, DocumentActivityLog, customTags, analysisTemplates, AnalysisTemplate, InsertAnalysisTemplate, financialFiles, documentVersions, documentAnalytics, documentBaselines, DocumentBaseline, InsertDocumentBaseline, contentStyleTemplates, ContentStyleTemplate, InsertContentStyleTemplate, messageAttachments, MessageAttachment, InsertMessageAttachment, onboardingEmailSequences, userEmailQueue, OnboardingEmailSequence, UserEmailQueue, InsertUserEmailQueue, teasers, deals, supportTickets } from "@shared/schema";
+import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, uploadedFiles, customSections, ndaTemplates, ndaSignatures, ndaAccessTokens, ndaRedirectLinks, documentViews, documentDownloads, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, NdaAccessToken, InsertNdaAccessToken, NdaRedirectLink, InsertNdaRedirectLink, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator, documentLocks, DocumentLock, documentActivityLog, DocumentActivityLog, customTags, analysisTemplates, AnalysisTemplate, InsertAnalysisTemplate, financialFiles, documentVersions, documentAnalytics, documentBaselines, DocumentBaseline, InsertDocumentBaseline, contentStyleTemplates, ContentStyleTemplate, InsertContentStyleTemplate, messageAttachments, MessageAttachment, InsertMessageAttachment, onboardingEmailSequences, userEmailQueue, OnboardingEmailSequence, UserEmailQueue, InsertUserEmailQueue, teasers, deals, supportTickets, userNotificationPreferences, UserNotificationPreferences } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
@@ -254,6 +254,9 @@ export interface IStorage {
   markEmailAsFailed(queueId: number, errorMessage: string): Promise<void>;
   // Support tickets
   createSupportTicket(ticket: { userId: number; organizationId?: number | null; type: string; subject: string; description: string; attachments?: any[]; browserInfo?: string; pageUrl?: string }): Promise<any>;
+  // Notification preferences
+  getNotificationPreferences(userId: number): Promise<UserNotificationPreferences | null>;
+  upsertNotificationPreferences(userId: number, preferences: Partial<UserNotificationPreferences>): Promise<UserNotificationPreferences>;
   sessionStore: session.Store;
 }
 
@@ -2778,6 +2781,47 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
         pageUrl: ticket.pageUrl || null,
       }).returning();
       return newTicket;
+    });
+  }
+
+  async getNotificationPreferences(userId: number): Promise<UserNotificationPreferences | null> {
+    return await withRetry(async () => {
+      const [prefs] = await db
+        .select()
+        .from(userNotificationPreferences)
+        .where(eq(userNotificationPreferences.userId, userId))
+        .limit(1);
+      return prefs || null;
+    });
+  }
+
+  async upsertNotificationPreferences(userId: number, preferences: Partial<UserNotificationPreferences>): Promise<UserNotificationPreferences> {
+    return await withRetry(async () => {
+      // Check if preferences exist
+      const existing = await this.getNotificationPreferences(userId);
+
+      if (existing) {
+        // Update existing preferences
+        const [updated] = await db
+          .update(userNotificationPreferences)
+          .set({
+            ...preferences,
+            updatedAt: new Date(),
+          })
+          .where(eq(userNotificationPreferences.userId, userId))
+          .returning();
+        return updated;
+      } else {
+        // Create new preferences with defaults
+        const [created] = await db
+          .insert(userNotificationPreferences)
+          .values({
+            userId,
+            ...preferences,
+          })
+          .returning();
+        return created;
+      }
     });
   }
 }

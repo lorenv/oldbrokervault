@@ -11436,6 +11436,84 @@ ${finalQuestion}
   // Register AI Assistant routes
   app.use('/api/ai-assistant', aiAssistantRoutes);
 
+  // ========== Notification Preferences Routes ==========
+
+  // Get current user's notification preferences
+  app.get("/api/user/notification-preferences", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const userId = (req.user as any).id;
+      let preferences = await storage.getNotificationPreferences(userId);
+
+      // If no preferences exist, return defaults
+      if (!preferences) {
+        preferences = {
+          id: 0,
+          userId,
+          // Email defaults
+          emailMentions: true,
+          emailTaskAssigned: true,
+          emailTaskReminder: true,
+          emailDealUpdates: false,
+          emailTeamInvites: true,
+          emailEsignRequests: true,
+          emailEsignCompleted: true,
+          emailWeeklyDigest: false,
+          // In-app defaults
+          inappMentions: true,
+          inappTaskAssigned: true,
+          inappTaskReminder: true,
+          inappDealUpdates: true,
+          inappEsignRequests: true,
+          inappEsignCompleted: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+      }
+
+      res.json(preferences);
+    } catch (error) {
+      console.error("Error fetching notification preferences:", error);
+      res.status(500).json({ error: "Failed to fetch notification preferences" });
+    }
+  });
+
+  // Update user's notification preferences
+  app.put("/api/user/notification-preferences", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const userId = (req.user as any).id;
+      const updates = req.body;
+
+      // Validate the fields - only allow known preference fields
+      const allowedFields = [
+        'emailMentions', 'emailTaskAssigned', 'emailTaskReminder', 'emailDealUpdates',
+        'emailTeamInvites', 'emailEsignRequests', 'emailEsignCompleted', 'emailWeeklyDigest',
+        'inappMentions', 'inappTaskAssigned', 'inappTaskReminder', 'inappDealUpdates',
+        'inappEsignRequests', 'inappEsignCompleted'
+      ];
+
+      const filteredUpdates: Record<string, boolean> = {};
+      for (const key of allowedFields) {
+        if (key in updates && typeof updates[key] === 'boolean') {
+          filteredUpdates[key] = updates[key];
+        }
+      }
+
+      const preferences = await storage.upsertNotificationPreferences(userId, filteredUpdates);
+      res.json(preferences);
+    } catch (error) {
+      console.error("Error updating notification preferences:", error);
+      res.status(500).json({ error: "Failed to update notification preferences" });
+    }
+  });
+
   // Background job: Clean up stale document locks (15+ minutes old)
   async function cleanupStaleLocks() {
     try {

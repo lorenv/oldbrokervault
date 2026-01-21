@@ -2664,6 +2664,33 @@ export const notifications = pgTable("notifications", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// User notification preferences - controls which notifications users receive
+export const userNotificationPreferences = pgTable("user_notification_preferences", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().unique(),
+
+  // Email Notification Toggles (per category)
+  emailMentions: boolean("email_mentions").default(true).notNull(),           // @mentions in notes
+  emailTaskAssigned: boolean("email_task_assigned").default(true).notNull(),  // Task assigned to you
+  emailTaskReminder: boolean("email_task_reminder").default(true).notNull(),  // Task due date reminders
+  emailDealUpdates: boolean("email_deal_updates").default(false).notNull(),   // Deal stage changes (you own)
+  emailTeamInvites: boolean("email_team_invites").default(true).notNull(),    // Team invitation
+  emailEsignRequests: boolean("email_esign_requests").default(true).notNull(), // Signature requested
+  emailEsignCompleted: boolean("email_esign_completed").default(true).notNull(), // Document signed
+  emailWeeklyDigest: boolean("email_weekly_digest").default(false).notNull(), // Weekly summary email
+
+  // In-App Notification Toggles
+  inappMentions: boolean("inapp_mentions").default(true).notNull(),
+  inappTaskAssigned: boolean("inapp_task_assigned").default(true).notNull(),
+  inappTaskReminder: boolean("inapp_task_reminder").default(true).notNull(),
+  inappDealUpdates: boolean("inapp_deal_updates").default(true).notNull(),
+  inappEsignRequests: boolean("inapp_esign_requests").default(true).notNull(),
+  inappEsignCompleted: boolean("inapp_esign_completed").default(true).notNull(),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Mentions tracking - stores @mentions in notes and comments
 export const mentions = pgTable("mentions", {
   id: serial("id").primaryKey(),
@@ -3163,3 +3190,6 @@ export type DashboardBriefing = typeof dashboardBriefings.$inferSelect;
 
 export type SupportTicket = typeof supportTickets.$inferSelect;
 export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
+
+export type UserNotificationPreferences = typeof userNotificationPreferences.$inferSelect;
+export type InsertUserNotificationPreferences = typeof userNotificationPreferences.$inferInsert;
