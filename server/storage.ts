@@ -1,4 +1,4 @@
-import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, uploadedFiles, customSections, ndaTemplates, ndaSignatures, ndaAccessTokens, ndaRedirectLinks, documentViews, documentDownloads, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, NdaAccessToken, InsertNdaAccessToken, NdaRedirectLink, InsertNdaRedirectLink, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator, documentLocks, DocumentLock, documentActivityLog, DocumentActivityLog, customTags, analysisTemplates, AnalysisTemplate, InsertAnalysisTemplate, financialFiles, documentVersions, documentAnalytics, documentBaselines, DocumentBaseline, InsertDocumentBaseline, contentStyleTemplates, ContentStyleTemplate, InsertContentStyleTemplate, messageAttachments, MessageAttachment, InsertMessageAttachment, onboardingEmailSequences, userEmailQueue, OnboardingEmailSequence, UserEmailQueue, InsertUserEmailQueue, teasers, deals } from "@shared/schema";
+import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, uploadedFiles, customSections, ndaTemplates, ndaSignatures, ndaAccessTokens, ndaRedirectLinks, documentViews, documentDownloads, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, NdaAccessToken, InsertNdaAccessToken, NdaRedirectLink, InsertNdaRedirectLink, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator, documentLocks, DocumentLock, documentActivityLog, DocumentActivityLog, customTags, analysisTemplates, AnalysisTemplate, InsertAnalysisTemplate, financialFiles, documentVersions, documentAnalytics, documentBaselines, DocumentBaseline, InsertDocumentBaseline, contentStyleTemplates, ContentStyleTemplate, InsertContentStyleTemplate, messageAttachments, MessageAttachment, InsertMessageAttachment, onboardingEmailSequences, userEmailQueue, OnboardingEmailSequence, UserEmailQueue, InsertUserEmailQueue, teasers, deals, supportTickets } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
@@ -57,8 +57,12 @@ function getSessionStore(): session.Store {
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByGoogleId(googleId: string): Promise<User | undefined>;
+  getUserByMicrosoftId(microsoftId: string): Promise<User | undefined>;
   getUserProfile(id: number): Promise<User | undefined>;
   createUser(user: InsertUser & { isAdmin: boolean }): Promise<User>;
+  createOAuthUser(data: { email: string; firstName?: string; lastName?: string; profilePhoto?: string; googleId?: string; microsoftId?: string; authProvider: string }): Promise<User>;
+  linkOAuthProvider(userId: number, provider: 'google' | 'microsoft', providerId: string): Promise<User>;
   updateUser(id: number, updates: Partial<User>): Promise<User>;
   updateSubscription(userId: number, status: string, endsAt: Date): Promise<void>;
   updateUserUsage(userId: number): Promise<void>;
@@ -248,6 +252,8 @@ export interface IStorage {
   getPendingEmails(): Promise<any[]>;
   markEmailAsSent(queueId: number): Promise<void>;
   markEmailAsFailed(queueId: number, errorMessage: string): Promise<void>;
+  // Support tickets
+  createSupportTicket(ticket: { userId: number; organizationId?: number | null; type: string; subject: string; description: string; attachments?: any[]; browserInfo?: string; pageUrl?: string }): Promise<any>;
   sessionStore: session.Store;
 }
 
@@ -273,6 +279,76 @@ export class DatabaseStorage implements IStorage {
       console.error('Error in getUserByEmail:', error);
       throw error;
     }
+  }
+
+  async getUserByGoogleId(googleId: string): Promise<User | undefined> {
+    try {
+      const [user] = await db.select().from(users).where(eq(users.googleId, googleId)).limit(1);
+      return user;
+    } catch (error) {
+      console.error('Error in getUserByGoogleId:', error);
+      throw error;
+    }
+  }
+
+  async getUserByMicrosoftId(microsoftId: string): Promise<User | undefined> {
+    try {
+      const [user] = await db.select().from(users).where(eq(users.microsoftId, microsoftId)).limit(1);
+      return user;
+    } catch (error) {
+      console.error('Error in getUserByMicrosoftId:', error);
+      throw error;
+    }
+  }
+
+  async createOAuthUser(data: {
+    email: string;
+    firstName?: string;
+    lastName?: string;
+    profilePhoto?: string;
+    googleId?: string;
+    microsoftId?: string;
+    authProvider: string
+  }): Promise<User> {
+    // Generate a random secure password for OAuth users (they won't use it)
+    const randomPassword = require('crypto').randomBytes(32).toString('hex');
+    const hashedPassword = await require('./auth').hashPassword(randomPassword);
+
+    const [user] = await db
+      .insert(users)
+      .values({
+        email: data.email,
+        password: hashedPassword,
+        firstName: data.firstName || null,
+        lastName: data.lastName || null,
+        profilePhoto: data.profilePhoto || null,
+        googleId: data.googleId || null,
+        microsoftId: data.microsoftId || null,
+        authProvider: data.authProvider,
+        isAdmin: false,
+        subscriptionStatus: "free",
+        emailVerified: true, // OAuth users are pre-verified
+      })
+      .returning();
+
+    return user;
+  }
+
+  async linkOAuthProvider(userId: number, provider: 'google' | 'microsoft', providerId: string): Promise<User> {
+    const updateData: Partial<User> = {};
+    if (provider === 'google') {
+      updateData.googleId = providerId;
+    } else if (provider === 'microsoft') {
+      updateData.microsoftId = providerId;
+    }
+
+    const [user] = await db
+      .update(users)
+      .set(updateData)
+      .where(eq(users.id, userId))
+      .returning();
+
+    return user;
   }
 
   async getUserProfile(id: number): Promise<User | undefined> {
@@ -2681,11 +2757,27 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
   async markEmailAsFailed(queueId: number, errorMessage: string): Promise<void> {
     return await withRetry(async () => {
       await db.update(userEmailQueue)
-        .set({ 
+        .set({
           status: 'failed',
           errorMessage
         })
         .where(eq(userEmailQueue.id, queueId));
+    });
+  }
+
+  async createSupportTicket(ticket: { userId: number; organizationId?: number | null; type: string; subject: string; description: string; attachments?: any[]; browserInfo?: string; pageUrl?: string }): Promise<any> {
+    return await withRetry(async () => {
+      const [newTicket] = await db.insert(supportTickets).values({
+        userId: ticket.userId,
+        organizationId: ticket.organizationId || null,
+        type: ticket.type,
+        subject: ticket.subject,
+        description: ticket.description,
+        attachments: ticket.attachments || [],
+        browserInfo: ticket.browserInfo || null,
+        pageUrl: ticket.pageUrl || null,
+      }).returning();
+      return newTicket;
     });
   }
 }

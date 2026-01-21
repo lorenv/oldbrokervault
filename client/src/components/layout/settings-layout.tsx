@@ -57,7 +57,7 @@ const settingsNavSections: SettingsNavSection[] = [
     title: "Integrations",
     items: [
       { label: "Email", icon: Mail, href: "/settings/email", description: "Connect your email account" },
-      { label: "Connected Apps", icon: Workflow, href: "/settings/integrations", description: "Third-party integrations" },
+      { label: "Apps & Automations", icon: Workflow, href: "/settings/integrations", description: "Third-party integrations" },
     ],
   },
   {

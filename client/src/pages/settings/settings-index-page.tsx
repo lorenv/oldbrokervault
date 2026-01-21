@@ -76,7 +76,7 @@ const settingsCards: SettingsCard[] = [
     iconColor: "text-pink-600",
   },
   {
-    title: "Integrations",
+    title: "Apps & Automations",
     description: "Connect third-party apps and services",
     icon: Workflow,
     href: "/settings/integrations",

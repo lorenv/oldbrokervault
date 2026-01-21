@@ -1310,7 +1310,7 @@ export default function IntegrationsPage() {
   // Main view with tabs
   return (
     <SettingsLayout
-      title="Integrations"
+      title="Apps & Automations"
       description="Connect external apps and automate workflows based on events"
     >
       <Tabs value={activeTab} onValueChange={setActiveTab}>

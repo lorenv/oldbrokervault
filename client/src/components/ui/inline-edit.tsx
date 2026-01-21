@@ -142,7 +142,7 @@ export function InlineEdit({
 
   if (disabled) {
     return (
-      <span className={cn("text-sm", displayClassName)}>
+      <span className={cn("text-sm text-gray-900", displayClassName)}>
         {displayValue || <span className="text-muted-foreground">{emptyText}</span>}
       </span>
     );
@@ -233,7 +233,7 @@ export function InlineEdit({
         className
       )}
     >
-      <span className={cn("text-sm", !displayValue && "text-muted-foreground italic", displayClassName)}>
+      <span className={cn("text-sm text-gray-900", !displayValue && "text-muted-foreground italic", displayClassName)}>
         {displayValue || emptyText}
       </span>
       {isHovered && (

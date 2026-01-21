@@ -613,6 +613,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Support ticket submission endpoint
+  app.post("/api/support/ticket", express.json(), async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const { type, subject, description, attachments, browserInfo, pageUrl } = req.body;
+
+      if (!subject || !description) {
+        return res.status(400).json({ error: 'Subject and description are required' });
+      }
+
+      // Get user's organization if they have one
+      let organizationId: number | null = null;
+      try {
+        const { organizationMembers } = await import("@shared/schema");
+        const { db } = await import("./db");
+        const { eq } = await import("drizzle-orm");
+        const [membership] = await db.select().from(organizationMembers).where(eq(organizationMembers.userId, req.user.id));
+        organizationId = membership?.organizationId || null;
+      } catch (e) {
+        // Organization lookup failed, continue without it
+      }
+
+      const ticket = await storage.createSupportTicket({
+        userId: req.user.id,
+        organizationId,
+        type: type || 'bug',
+        subject,
+        description,
+        attachments: attachments || [],
+        browserInfo,
+        pageUrl,
+      });
+
+      res.json({ success: true, ticketId: ticket.id });
+    } catch (err) {
+      logger.error('Error creating support ticket:', err);
+      res.status(500).json({ error: 'Failed to submit support ticket' });
+    }
+  });
+
   // Image serving endpoints - serve user images and logos statically
   app.use('/user-images', express.static(path.join(process.cwd(), 'public', 'user-images')));
   app.use('/logos', express.static(path.join(process.cwd(), 'public', 'logos')));

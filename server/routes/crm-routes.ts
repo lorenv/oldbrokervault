@@ -60,6 +60,13 @@ import path from 'path';
 import { promises as fs } from 'fs';
 import { gmailProvider } from '../integrations/providers/gmail';
 import { microsoftProvider } from '../integrations/providers/microsoft';
+import {
+  getUserPermissions,
+  getPermissionsMatrix,
+  updatePermission,
+  canManagePermissions,
+} from '../middleware/permissions';
+import { PERMISSION_KEYS, CATEGORY_INFO, ALL_ROLES, DEFAULT_PERMISSIONS } from '@shared/permissions';
 
 const router = Router();
 
@@ -6854,6 +6861,102 @@ router.post('/notifications/mark-all-read', async (req, res) => {
   } catch (error) {
     console.error('[CRM] Error marking all notifications as read:', error);
     res.status(500).json({ error: 'Failed to update notifications' });
+  }
+});
+
+// ============================================
+// PERMISSIONS ENDPOINTS
+// ============================================
+
+// Get permissions matrix for all roles (for settings page)
+router.get('/organization/permissions', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    // Check if user can view permissions (owner or admin)
+    const canView = await canManagePermissions(req.user!.id);
+    if (!canView) {
+      return res.status(403).json({ error: 'Permission denied' });
+    }
+
+    const matrix = await getPermissionsMatrix(orgData.organization.id);
+
+    res.json({
+      matrix,
+      permissionKeys: PERMISSION_KEYS,
+      categoryInfo: CATEGORY_INFO,
+      roles: ALL_ROLES,
+    });
+  } catch (error) {
+    console.error('[CRM] Error fetching permissions matrix:', error);
+    res.status(500).json({ error: 'Failed to fetch permissions' });
+  }
+});
+
+// Update a single permission
+router.put('/organization/permissions', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    // Check if user can manage permissions (owner or admin)
+    const canManage = await canManagePermissions(req.user!.id);
+    if (!canManage) {
+      return res.status(403).json({ error: 'Permission denied' });
+    }
+
+    const { permissionKey, role, granted } = req.body;
+
+    if (!permissionKey || !role || typeof granted !== 'boolean') {
+      return res.status(400).json({ error: 'Missing required fields: permissionKey, role, granted' });
+    }
+
+    const result = await updatePermission(
+      orgData.organization.id,
+      permissionKey,
+      role,
+      granted
+    );
+
+    if (!result.success) {
+      return res.status(400).json({ error: result.error });
+    }
+
+    // Return updated matrix
+    const matrix = await getPermissionsMatrix(orgData.organization.id);
+    res.json({ success: true, matrix });
+  } catch (error) {
+    console.error('[CRM] Error updating permission:', error);
+    res.status(500).json({ error: 'Failed to update permission' });
+  }
+});
+
+// Get current user's effective permissions
+router.get('/organization/my-permissions', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const userPerms = await getUserPermissions(req.user!.id);
+    if (!userPerms) {
+      return res.status(404).json({ error: 'No organization membership found' });
+    }
+
+    res.json({
+      role: userPerms.role,
+      permissions: userPerms.permissions,
+    });
+  } catch (error) {
+    console.error('[CRM] Error fetching user permissions:', error);
+    res.status(500).json({ error: 'Failed to fetch permissions' });
   }
 });
 

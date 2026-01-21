@@ -142,6 +142,11 @@ export const users = pgTable("users", {
   listingsLayout: text("listings_layout").default('grid'),
   // User timezone for task reminders and date displays (IANA timezone, e.g., "America/New_York")
   timezone: text("timezone").default("America/New_York"),
+  // OAuth provider IDs for social login
+  googleId: text("google_id").unique(),
+  microsoftId: text("microsoft_id").unique(),
+  // Auth provider tracking (local, google, microsoft)
+  authProvider: text("auth_provider").default("local"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -2118,6 +2123,21 @@ export const organizationMembers = pgTable("organization_members", {
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 
+// Role Permissions - Customizable permissions for organization roles
+export const rolePermissions = pgTable("role_permissions", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
+  permissionKey: text("permission_key").notNull(), // e.g., "crm.deals.delete"
+  role: text("role").notNull(), // "admin" or "member" only (owner/viewer permissions are locked)
+  granted: boolean("granted").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertRolePermissionSchema = createInsertSchema(rolePermissions).omit({
+  id: true,
+  updatedAt: true,
+});
+
 // Companies - First-class company object
 export const companies = pgTable("companies", {
   id: serial("id").primaryKey(),
@@ -2685,6 +2705,52 @@ export const scheduledTaskLogs = pgTable("scheduled_task_logs", {
   executedAt: timestamp("executed_at").defaultNow().notNull(),
 });
 
+// Support Tickets - User submitted bug reports and feedback
+export const SUPPORT_TICKET_STATUSES = ['open', 'in_progress', 'resolved', 'closed'] as const;
+export const SUPPORT_TICKET_TYPES = ['bug', 'feature_request', 'question', 'feedback', 'other'] as const;
+
+export const supportTickets = pgTable("support_tickets", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id"),
+  userId: integer("user_id").notNull(), // User who submitted the ticket
+
+  // Ticket content
+  type: text("type").notNull().default("bug"), // bug, feature_request, question, feedback, other
+  subject: text("subject").notNull(),
+  description: text("description").notNull(),
+
+  // Attachments (URLs to uploaded files)
+  attachments: jsonb("attachments").default([]).notNull(), // Array of { url, filename, mimeType, size }
+
+  // Status
+  status: text("status").notNull().default("open"), // open, in_progress, resolved, closed
+
+  // Context information
+  browserInfo: text("browser_info"), // User agent string
+  pageUrl: text("page_url"), // URL where ticket was submitted
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertSupportTicketSchema = createInsertSchema(supportTickets).pick({
+  type: true,
+  subject: true,
+  description: true
+}).extend({
+  type: z.enum(SUPPORT_TICKET_TYPES).default("bug"),
+  subject: z.string().min(1, "Subject is required").max(200),
+  description: z.string().min(1, "Description is required").max(5000),
+  attachments: z.array(z.object({
+    url: z.string(),
+    filename: z.string(),
+    mimeType: z.string(),
+    size: z.number()
+  })).optional().default([]),
+  browserInfo: z.string().optional(),
+  pageUrl: z.string().optional()
+});
+
 // Insert schema for deal views
 export const insertDealViewSchema = createInsertSchema(dealViews).pick({
   organizationId: true,
@@ -3009,6 +3075,9 @@ export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
 export type OrganizationMember = typeof organizationMembers.$inferSelect;
 export type InsertOrganizationMember = z.infer<typeof insertOrganizationMemberSchema>;
 
+export type RolePermission = typeof rolePermissions.$inferSelect;
+export type InsertRolePermission = z.infer<typeof insertRolePermissionSchema>;
+
 export type Company = typeof companies.$inferSelect;
 export type InsertCompany = z.infer<typeof insertCompanySchema>;
 
@@ -3053,3 +3122,6 @@ export type CustomFieldDefinition = typeof customFieldDefinitions.$inferSelect;
 export type InsertCustomFieldDefinition = z.infer<typeof insertCustomFieldDefinitionSchema>;
 
 export type DashboardBriefing = typeof dashboardBriefings.$inferSelect;
+
+export type SupportTicket = typeof supportTickets.$inferSelect;
+export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;

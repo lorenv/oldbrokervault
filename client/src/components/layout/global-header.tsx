@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -38,6 +39,9 @@ import {
   ChevronLeft,
   FileSignature,
   FileText,
+  LifeBuoy,
+  Paperclip,
+  X,
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { NotificationBell } from "@/components/ui/notification-bell";
@@ -84,9 +88,10 @@ function QuickCreateDialog({ type, onClose }: QuickCreateDialogProps) {
   }, [type]);
 
   // Fetch team members for owner/assignee dropdowns
-  const { data: teamMembers = [] } = useQuery<Array<{ id: number; userId: number; email: string; firstName: string | null; lastName: string | null; profilePhoto?: string | null }>>({
+  const { data: teamMembers = [], isLoading: isLoadingMembers } = useQuery<Array<{ id: number; userId: number; email: string; firstName: string | null; lastName: string | null; profilePhoto?: string | null }>>({
     queryKey: ["/api/crm/organization/members"],
     enabled: type === "deal" || type === "task",
+    staleTime: 0, // Always refetch when dialog opens
   });
 
   // Fetch contacts for deal creation
@@ -232,20 +237,26 @@ function QuickCreateDialog({ type, onClose }: QuickCreateDialogProps) {
                     <SelectValue placeholder="Select owner" />
                   </SelectTrigger>
                   <SelectContent>
-                    {teamMembers.filter(m => m.userId != null).map((member) => (
-                      <SelectItem key={member.userId} value={member.userId.toString()}>
-                        <div className="flex items-center gap-2">
-                          {member.profilePhoto ? (
-                            <img src={member.profilePhoto} alt="" className="w-5 h-5 rounded-full object-cover" />
-                          ) : (
-                            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-[10px] font-medium">
-                              {(member.firstName?.[0] || member.email[0] || '').toUpperCase()}
-                            </div>
-                          )}
-                          <span>{member.firstName ? `${member.firstName} ${member.lastName || ''}`.trim() : member.email}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
+                    {isLoadingMembers ? (
+                      <div className="px-2 py-3 text-sm text-gray-500 text-center">Loading team members...</div>
+                    ) : teamMembers.length === 0 ? (
+                      <div className="px-2 py-3 text-sm text-gray-500 text-center">No team members found</div>
+                    ) : (
+                      teamMembers.filter(m => m.userId != null).map((member) => (
+                        <SelectItem key={member.userId} value={member.userId.toString()}>
+                          <div className="flex items-center gap-2">
+                            {member.profilePhoto ? (
+                              <img src={member.profilePhoto} alt="" className="w-5 h-5 rounded-full object-cover" />
+                            ) : (
+                              <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-[10px] font-medium">
+                                {(member.firstName?.[0] || member.email[0] || '').toUpperCase()}
+                              </div>
+                            )}
+                            <span className="text-gray-900">{member.firstName ? `${member.firstName} ${member.lastName || ''}`.trim() : member.email}</span>
+                          </div>
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -371,20 +382,26 @@ function QuickCreateDialog({ type, onClose }: QuickCreateDialogProps) {
                     <SelectValue placeholder="Select assignee" />
                   </SelectTrigger>
                   <SelectContent>
-                    {teamMembers.filter(m => m.userId != null).map((member) => (
-                      <SelectItem key={member.userId} value={member.userId.toString()}>
-                        <div className="flex items-center gap-2">
-                          {member.profilePhoto ? (
-                            <img src={member.profilePhoto} alt="" className="w-5 h-5 rounded-full object-cover" />
-                          ) : (
-                            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-[10px] font-medium">
-                              {(member.firstName?.[0] || member.email[0] || '').toUpperCase()}
-                            </div>
-                          )}
-                          <span>{member.firstName ? `${member.firstName} ${member.lastName || ''}`.trim() : member.email}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
+                    {isLoadingMembers ? (
+                      <div className="px-2 py-3 text-sm text-gray-500 text-center">Loading team members...</div>
+                    ) : teamMembers.length === 0 ? (
+                      <div className="px-2 py-3 text-sm text-gray-500 text-center">No team members found</div>
+                    ) : (
+                      teamMembers.filter(m => m.userId != null).map((member) => (
+                        <SelectItem key={member.userId} value={member.userId.toString()}>
+                          <div className="flex items-center gap-2">
+                            {member.profilePhoto ? (
+                              <img src={member.profilePhoto} alt="" className="w-5 h-5 rounded-full object-cover" />
+                            ) : (
+                              <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-[10px] font-medium">
+                                {(member.firstName?.[0] || member.email[0] || '').toUpperCase()}
+                              </div>
+                            )}
+                            <span className="text-gray-900">{member.firstName ? `${member.firstName} ${member.lastName || ''}`.trim() : member.email}</span>
+                          </div>
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -395,6 +412,213 @@ function QuickCreateDialog({ type, onClose }: QuickCreateDialogProps) {
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button onClick={handleSubmit} disabled={isPending}>
             {isPending ? "Creating..." : "Create"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Support Dialog Component
+interface SupportDialogProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+function SupportDialog({ open, onClose }: SupportDialogProps) {
+  const { toast } = useToast();
+  const [location] = useLocation();
+  const [form, setForm] = useState({
+    type: "bug",
+    subject: "",
+    description: "",
+  });
+  const [attachments, setAttachments] = useState<Array<{ file: File; preview: string }>>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Reset form when dialog opens
+  useEffect(() => {
+    if (open) {
+      setForm({ type: "bug", subject: "", description: "" });
+      setAttachments([]);
+    }
+  }, [open]);
+
+  const submitMutation = useMutation({
+    mutationFn: async (data: { type: string; subject: string; description: string; attachments: any[]; browserInfo: string; pageUrl: string }) => {
+      const response = await apiRequest("POST", "/api/support/ticket", { body: data });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Support ticket submitted", description: "We'll get back to you soon." });
+      onClose();
+    },
+    onError: () => toast({ title: "Failed to submit ticket", variant: "destructive" }),
+  });
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const newAttachments: Array<{ file: File; preview: string }> = [];
+    Array.from(files).forEach(file => {
+      // Only allow images and videos, max 10MB
+      if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+        toast({ title: "Invalid file type", description: "Only images and videos are allowed", variant: "destructive" });
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        toast({ title: "File too large", description: "Maximum file size is 10MB", variant: "destructive" });
+        return;
+      }
+      const preview = URL.createObjectURL(file);
+      newAttachments.push({ file, preview });
+    });
+
+    setAttachments(prev => [...prev, ...newAttachments].slice(0, 5)); // Max 5 attachments
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => {
+      const newAttachments = [...prev];
+      URL.revokeObjectURL(newAttachments[index].preview);
+      newAttachments.splice(index, 1);
+      return newAttachments;
+    });
+  };
+
+  const handleSubmit = async () => {
+    if (!form.subject.trim() || !form.description.trim()) {
+      toast({ title: "Please fill in all fields", variant: "destructive" });
+      return;
+    }
+
+    // Convert files to base64 for submission (in production, you'd upload to storage)
+    const attachmentData = await Promise.all(
+      attachments.map(async (att) => {
+        const base64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(att.file);
+        });
+        return {
+          url: base64,
+          filename: att.file.name,
+          mimeType: att.file.type,
+          size: att.file.size,
+        };
+      })
+    );
+
+    submitMutation.mutate({
+      type: form.type,
+      subject: form.subject,
+      description: form.description,
+      attachments: attachmentData,
+      browserInfo: navigator.userAgent,
+      pageUrl: window.location.href,
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={() => onClose()}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <LifeBuoy className="h-5 w-5 text-blue-600" />
+            Contact Support
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>Type</Label>
+            <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v })}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="bug">Bug Report</SelectItem>
+                <SelectItem value="feature_request">Feature Request</SelectItem>
+                <SelectItem value="question">Question</SelectItem>
+                <SelectItem value="feedback">Feedback</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Subject *</Label>
+            <Input
+              value={form.subject}
+              onChange={(e) => setForm({ ...form, subject: e.target.value })}
+              placeholder="Brief description of your issue"
+              autoFocus
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Description *</Label>
+            <Textarea
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              placeholder="Please describe your issue in detail. Include steps to reproduce if reporting a bug."
+              rows={4}
+              className="resize-none"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Attachments</Label>
+            <div className="space-y-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,video/*"
+                multiple
+                className="hidden"
+                onChange={handleFileChange}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                className="gap-2"
+                disabled={attachments.length >= 5}
+              >
+                <Paperclip className="h-4 w-4" />
+                Add Screenshot or Video
+              </Button>
+              <p className="text-xs text-gray-500">Max 5 files, 10MB each. Images and videos only.</p>
+              {attachments.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {attachments.map((att, index) => (
+                    <div key={index} className="relative group">
+                      {att.file.type.startsWith('image/') ? (
+                        <img
+                          src={att.preview}
+                          alt={att.file.name}
+                          className="h-16 w-16 object-cover rounded border"
+                        />
+                      ) : (
+                        <div className="h-16 w-16 flex items-center justify-center bg-gray-100 rounded border">
+                          <FileText className="h-6 w-6 text-gray-400" />
+                        </div>
+                      )}
+                      <button
+                        onClick={() => removeAttachment(index)}
+                        className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={handleSubmit} disabled={submitMutation.isPending}>
+            {submitMutation.isPending ? "Submitting..." : "Submit Ticket"}
           </Button>
         </div>
       </DialogContent>
@@ -416,6 +640,7 @@ export function GlobalHeader() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFilter, setSearchFilter] = useState<"all" | "deal" | "contact" | "company" | "cim" | "esign">("all");
   const [quickCreateType, setQuickCreateType] = useState<"deal" | "contact" | "company" | "task" | null>(null);
+  const [supportDialogOpen, setSupportDialogOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
@@ -559,6 +784,17 @@ export function GlobalHeader() {
             <Search className="h-4 w-4 text-gray-600" />
           </Button>
 
+          {/* Support Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-9 w-9 p-0"
+            onClick={() => setSupportDialogOpen(true)}
+            title="Contact Support"
+          >
+            <LifeBuoy className="h-4 w-4 text-gray-600" />
+          </Button>
+
           {/* Quick Actions */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -691,6 +927,7 @@ export function GlobalHeader() {
         </Dialog>
 
         <QuickCreateDialog type={quickCreateType} onClose={() => setQuickCreateType(null)} />
+        <SupportDialog open={supportDialogOpen} onClose={() => setSupportDialogOpen(false)} />
       </>
     );
   }
@@ -799,6 +1036,17 @@ export function GlobalHeader() {
 
         {/* Actions - pushed to right */}
         <div className="ml-auto flex items-center gap-2">
+          {/* Support */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-9 w-9 p-0"
+            onClick={() => setSupportDialogOpen(true)}
+            title="Contact Support"
+          >
+            <LifeBuoy className="h-4 w-4 text-gray-600" />
+          </Button>
+
           {/* Settings */}
           <Button
             variant="ghost"
@@ -844,6 +1092,7 @@ export function GlobalHeader() {
       </header>
 
       <QuickCreateDialog type={quickCreateType} onClose={() => setQuickCreateType(null)} />
+      <SupportDialog open={supportDialogOpen} onClose={() => setSupportDialogOpen(false)} />
     </>
   );
 }

@@ -1,5 +1,7 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import { Strategy as MicrosoftStrategy } from "passport-microsoft";
 import { Express } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
@@ -113,6 +115,8 @@ export function setupAuth(app: Express) {
                          req.path.startsWith('/nda/redirect/') ||
                          req.path.startsWith('/api/register') ||
                          req.path.startsWith('/api/login') ||
+                         req.path.startsWith('/api/auth/google') ||
+                         req.path.startsWith('/api/auth/microsoft') ||
                          req.path.startsWith('/api/integrations/oauth/callback') ||
                          req.path.startsWith('/api/integrations/auth');
     
@@ -163,6 +167,139 @@ export function setupAuth(app: Express) {
       }
     )
   );
+
+  // Google OAuth Strategy
+  // Uses existing Google credentials (same as email integration)
+  const googleClientId = process.env.GOOGLE_CLIENT_ID || process.env.google_client_id;
+  const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET || process.env.google_client_secret;
+
+  if (googleClientId && googleClientSecret) {
+    passport.use(
+      new GoogleStrategy(
+        {
+          clientID: googleClientId,
+          clientSecret: googleClientSecret,
+          callbackURL: "/api/auth/google/callback",
+          scope: ["profile", "email"],
+        },
+        async (accessToken, refreshToken, profile, done) => {
+          try {
+            const email = profile.emails?.[0]?.value;
+            if (!email) {
+              return done(new Error("No email provided by Google"));
+            }
+
+            // Check if user exists by Google ID
+            let user = await storage.getUserByGoogleId(profile.id);
+
+            if (user) {
+              // User exists with this Google ID - log them in
+              setCachedUser(user);
+              return done(null, user);
+            }
+
+            // Check if user exists by email
+            user = await storage.getUserByEmail(email);
+
+            if (user) {
+              // User exists with this email - link Google account
+              user = await storage.linkOAuthProvider(user.id, 'google', profile.id);
+              setCachedUser(user);
+              return done(null, user);
+            }
+
+            // Create new user
+            user = await storage.createOAuthUser({
+              email,
+              firstName: profile.name?.givenName,
+              lastName: profile.name?.familyName,
+              profilePhoto: profile.photos?.[0]?.value,
+              googleId: profile.id,
+              authProvider: 'google',
+            });
+
+            // Populate default NDA template for new users
+            await populateDefaultNDAForUser(user.id);
+
+            setCachedUser(user);
+            return done(null, user);
+          } catch (error) {
+            logger.error("Google OAuth error", { error });
+            return done(error as Error);
+          }
+        }
+      )
+    );
+    console.log("✓ Google OAuth strategy configured");
+  } else {
+    console.log("⚠ Google OAuth not configured (missing GOOGLE_CLIENT_ID or google_client_id)");
+  }
+
+  // Microsoft OAuth Strategy
+  // Uses existing Azure AD credentials (same as email integration)
+  const microsoftClientId = process.env.MICROSOFT_CLIENT_ID || process.env.azure_client_id;
+  const microsoftClientSecret = process.env.MICROSOFT_CLIENT_SECRET || process.env.azure_client_secret;
+
+  if (microsoftClientId && microsoftClientSecret) {
+    passport.use(
+      new MicrosoftStrategy(
+        {
+          clientID: microsoftClientId,
+          clientSecret: microsoftClientSecret,
+          callbackURL: "/api/auth/microsoft/callback",
+          scope: ["user.read"],
+        },
+        async (accessToken: string, refreshToken: string, profile: any, done: any) => {
+          try {
+            const email = profile.emails?.[0]?.value || profile._json?.mail || profile._json?.userPrincipalName;
+            if (!email) {
+              return done(new Error("No email provided by Microsoft"));
+            }
+
+            // Check if user exists by Microsoft ID
+            let user = await storage.getUserByMicrosoftId(profile.id);
+
+            if (user) {
+              // User exists with this Microsoft ID - log them in
+              setCachedUser(user);
+              return done(null, user);
+            }
+
+            // Check if user exists by email
+            user = await storage.getUserByEmail(email);
+
+            if (user) {
+              // User exists with this email - link Microsoft account
+              user = await storage.linkOAuthProvider(user.id, 'microsoft', profile.id);
+              setCachedUser(user);
+              return done(null, user);
+            }
+
+            // Create new user
+            user = await storage.createOAuthUser({
+              email,
+              firstName: profile.name?.givenName || profile._json?.givenName,
+              lastName: profile.name?.familyName || profile._json?.surname,
+              microsoftId: profile.id,
+              authProvider: 'microsoft',
+            });
+
+            // Populate default NDA template for new users
+            await populateDefaultNDAForUser(user.id);
+
+            setCachedUser(user);
+            return done(null, user);
+          } catch (error) {
+            logger.error("Microsoft OAuth error", { error });
+            return done(error as Error);
+          }
+        }
+      )
+    );
+    console.log("✓ Microsoft OAuth strategy configured");
+  } else {
+    console.log("⚠ Microsoft OAuth not configured (missing MICROSOFT_CLIENT_ID/azure_client_id or MICROSOFT_CLIENT_SECRET/azure_client_secret)");
+  }
 
   passport.serializeUser((user, done) => {
     const serializeStart = Date.now();
@@ -551,6 +688,64 @@ export function setupAuth(app: Express) {
         });
       }
       res.sendStatus(200);
+    });
+  });
+
+  // ============================================
+  // SOCIAL LOGIN ROUTES
+  // ============================================
+
+  // Google OAuth routes
+  app.get("/api/auth/google", (req, res, next) => {
+    // Store the redirect URL in session if provided
+    if (req.query.redirect) {
+      (req.session as any).oauthRedirect = req.query.redirect;
+    }
+    passport.authenticate("google", { scope: ["profile", "email"] })(req, res, next);
+  });
+
+  app.get("/api/auth/google/callback",
+    passport.authenticate("google", { failureRedirect: "/auth?error=google_auth_failed" }),
+    (req, res) => {
+      console.log("✓ Google OAuth callback successful for user:", req.user?.email);
+      const redirectUrl = (req.session as any).oauthRedirect || "/";
+      delete (req.session as any).oauthRedirect;
+      res.redirect(redirectUrl);
+    }
+  );
+
+  // Microsoft OAuth routes
+  app.get("/api/auth/microsoft", (req, res, next) => {
+    // Store the redirect URL in session if provided
+    if (req.query.redirect) {
+      (req.session as any).oauthRedirect = req.query.redirect;
+    }
+    passport.authenticate("microsoft", { scope: ["user.read"] })(req, res, next);
+  });
+
+  app.get("/api/auth/microsoft/callback",
+    passport.authenticate("microsoft", { failureRedirect: "/auth?error=microsoft_auth_failed" }),
+    (req, res) => {
+      console.log("✓ Microsoft OAuth callback successful for user:", req.user?.email);
+      const redirectUrl = (req.session as any).oauthRedirect || "/";
+      delete (req.session as any).oauthRedirect;
+      res.redirect(redirectUrl);
+    }
+  );
+
+  // Check which social providers are configured
+  app.get("/api/auth/providers", (req, res) => {
+    const googleConfigured = !!(
+      (process.env.GOOGLE_CLIENT_ID || process.env.google_client_id) &&
+      (process.env.GOOGLE_CLIENT_SECRET || process.env.google_client_secret)
+    );
+    const microsoftConfigured = !!(
+      (process.env.MICROSOFT_CLIENT_ID || process.env.azure_client_id) &&
+      (process.env.MICROSOFT_CLIENT_SECRET || process.env.azure_client_secret)
+    );
+    res.json({
+      google: googleConfigured,
+      microsoft: microsoftConfigured,
     });
   });
 
