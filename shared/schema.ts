@@ -1587,6 +1587,102 @@ export type WebhookDelivery = typeof webhookDeliveries.$inferSelect;
 export type InsertWebhookDelivery = z.infer<typeof insertWebhookDeliverySchema>;
 
 // ============================================================================
+// INCOMING WEBHOOKS - Receive data from external services to create CRM entities
+// ============================================================================
+
+// Incoming Webhook Actions - what to do when data is received
+export const INCOMING_WEBHOOK_ACTIONS = [
+  'create_contact',
+  'create_deal',
+  'create_task',
+  'add_note',
+  'create_company',
+] as const;
+
+export type IncomingWebhookAction = typeof INCOMING_WEBHOOK_ACTIONS[number];
+
+// Incoming Webhooks - endpoints that receive data from external services
+export const incomingWebhooks = pgTable("incoming_webhooks", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  organizationId: integer("organization_id").notNull(),
+  name: text("name").notNull(),
+  token: text("token").notNull().unique(), // URL token like iwh_abc123...
+  actionType: text("action_type").notNull(), // INCOMING_WEBHOOK_ACTIONS
+  fieldMappings: jsonb("field_mappings").default([]).notNull(), // Array of field mappings
+  actionConfig: jsonb("action_config").default({}).notNull(), // Additional config for action
+  secret: text("secret"), // Optional HMAC verification secret
+  isActive: boolean("is_active").default(true).notNull(),
+  // Stats
+  totalReceived: integer("total_received").default(0).notNull(),
+  successCount: integer("success_count").default(0).notNull(),
+  errorCount: integer("error_count").default(0).notNull(),
+  // Timestamps
+  lastReceivedAt: timestamp("last_received_at"),
+  lastSuccessAt: timestamp("last_success_at"),
+  lastErrorAt: timestamp("last_error_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+// Incoming Webhook Logs - tracks all received payloads and processing results
+export const incomingWebhookLogs = pgTable("incoming_webhook_logs", {
+  id: serial("id").primaryKey(),
+  webhookId: integer("webhook_id").notNull(),
+  requestId: text("request_id").notNull(), // Unique ID for this request
+  sourceIp: text("source_ip"),
+  rawPayload: jsonb("raw_payload").notNull(), // The original payload received
+  status: text("status").notNull().default("pending"), // pending, success, failed
+  mappedData: jsonb("mapped_data"), // Data after field mapping applied
+  createdEntityType: text("created_entity_type"), // contact, deal, task, note, company
+  createdEntityId: integer("created_entity_id"),
+  errorMessage: text("error_message"),
+  processingTimeMs: integer("processing_time_ms"),
+  receivedAt: timestamp("received_at").defaultNow().notNull(),
+  processedAt: timestamp("processed_at")
+});
+
+// Zod schemas for incoming webhooks
+export const insertIncomingWebhookSchema = createInsertSchema(incomingWebhooks).pick({
+  name: true,
+  actionType: true,
+  fieldMappings: true,
+  actionConfig: true,
+  secret: true,
+}).extend({
+  name: z.string().min(1, "Webhook name is required").max(100),
+  actionType: z.enum(INCOMING_WEBHOOK_ACTIONS as unknown as [string, ...string[]]),
+  fieldMappings: z.array(z.object({
+    destField: z.string(),
+    type: z.enum(['field', 'constant', 'template']),
+    sourceField: z.string().optional(),
+    value: z.string().optional(),
+    template: z.string().optional(),
+  })).default([]),
+  actionConfig: z.record(z.any()).default({}),
+  secret: z.string().optional(),
+});
+
+export const updateIncomingWebhookSchema = insertIncomingWebhookSchema.partial().extend({
+  isActive: z.boolean().optional(),
+});
+
+// Type exports for incoming webhooks
+export type IncomingWebhook = typeof incomingWebhooks.$inferSelect;
+export type InsertIncomingWebhook = z.infer<typeof insertIncomingWebhookSchema>;
+export type UpdateIncomingWebhook = z.infer<typeof updateIncomingWebhookSchema>;
+export type IncomingWebhookLog = typeof incomingWebhookLogs.$inferSelect;
+
+// Field mapping type (shared with automation engine)
+export interface IncomingWebhookFieldMapping {
+  destField: string;
+  type: 'field' | 'constant' | 'template';
+  sourceField?: string;
+  value?: string;
+  template?: string;
+}
+
+// ============================================================================
 // INTEGRATIONS SYSTEM - Connections to external apps and automation workflows
 // ============================================================================
 

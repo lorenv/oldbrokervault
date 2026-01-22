@@ -56,6 +56,7 @@ import { registerSDEAnalyzerRoutes } from "./routes/sde-analyzer-routes";
 import { sdeProcessor } from "./sde-processor";
 import { simpleParser } from 'mailparser';
 import webhookRoutes from "./routes/webhook-routes";
+import incomingWebhookRoutes from "./routes/incoming-webhook-routes";
 import integrationRoutes from "./routes/integration-routes";
 import teaserRoutes from "./routes/teaser-routes";
 import listingsRoutes from "./routes/listings-routes";
@@ -538,6 +539,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register unsubscribe routes
   app.use('/api/unsubscribe', unsubscribeRoutes);
+
+  // ========== Public Incoming Webhook Receiver Endpoint ==========
+  // This endpoint receives data from external services (Typeform, Calendly, etc.)
+  // No authentication required - uses token-based access
+  app.post('/api/webhooks/incoming/:token', express.json({ limit: '1mb' }), async (req, res) => {
+    const { token } = req.params;
+    const startTime = Date.now();
+
+    try {
+      // Import dependencies
+      const { incomingWebhooks } = await import('@shared/schema');
+      const { processIncomingWebhook, generateRequestId, verifySignature } = await import('./services/incoming-webhook-processor');
+
+      // Find webhook by token
+      const [webhook] = await db
+        .select()
+        .from(incomingWebhooks)
+        .where(eq(incomingWebhooks.token, token));
+
+      if (!webhook) {
+        return res.status(404).json({ error: 'Webhook not found' });
+      }
+
+      if (!webhook.isActive) {
+        return res.status(403).json({ error: 'Webhook is disabled' });
+      }
+
+      // Verify signature if secret is configured
+      if (webhook.secret) {
+        const signature = req.get('X-Webhook-Signature') || req.get('X-Hub-Signature-256');
+        const rawBody = JSON.stringify(req.body);
+
+        if (!verifySignature(rawBody, signature, webhook.secret)) {
+          return res.status(401).json({ error: 'Invalid signature' });
+        }
+      }
+
+      // Generate request ID
+      const requestId = generateRequestId();
+
+      // Return 200 immediately for reliability
+      res.status(200).json({
+        success: true,
+        requestId,
+        message: 'Webhook received and queued for processing'
+      });
+
+      // Process asynchronously
+      const sourceIp = req.ip || req.get('x-forwarded-for') || 'unknown';
+      processIncomingWebhook(webhook, req.body, requestId, sourceIp)
+        .then(result => {
+          if (result.success) {
+            console.log(`[Incoming Webhook] Processed ${requestId}: Created ${result.entityType} #${result.entityId}`);
+          } else {
+            console.error(`[Incoming Webhook] Failed ${requestId}: ${result.error}`);
+          }
+        })
+        .catch(err => {
+          console.error(`[Incoming Webhook] Error processing ${requestId}:`, err);
+        });
+
+    } catch (error: any) {
+      console.error('[Incoming Webhook] Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
 
   // Register text extraction routes
   app.use('/api/text-extraction', textExtractionRouter);
@@ -11413,6 +11480,7 @@ ${finalQuestion}
 
   // Register webhook routes
   app.use('/api/webhooks', webhookRoutes);
+  app.use('/api/incoming-webhooks', incomingWebhookRoutes);
 
   // Register integration routes
   console.log('📦 Registering integration routes at /api/integrations');

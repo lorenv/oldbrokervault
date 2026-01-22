@@ -15,6 +15,13 @@
       "when": 1768086838307,
       "tag": "0001_peaceful_speed",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1769122667947,
+      "tag": "0002_large_night_thrasher",
+      "breakpoints": true
     }
   ]
 }
