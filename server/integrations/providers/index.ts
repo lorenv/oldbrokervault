@@ -15,6 +15,7 @@ import { slackProvider } from './slack';
 import { hubspotProvider } from './hubspot';
 import { gmailProvider } from './gmail';
 import { microsoftProvider } from './microsoft';
+import { internalProvider } from './internal';
 
 // Registry of all providers
 const providers: Map<IntegrationProvider, IIntegrationProvider> = new Map([
@@ -25,6 +26,7 @@ const providers: Map<IntegrationProvider, IIntegrationProvider> = new Map([
   ['hubspot', hubspotProvider],
   ['gmail', gmailProvider],
   ['microsoft', microsoftProvider],
+  ['internal', internalProvider],
 ]);
 
 /**
@@ -109,6 +111,31 @@ export function getProviderInfo(): ProviderInfo[] {
       destinationTypes: [],
       status: microsoftProvider.isConfigured() ? 'available' : 'coming_soon',
     },
+    {
+      id: 'internal',
+      name: 'Internal Actions',
+      icon: 'internal',
+      description: 'Execute actions within the CRM (update stages, create tasks, send notifications)',
+      authType: 'api_key',
+      destinationTypes: [
+        'internal_update_stage',
+        'internal_create_task',
+        'internal_assign_owner',
+        'internal_add_tag',
+        'internal_remove_tag',
+        'internal_update_field',
+        'internal_send_notification',
+        'internal_add_note',
+        'internal_send_email',
+        'internal_create_contact',
+        'internal_create_deal',
+        'internal_move_deal_stage',
+        'internal_log_activity',
+        'internal_grant_dataroom_access',
+        'internal_send_nda',
+      ],
+      status: 'available',
+    },
   ];
 }
 
@@ -140,3 +167,4 @@ export { slackProvider } from './slack';
 export { hubspotProvider } from './hubspot';
 export { gmailProvider } from './gmail';
 export { microsoftProvider } from './microsoft';
+export { internalProvider } from './internal';

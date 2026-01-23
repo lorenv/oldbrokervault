@@ -1695,6 +1695,7 @@ export const INTEGRATION_PROVIDERS = [
   'webhook',
   'gmail',
   'microsoft',
+  'internal',
 ] as const;
 
 export type IntegrationProvider = typeof INTEGRATION_PROVIDERS[number];
@@ -1742,6 +1743,22 @@ export const DESTINATION_TYPES = [
   'zapier_webhook',
   'make_webhook',
   'custom_webhook',
+  // Internal Actions - Phase 1
+  'internal_update_stage',
+  'internal_create_task',
+  'internal_assign_owner',
+  'internal_add_tag',
+  'internal_remove_tag',
+  'internal_update_field',
+  'internal_send_notification',
+  'internal_add_note',
+  'internal_send_email',
+  'internal_create_contact',
+  'internal_create_deal',
+  'internal_move_deal_stage',
+  'internal_log_activity',
+  'internal_grant_dataroom_access',
+  'internal_send_nda',
 ] as const;
 
 export type DestinationType = typeof DESTINATION_TYPES[number];

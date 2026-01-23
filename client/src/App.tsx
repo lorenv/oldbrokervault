@@ -49,6 +49,7 @@ import { GetStartedChecklist } from "@/components/get-started-checklist";
 import VirtualDataRoomPage from "@/pages/virtual-data-room-page";
 import SDEAnalyzerPage from "@/pages/sde-analyzer-page";
 import IntegrationsPage from "@/pages/integrations-page";
+import WebhooksPage from "@/pages/webhooks-page";
 import DataRoomPage from "@/pages/data-room-page";
 
 // New settings pages
@@ -184,6 +185,7 @@ function AuthenticatedRouter() {
         <ProtectedRoute path="/settings/custom-fields" component={CustomFieldsPage} />
         <ProtectedRoute path="/settings/email" component={EmailSettingsPage} />
         <ProtectedRoute path="/settings/integrations" component={IntegrationsPage} />
+        <ProtectedRoute path="/settings/webhooks" component={WebhooksPage} />
         <ProtectedRoute path="/settings/branding" component={BrandingPage} />
         <ProtectedRoute path="/settings/nda-templates" component={NdaTemplatesPage} />
 
