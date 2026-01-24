@@ -327,9 +327,9 @@ export default function DocumentsPage() {
           icon={<FolderOpen className="h-5 w-5" />}
           actions={
             <Link href="/dashboard?mode=cim">
-              <Button variant="outline" className="flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                <span className="hidden sm:inline">Create New CIM</span>
+              <Button variant="outline" className="flex items-center gap-2 border-blue-300 hover:border-blue-400 hover:bg-blue-50">
+                <Plus className="h-4 w-4 text-blue-600" />
+                <span className="hidden sm:inline text-blue-700">Create New CIM with AI</span>
               </Button>
             </Link>
           }

@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Plus, Users, Trash2, CreditCard, Eye, AlertCircle } from "lucide-react";
+import { Plus, Users, Trash2, CreditCard, Eye, AlertCircle, Clock, Mail } from "lucide-react";
 import { SettingsLayout } from "@/components/layout/settings-layout";
 import { Link } from "wouter";
 import { Progress } from "@/components/ui/progress";
@@ -42,26 +42,53 @@ export default function TeamSettingsPage() {
       }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/organization/members"] });
       queryClient.invalidateQueries({ queryKey: ["/api/crm/organization"] });
       setIsInviteDialogOpen(false);
       setInviteEmail("");
       setInviteRole("member");
-      toast({ title: "Member invited", description: "Team member has been added." });
+
+      if (data.isPending) {
+        toast({
+          title: "Invitation sent",
+          description: "They'll join your team when they create their account."
+        });
+      } else {
+        toast({
+          title: "Member added",
+          description: "Team member has been added to your workspace."
+        });
+      }
     },
     onError: (error: any) => {
       toast({ title: "Error", description: error.message || "Failed to invite member", variant: "destructive" });
     },
   });
 
+  const [removingMemberId, setRemovingMemberId] = useState<number | null>(null);
+
   const removeMutation = useMutation({
-    mutationFn: (memberId: number) =>
-      apiRequest("DELETE", `/api/crm/organization/members/${memberId}`),
+    mutationFn: (memberId: number) => {
+      setRemovingMemberId(memberId);
+      return apiRequest("DELETE", `/api/crm/organization/members/${memberId}`);
+    },
     onSuccess: () => {
+      const member = members?.find(m => m.id === removingMemberId);
+      const isPending = member?.isPending || member?.status === 'pending';
+
       queryClient.invalidateQueries({ queryKey: ["/api/crm/organization/members"] });
       queryClient.invalidateQueries({ queryKey: ["/api/crm/organization"] });
-      toast({ title: "Member removed" });
+      toast({
+        title: isPending ? "Invitation cancelled" : "Member removed",
+        description: isPending
+          ? "The pending invitation has been cancelled."
+          : "The team member has been removed from your workspace."
+      });
+      setRemovingMemberId(null);
+    },
+    onError: () => {
+      setRemovingMemberId(null);
     },
   });
 
@@ -158,34 +185,68 @@ export default function TeamSettingsPage() {
               <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-16 bg-gray-100 rounded animate-pulse" />)}</div>
             ) : members && members.length > 0 ? (
               <div className="space-y-3">
-                {members.map((member) => (
-                  <div key={member.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-                        {member.profilePhoto ? (
-                          <img src={member.profilePhoto} className="w-10 h-10 rounded-full object-cover" alt="" />
-                        ) : (
-                          <Users className="h-5 w-5 text-gray-500" />
+                {members.map((member) => {
+                  const isPending = member.isPending || member.status === 'pending';
+
+                  return (
+                    <div
+                      key={member.id}
+                      className={`flex items-center justify-between p-3 border rounded-lg ${
+                        isPending ? 'bg-amber-50 border-amber-200' : ''
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                          isPending ? 'bg-amber-100' : 'bg-gray-100'
+                        }`}>
+                          {isPending ? (
+                            <Mail className="h-5 w-5 text-amber-600" />
+                          ) : member.profilePhoto ? (
+                            <img src={member.profilePhoto} className="w-10 h-10 rounded-full object-cover" alt="" />
+                          ) : (
+                            <Users className="h-5 w-5 text-gray-500" />
+                          )}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-gray-900">
+                              {member.firstName ? `${member.firstName} ${member.lastName}` : member.email}
+                            </p>
+                            {isPending && (
+                              <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-300 text-xs">
+                                <Clock className="h-3 w-3 mr-1" />
+                                Pending
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-500">
+                            {isPending ? (
+                              <span className="text-amber-600">Invitation sent - waiting for signup</span>
+                            ) : (
+                              member.email
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Badge className={roleColors[member.role] || roleColors.member}>
+                          {member.role}
+                          {member.role === 'viewer' && <span className="ml-1 opacity-70">(free)</span>}
+                        </Badge>
+                        {member.role !== "owner" && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeMutation.mutate(member.id)}
+                            title={isPending ? "Cancel invitation" : "Remove member"}
+                          >
+                            <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                          </Button>
                         )}
                       </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{member.firstName ? `${member.firstName} ${member.lastName}` : member.email}</p>
-                        <p className="text-sm text-gray-500">{member.email}</p>
-                      </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <Badge className={roleColors[member.role] || roleColors.member}>
-                        {member.role}
-                        {member.role === 'viewer' && <span className="ml-1 opacity-70">(free)</span>}
-                      </Badge>
-                      {member.role !== "owner" && (
-                        <Button variant="ghost" size="sm" onClick={() => removeMutation.mutate(member.id)}>
-                          <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <p className="text-gray-500 text-center py-8">No team members yet</p>

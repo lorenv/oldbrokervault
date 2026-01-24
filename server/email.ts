@@ -1709,10 +1709,21 @@ async function sendTeamInviteEmail(params: {
   inviterName: string;
   organizationName: string;
   role: string;
+  inviteToken?: string; // Optional token for pending invitations (non-existing users)
 }): Promise<boolean> {
-  const { inviteeEmail, inviteeName, inviterName, organizationName, role } = params;
+  const { inviteeEmail, inviteeName, inviterName, organizationName, role, inviteToken } = params;
   const baseUrl = process.env.BASE_URL || 'https://cimshare.com';
-  const loginUrl = `${baseUrl}/auth`;
+
+  // If there's an invite token, user needs to create account first
+  // Otherwise, they just need to log in
+  const actionUrl = inviteToken
+    ? `${baseUrl}/auth?invite=${inviteToken}`
+    : `${baseUrl}/auth`;
+
+  const buttonText = inviteToken ? 'Create Account & Join Team' : 'Accept Invitation';
+  const actionDescription = inviteToken
+    ? 'Click the button above to create your account and join the team.'
+    : 'Click the button above to log in. Once signed in, you\'ll automatically have access to the team.';
 
   const roleDescriptions: Record<string, string> = {
     admin: 'As an Admin, you can manage team settings, invite members, and access all CRM features.',
@@ -1746,14 +1757,14 @@ async function sendTeamInviteEmail(params: {
           </div>
 
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${loginUrl}"
+            <a href="${actionUrl}"
                style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 32px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600; font-size: 16px;">
-              Accept Invitation
+              ${buttonText}
             </a>
           </div>
 
           <p style="font-size: 14px; color: #666;">
-            Click the button above to log in or create your account. Once signed in, you'll automatically have access to ${organizationName}.
+            ${actionDescription}
           </p>
 
           <p style="font-size: 16px; color: #333; margin-top: 25px;">
@@ -1779,9 +1790,9 @@ ${inviterName} has invited you to join ${organizationName} on CIMShare as a ${ro
 ${roleDescription}
 
 Accept your invitation by visiting:
-${loginUrl}
+${actionUrl}
 
-Once signed in, you'll automatically have access to ${organizationName}.
+${actionDescription}
 
 Best regards,
 The CIMShare Team

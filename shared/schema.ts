@@ -2219,7 +2219,7 @@ export const organizations = pgTable("organizations", {
 export const organizationMembers = pgTable("organization_members", {
   id: serial("id").primaryKey(),
   organizationId: integer("organization_id").notNull(),
-  userId: integer("user_id").notNull(),
+  userId: integer("user_id"), // Nullable for pending invitations to non-existing users
 
   // Role and permissions
   role: text("role").notNull().default("member"), // owner, admin, member, viewer
@@ -2228,6 +2228,8 @@ export const organizationMembers = pgTable("organization_members", {
   invitedBy: integer("invited_by"),
   invitedAt: timestamp("invited_at"),
   joinedAt: timestamp("joined_at"),
+  inviteeEmail: text("invitee_email"), // Email for pending invitations (when user doesn't exist yet)
+  inviteToken: text("invite_token").unique(), // Token for signup link
 
   // Status
   status: text("status").notNull().default("active"), // pending, active, deactivated

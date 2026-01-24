@@ -13,7 +13,7 @@ import { searchService, versionService, analyticsService } from "./premium-servi
 import { db } from "./db";
 import { eq, and, sql, inArray, desc } from "drizzle-orm";
 import { withRetry } from './db-utils';
-import { createSubscriptionSession, createSubscriptionSessionDirect, handleStripeWebhook, verifyCheckoutSession, createCustomerPortalSession, getPricing } from "./stripe";
+import { createSubscriptionSession, createSubscriptionSessionDirect, handleStripeWebhook, verifyCheckoutSession, createCustomerPortalSession, getPricing, addSubscriptionSeats, getSubscriptionQuantity } from "./stripe";
 import Stripe from "stripe";
 import * as express from 'express';
 import multer from 'multer';
@@ -4111,7 +4111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Check if Stripe is properly initialized
     if (!stripe) {
       console.error("❌ Customer portal: Stripe not initialized");
-      return res.status(503).json({ 
+      return res.status(503).json({
         error: "Payment processing temporarily unavailable",
         code: "STRIPE_UNAVAILABLE"
       });
@@ -4122,9 +4122,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ url: session.url });
     } catch (error) {
       console.error('❌ Error creating customer portal session:', error);
-      
+
       const message = error instanceof Error ? error.message : "Failed to create portal session";
-      
+
       // Handle specific error cases
       if (message === "No Stripe customer ID found") {
         res.status(400).json({
@@ -4141,6 +4141,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
           error: "Failed to access subscription management",
           code: "PORTAL_ERROR",
           details: process.env.NODE_ENV === 'development' ? message : undefined
+        });
+      }
+    }
+  });
+
+  // Add additional licenses to existing subscription
+  app.post("/api/subscription/add-licenses", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    // Check if Stripe is properly initialized
+    if (!stripe) {
+      console.error("❌ Add licenses: Stripe not initialized");
+      return res.status(503).json({
+        error: "Payment processing temporarily unavailable",
+        code: "STRIPE_UNAVAILABLE"
+      });
+    }
+
+    try {
+      const { additionalSeats } = req.body;
+
+      if (!additionalSeats || typeof additionalSeats !== 'number' || additionalSeats < 1) {
+        return res.status(400).json({
+          error: "Invalid number of additional seats",
+          code: "INVALID_SEATS"
+        });
+      }
+
+      const userId = req.user!.id;
+
+      // Add seats to Stripe subscription
+      const result = await addSubscriptionSeats(userId, additionalSeats);
+
+      if (result.success) {
+        // Update organization seatCount in database
+        // First, get the user's organization
+        const { organizations, organizationMembers } = await import("@shared/schema");
+        const orgMembership = await db
+          .select()
+          .from(organizationMembers)
+          .where(
+            and(
+              eq(organizationMembers.userId, userId),
+              eq(organizationMembers.status, 'active')
+            )
+          )
+          .limit(1);
+
+        if (orgMembership.length > 0) {
+          // Update the organization's seat count
+          await db
+            .update(organizations)
+            .set({ seatCount: result.newQuantity })
+            .where(eq(organizations.id, orgMembership[0].organizationId));
+
+          console.log(`✅ Updated organization ${orgMembership[0].organizationId} seatCount to ${result.newQuantity}`);
+        }
+
+        // Invalidate user cache
+        invalidateUserCache(userId);
+
+        res.json({
+          success: true,
+          newQuantity: result.newQuantity,
+          message: `Successfully added ${additionalSeats} license(s). You now have ${result.newQuantity} total licenses.`
+        });
+      } else {
+        res.status(400).json({
+          error: result.error || "Failed to add licenses",
+          code: "ADD_LICENSES_FAILED"
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error adding licenses:', error);
+
+      const message = error instanceof Error ? error.message : "Failed to add licenses";
+
+      if (message.includes("No active subscription")) {
+        res.status(400).json({
+          error: "Please subscribe to a plan first before adding licenses",
+          code: "NO_SUBSCRIPTION"
+        });
+      } else {
+        res.status(500).json({
+          error: message,
+          code: "ADD_LICENSES_ERROR"
         });
       }
     }

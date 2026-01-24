@@ -67,7 +67,7 @@ const mainNavItems: NavItem[] = [
 
 // Secondary navigation items (after gap - tools & documents)
 const secondaryNavItems: NavItem[] = [
-  { label: "CIM Library", icon: FileText, href: "/documents", matchPaths: ["/documents"] },
+  { label: "AI CIMs", icon: FileText, href: "/documents", matchPaths: ["/documents"] },
   { label: "E-Signatures", icon: Signature, href: "/esign", matchPaths: ["/esign"] },
   { label: "Data Room", icon: FolderLock, href: "/data-room", matchPaths: ["/data-room"] },
   { label: "Analytics", icon: BarChart3, href: "/analytics", matchPaths: ["/analytics"] },

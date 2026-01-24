@@ -554,6 +554,58 @@ export function setupAuth(app: Express) {
         // Don't fail registration if NDA template creation fails
       }
 
+      // Check for pending team invitations for this email
+      // This handles both: 1) invite token in query/body, 2) any pending invites by email
+      try {
+        const { db } = await import("./db");
+        const { organizationMembers, organizations } = await import("../shared/schema");
+        const { eq, and, or, isNull } = await import("drizzle-orm");
+
+        const inviteToken = req.body.inviteToken || req.query.invite;
+        const normalizedEmail = email.toLowerCase().trim();
+
+        // Find pending invitations - either by token or by email
+        const pendingInvitations = await db
+          .select({
+            membership: organizationMembers,
+            organization: organizations,
+          })
+          .from(organizationMembers)
+          .innerJoin(organizations, eq(organizationMembers.organizationId, organizations.id))
+          .where(
+            and(
+              eq(organizationMembers.status, 'pending'),
+              isNull(organizationMembers.userId),
+              or(
+                inviteToken ? eq(organizationMembers.inviteToken, inviteToken) : undefined,
+                eq(organizationMembers.inviteeEmail, normalizedEmail)
+              )
+            )
+          );
+
+        if (pendingInvitations.length > 0) {
+          console.log(`[Registration] Found ${pendingInvitations.length} pending invitation(s) for ${email}`);
+
+          for (const { membership, organization } of pendingInvitations) {
+            // Activate the pending invitation
+            await db
+              .update(organizationMembers)
+              .set({
+                userId: user.id,
+                status: 'active',
+                joinedAt: new Date(),
+                inviteToken: null, // Clear the token after use
+              })
+              .where(eq(organizationMembers.id, membership.id));
+
+            console.log(`[Registration] User ${user.id} automatically joined organization "${organization.name}" as ${membership.role}`);
+          }
+        }
+      } catch (inviteError) {
+        console.error(`[Registration] Failed to process pending invitations for user ${user.id}:`, inviteError);
+        // Don't fail registration if invitation processing fails
+      }
+
       // Create example CIM document for new user
       await storage.createExampleCimDocument(user.id);
       console.log(`Created example CIM document for new user ${user.id}`);

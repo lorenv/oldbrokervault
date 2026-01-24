@@ -705,13 +705,15 @@ router.get('/organization/members', async (req, res) => {
       return res.status(404).json({ error: 'Organization not found' });
     }
 
-    const members = await db
+    // Get active members (with user accounts)
+    const activeMembers = await db
       .select({
         id: organizationMembers.id,
         userId: organizationMembers.userId,
         role: organizationMembers.role,
         status: organizationMembers.status,
         joinedAt: organizationMembers.joinedAt,
+        invitedAt: organizationMembers.invitedAt,
         email: users.email,
         firstName: users.firstName,
         lastName: users.lastName,
@@ -719,10 +721,51 @@ router.get('/organization/members', async (req, res) => {
       })
       .from(organizationMembers)
       .innerJoin(users, eq(users.id, organizationMembers.userId))
-      .where(eq(organizationMembers.organizationId, orgData.organization.id))
+      .where(
+        and(
+          eq(organizationMembers.organizationId, orgData.organization.id),
+          ne(organizationMembers.status, 'pending')
+        )
+      )
       .orderBy(asc(organizationMembers.createdAt));
 
-    res.json(members);
+    // Get pending invitations (users who haven't created accounts yet)
+    const pendingInvitations = await db
+      .select({
+        id: organizationMembers.id,
+        userId: organizationMembers.userId,
+        role: organizationMembers.role,
+        status: organizationMembers.status,
+        joinedAt: organizationMembers.joinedAt,
+        invitedAt: organizationMembers.invitedAt,
+        inviteeEmail: organizationMembers.inviteeEmail,
+      })
+      .from(organizationMembers)
+      .where(
+        and(
+          eq(organizationMembers.organizationId, orgData.organization.id),
+          eq(organizationMembers.status, 'pending'),
+          isNull(organizationMembers.userId)
+        )
+      )
+      .orderBy(asc(organizationMembers.createdAt));
+
+    // Format pending invitations to match active member structure
+    const formattedPending = pendingInvitations.map(inv => ({
+      id: inv.id,
+      userId: null,
+      role: inv.role,
+      status: inv.status,
+      joinedAt: inv.joinedAt,
+      invitedAt: inv.invitedAt,
+      email: inv.inviteeEmail,
+      firstName: null,
+      lastName: null,
+      profilePhoto: null,
+      isPending: true,
+    }));
+
+    res.json([...activeMembers, ...formattedPending]);
   } catch (error) {
     console.error('[CRM] Error fetching members:', error);
     res.status(500).json({ error: 'Failed to fetch members' });
@@ -746,18 +789,22 @@ router.post('/organization/members/invite', async (req, res) => {
 
     const { email, role } = req.body;
     const assignedRole = role || 'member';
+    const normalizedEmail = email.toLowerCase().trim();
 
     // Check license availability for paid roles (owner, admin, member)
     // Viewer role is free and unlimited
     if (assignedRole !== 'viewer') {
-      // Count current paid members (non-viewer roles)
+      // Count current paid members (non-viewer roles) - both active and pending
       const paidMembers = await db
         .select({ count: sql<number>`count(*)` })
         .from(organizationMembers)
         .where(
           and(
             eq(organizationMembers.organizationId, orgData.organization.id),
-            eq(organizationMembers.status, 'active'),
+            or(
+              eq(organizationMembers.status, 'active'),
+              eq(organizationMembers.status, 'pending')
+            ),
             ne(organizationMembers.role, 'viewer')
           )
         );
@@ -776,40 +823,7 @@ router.post('/organization/members/invite', async (req, res) => {
     }
 
     // Check if user exists
-    const [existingUser] = await db.select().from(users).where(eq(users.email, email));
-
-    if (!existingUser) {
-      return res.status(400).json({ error: 'User with this email does not exist. They need to create an account first.' });
-    }
-
-    // Check if already a member
-    const [existingMembership] = await db
-      .select()
-      .from(organizationMembers)
-      .where(
-        and(
-          eq(organizationMembers.organizationId, orgData.organization.id),
-          eq(organizationMembers.userId, existingUser.id)
-        )
-      );
-
-    if (existingMembership) {
-      return res.status(400).json({ error: 'User is already a member of this organization' });
-    }
-
-    // Add as member
-    const [newMember] = await db
-      .insert(organizationMembers)
-      .values({
-        organizationId: orgData.organization.id,
-        userId: existingUser.id,
-        role: assignedRole,
-        status: 'active',
-        invitedBy: req.user!.id,
-        invitedAt: new Date(),
-        joinedAt: new Date(),
-      })
-      .returning();
+    const [existingUser] = await db.select().from(users).where(eq(users.email, normalizedEmail));
 
     // Get inviter's info for the email
     const [inviter] = await db.select().from(users).where(eq(users.id, req.user!.id));
@@ -817,27 +831,115 @@ router.post('/organization/members/invite', async (req, res) => {
       ? `${inviter.firstName} ${inviter.lastName || ''}`.trim()
       : inviter?.email || 'A team member';
 
-    // Send invitation email notification
-    try {
-      await sendTeamInviteEmail({
-        inviteeEmail: existingUser.email,
-        inviteeName: existingUser.firstName || '',
-        inviterName,
-        organizationName: orgData.organization.name,
-        role: assignedRole,
-      });
-      console.log(`[CRM] Team invite email sent to ${existingUser.email}`);
-    } catch (emailError) {
-      console.error('[CRM] Failed to send team invite email:', emailError);
-      // Don't fail the request if email fails
-    }
+    if (existingUser) {
+      // User exists - check if already a member
+      const [existingMembership] = await db
+        .select()
+        .from(organizationMembers)
+        .where(
+          and(
+            eq(organizationMembers.organizationId, orgData.organization.id),
+            eq(organizationMembers.userId, existingUser.id)
+          )
+        );
 
-    res.json({
-      ...newMember,
-      email: existingUser.email,
-      firstName: existingUser.firstName,
-      lastName: existingUser.lastName,
-    });
+      if (existingMembership) {
+        return res.status(400).json({ error: 'User is already a member of this organization' });
+      }
+
+      // Add as active member (user already has account)
+      const [newMember] = await db
+        .insert(organizationMembers)
+        .values({
+          organizationId: orgData.organization.id,
+          userId: existingUser.id,
+          role: assignedRole,
+          status: 'active',
+          invitedBy: req.user!.id,
+          invitedAt: new Date(),
+          joinedAt: new Date(),
+        })
+        .returning();
+
+      // Send invitation email notification
+      try {
+        await sendTeamInviteEmail({
+          inviteeEmail: existingUser.email,
+          inviteeName: existingUser.firstName || '',
+          inviterName,
+          organizationName: orgData.organization.name,
+          role: assignedRole,
+        });
+        console.log(`[CRM] Team invite email sent to ${existingUser.email}`);
+      } catch (emailError) {
+        console.error('[CRM] Failed to send team invite email:', emailError);
+      }
+
+      res.json({
+        ...newMember,
+        email: existingUser.email,
+        firstName: existingUser.firstName,
+        lastName: existingUser.lastName,
+        isPending: false,
+      });
+    } else {
+      // User doesn't exist - create pending invitation
+      // Check if there's already a pending invitation for this email
+      const [existingPendingInvite] = await db
+        .select()
+        .from(organizationMembers)
+        .where(
+          and(
+            eq(organizationMembers.organizationId, orgData.organization.id),
+            eq(organizationMembers.inviteeEmail, normalizedEmail),
+            eq(organizationMembers.status, 'pending')
+          )
+        );
+
+      if (existingPendingInvite) {
+        return res.status(400).json({ error: 'An invitation has already been sent to this email address' });
+      }
+
+      // Generate a secure invite token
+      const inviteToken = crypto.randomBytes(32).toString('hex');
+
+      // Create pending invitation (no userId yet)
+      const [newMember] = await db
+        .insert(organizationMembers)
+        .values({
+          organizationId: orgData.organization.id,
+          userId: null, // No user yet
+          inviteeEmail: normalizedEmail,
+          inviteToken,
+          role: assignedRole,
+          status: 'pending',
+          invitedBy: req.user!.id,
+          invitedAt: new Date(),
+        })
+        .returning();
+
+      // Send invitation email with signup link
+      try {
+        await sendTeamInviteEmail({
+          inviteeEmail: normalizedEmail,
+          inviteeName: '',
+          inviterName,
+          organizationName: orgData.organization.name,
+          role: assignedRole,
+          inviteToken, // Include token for signup URL
+        });
+        console.log(`[CRM] Team invite email (pending) sent to ${normalizedEmail}`);
+      } catch (emailError) {
+        console.error('[CRM] Failed to send team invite email:', emailError);
+      }
+
+      res.json({
+        ...newMember,
+        email: normalizedEmail,
+        isPending: true,
+        message: 'Invitation sent. The user will be added to your team when they create their account.',
+      });
+    }
   } catch (error) {
     console.error('[CRM] Error inviting member:', error);
     res.status(500).json({ error: 'Failed to invite member' });

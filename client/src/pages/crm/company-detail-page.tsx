@@ -52,6 +52,8 @@ import {
   Video,
   UserPlus,
   Download,
+  PanelRightClose,
+  PanelRightOpen,
 } from "lucide-react";
 import { PhotoUpload } from "@/components/crm/photo-upload";
 
@@ -770,10 +772,14 @@ export default function CompanyDetailPage() {
           {/* Edge toggle button */}
           <button
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            className="flex-shrink-0 w-6 flex items-start justify-center pt-2 group"
+            className="flex-shrink-0 w-6 flex items-start justify-center pt-2 text-gray-400 hover:text-gray-600 transition-colors"
             title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            <div className="w-1 h-8 rounded-full bg-gray-200 group-hover:bg-gray-400 transition-colors" />
+            {isSidebarCollapsed ? (
+              <PanelRightOpen className="h-5 w-5" />
+            ) : (
+              <PanelRightClose className="h-5 w-5" />
+            )}
           </button>
 
           {!isSidebarCollapsed && (

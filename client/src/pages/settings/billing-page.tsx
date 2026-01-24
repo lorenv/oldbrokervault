@@ -21,6 +21,7 @@ export default function BillingPage() {
   const { toast } = useToast();
   const [additionalSeats, setAdditionalSeats] = useState(1);
   const [isLoadingPortal, setIsLoadingPortal] = useState(false);
+  const [isAddingLicenses, setIsAddingLicenses] = useState(false);
 
   const { data: organization } = useQuery<any>({
     queryKey: ["/api/crm/organization"],
@@ -83,6 +84,36 @@ export default function BillingPage() {
       });
     } finally {
       setIsLoadingPortal(false);
+    }
+  };
+
+  const handleAddLicenses = async () => {
+    setIsAddingLicenses(true);
+    try {
+      const response = await apiRequest("POST", "/api/subscription/add-licenses", {
+        body: { additionalSeats },
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        toast({
+          title: "Licenses Added",
+          description: data.message,
+        });
+        // Refresh organization data to show updated seat count
+        queryClient.invalidateQueries({ queryKey: ["/api/crm/organization"] });
+        setAdditionalSeats(1); // Reset the counter
+      } else {
+        throw new Error(data.error || "Failed to add licenses");
+      }
+    } catch (error) {
+      toast({
+        title: "Unable to add licenses",
+        description: error instanceof Error ? error.message : "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAddingLicenses(false);
     }
   };
 
@@ -277,14 +308,10 @@ export default function BillingPage() {
                   </span>
                   <Button
                     size="sm"
-                    onClick={() => {
-                      toast({
-                        title: "Coming Soon",
-                        description: "Contact support to add licenses.",
-                      });
-                    }}
+                    onClick={handleAddLicenses}
+                    disabled={isAddingLicenses}
                   >
-                    Add Licenses
+                    {isAddingLicenses ? "Adding..." : "Add Licenses"}
                   </Button>
                 </div>
               </div>

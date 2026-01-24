@@ -608,7 +608,7 @@ export function BuyerPipeline({
 
   return (
     <>
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg">Buyers</CardTitle>
@@ -725,31 +725,33 @@ export function BuyerPipeline({
             </div>
           ) : (
             // Pipeline View
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCorners}
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-            >
-              <div className="flex gap-4 overflow-x-auto pb-4 min-w-0">
-                {sortedStages.map((stage) => {
-                  const stageBuyers = buyers.filter((b) => b.stageId === stage.id);
-                  return (
-                    <StageColumn
-                      key={stage.id}
-                      stage={stage}
-                      buyers={stageBuyers}
-                    />
-                  );
-                })}
-              </div>
+            <div className="-mx-6 px-6 overflow-x-auto">
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCorners}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+              >
+                <div className="flex gap-4 pb-4" style={{ minWidth: 'max-content' }}>
+                  {sortedStages.map((stage) => {
+                    const stageBuyers = buyers.filter((b) => b.stageId === stage.id);
+                    return (
+                      <StageColumn
+                        key={stage.id}
+                        stage={stage}
+                        buyers={stageBuyers}
+                      />
+                    );
+                  })}
+                </div>
 
-              <DragOverlay>
-                {activeBuyer ? (
-                  <DraggableBuyerCard buyer={activeBuyer} isDragging />
-                ) : null}
-              </DragOverlay>
-            </DndContext>
+                <DragOverlay>
+                  {activeBuyer ? (
+                    <DraggableBuyerCard buyer={activeBuyer} isDragging />
+                  ) : null}
+                </DragOverlay>
+              </DndContext>
+            </div>
           )}
         </CardContent>
       </Card>
