@@ -49,13 +49,15 @@ import {
   Clock,
   Download,
   User,
+  Users,
   BriefcaseBusiness,
   Pencil,
+  Check,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 
 import { useDealFilters, DEFAULT_FILTERS, DEFAULT_SORTING, DEFAULT_COLUMNS } from "@/hooks/use-deal-filters";
-import { DealsQuickFilters } from "@/components/crm/deals-quick-filters";
 import { DealsFilterBuilderIntegration } from "@/components/crm/deals-filter-builder-integration";
 import { DealsViewManager } from "@/components/crm/deals-view-manager";
 import { DealsColumnConfig } from "@/components/crm/deals-column-config";
@@ -188,15 +190,15 @@ function DealCard({ deal, isDragging, isOverlay }: { deal: Deal; isDragging?: bo
         )}
         {/* Owner name */}
         {ownerName && (
-          <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-2">
+          <div className="flex items-center gap-2 text-xs text-gray-500 mt-2">
             {deal.owner?.profilePhoto ? (
               <img
                 src={deal.owner.profilePhoto}
                 alt={ownerName}
-                className="w-5 h-5 rounded-full object-cover flex-shrink-0"
+                className="w-6 h-6 rounded-full object-cover flex-shrink-0"
               />
             ) : (
-              <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+              <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
                 <span className="text-xs font-medium text-blue-600">
                   {ownerName.charAt(0).toUpperCase()}
                 </span>
@@ -817,97 +819,215 @@ export default function DealsPage() {
     );
   }
 
+  const isMyDeals = currentUserId !== null && filters.ownerId === currentUserId;
+
   return (
-    <div className="p-4 md:p-6 space-y-4">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="p-4 md:p-6">
+      {/* Header - single row like contacts/companies */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <h1 className="text-xl md:text-2xl font-semibold text-gray-900">Deals</h1>
         </div>
-        <Button variant="outline" onClick={() => setIsCreateDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Deal
-        </Button>
-      </div>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          {/* Search */}
+          <div className="relative flex-1 sm:flex-none">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Search deals..."
+              value={filters.search}
+              onChange={(e) => updateFilter('search', e.target.value)}
+              className="pl-9 w-full sm:w-48"
+            />
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* View Toggle */}
+            <div className="flex border rounded-lg">
+              <Button
+                variant={viewMode === "kanban" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("kanban")}
+                className="rounded-r-none h-8"
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === "list" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("list")}
+                className="rounded-l-none h-8"
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
 
-      {/* Toolbar Row 1: Search, View Toggle, View Manager */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-        <div className="relative flex-1 sm:max-w-xs">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Search deals..."
-            value={filters.search}
-            onChange={(e) => updateFilter('search', e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex border rounded-lg">
-            <Button
-              variant={viewMode === "kanban" ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("kanban")}
-              className="rounded-r-none"
+            {/* My Deals / All Deals Toggle */}
+            <Select
+              value={isMyDeals ? "my" : "all"}
+              onValueChange={(value) => {
+                if (value === "my" && currentUserId) {
+                  updateFilter('ownerId', currentUserId);
+                } else {
+                  updateFilter('ownerId', null);
+                }
+              }}
             >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === "list" ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("list")}
-              className="rounded-l-none"
+              <SelectTrigger className="w-[110px] h-8 text-sm">
+                {isMyDeals ? <User className="h-4 w-4 mr-2 text-gray-400" /> : <Users className="h-4 w-4 mr-2 text-gray-400" />}
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Deals</SelectItem>
+                <SelectItem value="my">My Deals</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Stage Filter */}
+            <Select
+              value={filters.stages.length === 1 ? filters.stages[0].toString() : filters.stages.length > 1 ? 'multiple' : 'all'}
+              onValueChange={(value) => {
+                if (value === 'all') {
+                  updateFilter('stages', []);
+                } else if (value !== 'multiple') {
+                  updateFilter('stages', [parseInt(value)]);
+                }
+              }}
             >
-              <List className="h-4 w-4" />
+              <SelectTrigger className="w-[120px] h-8 text-sm">
+                <SelectValue placeholder="All Stages" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Stages</SelectItem>
+                {allStages.map((stage) => (
+                  <SelectItem key={stage.id} value={stage.id.toString()}>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="w-2 h-2 rounded-full"
+                        style={{ backgroundColor: stage.color }}
+                      />
+                      {stage.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Status Filter */}
+            <Select
+              value={filters.status}
+              onValueChange={(value: 'all' | 'open' | 'won' | 'lost') => updateFilter('status', value)}
+            >
+              <SelectTrigger className="w-[100px] h-8 text-sm">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="open">Open</SelectItem>
+                <SelectItem value="won">Won</SelectItem>
+                <SelectItem value="lost">Lost</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Closing Period Filter */}
+            <Select
+              value={filters.closingPeriod}
+              onValueChange={(value: 'all' | 'this_week' | 'this_month' | 'this_quarter' | 'overdue') =>
+                updateFilter('closingPeriod', value)
+              }
+            >
+              <SelectTrigger className="w-[120px] h-8 text-sm">
+                <SelectValue placeholder="Closing" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Any Time</SelectItem>
+                <SelectItem value="this_week">This Week</SelectItem>
+                <SelectItem value="this_month">This Month</SelectItem>
+                <SelectItem value="this_quarter">This Quarter</SelectItem>
+                <SelectItem value="overdue">Overdue</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <DealsViewManager
+              currentFilters={filters}
+              currentColumns={columns}
+              currentSorting={sorting}
+              currentViewMode={viewMode}
+              onApplyView={applyView}
+            />
+            <DealsFilterBuilderIntegration
+              filters={filters}
+              onFilterChange={updateFilter}
+              onClearFilters={clearFilters}
+              companies={companies}
+              owners={members.map((m) => ({ id: m.userId, name: m.firstName && m.lastName ? `${m.firstName} ${m.lastName}` : m.email, profilePhoto: m.profilePhoto }))}
+              customFields={customFields}
+              activeFilterCount={activeFilterCount}
+            />
+            {viewMode === 'list' && (
+              <DealsColumnConfig
+                columns={columns}
+                onToggleVisibility={toggleColumnVisibility}
+                onReorder={reorderColumns}
+              />
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              title="Export to CSV"
+              className="h-8"
+            >
+              <Download className="h-4 w-4" />
             </Button>
           </div>
-
-          <DealsViewManager
-            currentFilters={filters}
-            currentColumns={columns}
-            currentSorting={sorting}
-            currentViewMode={viewMode}
-            onApplyView={applyView}
-          />
-        </div>
-      </div>
-
-      {/* Toolbar Row 2: Quick Filters, Advanced Filters, Column Config */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 border-b pb-3">
-        <DealsQuickFilters
-          filters={filters}
-          onFilterChange={updateFilter}
-          onClearFilters={clearFilters}
-          stages={allStages}
-          currentUserId={currentUserId}
-          activeFilterCount={activeFilterCount}
-        />
-        <div className="flex items-center gap-2 ml-auto">
-          <DealsFilterBuilderIntegration
-            filters={filters}
-            onFilterChange={updateFilter}
-            onClearFilters={clearFilters}
-            companies={companies}
-            owners={members.map((m) => ({ id: m.userId, name: m.firstName && m.lastName ? `${m.firstName} ${m.lastName}` : m.email, profilePhoto: m.profilePhoto }))}
-            customFields={customFields}
-            activeFilterCount={activeFilterCount}
-          />
-          {viewMode === 'list' && (
-            <DealsColumnConfig
-              columns={columns}
-              onToggleVisibility={toggleColumnVisibility}
-              onReorder={reorderColumns}
-            />
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExport}
-            title="Export to CSV"
-          >
-            <Download className="h-4 w-4" />
+          <Button variant="outline" onClick={() => setIsCreateDialogOpen(true)} className="h-8">
+            <Plus className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">Add Deal</span>
+            <span className="sm:hidden">Add</span>
           </Button>
         </div>
       </div>
+
+      {/* Active filters display */}
+      {activeFilterCount > 0 && (
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
+          <span className="text-sm text-gray-500">Active filters:</span>
+          {isMyDeals && (
+            <Badge variant="secondary" className="gap-1">
+              My Deals
+              <button onClick={() => updateFilter('ownerId', null)} className="ml-1 hover:text-red-600">
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+          {filters.stages.length > 0 && (
+            <Badge variant="secondary" className="gap-1">
+              Stage: {filters.stages.length === 1 ? allStages.find(s => s.id === filters.stages[0])?.name : `${filters.stages.length} selected`}
+              <button onClick={() => updateFilter('stages', [])} className="ml-1 hover:text-red-600">
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+          {filters.status !== 'all' && (
+            <Badge variant="secondary" className="gap-1">
+              Status: {filters.status}
+              <button onClick={() => updateFilter('status', 'all')} className="ml-1 hover:text-red-600">
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+          {filters.closingPeriod !== 'all' && (
+            <Badge variant="secondary" className="gap-1">
+              Closing: {filters.closingPeriod.replace('_', ' ')}
+              <button onClick={() => updateFilter('closingPeriod', 'all')} className="ml-1 hover:text-red-600">
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+          <Button variant="ghost" size="sm" onClick={clearFilters} className="h-6 text-xs">
+            Clear all
+          </Button>
+        </div>
+      )}
 
       {/* Kanban Board */}
       {viewMode === "kanban" && (
@@ -983,7 +1103,7 @@ export default function DealsPage() {
             <table className="w-full table-fixed">
               <thead className="bg-gray-50 border-b">
                 <tr>
-                  <th className="py-1.5 px-2 w-10">
+                  <th className="py-2 px-3 w-10">
                     <Checkbox
                       checked={deals.length > 0 && selectedDeals.size === deals.length}
                       onCheckedChange={toggleSelectAll}
@@ -1009,14 +1129,14 @@ export default function DealsPage() {
                           currentSort={sorting}
                           onSort={toggleSort}
                           style={widthStyle}
-                          className="py-1.5 px-2"
+                          className="py-2 px-3"
                         />
                       );
                     }
                     return (
                       <th
                         key={col.id}
-                        className="text-left py-1.5 px-2 text-xs font-medium text-gray-500 uppercase"
+                        className="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase"
                         style={widthStyle}
                       >
                         {col.label}
@@ -1028,7 +1148,7 @@ export default function DealsPage() {
               <tbody>
                 {deals.map((deal) => (
                   <tr key={deal.id} className={`border-b hover:bg-gray-50/50 ${selectedDeals.has(deal.id) ? 'bg-blue-50/50' : ''} ${isMobile ? "h-14" : ""}`}>
-                    <td className="py-1.5 px-2 w-10">
+                    <td className="py-2 px-3 w-10">
                       <Checkbox
                         checked={selectedDeals.has(deal.id)}
                         onCheckedChange={() => toggleSelectDeal(deal.id)}
@@ -1038,12 +1158,14 @@ export default function DealsPage() {
                     {visibleColumns.map((col) => (
                       <td
                         key={col.id}
-                        className="py-1.5 px-2"
+                        className="py-2 px-3"
                       >
                         {col.id === 'name' && (
-                          <Link href={`/deals/${deal.id}`} className="flex items-center gap-2.5 text-sm font-medium text-gray-900 hover:text-blue-600">
-                            <BriefcaseBusiness className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                            <span className="truncate">{deal.name}</span>
+                          <Link href={`/deals/${deal.id}`} className="flex items-center gap-2 group">
+                            <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                              <BriefcaseBusiness className="h-3.5 w-3.5 text-emerald-600" />
+                            </div>
+                            <span className="text-sm font-medium text-gray-900 group-hover:text-blue-600 truncate">{deal.name}</span>
                           </Link>
                         )}
                         {col.id === 'company' && (
@@ -1051,7 +1173,7 @@ export default function DealsPage() {
                         )}
                         {col.id === 'stage' && deal.stage && (
                           <span
-                            className="inline-flex items-center px-2 py-0.5 rounded-full text-sm font-medium"
+                            className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
                             style={{
                               backgroundColor: deal.stage.color + '20',
                               color: deal.stage.color,
@@ -1107,18 +1229,18 @@ export default function DealsPage() {
                           />
                         )}
                         {col.id === 'owner' && (
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-2">
                             {deal.owner ? (
                               <>
                                 {deal.owner.profilePhoto ? (
                                   <img
                                     src={deal.owner.profilePhoto}
                                     alt={deal.owner.name || deal.owner.email}
-                                    className="w-5 h-5 rounded-full object-cover flex-shrink-0"
+                                    className="w-6 h-6 rounded-full object-cover flex-shrink-0"
                                   />
                                 ) : (
-                                  <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                                    <span className="text-[10px] font-medium text-blue-600">
+                                  <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                    <span className="text-xs font-medium text-blue-600">
                                       {(deal.owner.name || deal.owner.email || '?').charAt(0).toUpperCase()}
                                     </span>
                                   </div>

@@ -403,7 +403,7 @@ export default function ContactsPage() {
                 {(contact.firstName?.[0] || '').toUpperCase()}{(contact.lastName?.[0] || '').toUpperCase()}
               </div>
             )}
-            <span className="font-medium text-gray-900 group-hover:text-blue-600 truncate">
+            <span className="text-sm font-medium text-gray-900 group-hover:text-blue-600 truncate">
               {contact.firstName} {contact.lastName}
             </span>
           </Link>
@@ -424,7 +424,7 @@ export default function ContactsPage() {
               onSave={(val) => handleContactUpdate(contact.id, 'phone', val || null)}
               type="phone"
               emptyText="Add phone"
-              displayClassName="text-gray-600"
+              displayClassName="text-sm text-gray-600"
             />
             {contact.phone && (
               <a href={`tel:${contact.phone}`} className="text-gray-400 hover:text-green-600 ml-1 flex-shrink-0">
@@ -467,7 +467,7 @@ export default function ContactsPage() {
             {contact.contactType.charAt(0).toUpperCase() + contact.contactType.slice(1)}
           </Badge>
         ) : (
-          <span className="text-gray-400 text-sm">-</span>
+          <span className="text-sm text-gray-500">-</span>
         );
       case 'leadStatus':
         return contact.leadStatus ? (
@@ -475,7 +475,7 @@ export default function ContactsPage() {
             {contact.leadStatus.charAt(0).toUpperCase() + contact.leadStatus.slice(1)}
           </Badge>
         ) : (
-          <span className="text-gray-400 text-sm">-</span>
+          <span className="text-sm text-gray-500">-</span>
         );
       case 'title':
         return (
@@ -490,11 +490,11 @@ export default function ContactsPage() {
         return contact.source ? (
           <span className="text-sm text-gray-600">{contact.source.replace(/_/g, ' ')}</span>
         ) : (
-          <span className="text-gray-400 text-sm">-</span>
+          <span className="text-sm text-gray-500">-</span>
         );
       case 'lastActivity':
         if (!contact.lastActivityDate) {
-          return <span className="text-gray-400 text-sm">Never</span>;
+          return <span className="text-sm text-gray-500">Never</span>;
         }
         const activityDate = new Date(contact.lastActivityDate);
         const now = new Date();

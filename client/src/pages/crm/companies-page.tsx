@@ -280,7 +280,7 @@ export default function CompaniesPage() {
               </div>
             )}
             <div className="min-w-0">
-              <span className="font-medium text-gray-900 group-hover:text-blue-600 truncate block">
+              <span className="text-sm font-medium text-gray-900 group-hover:text-blue-600 truncate block">
                 {company.name}
               </span>
             </div>
@@ -292,7 +292,7 @@ export default function CompaniesPage() {
             {company.industry}
           </Badge>
         ) : (
-          <span className="text-gray-400">-</span>
+          <span className="text-sm text-gray-500">-</span>
         );
       case 'website':
         return company.website ? (
@@ -306,7 +306,7 @@ export default function CompaniesPage() {
             {company.website.replace(/^https?:\/\//, '')}
           </a>
         ) : (
-          <span className="text-gray-400">-</span>
+          <span className="text-sm text-gray-500">-</span>
         );
       case 'location':
         return company.city || company.state ? (
@@ -315,7 +315,7 @@ export default function CompaniesPage() {
             {company.city}{company.state ? `, ${company.state}` : ""}
           </span>
         ) : (
-          <span className="text-gray-400">-</span>
+          <span className="text-sm text-gray-500">-</span>
         );
       case 'contacts':
         return (
