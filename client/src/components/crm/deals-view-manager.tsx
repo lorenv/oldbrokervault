@@ -4,13 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -24,19 +17,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import {
   Save,
   ChevronDown,
-  Settings,
   Trash2,
   Share2,
   Star,
@@ -245,115 +230,97 @@ export function DealsViewManager({
 
   return (
     <div className="flex items-center gap-2">
-      {/* View Selector */}
-      <Select
-        value={selectedViewId?.toString() || 'none'}
-        onValueChange={handleSelectView}
-      >
-        <SelectTrigger className="w-[180px] h-8">
-          <SelectValue placeholder="Select view..." />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="none">
+      {/* View Selector with integrated actions dropdown */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm" className="h-8 gap-2 min-w-[140px] justify-between">
+            <span className="flex items-center gap-2 truncate">
+              {selectedView ? (
+                <>
+                  {selectedView.isDefault && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500 flex-shrink-0" />}
+                  {selectedView.isShared && <Users className="h-3 w-3 text-blue-500 flex-shrink-0" />}
+                  <span className="truncate">{selectedView.name}</span>
+                </>
+              ) : (
+                <span className="text-gray-500">Views</span>
+              )}
+            </span>
+            <ChevronDown className="h-4 w-4 flex-shrink-0 opacity-50" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-56">
+          {/* Saved Views */}
+          <DropdownMenuItem onClick={() => {
+            setSelectedViewId(null);
+          }}>
             <span className="text-gray-500">No saved view</span>
-          </SelectItem>
-          {views.length > 0 && (
+          </DropdownMenuItem>
+          {views.filter(view => view.id != null).map((view) => (
+            <DropdownMenuItem
+              key={view.id}
+              onClick={() => handleSelectView(view.id.toString())}
+            >
+              <div className="flex items-center gap-2 w-full">
+                {view.isDefault && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
+                {view.isShared && <Users className="h-3 w-3 text-blue-500" />}
+                <span className="truncate flex-1">{view.name}</span>
+                {view.id === selectedViewId && <Check className="h-4 w-4 text-blue-600" />}
+              </div>
+            </DropdownMenuItem>
+          ))}
+
+          <DropdownMenuSeparator />
+
+          {/* Save current view (update existing) */}
+          {selectedViewId && (
+            <DropdownMenuItem
+              onClick={handleSaveCurrent}
+              disabled={updateViewMutation.isPending}
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Save current view
+            </DropdownMenuItem>
+          )}
+
+          {/* Save as new view */}
+          <DropdownMenuItem onClick={() => setIsSaveDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Save as new view
+          </DropdownMenuItem>
+
+          {/* View-specific actions when a view is selected */}
+          {selectedViewId && selectedView && (
             <>
-              {views.filter(view => view.id != null).map((view) => (
-                <SelectItem key={view.id} value={view.id.toString()}>
-                  <div className="flex items-center gap-2">
-                    {view.isDefault && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
-                    {view.isShared && <Users className="h-3 w-3 text-blue-500" />}
-                    <span className="truncate">{view.name}</span>
-                  </div>
-                </SelectItem>
-              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => {
+                setEditViewName(selectedView.name);
+                setIsEditDialogOpen(true);
+              }}>
+                <Edit2 className="h-4 w-4 mr-2" />
+                Rename
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => toggleShareMutation.mutate(selectedViewId)}>
+                <Share2 className="h-4 w-4 mr-2" />
+                {selectedView.isShared ? 'Unshare' : 'Share with Team'}
+              </DropdownMenuItem>
+              {!selectedView.isDefault && (
+                <DropdownMenuItem onClick={handleSetDefault}>
+                  <Star className="h-4 w-4 mr-2" />
+                  Set as Default
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-red-600"
+                onClick={() => deleteViewMutation.mutate(selectedViewId)}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete View
+              </DropdownMenuItem>
             </>
           )}
-        </SelectContent>
-      </Select>
-
-      {/* Unsaved changes indicator */}
-      {hasUnsavedChanges && selectedViewId && (
-        <Badge variant="outline" className="text-orange-600 border-orange-300 bg-orange-50">
-          Unsaved
-        </Badge>
-      )}
-
-      {/* Save button */}
-      {selectedViewId ? (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleSaveCurrent}
-          disabled={!hasUnsavedChanges || updateViewMutation.isPending}
-          className="h-8 gap-1.5"
-        >
-          <Save className="h-3.5 w-3.5" />
-          Save
-        </Button>
-      ) : (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setIsSaveDialogOpen(true)}
-          className="h-8 gap-1.5"
-        >
-          <Save className="h-3.5 w-3.5" />
-          Save As
-        </Button>
-      )}
-
-      {/* Save As button (when viewing a saved view) */}
-      {selectedViewId && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsSaveDialogOpen(true)}
-          className="h-8 gap-1.5"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          Save As
-        </Button>
-      )}
-
-      {/* View Settings */}
-      {selectedViewId && selectedView && (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-              <Settings className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => {
-              setEditViewName(selectedView.name);
-              setIsEditDialogOpen(true);
-            }}>
-              <Edit2 className="h-4 w-4 mr-2" />
-              Rename
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => toggleShareMutation.mutate(selectedViewId)}>
-              <Share2 className="h-4 w-4 mr-2" />
-              {selectedView.isShared ? 'Unshare' : 'Share with Team'}
-            </DropdownMenuItem>
-            {!selectedView.isDefault && (
-              <DropdownMenuItem onClick={handleSetDefault}>
-                <Star className="h-4 w-4 mr-2" />
-                Set as Default
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="text-red-600"
-              onClick={() => deleteViewMutation.mutate(selectedViewId)}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete View
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       {/* Save New View Dialog */}
       <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>

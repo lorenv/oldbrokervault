@@ -751,46 +751,6 @@ export default function DealsPage() {
     return allDeals.slice(start, start + pageSize);
   }, [allDeals, currentPage, pageSize]);
 
-  // Export deals to CSV
-  const handleExport = () => {
-    const exportDeals = viewMode === 'kanban'
-      ? stages.flatMap((s: Stage) => s.deals || [])
-      : deals;
-
-    if (exportDeals.length === 0) {
-      toast({ title: "No deals to export", variant: "destructive" });
-      return;
-    }
-
-    const headers = ["Name", "Company", "Stage", "Value", "Currency", "Close Date", "Priority", "Source", "Days in Pipeline", "Created"];
-    const rows = exportDeals.map((d: Deal) => [
-      d.name || "",
-      d.company?.name || "",
-      d.stage?.name || "",
-      d.amount || "",
-      d.currency || "USD",
-      d.closeDate ? new Date(d.closeDate).toLocaleDateString() : "",
-      d.priority || "",
-      d.source || "",
-      d.createdAt ? getDaysSince(d.createdAt) : "",
-      d.createdAt ? new Date(d.createdAt).toLocaleDateString() : "",
-    ]);
-
-    const csvContent = [
-      headers.join(","),
-      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))
-    ].join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `deals-export-${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-    URL.revokeObjectURL(link.href);
-
-    toast({ title: `Exported ${exportDeals.length} deals` });
-  };
-
   const isLoading = pipelinesLoading || (viewMode === 'kanban' ? kanbanLoading : dealsLoading);
 
   // Filter deals for kanban based on search
@@ -927,25 +887,6 @@ export default function DealsPage() {
               </SelectContent>
             </Select>
 
-            {/* Closing Period Filter */}
-            <Select
-              value={filters.closingPeriod}
-              onValueChange={(value: 'all' | 'this_week' | 'this_month' | 'this_quarter' | 'overdue') =>
-                updateFilter('closingPeriod', value)
-              }
-            >
-              <SelectTrigger className="w-[120px] h-8 text-sm">
-                <SelectValue placeholder="Closing" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Any Time</SelectItem>
-                <SelectItem value="this_week">This Week</SelectItem>
-                <SelectItem value="this_month">This Month</SelectItem>
-                <SelectItem value="this_quarter">This Quarter</SelectItem>
-                <SelectItem value="overdue">Overdue</SelectItem>
-              </SelectContent>
-            </Select>
-
             <DealsViewManager
               currentFilters={filters}
               currentColumns={columns}
@@ -969,15 +910,6 @@ export default function DealsPage() {
                 onReorder={reorderColumns}
               />
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExport}
-              title="Export to CSV"
-              className="h-8"
-            >
-              <Download className="h-4 w-4" />
-            </Button>
           </div>
           <Button variant="outline" onClick={() => setIsCreateDialogOpen(true)} className="h-8">
             <Plus className="h-4 w-4 mr-2" />
@@ -1011,14 +943,6 @@ export default function DealsPage() {
             <Badge variant="secondary" className="gap-1">
               Status: {filters.status}
               <button onClick={() => updateFilter('status', 'all')} className="ml-1 hover:text-red-600">
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
-          )}
-          {filters.closingPeriod !== 'all' && (
-            <Badge variant="secondary" className="gap-1">
-              Closing: {filters.closingPeriod.replace('_', ' ')}
-              <button onClick={() => updateFilter('closingPeriod', 'all')} className="ml-1 hover:text-red-600">
                 <X className="h-3 w-3" />
               </button>
             </Badge>
