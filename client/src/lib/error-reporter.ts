@@ -76,8 +76,29 @@ export async function reportError(options: ErrorReportOptions): Promise<void> {
 
 // Global error handler for uncaught errors
 export function setupGlobalErrorHandlers(): void {
+  // Suppress ResizeObserver errors globally (benign browser warning)
+  // These can come through in various formats, so check early
+  const resizeObserverErr = window.ResizeObserver;
+  if (resizeObserverErr) {
+    const originalResizeObserver = window.ResizeObserver;
+    window.ResizeObserver = class extends originalResizeObserver {
+      constructor(callback: ResizeObserverCallback) {
+        super((entries, observer) => {
+          // Wrap callback to prevent "loop completed" errors from propagating
+          window.requestAnimationFrame(() => {
+            callback(entries, observer);
+          });
+        });
+      }
+    };
+  }
+
   // Handle uncaught errors
   window.addEventListener('error', (event) => {
+    // Early check for ResizeObserver errors (they come in various formats)
+    const messageStr = String(event.message || '');
+    if (messageStr.includes('ResizeObserver')) return;
+
     const error = event.error || event.message;
     if (shouldIgnoreError(error, event.filename)) return;
 

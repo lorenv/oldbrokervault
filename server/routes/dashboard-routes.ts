@@ -58,13 +58,23 @@ interface BriefingData {
     name: string;
     value: number | null;
     stage: string;
+    stageProbability?: number;
     daysSinceActivity: number;
+    daysUntilClose?: number | null;
+    isHighValue?: boolean;
+    isLateStage?: boolean;
+    isUrgent?: boolean;
+    isOverdue?: boolean;
+    priorityScore?: number;
     reason: string;
     suggestedAction: string;
   }>;
   riskAlerts: Array<{
     dealId: number;
     dealName: string;
+    value?: number | null;
+    stage?: string;
+    daysSinceActivity?: number;
     message: string;
   }>;
   tasksOverview: {
@@ -75,7 +85,18 @@ interface BriefingData {
   };
   pendingSignatures: {
     count: number;
-    items: Array<{ id: number; title: string; recipientName: string }>;
+    items: Array<{
+      id: number;
+      title: string;
+      recipientName: string;
+      recipientEmail?: string;
+      daysPending?: number;
+      hasViewed?: boolean;
+      needsReminder?: boolean;
+      isStale?: boolean;
+    }>;
+    staleCount?: number;
+    needsReminderCount?: number;
     message: string;
   };
   pendingApprovals: {
@@ -114,8 +135,7 @@ async function gatherBriefingData(userId: number, orgId: number): Promise<any> {
   const weekFromNow = new Date(now);
   weekFromNow.setDate(weekFromNow.getDate() + 7);
 
-  // Get all open deals with stages
-  // Get open deals (with error handling)
+  // Get all open deals with stages (including stage position for prioritization)
   console.log('[Dashboard] Step 1: Fetching open deals...');
   let openDeals: any[] = [];
   try {
@@ -126,6 +146,8 @@ async function gatherBriefingData(userId: number, orgId: number): Promise<any> {
         amount: deals.amount,
         stageId: deals.stageId,
         stageName: pipelineStages.name,
+        stageOrder: pipelineStages.displayOrder,
+        stageProbability: pipelineStages.probability,
         closeDate: deals.closeDate,
         updatedAt: deals.updatedAt,
         createdAt: deals.createdAt
@@ -175,14 +197,38 @@ async function gatherBriefingData(userId: number, orgId: number): Promise<any> {
   // Create activity map
   const activityMap = new Map(dealActivities.map(a => [a.dealId, a.lastActivity]));
 
-  // Calculate days since last activity for each deal
+  // Calculate days since last activity and priority score for each deal
   const dealsWithActivity = openDeals.map(deal => {
     const lastActivity = activityMap.get(deal.id) || deal.createdAt;
     const daysSinceActivity = Math.floor((now.getTime() - new Date(lastActivity).getTime()) / (1000 * 60 * 60 * 24));
+
+    // Calculate days until close date (negative = overdue)
+    const daysUntilClose = deal.closeDate
+      ? Math.floor((new Date(deal.closeDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      : null;
+
+    // Calculate priority score (higher = needs more attention)
+    // Factors: deal value, stage progress, inactivity, close date urgency
+    const dealValue = parseFloat(deal.amount) || 0;
+    const valueScore = Math.min(dealValue / 100000, 10); // Cap at 10 points for $1M+ deals
+    const stageScore = (deal.stageProbability || 0) / 10; // 0-10 based on probability
+    const inactivityScore = Math.min(daysSinceActivity, 14) / 2; // 0-7 points
+    const urgencyScore = daysUntilClose !== null
+      ? (daysUntilClose <= 0 ? 10 : daysUntilClose <= 7 ? 7 : daysUntilClose <= 14 ? 4 : 0)
+      : 0;
+
+    const priorityScore = valueScore + stageScore + inactivityScore + urgencyScore;
+
     return {
       ...deal,
       daysSinceActivity,
-      lastActivity
+      daysUntilClose,
+      lastActivity,
+      priorityScore,
+      isLateStage: (deal.stageProbability || 0) >= 50,
+      isHighValue: dealValue >= 100000,
+      isOverdue: daysUntilClose !== null && daysUntilClose < 0,
+      isUrgent: daysUntilClose !== null && daysUntilClose <= 7 && daysUntilClose >= 0
     };
   });
 
@@ -220,18 +266,21 @@ async function gatherBriefingData(userId: number, orgId: number): Promise<any> {
     return due >= todayEnd && due <= weekFromNow;
   });
 
-  // Get pending e-signature requests (with error handling)
+  // Get pending e-signature requests with sent date for urgency tracking
   console.log('[Dashboard] Step 4: Fetching pending signatures...');
   let pendingSignatures: any[] = [];
   try {
-    pendingSignatures = await db
+    const rawSignatures = await db
       .select({
         envelopeId: esignEnvelopes.id,
         title: esignEnvelopes.title,
+        sentAt: esignEnvelopes.sentAt,
         recipientId: esignRecipients.id,
         recipientName: esignRecipients.name,
         recipientEmail: esignRecipients.email,
-        recipientStatus: esignRecipients.status
+        recipientStatus: esignRecipients.status,
+        recipientSentAt: esignRecipients.sentAt,
+        viewedAt: esignRecipients.viewedAt
       })
       .from(esignEnvelopes)
       .innerJoin(esignRecipients, eq(esignRecipients.envelopeId, esignEnvelopes.id))
@@ -242,7 +291,23 @@ async function gatherBriefingData(userId: number, orgId: number): Promise<any> {
           inArray(esignRecipients.status, ['pending', 'sent', 'viewed'])
         )
       )
+      .orderBy(esignEnvelopes.sentAt)
       .limit(10);
+
+    // Calculate days pending for each signature
+    pendingSignatures = rawSignatures.map(sig => {
+      const sentDate = sig.recipientSentAt || sig.sentAt;
+      const daysPending = sentDate
+        ? Math.floor((now.getTime() - new Date(sentDate).getTime()) / (1000 * 60 * 60 * 24))
+        : 0;
+      return {
+        ...sig,
+        daysPending,
+        hasViewed: sig.recipientStatus === 'viewed',
+        needsReminder: daysPending >= 2 && sig.recipientStatus !== 'viewed',
+        isStale: daysPending >= 5
+      };
+    });
     console.log('[Dashboard] Pending signatures count:', pendingSignatures.length);
   } catch (error) {
     console.error('[Dashboard] Error fetching pending signatures:', error);
@@ -409,46 +474,122 @@ function generateBasicBriefing(data: any): BriefingData {
   const overdueCount = data.tasks.overdue.length;
   const dueTodayCount = data.tasks.dueToday.length;
   const dealCount = data.deals.length;
-
   const unreadCount = data.unreadMessages?.length || 0;
 
-  // Build summary
-  let summaryParts = [];
-  if (overdueCount > 0) summaryParts.push(`${overdueCount} overdue task${overdueCount > 1 ? 's' : ''}`);
-  if (dueTodayCount > 0) summaryParts.push(`${dueTodayCount} task${dueTodayCount > 1 ? 's' : ''} due today`);
-  if (unreadCount > 0) summaryParts.push(`${unreadCount} unread message${unreadCount > 1 ? 's' : ''}`);
-  if ((data.pendingApprovals?.length || 0) > 0) summaryParts.push(`${data.pendingApprovals.length} NDA approval${data.pendingApprovals.length > 1 ? 's' : ''} pending`);
+  // Get high-priority items for specific mentions
+  const topPriorityDeal = data.deals
+    .filter((d: any) => d.priorityScore > 0)
+    .sort((a: any, b: any) => (b.priorityScore || 0) - (a.priorityScore || 0))[0];
 
-  const summary = summaryParts.length > 0
-    ? `You have ${summaryParts.join(', ')}. ${dealCount > 0 ? `Managing ${dealCount} open deal${dealCount > 1 ? 's' : ''} worth ${formatCurrency(data.stats.pipelineValue)}.` : ''}`
-    : dealCount > 0
-      ? `You have ${dealCount} open deal${dealCount > 1 ? 's' : ''} worth ${formatCurrency(data.stats.pipelineValue)}. All caught up on tasks!`
-      : 'Welcome! Get started by creating your first deal.';
+  const staleSignatures = data.pendingSignatures.filter((s: any) => s.isStale);
+  const overdueDeals = data.deals.filter((d: any) => d.isOverdue);
+  const urgentDeals = data.deals.filter((d: any) => d.isUrgent);
 
-  // Find deals needing attention (no activity in 7+ days)
+  // Build a specific, actionable summary
+  let summaryItems = [];
+
+  // First priority: overdue deals
+  if (overdueDeals.length > 0) {
+    const topOverdue = overdueDeals[0];
+    summaryItems.push(`⚠️ "${topOverdue.name}" is past its close date - follow up immediately`);
+  }
+
+  // Second priority: stale signatures
+  if (staleSignatures.length > 0) {
+    summaryItems.push(`${staleSignatures.length} signature${staleSignatures.length > 1 ? 's' : ''} stale 5+ days - send reminder to ${staleSignatures[0].recipientName}`);
+  }
+
+  // Third priority: urgent deals closing soon
+  if (urgentDeals.length > 0 && overdueDeals.length === 0) {
+    const topUrgent = urgentDeals[0];
+    summaryItems.push(`"${topUrgent.name}" closing in ${topUrgent.daysUntilClose} days - confirm timeline`);
+  }
+
+  // Fourth: overdue tasks
+  if (overdueCount > 0) {
+    const topTask = data.tasks.overdue[0];
+    summaryItems.push(`${overdueCount} overdue task${overdueCount > 1 ? 's' : ''}${topTask ? ` - "${topTask.title}" is most urgent` : ''}`);
+  }
+
+  // Fallback to general summary
+  if (summaryItems.length === 0) {
+    if (topPriorityDeal) {
+      summaryItems.push(`Focus on "${topPriorityDeal.name}" ($${(parseFloat(topPriorityDeal.amount) || 0).toLocaleString()}) - ${topPriorityDeal.daysSinceActivity} days since last activity`);
+    } else if (dealCount > 0) {
+      summaryItems.push(`Managing ${dealCount} open deal${dealCount > 1 ? 's' : ''} worth ${formatCurrency(data.stats.pipelineValue)}. All on track!`);
+    } else {
+      summaryItems.push('Welcome! Get started by creating your first deal.');
+    }
+  }
+
+  const summary = summaryItems.slice(0, 2).join(' ');
+
+  // Find deals needing attention using priority score
   const priorityDeals = data.deals
-    .filter((d: any) => d.daysSinceActivity >= 3)
-    .sort((a: any, b: any) => b.daysSinceActivity - a.daysSinceActivity)
+    .filter((d: any) => d.priorityScore > 5 || d.daysSinceActivity >= 3 || d.isUrgent || d.isOverdue)
+    .sort((a: any, b: any) => (b.priorityScore || 0) - (a.priorityScore || 0))
     .slice(0, 5)
-    .map((d: any) => ({
-      id: d.id,
-      name: d.name,
-      value: d.amount ? parseFloat(d.amount) : null,
-      stage: d.stageName || 'Unknown',
-      daysSinceActivity: d.daysSinceActivity,
-      reason: `No activity in ${d.daysSinceActivity} days`,
-      suggestedAction: 'Follow up with contact'
-    }));
+    .map((d: any) => {
+      const reasons = [];
+      if (d.isHighValue) reasons.push(`$${(parseFloat(d.amount) || 0).toLocaleString()} high-value deal`);
+      if (d.isOverdue) reasons.push(`past close date by ${Math.abs(d.daysUntilClose)} days`);
+      else if (d.isUrgent) reasons.push(`closing in ${d.daysUntilClose} days`);
+      if (d.isLateStage) reasons.push(`${d.stageProbability}% close probability`);
+      if (d.daysSinceActivity >= 5) reasons.push(`${d.daysSinceActivity} days without activity`);
+
+      return {
+        id: d.id,
+        name: d.name,
+        value: d.amount ? parseFloat(d.amount) : null,
+        stage: d.stageName || 'Unknown',
+        stageProbability: d.stageProbability || 0,
+        daysSinceActivity: d.daysSinceActivity,
+        daysUntilClose: d.daysUntilClose,
+        isHighValue: d.isHighValue || false,
+        isLateStage: d.isLateStage || false,
+        isUrgent: d.isUrgent || false,
+        isOverdue: d.isOverdue || false,
+        priorityScore: d.priorityScore || 0,
+        reason: reasons.join('; ') || `No activity in ${d.daysSinceActivity} days`,
+        suggestedAction: d.isOverdue ? 'Contact immediately to reconfirm timeline'
+          : d.isUrgent ? 'Confirm closing details and next steps'
+          : 'Follow up with contact'
+      };
+    });
 
   // Risk alerts for deals going cold
   const riskAlerts = data.deals
-    .filter((d: any) => d.daysSinceActivity >= 7)
-    .slice(0, 3)
-    .map((d: any) => ({
-      dealId: d.id,
-      dealName: d.name,
-      message: `${d.daysSinceActivity} days without activity`
-    }));
+    .filter((d: any) => {
+      if (d.isLateStage && d.daysSinceActivity >= 3) return true;
+      if (d.isHighValue && d.daysSinceActivity >= 5) return true;
+      if (d.daysSinceActivity >= 7) return true;
+      if (d.isOverdue) return true;
+      return false;
+    })
+    .sort((a: any, b: any) => (b.priorityScore || 0) - (a.priorityScore || 0))
+    .slice(0, 5)
+    .map((d: any) => {
+      let riskMessage = '';
+      if (d.isOverdue) {
+        riskMessage = `⚠️ Past close date by ${Math.abs(d.daysUntilClose)} days`;
+      } else if (d.isLateStage && d.isHighValue) {
+        riskMessage = `🔴 High-value late-stage deal going cold (${d.daysSinceActivity} days)`;
+      } else if (d.isLateStage) {
+        riskMessage = `🟡 Late-stage deal needs follow-up (${d.daysSinceActivity} days)`;
+      } else if (d.isHighValue) {
+        riskMessage = `💰 High-value deal losing momentum (${d.daysSinceActivity} days)`;
+      } else {
+        riskMessage = `${d.daysSinceActivity} days without activity`;
+      }
+      return {
+        dealId: d.id,
+        dealName: d.name,
+        value: d.amount ? parseFloat(d.amount) : null,
+        stage: d.stageName,
+        daysSinceActivity: d.daysSinceActivity,
+        message: riskMessage
+      };
+    });
 
   console.log('[Dashboard] Basic Priority Deals:', priorityDeals);
   console.log('[Dashboard] Basic Risk Alerts:', riskAlerts);
@@ -469,14 +610,34 @@ function generateBasicBriefing(data: any): BriefingData {
     },
     pendingSignatures: {
       count: data.pendingSignatures.length,
-      items: data.pendingSignatures.slice(0, 5).map((s: any) => ({
-        id: s.envelopeId,
-        title: s.title,
-        recipientName: s.recipientName
-      })),
-      message: data.pendingSignatures.length > 0
-        ? `${data.pendingSignatures.length} awaiting signatures`
-        : 'No pending signatures'
+      items: data.pendingSignatures
+        .sort((a: any, b: any) => (b.daysPending || 0) - (a.daysPending || 0))
+        .slice(0, 5)
+        .map((s: any) => ({
+          id: s.envelopeId,
+          title: s.title,
+          recipientName: s.recipientName,
+          recipientEmail: s.recipientEmail,
+          daysPending: s.daysPending || 0,
+          hasViewed: s.hasViewed || false,
+          needsReminder: s.needsReminder || false,
+          isStale: s.isStale || false
+        })),
+      staleCount: staleSignatures.length,
+      needsReminderCount: data.pendingSignatures.filter((s: any) => s.needsReminder && !s.isStale).length,
+      message: (() => {
+        if (staleSignatures.length > 0) {
+          return `⚠️ ${staleSignatures.length} signature${staleSignatures.length > 1 ? 's' : ''} stale (5+ days) - follow up with ${staleSignatures[0].recipientName}`;
+        }
+        const needsReminder = data.pendingSignatures.filter((s: any) => s.needsReminder && !s.isStale);
+        if (needsReminder.length > 0) {
+          return `${needsReminder.length} signature${needsReminder.length > 1 ? 's need' : ' needs'} reminder - ${needsReminder[0].recipientName} hasn't viewed`;
+        }
+        if (data.pendingSignatures.length > 0) {
+          return `${data.pendingSignatures.length} awaiting signatures`;
+        }
+        return 'No pending signatures';
+      })()
     },
     pendingApprovals: {
       count: data.pendingApprovals?.length || 0,
@@ -526,38 +687,75 @@ async function generateAIBriefing(data: any): Promise<BriefingData> {
     return generateBasicBriefing(data);
   }
 
+  // Sort deals by priority score for the prompt
+  const sortedDeals = [...data.deals].sort((a: any, b: any) => (b.priorityScore || 0) - (a.priorityScore || 0));
+  const highValueDeals = data.deals.filter((d: any) => d.isHighValue);
+  const lateStageDeals = data.deals.filter((d: any) => d.isLateStage);
+  const overdueDeals = data.deals.filter((d: any) => d.isOverdue);
+  const urgentDeals = data.deals.filter((d: any) => d.isUrgent);
+  const staleSignatures = data.pendingSignatures.filter((s: any) => s.isStale);
+  const needsReminderSignatures = data.pendingSignatures.filter((s: any) => s.needsReminder);
+
   // Prepare a summary of the data for the AI
-  const prompt = `You are a helpful CRM assistant generating a daily briefing for a sales/deal professional.
-Analyze the following data and provide actionable insights.
+  const prompt = `You are a helpful CRM assistant generating a SPECIFIC, ACTIONABLE daily briefing for a sales/deal professional.
+Your job is to tell them EXACTLY what to focus on first and why.
 
-DATA:
-- Open Deals (${data.deals.length}):
-${data.deals.slice(0, 10).map((d: any) => `  * "${d.name}" - $${d.amount || 0} - Stage: ${d.stageName || 'Unknown'} - ${d.daysSinceActivity} days since last activity`).join('\n')}
+CRITICAL DATA FOR TODAY:
 
-- Tasks:
-  * Overdue: ${data.tasks.overdue.length}
-  * Due Today: ${data.tasks.dueToday.length}
-  * Upcoming (next 7 days): ${data.tasks.upcoming.length}
+HIGH-PRIORITY DEALS (sorted by urgency):
+${sortedDeals.slice(0, 8).map((d: any) => {
+  const flags = [];
+  if (d.isHighValue) flags.push('💰 HIGH VALUE');
+  if (d.isLateStage) flags.push('🎯 LATE STAGE');
+  if (d.isOverdue) flags.push('⚠️ PAST CLOSE DATE');
+  if (d.isUrgent) flags.push('⏰ CLOSING SOON');
+  if (d.daysSinceActivity >= 7) flags.push('🔴 GOING COLD');
+  const flagStr = flags.length > 0 ? ` [${flags.join(', ')}]` : '';
+  const closeInfo = d.daysUntilClose !== null
+    ? (d.daysUntilClose < 0 ? `OVERDUE by ${Math.abs(d.daysUntilClose)} days` : d.daysUntilClose <= 7 ? `Closes in ${d.daysUntilClose} days` : '')
+    : '';
+  return `  • "${d.name}" - $${(parseFloat(d.amount) || 0).toLocaleString()} - ${d.stageName || 'Unknown'} (${d.stageProbability || 0}% probability)${flagStr}
+    Last activity: ${d.daysSinceActivity} days ago | ${closeInfo}`;
+}).join('\n')}
 
-- Pending E-Signatures awaiting others: ${data.pendingSignatures.length}
-- Pending NDA Approvals needing my action: ${data.pendingApprovals?.length || 0}
-- Unread Messages: ${data.unreadMessages?.length || 0}
+QUICK STATS:
+- ${overdueDeals.length} deals past their close date
+- ${urgentDeals.length} deals closing within 7 days
+- ${highValueDeals.length} high-value deals ($100k+) in pipeline
+- ${lateStageDeals.length} deals at 50%+ probability
 
-- Pipeline Stats:
-  * Total Pipeline Value: $${data.stats.pipelineValue.toLocaleString()}
-  * Open Deals: ${data.stats.openDeals}
-  * Deals Won This Month: ${data.stats.dealsWonThisMonth} ($${data.stats.wonValueThisMonth.toLocaleString()})
+TASKS:
+- OVERDUE: ${data.tasks.overdue.length}${data.tasks.overdue.length > 0 ? ` (${data.tasks.overdue.slice(0, 3).map((t: any) => t.title).join(', ')})` : ''}
+- Due Today: ${data.tasks.dueToday.length}${data.tasks.dueToday.length > 0 ? ` (${data.tasks.dueToday.slice(0, 3).map((t: any) => t.title).join(', ')})` : ''}
+- Upcoming: ${data.tasks.upcoming.length}
 
-Please provide a JSON response with:
-1. "summary": A 2-3 sentence personalized summary of what needs attention today
-2. "priorityDeals": Top 3-5 deals that need attention, with "reason" and "suggestedAction" for each
-3. "riskAlerts": Any deals that are going cold (consider stage - early stage deals can go 7+ days, late stage deals going 3+ days without activity is concerning)
-4. "tasksMessage": A brief message about the task situation
-5. "signaturesMessage": A brief message about pending signatures (if any)
-6. "approvalsMessage": A brief message about pending approvals (if any)
-7. "messagesMessage": A brief message about unread messages (if any)
+E-SIGNATURES PENDING (${data.pendingSignatures.length} total):
+${data.pendingSignatures.slice(0, 5).map((s: any) => {
+  const status = s.isStale ? '🔴 STALE' : s.needsReminder ? '🟡 NEEDS REMINDER' : s.hasViewed ? '👀 Viewed' : '📤 Sent';
+  return `  • "${s.title}" - waiting on ${s.recipientName} (${s.daysPending} days) [${status}]`;
+}).join('\n') || '  None pending'}
 
-Be concise, actionable, and prioritize by business impact. Focus on what matters most today.`;
+NDA APPROVALS NEEDING YOUR ACTION: ${data.pendingApprovals?.length || 0}
+${(data.pendingApprovals || []).slice(0, 3).map((a: any) => `  • "${a.documentTitle}" from ${a.signerEmail}`).join('\n') || ''}
+
+UNREAD MESSAGES: ${data.unreadMessages?.length || 0}
+${(data.unreadMessages || []).slice(0, 3).map((m: any) => `  • From ${m.inquirerName}: "${m.subject}"`).join('\n') || ''}
+
+Pipeline: $${data.stats.pipelineValue.toLocaleString()} | Won this month: ${data.stats.dealsWonThisMonth} ($${data.stats.wonValueThisMonth.toLocaleString()})
+
+RESPOND WITH JSON containing:
+1. "summary": 2-3 sentences telling them EXACTLY what to do first. Be specific - name the deal/person/task. Example: "Start with [Deal Name] - it's a $500k deal closing Friday that hasn't been touched in 5 days. Then follow up on the stale signature from John Smith."
+2. "priorityDeals": Top 3-5 deals with:
+   - "id", "name", "value", "stage", "daysSinceActivity"
+   - "reason": Be SPECIFIC (e.g., "$200k deal at 70% probability with no activity for 5 days")
+   - "suggestedAction": Specific action (e.g., "Call Jane at Acme Corp to confirm closing timeline")
+3. "riskAlerts": Deals at risk with specific warnings
+4. "tasksMessage": Specific task guidance (name the most important overdue task)
+5. "signaturesMessage": Who to follow up with first and why
+6. "approvalsMessage": Specific approval actions needed
+7. "messagesMessage": Which message to reply to first
+
+Be SPECIFIC with names, amounts, and actions. Prioritize by: 1) Revenue impact, 2) Urgency/deadlines, 3) Risk of loss.`;
 
   try {
     const response = await openai.chat.completions.create({
@@ -579,39 +777,85 @@ Be concise, actionable, and prioritize by business impact. Focus on what matters
 
     const aiResponse = JSON.parse(response.choices[0].message.content || '{}');
 
-    // Build priority deals and risk alerts directly from data (more reliable than AI matching)
+    // Build priority deals using priority score (combines value, stage, urgency, inactivity)
     const priorityDealsFromData = data.deals
-      .filter((d: any) => d.daysSinceActivity >= 3)
-      .sort((a: any, b: any) => b.daysSinceActivity - a.daysSinceActivity)
+      .filter((d: any) => d.priorityScore > 5 || d.daysSinceActivity >= 3 || d.isUrgent || d.isOverdue)
+      .sort((a: any, b: any) => (b.priorityScore || 0) - (a.priorityScore || 0))
       .slice(0, 5)
       .map((d: any) => {
         // Find AI suggestion for this deal if available
         const aiSuggestion = (aiResponse.priorityDeals || []).find((p: any) =>
           p.name === d.name || p.id === d.id
         );
+
+        // Build a specific reason if AI didn't provide one
+        const reasons = [];
+        if (d.isHighValue) reasons.push(`$${(parseFloat(d.amount) || 0).toLocaleString()} high-value deal`);
+        if (d.isOverdue) reasons.push(`past close date by ${Math.abs(d.daysUntilClose)} days`);
+        else if (d.isUrgent) reasons.push(`closing in ${d.daysUntilClose} days`);
+        if (d.isLateStage) reasons.push(`${d.stageProbability}% close probability`);
+        if (d.daysSinceActivity >= 5) reasons.push(`${d.daysSinceActivity} days without activity`);
+
         return {
           id: d.id,
           name: d.name,
           value: d.amount ? parseFloat(d.amount) : null,
           stage: d.stageName || 'Unknown',
+          stageProbability: d.stageProbability || 0,
           daysSinceActivity: d.daysSinceActivity,
-          reason: aiSuggestion?.reason || `No activity in ${d.daysSinceActivity} days`,
-          suggestedAction: aiSuggestion?.suggestedAction || 'Follow up with contact'
+          daysUntilClose: d.daysUntilClose,
+          isHighValue: d.isHighValue || false,
+          isLateStage: d.isLateStage || false,
+          isUrgent: d.isUrgent || false,
+          isOverdue: d.isOverdue || false,
+          priorityScore: d.priorityScore || 0,
+          reason: aiSuggestion?.reason || reasons.join('; ') || `Needs attention`,
+          suggestedAction: aiSuggestion?.suggestedAction || 'Follow up with contact to confirm next steps'
         };
       });
 
+    // Build risk alerts for deals going cold (especially late-stage high-value ones)
     const riskAlertsFromData = data.deals
-      .filter((d: any) => d.daysSinceActivity >= 7)
-      .slice(0, 3)
+      .filter((d: any) => {
+        // Late stage deals (50%+ probability) going cold after 3+ days
+        if (d.isLateStage && d.daysSinceActivity >= 3) return true;
+        // High value deals going cold after 5+ days
+        if (d.isHighValue && d.daysSinceActivity >= 5) return true;
+        // Any deal going cold after 7+ days
+        if (d.daysSinceActivity >= 7) return true;
+        // Deals past their close date
+        if (d.isOverdue) return true;
+        return false;
+      })
+      .sort((a: any, b: any) => (b.priorityScore || 0) - (a.priorityScore || 0))
+      .slice(0, 5)
       .map((d: any) => {
         // Find AI message for this deal if available
         const aiAlert = (aiResponse.riskAlerts || []).find((r: any) =>
           r.name === d.name || r.dealName === d.name
         );
+
+        // Build specific risk message
+        let riskMessage = '';
+        if (d.isOverdue) {
+          riskMessage = `⚠️ Past close date by ${Math.abs(d.daysUntilClose)} days - needs immediate attention`;
+        } else if (d.isLateStage && d.isHighValue && d.daysSinceActivity >= 3) {
+          riskMessage = `🔴 High-value late-stage deal going cold (${d.daysSinceActivity} days)`;
+        } else if (d.isLateStage && d.daysSinceActivity >= 3) {
+          riskMessage = `🟡 Late-stage deal needs follow-up (${d.daysSinceActivity} days inactive)`;
+        } else if (d.isHighValue && d.daysSinceActivity >= 5) {
+          riskMessage = `💰 High-value deal losing momentum (${d.daysSinceActivity} days)`;
+        } else {
+          riskMessage = `${d.daysSinceActivity} days without activity`;
+        }
+
         return {
           dealId: d.id,
           dealName: d.name,
-          message: aiAlert?.message || `${d.daysSinceActivity} days without activity`
+          value: d.amount ? parseFloat(d.amount) : null,
+          stage: d.stageName,
+          daysSinceActivity: d.daysSinceActivity,
+          message: aiAlert?.message || riskMessage
         };
       });
 
@@ -631,14 +875,33 @@ Be concise, actionable, and prioritize by business impact. Focus on what matters
       },
       pendingSignatures: {
         count: data.pendingSignatures.length,
-        items: data.pendingSignatures.slice(0, 5).map((s: any) => ({
-          id: s.envelopeId,
-          title: s.title,
-          recipientName: s.recipientName
-        })),
-        message: aiResponse.signaturesMessage || (data.pendingSignatures.length > 0
-          ? `${data.pendingSignatures.length} documents awaiting signatures.`
-          : 'No pending signatures.')
+        items: data.pendingSignatures
+          .sort((a: any, b: any) => (b.daysPending || 0) - (a.daysPending || 0))
+          .slice(0, 5)
+          .map((s: any) => ({
+            id: s.envelopeId,
+            title: s.title,
+            recipientName: s.recipientName,
+            recipientEmail: s.recipientEmail,
+            daysPending: s.daysPending || 0,
+            hasViewed: s.hasViewed || false,
+            needsReminder: s.needsReminder || false,
+            isStale: s.isStale || false
+          })),
+        staleCount: data.pendingSignatures.filter((s: any) => s.isStale).length,
+        needsReminderCount: data.pendingSignatures.filter((s: any) => s.needsReminder).length,
+        message: aiResponse.signaturesMessage || (() => {
+          const stale = data.pendingSignatures.filter((s: any) => s.isStale);
+          const needsReminder = data.pendingSignatures.filter((s: any) => s.needsReminder && !s.isStale);
+          if (stale.length > 0) {
+            return `⚠️ ${stale.length} signature${stale.length > 1 ? 's' : ''} stale (5+ days) - follow up with ${stale[0].recipientName} first.`;
+          } else if (needsReminder.length > 0) {
+            return `${needsReminder.length} signature${needsReminder.length > 1 ? 's need' : ' needs'} reminder - ${needsReminder[0].recipientName} hasn't viewed yet.`;
+          } else if (data.pendingSignatures.length > 0) {
+            return `${data.pendingSignatures.length} document${data.pendingSignatures.length > 1 ? 's' : ''} awaiting signatures.`;
+          }
+          return 'No pending signatures.';
+        })()
       },
       pendingApprovals: {
         count: data.pendingApprovals?.length || 0,

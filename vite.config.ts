@@ -118,9 +118,9 @@ export default defineConfig({
   },
   // Optimize dev server
   server: {
-    hmr: {
-      overlay: true,
-    },
+    // Disable HMR in Replit to prevent WebSocket errors (wss://localhost:undefined)
+    // Replit's proxy doesn't reliably support HMR websockets
+    hmr: process.env.REPLIT_DEV_DOMAIN || process.env.REPL_SLUG ? false : { overlay: true },
   },
   // Optimize dependencies
   optimizeDeps: {

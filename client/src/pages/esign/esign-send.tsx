@@ -1081,15 +1081,21 @@ export default function EsignSend() {
       // Build the fields array based on template or direct upload fields
       let fields: any[] = [];
       if (selectedTemplate) {
-        // For templates, use the pre-defined fields
+        // For templates, use the pre-defined fields and map placeholder IDs to recipient indices
         fields = selectedTemplate.fields.map(field => {
-          // Find the recipient that maps to this field's placeholder
-          const recipient = recipients.find(
+          // Find the recipient index that maps to this field's placeholder
+          const recipientIndex = recipients.findIndex(
             r => r.placeholderRecipientId === field.assignedTo
           );
           return {
-            ...field,
-            recipientId: recipient?.id || null,
+            recipientIndex: recipientIndex >= 0 ? recipientIndex : 0,
+            type: field.type,
+            x: field.x,
+            y: field.y,
+            width: field.width,
+            height: field.height,
+            page: field.page,
+            required: field.required ?? true,
           };
         });
       } else {

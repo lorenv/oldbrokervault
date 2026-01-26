@@ -340,7 +340,7 @@ function DraggableField({
       style={style}
       {...(isResizing ? {} : attributes)}
       {...(isResizing ? {} : listeners)}
-      className={`rounded border-2 cursor-move flex items-center justify-center gap-1 text-white font-medium transition-shadow ${
+      className={`rounded cursor-move flex items-center justify-center gap-1 text-white font-medium transition-shadow ${
         isSelected ? 'ring-2 ring-offset-1 ring-blue-500' : ''
       }`}
       onClick={(e) => {
@@ -349,9 +349,10 @@ function DraggableField({
       }}
     >
       <div
-        className="w-full h-full flex items-center justify-center gap-1 rounded overflow-hidden"
+        className="w-full h-full flex items-center justify-center gap-1 rounded border-2 overflow-hidden"
         style={{
           backgroundColor: recipient?.color || '#888',
+          borderColor: recipient?.color || '#888',
           opacity: 0.9,
           fontSize: `${Math.min(fontSize, 14)}px`, // Cap display font size for template preview
         }}
@@ -571,6 +572,18 @@ export default function EsignTemplateEditor() {
   const canvasRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const lastPointerPosition = useRef<{ x: number; y: number } | null>(null);
 
+  // Track actual mouse position during drag using native events (more reliable than @dnd-kit delta)
+  useEffect(() => {
+    if (!activeDragId) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      lastPointerPosition.current = { x: e.clientX, y: e.clientY };
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    return () => document.removeEventListener('mousemove', handleMouseMove);
+  }, [activeDragId]);
+
   const registerCanvasRef = useCallback((pageNumber: number, ref: HTMLDivElement | null) => {
     if (ref) {
       canvasRefs.current.set(pageNumber, ref);
@@ -611,16 +624,10 @@ export default function EsignTemplateEditor() {
     }
   }, []);
 
-  // Track pointer position during drag for accurate drop placement
+  // Track pointer position during drag (native mouse tracking is used via useEffect above)
   const handleDragMove = useCallback((event: DragMoveEvent) => {
-    // Store the current pointer position from the activator event
-    const { activatorEvent } = event;
-    if (activatorEvent && 'clientX' in activatorEvent) {
-      lastPointerPosition.current = {
-        x: (activatorEvent as PointerEvent).clientX + (event.delta?.x || 0),
-        y: (activatorEvent as PointerEvent).clientY + (event.delta?.y || 0),
-      };
-    }
+    // Native mouse tracking is now used instead for more accurate position
+    // This callback is kept for potential future use but position is tracked via document mousemove
   }, []);
 
   // Fetch existing template if editing
@@ -874,7 +881,7 @@ export default function EsignTemplateEditor() {
 
   // Handle drag end
   const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over, activatorEvent } = event;
+    const { active, over } = event;
 
     // Clear active drag state
     setActiveDragId(null);
@@ -890,7 +897,7 @@ export default function EsignTemplateEditor() {
       const pageNumber = parseInt(over.id.toString().split('-').pop() || '1');
       const canvasRef = canvasRefs.current.get(pageNumber);
 
-      if (!canvasRef) {
+      if (!canvasRef || !lastPointerPosition.current) {
         lastPointerPosition.current = null;
         return;
       }
@@ -898,29 +905,19 @@ export default function EsignTemplateEditor() {
       // Get canvas bounding rect for accurate position calculation
       const canvasRect = canvasRef.getBoundingClientRect();
 
-      // Calculate pointer position - use last tracked position or calculate from event
-      let pointerX: number;
-      let pointerY: number;
+      // Use the native mouse position tracked via document mousemove
+      const pointerX = lastPointerPosition.current.x;
+      const pointerY = lastPointerPosition.current.y;
 
-      if (lastPointerPosition.current) {
-        pointerX = lastPointerPosition.current.x;
-        pointerY = lastPointerPosition.current.y;
-      } else if (activatorEvent && 'clientX' in activatorEvent) {
-        pointerX = (activatorEvent as PointerEvent).clientX + (event.delta?.x || 0);
-        pointerY = (activatorEvent as PointerEvent).clientY + (event.delta?.y || 0);
-      } else {
-        lastPointerPosition.current = null;
-        return;
-      }
+      // Calculate position relative to canvas
+      // The canvas is displayed at baseWidth * zoom, so we need to convert screen pixels to percentage
+      const relativeX = pointerX - canvasRect.left;
+      const relativeY = pointerY - canvasRect.top;
 
-      // Calculate position relative to canvas, accounting for zoom
-      const relativeX = (pointerX - canvasRect.left) / zoom;
-      const relativeY = (pointerY - canvasRect.top) / zoom;
-
-      // Convert to percentage of canvas dimensions (unzoomed)
-      const baseWidth = 612;
-      const x = (relativeX / baseWidth) * 100;
-      const y = (relativeY / (canvasRect.height / zoom)) * 100;
+      // Convert to percentage of canvas dimensions
+      // canvasRect.width and height are already the zoomed dimensions
+      const x = (relativeX / canvasRect.width) * 100;
+      const y = (relativeY / canvasRect.height) * 100;
 
       // Check if from palette or existing field
       if (active.data.current?.fromPalette) {
@@ -1020,7 +1017,7 @@ export default function EsignTemplateEditor() {
       }
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["/api/esign/templates"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/esign/templates"] });
       toast({
         title: isEditing ? "Template updated" : "Template created",
         description: "Your template has been saved successfully.",
@@ -1085,7 +1082,7 @@ export default function EsignTemplateEditor() {
                       className="group flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded-md px-2 py-1 -mx-2 transition-colors"
                       onClick={startEditingTitle}
                     >
-                      <h1 className="font-semibold text-lg truncate">{name}</h1>
+                      <h1 className="font-semibold text-lg truncate text-gray-900">{name}</h1>
                       <Pencil className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
                     </div>
                   )}
@@ -1742,6 +1739,9 @@ export default function EsignTemplateEditor() {
             className="rounded border-2 flex items-center justify-center gap-1 text-white font-medium shadow-lg pointer-events-none"
             style={{
               backgroundColor: activeRecipientId
+                ? recipients.find(r => r.id === activeRecipientId)?.color || '#888'
+                : '#888',
+              borderColor: activeRecipientId
                 ? recipients.find(r => r.id === activeRecipientId)?.color || '#888'
                 : '#888',
               opacity: 0.9,

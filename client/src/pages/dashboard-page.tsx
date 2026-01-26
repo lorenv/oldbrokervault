@@ -41,6 +41,7 @@ import {
   Building2,
   FileText,
   ChevronRight,
+  ChevronDown,
   AlertCircle,
   Calendar,
   X,
@@ -259,13 +260,23 @@ interface BriefingData {
     name: string;
     value: number | null;
     stage: string;
+    stageProbability?: number;
     daysSinceActivity: number;
+    daysUntilClose?: number | null;
+    isHighValue?: boolean;
+    isLateStage?: boolean;
+    isUrgent?: boolean;
+    isOverdue?: boolean;
+    priorityScore?: number;
     reason: string;
     suggestedAction: string;
   }>;
   riskAlerts: Array<{
     dealId: number;
     dealName: string;
+    value?: number | null;
+    stage?: string;
+    daysSinceActivity?: number;
     message: string;
   }>;
   tasksOverview: {
@@ -276,7 +287,18 @@ interface BriefingData {
   };
   pendingSignatures: {
     count: number;
-    items: Array<{ id: number; title: string; recipientName: string }>;
+    items: Array<{
+      id: number;
+      title: string;
+      recipientName: string;
+      recipientEmail?: string;
+      daysPending?: number;
+      hasViewed?: boolean;
+      needsReminder?: boolean;
+      isStale?: boolean;
+    }>;
+    staleCount?: number;
+    needsReminderCount?: number;
     message: string;
   };
   pendingApprovals: {
@@ -339,6 +361,16 @@ export default function DashboardPage() {
   const searchString = useSearch();
   const queryClient = useQueryClient();
   const [quickCreateType, setQuickCreateType] = useState<QuickCreateType>(null);
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    signatures: false,
+    approvals: false,
+    messages: false,
+    tasks: false,
+  });
+
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
 
   // Parse mode from URL
   const mode = useMemo(() => {
@@ -445,473 +477,520 @@ export default function DashboardPage() {
     );
   }
 
+  // Build unified action items list
+  const actionItems = useMemo(() => {
+    const items: Array<{
+      id: string;
+      type: 'deal' | 'task' | 'signature' | 'approval' | 'message';
+      priority: 'urgent' | 'high' | 'medium';
+      title: string;
+      subtitle: string;
+      href: string;
+      value?: number;
+      meta?: string;
+    }> = [];
+
+    // Add overdue/urgent deals
+    if (briefing?.priorityDeals) {
+      briefing.priorityDeals.slice(0, 3).forEach(deal => {
+        items.push({
+          id: `deal-${deal.id}`,
+          type: 'deal',
+          priority: deal.isOverdue ? 'urgent' : deal.isUrgent ? 'high' : 'medium',
+          title: deal.name,
+          subtitle: deal.isOverdue
+            ? `Past close date - needs immediate follow-up`
+            : deal.isUrgent
+              ? `Closing in ${deal.daysUntilClose}d - confirm next steps`
+              : `Suggested follow-up: ${deal.daysSinceActivity} days since last activity`,
+          href: `/deals/${deal.id}`,
+          value: deal.value || undefined,
+          meta: deal.stage,
+        });
+      });
+    }
+
+    // Add overdue tasks
+    overdueTasks.slice(0, 2).forEach(task => {
+      items.push({
+        id: `task-${task.id}`,
+        type: 'task',
+        priority: 'urgent',
+        title: task.title,
+        subtitle: 'Overdue task',
+        href: '/tasks',
+      });
+    });
+
+    // Add stale signatures
+    if (briefing?.pendingSignatures?.items) {
+      briefing.pendingSignatures.items
+        .filter(s => s.isStale || s.needsReminder)
+        .slice(0, 2)
+        .forEach(sig => {
+          items.push({
+            id: `sig-${sig.id}`,
+            type: 'signature',
+            priority: sig.isStale ? 'urgent' : 'high',
+            title: sig.title,
+            subtitle: `Waiting on ${sig.recipientName} (${sig.daysPending}d)`,
+            href: `/esign/envelope/${sig.id}`,
+          });
+        });
+    }
+
+    // Add pending approvals
+    if (briefing?.pendingApprovals?.items) {
+      briefing.pendingApprovals.items.slice(0, 2).forEach((approval, i) => {
+        items.push({
+          id: `approval-${approval.documentId}`,
+          type: 'approval',
+          priority: 'high',
+          title: `NDA approval: ${approval.signerEmail}`,
+          subtitle: `For ${approval.documentTitle}`,
+          href: `/esign/envelope/${approval.documentId}`,
+        });
+      });
+    }
+
+    // Sort by priority
+    const priorityOrder = { urgent: 0, high: 1, medium: 2 };
+    return items.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]).slice(0, 8);
+  }, [briefing, overdueTasks]);
+
+  // Count urgent items for the header
+  const urgentCount = actionItems.filter(i => i.priority === 'urgent').length;
+  const totalActionItems = actionItems.length;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
-      <main className="px-4 md:px-6 py-4 md:py-6">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900">
-            {firstName ? `Welcome back, ${firstName}` : 'Welcome back'}
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Here's what needs your attention today
-          </p>
+    <div className="min-h-screen bg-gray-50">
+      <main className="max-w-6xl mx-auto px-4 md:px-6 py-6">
+        {/* Compact Header with Quick Actions */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900">
+              {firstName ? `Welcome back, ${firstName}` : 'Dashboard'}
+            </h1>
+            <p className="text-sm text-gray-500">
+              {urgentCount > 0
+                ? `${urgentCount} urgent item${urgentCount > 1 ? 's' : ''} need${urgentCount === 1 ? 's' : ''} attention`
+                : totalActionItems > 0
+                  ? `${totalActionItems} item${totalActionItems > 1 ? 's' : ''} to review`
+                  : "You're all caught up"}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setQuickCreateType("deal")}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              New Deal
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refreshBriefingMutation.mutate()}
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+            </Button>
+          </div>
         </div>
 
-        {/* AI Briefing Card */}
-        <Card className="mb-6 border-0 bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 shadow-md">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg shadow-sm">
-                  <Sparkles className="h-4 w-4 text-white" />
-                </div>
-                <div>
-                  <CardTitle className="text-base font-semibold text-gray-900">AI Daily Briefing</CardTitle>
-                  {briefingResponse?.generatedAt && (
-                    <p className="text-xs text-gray-600">
-                      Generated {formatTimeAgo(briefingResponse.generatedAt)}
-                      {briefingResponse.cached && " (cached)"}
-                    </p>
-                  )}
-                </div>
+        {/* AI Summary - Compact */}
+        <Card className="mb-6 border-gray-200">
+          <CardContent className="py-4">
+            <div className="flex items-start gap-3">
+              <div className="p-1.5 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-md flex-shrink-0">
+                <Sparkles className="h-3.5 w-3.5 text-white" />
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => refreshBriefingMutation.mutate()}
-                disabled={isRefreshing}
-                className="text-purple-700 hover:text-purple-900 hover:bg-purple-100/50"
-              >
-                <RefreshCw className={cn("h-4 w-4 mr-1", isRefreshing && "animate-spin")} />
-                Refresh
-              </Button>
+              <div className="flex-1 min-w-0">
+                {briefingLoading || isRefreshing ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-4/5" />
+                  </div>
+                ) : briefing ? (
+                  <p className="text-sm text-gray-700 leading-relaxed">{briefing.summary}</p>
+                ) : (
+                  <p className="text-sm text-gray-500">Unable to load briefing.</p>
+                )}
+              </div>
             </div>
-          </CardHeader>
-          <CardContent>
-            {briefingLoading || isRefreshing ? (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 bg-purple-400 rounded-full animate-pulse" />
-                  <div className="h-2 w-2 bg-blue-400 rounded-full animate-pulse [animation-delay:150ms]" />
-                  <div className="h-2 w-2 bg-indigo-400 rounded-full animate-pulse [animation-delay:300ms]" />
-                  <span className="text-sm text-gray-700 ml-1">Analyzing your deals and tasks...</span>
-                </div>
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-5/6" />
-                  <Skeleton className="h-4 w-4/6" />
-                </div>
-              </div>
-            ) : briefing ? (
-              <p className="text-gray-800 leading-relaxed">{briefing.summary}</p>
-            ) : (
-              <p className="text-gray-600">Unable to load briefing. Click refresh to try again.</p>
-            )}
           </CardContent>
         </Card>
 
-        {/* Quick Stats Row */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setLocation('/deals')}>
-            <CardContent className="pt-4 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-100 rounded-lg flex-shrink-0">
-                  <DollarSign className="h-5 w-5 text-green-600" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-2xl font-semibold text-gray-900 truncate">
-                    {briefingLoading ? (
-                      <Skeleton className="h-8 w-20" />
-                    ) : briefing ? (
-                      (() => {
-                        const value = briefing.quickStats.pipelineValue;
-                        console.log('[Dashboard] Pipeline Value:', value, typeof value);
-                        return formatCurrency(value);
-                      })()
-                    ) : (
-                      '$0'
-                    )}
-                  </p>
-                  <p className="text-xs text-gray-600 font-medium">Pipeline Value</p>
-                </div>
+        {/* Quick Stats - With Icons */}
+        <div className="grid grid-cols-4 gap-3 mb-6">
+          <button
+            onClick={() => setLocation('/deals')}
+            className="bg-white rounded-lg border border-gray-200 p-3 text-left hover:border-gray-300 hover:shadow-sm transition-all"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 bg-green-100 rounded-lg">
+                <DollarSign className="h-4 w-4 text-green-600" />
               </div>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setLocation('/deals')}>
-            <CardContent className="pt-4 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
-                  <Kanban className="h-5 w-5 text-blue-600" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-2xl font-semibold text-gray-900 truncate">
-                    {briefingLoading ? (
-                      <Skeleton className="h-8 w-12" />
-                    ) : (
-                      briefing?.quickStats.openDeals ?? 0
-                    )}
-                  </p>
-                  <p className="text-xs text-gray-600 font-medium">Open Deals</p>
-                </div>
+              <div>
+                <p className="text-lg font-semibold text-gray-900">
+                  {briefingLoading ? '—' : briefing ? formatCurrency(briefing.quickStats.pipelineValue) : '$0'}
+                </p>
+                <p className="text-xs text-gray-500">Pipeline</p>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setLocation('/deals')}>
-            <CardContent className="pt-4 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-emerald-100 rounded-lg flex-shrink-0">
-                  <TrendingUp className="h-5 w-5 text-emerald-600" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-2xl font-semibold text-gray-900 truncate">
-                    {briefingLoading ? (
-                      <Skeleton className="h-8 w-12" />
-                    ) : (
-                      briefing?.quickStats.dealsWonThisMonth ?? 0
-                    )}
-                  </p>
-                  <p className="text-xs text-gray-600 font-medium">Won This Month</p>
-                </div>
+            </div>
+          </button>
+          <button
+            onClick={() => setLocation('/deals')}
+            className="bg-white rounded-lg border border-gray-200 p-3 text-left hover:border-gray-300 hover:shadow-sm transition-all"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 bg-blue-100 rounded-lg">
+                <Kanban className="h-4 w-4 text-blue-600" />
               </div>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setLocation('/tasks')}>
-            <CardContent className="pt-4 pb-4">
-              <div className="flex items-center gap-3">
-                <div className={cn(
-                  "p-2 rounded-lg flex-shrink-0",
-                  overdueTasks.length > 0 ? "bg-red-100" : "bg-gray-100"
-                )}>
-                  <CheckSquare className={cn(
-                    "h-5 w-5",
-                    overdueTasks.length > 0 ? "text-red-600" : "text-gray-600"
-                  )} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-2xl font-semibold text-gray-900 truncate">
-                    {overdueTasks.length}
-                  </p>
-                  <p className="text-xs text-gray-600 font-medium">Overdue Tasks</p>
-                </div>
+              <div>
+                <p className="text-lg font-semibold text-gray-900">
+                  {briefingLoading ? '—' : briefing?.quickStats.openDeals ?? 0}
+                </p>
+                <p className="text-xs text-gray-500">Open Deals</p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </button>
+          <button
+            onClick={() => setLocation('/deals')}
+            className="bg-white rounded-lg border border-gray-200 p-3 text-left hover:border-gray-300 hover:shadow-sm transition-all"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 bg-emerald-100 rounded-lg">
+                <TrendingUp className="h-4 w-4 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-lg font-semibold text-emerald-600">
+                  {briefingLoading ? '—' : briefing?.quickStats.dealsWonThisMonth ?? 0}
+                </p>
+                <p className="text-xs text-gray-500">Won This Month</p>
+              </div>
+            </div>
+          </button>
+          <button
+            onClick={() => setLocation('/tasks')}
+            className={cn(
+              "bg-white rounded-lg border p-3 text-left hover:shadow-sm transition-all",
+              overdueTasks.length > 0 ? "border-red-200 hover:border-red-300" : "border-gray-200 hover:border-gray-300"
+            )}
+          >
+            <div className="flex items-center gap-2.5">
+              <div className={cn(
+                "p-1.5 rounded-lg",
+                overdueTasks.length > 0 ? "bg-red-100" : "bg-gray-100"
+              )}>
+                <AlertTriangle className={cn(
+                  "h-4 w-4",
+                  overdueTasks.length > 0 ? "text-red-600" : "text-gray-500"
+                )} />
+              </div>
+              <div>
+                <p className={cn("text-lg font-semibold", overdueTasks.length > 0 ? "text-red-600" : "text-gray-900")}>
+                  {overdueTasks.length}
+                </p>
+                <p className="text-xs text-gray-500">Overdue Tasks</p>
+              </div>
+            </div>
+          </button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Priority Deals & Tasks */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Priority Deals */}
-            {briefing?.priorityDeals && briefing.priorityDeals.length > 0 && (
-              <Card className="border-blue-200 bg-blue-50/30">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg flex items-center gap-2 text-blue-900">
-                      <Clock className="h-5 w-5 text-blue-600" />
-                      Priority Deals
-                      <Badge className="ml-2 bg-blue-100 text-blue-700 border-blue-200">
-                        {briefing.priorityDeals.length}
-                      </Badge>
-                    </CardTitle>
-                    <Button variant="ghost" size="sm" asChild className="text-blue-700 hover:text-blue-900 hover:bg-blue-100/50">
-                      <Link href="/deals">
-                        View All
-                        <ChevronRight className="h-4 w-4 ml-1" />
-                      </Link>
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {briefing.priorityDeals.slice(0, 4).map((deal) => (
-                    <Link
-                      key={deal.id}
-                      href={`/deals/${deal.id}`}
-                      className="block p-3 rounded-lg border border-blue-100 bg-blue-50/50 hover:border-blue-200 hover:bg-blue-100/50 transition-colors"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-gray-900 truncate">{deal.name}</h4>
-                          <p className="text-sm text-gray-600 mt-0.5">{deal.reason}</p>
-                          {deal.suggestedAction && (
-                            <p className="text-sm text-blue-700 mt-1 flex items-center gap-1">
-                              <ArrowRight className="h-3 w-3 text-blue-600" />
-                              {deal.suggestedAction}
-                            </p>
-                          )}
-                        </div>
-                        <div className="text-right flex-shrink-0">
-                          {deal.value && (
-                            <p className="font-semibold text-gray-900">{formatCurrency(deal.value)}</p>
-                          )}
-                          <Badge variant="secondary" className="text-xs mt-1 bg-gray-100 text-gray-700">
-                            {deal.stage}
-                          </Badge>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Risk Alerts */}
-            {briefing?.riskAlerts && briefing.riskAlerts.length > 0 && (
-              <Card className="border-orange-200 bg-orange-50/30">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-2 text-orange-900">
-                    <AlertCircle className="h-5 w-5 text-orange-600" />
-                    Deals at Risk
-                    <Badge className="ml-2 bg-orange-100 text-orange-700 border-orange-200">
-                      {briefing.riskAlerts.length}
-                    </Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {briefing.riskAlerts.slice(0, 3).map((alert, i) => (
-                    <Link
-                      key={i}
-                      href={`/deals/${alert.dealId}`}
-                      className="flex items-center justify-between p-3 rounded-lg border border-orange-100 bg-orange-50/50 hover:border-orange-200 hover:bg-orange-100/50 transition-colors"
-                    >
-                      <span className="font-medium text-gray-900">{alert.dealName}</span>
-                      <span className="text-sm text-orange-700">{alert.message}</span>
-                    </Link>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* My Tasks */}
+          {/* Main Column - Action Required */}
+          <div className="lg:col-span-2">
             <Card>
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-3 border-b">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <CheckSquare className="h-5 w-5 text-blue-500" />
-                    My Tasks
+                  <CardTitle className="text-base font-medium flex items-center gap-2">
+                    Action Required
+                    {totalActionItems > 0 && (
+                      <span className="text-xs font-normal text-gray-500">
+                        {totalActionItems} item{totalActionItems > 1 ? 's' : ''}
+                      </span>
+                    )}
                   </CardTitle>
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link href="/tasks">
-                      View All
-                      <ChevronRight className="h-4 w-4 ml-1" />
-                    </Link>
-                  </Button>
                 </div>
-                {briefing?.tasksOverview && (
-                  <CardDescription>{briefing.tasksOverview.message}</CardDescription>
-                )}
               </CardHeader>
-              <CardContent>
-                {overdueTasks.length === 0 && dueTodayTasks.length === 0 ? (
-                  <div className="text-center py-6">
-                    <CheckSquare className="h-10 w-10 text-green-300 mx-auto mb-2" />
-                    <p className="text-gray-500">You're all caught up!</p>
+              <CardContent className="p-0">
+                {actionItems.length === 0 ? (
+                  <div className="text-center py-12">
+                    <CheckSquare className="h-10 w-10 text-green-400 mx-auto mb-3" />
+                    <p className="text-gray-600 font-medium">You're all caught up!</p>
+                    <p className="text-sm text-gray-400 mt-1">No urgent items need your attention</p>
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    {overdueTasks.slice(0, 3).map((task) => (
-                      <div
-                        key={task.id}
-                        className="flex items-center gap-3 p-2 rounded-lg border border-gray-200 hover:bg-gray-50/50 transition-colors"
+                  <div className="divide-y divide-gray-100">
+                    {actionItems.map((item) => (
+                      <Link
+                        key={item.id}
+                        href={item.href}
+                        className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
                       >
-                        <div className="w-2 h-2 rounded-full bg-orange-400" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">{task.title}</p>
-                          <p className="text-xs text-gray-600">Overdue</p>
+                        {/* Priority Indicator */}
+                        <div className={cn(
+                          "w-2 h-2 rounded-full flex-shrink-0",
+                          item.priority === 'urgent' ? "bg-red-500" :
+                          item.priority === 'high' ? "bg-amber-500" : "bg-blue-400"
+                        )} />
+
+                        {/* Type Icon */}
+                        <div className={cn(
+                          "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0",
+                          item.type === 'deal' ? "bg-blue-50" :
+                          item.type === 'task' ? "bg-orange-50" :
+                          item.type === 'signature' ? "bg-purple-50" :
+                          item.type === 'approval' ? "bg-amber-50" : "bg-teal-50"
+                        )}>
+                          {item.type === 'deal' && <Kanban className="h-4 w-4 text-blue-600" />}
+                          {item.type === 'task' && <CheckSquare className="h-4 w-4 text-orange-600" />}
+                          {item.type === 'signature' && <FileSignature className="h-4 w-4 text-purple-600" />}
+                          {item.type === 'approval' && <Users className="h-4 w-4 text-amber-600" />}
+                          {item.type === 'message' && <MessageSquare className="h-4 w-4 text-teal-600" />}
                         </div>
-                      </div>
-                    ))}
-                    {dueTodayTasks.slice(0, 3).map((task) => (
-                      <div
-                        key={task.id}
-                        className="flex items-center gap-3 p-2 rounded-lg border border-gray-200 hover:bg-gray-50/50 transition-colors"
-                      >
-                        <div className="w-2 h-2 rounded-full bg-blue-400" />
+
+                        {/* Content */}
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">{task.title}</p>
-                          <p className="text-xs text-gray-600">Due today</p>
+                          <p className="text-sm font-medium text-gray-900 truncate">{item.title}</p>
+                          <p className="text-xs text-gray-500 truncate">{item.subtitle}</p>
                         </div>
-                      </div>
+
+                        {/* Value & Meta */}
+                        <div className="text-right flex-shrink-0">
+                          {item.value && (
+                            <p className="text-sm font-medium text-gray-900">{formatCurrency(item.value)}</p>
+                          )}
+                          {item.meta && (
+                            <p className="text-xs text-gray-400">{item.meta}</p>
+                          )}
+                        </div>
+
+                        <ChevronRight className="h-4 w-4 text-gray-300 flex-shrink-0" />
+                      </Link>
                     ))}
+                  </div>
+                )}
+
+                {/* View More Links */}
+                {totalActionItems > 0 && (
+                  <div className="border-t border-gray-100 px-4 py-3 flex gap-4">
+                    <Link href="/deals" className="text-xs text-blue-600 hover:text-blue-700 font-medium">
+                      All Deals →
+                    </Link>
+                    <Link href="/tasks" className="text-xs text-blue-600 hover:text-blue-700 font-medium">
+                      All Tasks →
+                    </Link>
+                    <Link href="/esign" className="text-xs text-blue-600 hover:text-blue-700 font-medium">
+                      E-Signatures →
+                    </Link>
                   </div>
                 )}
               </CardContent>
             </Card>
           </div>
 
-          {/* Right Column - Signatures, Approvals, Quick Actions */}
-          <div className="space-y-6">
-            {/* Pending Signatures */}
-            {briefing?.pendingSignatures && briefing.pendingSignatures.count > 0 && (
-              <Card className="border-purple-200 bg-purple-50/30">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base flex items-center gap-2 text-purple-900">
-                      <FileSignature className="h-4 w-4 text-purple-600" />
-                      Awaiting Signatures
-                    </CardTitle>
-                    <Badge className="bg-purple-100 text-purple-700 border-purple-200">{briefing.pendingSignatures.count}</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {briefing.pendingSignatures.items.slice(0, 3).map((sig) => (
-                    <Link
-                      key={sig.id}
-                      href={`/esign`}
-                      className="block p-2 rounded-lg border border-purple-100 bg-purple-50/50 hover:border-purple-200 hover:bg-purple-100/50 transition-colors"
-                    >
-                      <p className="text-sm font-medium text-gray-900 truncate">{sig.title}</p>
-                      <p className="text-xs text-gray-600">Waiting on: {sig.recipientName}</p>
-                    </Link>
-                  ))}
-                  <Button variant="ghost" size="sm" asChild className="w-full text-purple-700 hover:text-purple-900 hover:bg-purple-100/50">
-                    <Link href="/esign">
-                      View All E-Signatures
-                      <ChevronRight className="h-4 w-4 ml-1" />
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Pending NDA Approvals */}
-            {briefing?.pendingApprovals && briefing.pendingApprovals.count > 0 && (
-              <Card className="border-amber-200 bg-amber-50/30">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base flex items-center gap-2 text-amber-900">
-                      <FileCheck className="h-4 w-4 text-amber-600" />
-                      NDA Approvals Needed
-                    </CardTitle>
-                    <Badge className="bg-amber-100 text-amber-700 border-amber-200">{briefing.pendingApprovals.count}</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {briefing.pendingApprovals.items.slice(0, 3).map((approval, i) => (
-                    <Link
-                      key={i}
-                      href={`/analytics`}
-                      className="block p-2 rounded-lg border border-amber-100 bg-amber-50/50 hover:border-amber-200 hover:bg-amber-100/50 transition-colors"
-                    >
-                      <p className="text-sm font-medium text-gray-900 truncate">{approval.documentTitle}</p>
-                      <p className="text-xs text-gray-600">From: {approval.signerEmail}</p>
-                    </Link>
-                  ))}
-                  <Button variant="ghost" size="sm" asChild className="w-full text-amber-700 hover:text-amber-900 hover:bg-amber-100/50">
-                    <Link href="/analytics">
-                      Review All Approvals
-                      <ChevronRight className="h-4 w-4 ml-1" />
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Unread Messages */}
-            {briefing?.unreadMessages && briefing.unreadMessages.count > 0 && (
-              <Card className="border-teal-200 bg-teal-50/30">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base flex items-center gap-2 text-teal-900">
-                      <MessageSquare className="h-4 w-4 text-teal-600" />
-                      Unread Messages
-                    </CardTitle>
-                    <Badge className="bg-teal-100 text-teal-700 border-teal-200">{briefing.unreadMessages.count}</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {briefing.unreadMessages.items.slice(0, 3).map((msg, i) => (
-                    <Link
-                      key={i}
-                      href={`/messages/${msg.threadId}`}
-                      className="block p-2 rounded-lg border border-teal-100 bg-teal-50/50 hover:border-teal-200 hover:bg-teal-100/50 transition-colors"
-                    >
-                      <p className="text-sm font-medium text-gray-900 truncate">{msg.subject || 'No subject'}</p>
-                      <p className="text-xs text-gray-600 truncate">{msg.preview}</p>
-                      <p className="text-xs text-gray-600 mt-0.5">From: {msg.inquirerName}</p>
-                    </Link>
-                  ))}
-                  <Button variant="ghost" size="sm" asChild className="w-full text-teal-700 hover:text-teal-900 hover:bg-teal-100/50">
-                    <Link href="/messages">
-                      View All Messages
-                      <ChevronRight className="h-4 w-4 ml-1" />
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Quick Actions */}
+          {/* Sidebar - Condensed Info */}
+          <div className="space-y-4">
+            {/* Pending Items - Collapsible Sections */}
             <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Quick Actions</CardTitle>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-gray-700">Pending Items</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent className="space-y-1 p-2">
+                {/* E-Signatures */}
+                <div>
+                  <button
+                    onClick={() => toggleSection('signatures')}
+                    className="flex items-center justify-between w-full p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <ChevronRight className={cn(
+                        "h-3.5 w-3.5 text-gray-400 transition-transform",
+                        expandedSections.signatures && "rotate-90"
+                      )} />
+                      <FileSignature className="h-4 w-4 text-purple-500" />
+                      <span className="text-sm text-gray-700">E-Signatures</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {(briefing?.pendingSignatures?.staleCount || 0) > 0 && (
+                        <span className="w-2 h-2 rounded-full bg-red-500" />
+                      )}
+                      <span className="text-sm font-medium text-gray-900">
+                        {briefing?.pendingSignatures?.count || 0}
+                      </span>
+                    </div>
+                  </button>
+                  {expandedSections.signatures && briefing?.pendingSignatures?.items && briefing.pendingSignatures.items.length > 0 && (
+                    <div className="ml-6 mt-1 space-y-1">
+                      {briefing.pendingSignatures.items.map((sig) => (
+                        <Link
+                          key={sig.id}
+                          href={`/esign/envelope/${sig.id}`}
+                          className="flex items-center justify-between p-2 rounded text-xs hover:bg-gray-50"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-gray-700 truncate">{sig.title}</p>
+                            <p className="text-gray-500">Waiting: {sig.recipientName}</p>
+                          </div>
+                          {sig.isStale && (
+                            <span className="text-red-600 font-medium ml-2">{sig.daysPending}d</span>
+                          )}
+                          {sig.needsReminder && !sig.isStale && (
+                            <span className="text-amber-600 font-medium ml-2">{sig.daysPending}d</span>
+                          )}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* NDA Approvals */}
+                <div>
+                  <button
+                    onClick={() => toggleSection('approvals')}
+                    className="flex items-center justify-between w-full p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <ChevronRight className={cn(
+                        "h-3.5 w-3.5 text-gray-400 transition-transform",
+                        expandedSections.approvals && "rotate-90"
+                      )} />
+                      <Users className="h-4 w-4 text-amber-500" />
+                      <span className="text-sm text-gray-700">NDA Approvals</span>
+                    </div>
+                    <span className="text-sm font-medium text-gray-900">
+                      {briefing?.pendingApprovals?.count || 0}
+                    </span>
+                  </button>
+                  {expandedSections.approvals && briefing?.pendingApprovals?.items && briefing.pendingApprovals.items.length > 0 && (
+                    <div className="ml-6 mt-1 space-y-1">
+                      {briefing.pendingApprovals.items.map((approval, i) => (
+                        <Link
+                          key={i}
+                          href={`/esign/envelope/${approval.documentId}`}
+                          className="block p-2 rounded text-xs hover:bg-gray-50"
+                        >
+                          <p className="text-gray-700 truncate">{approval.signerEmail}</p>
+                          <p className="text-gray-500 truncate">For: {approval.documentTitle}</p>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Unread Messages */}
+                <div>
+                  <button
+                    onClick={() => toggleSection('messages')}
+                    className="flex items-center justify-between w-full p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <ChevronRight className={cn(
+                        "h-3.5 w-3.5 text-gray-400 transition-transform",
+                        expandedSections.messages && "rotate-90"
+                      )} />
+                      <MessageSquare className="h-4 w-4 text-teal-500" />
+                      <span className="text-sm text-gray-700">Unread Messages</span>
+                    </div>
+                    <span className="text-sm font-medium text-gray-900">
+                      {briefing?.unreadMessages?.count || 0}
+                    </span>
+                  </button>
+                  {expandedSections.messages && briefing?.unreadMessages?.items && briefing.unreadMessages.items.length > 0 && (
+                    <div className="ml-6 mt-1 space-y-1">
+                      {briefing.unreadMessages.items.map((msg, i) => (
+                        <Link
+                          key={i}
+                          href={`/messages/${msg.threadId}`}
+                          className="block p-2 rounded text-xs hover:bg-gray-50"
+                        >
+                          <p className="text-gray-700 truncate">{msg.subject || 'No subject'}</p>
+                          <p className="text-gray-500 truncate">From: {msg.inquirerName}</p>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Tasks Due Today */}
+                <div>
+                  <button
+                    onClick={() => toggleSection('tasks')}
+                    className="flex items-center justify-between w-full p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <ChevronRight className={cn(
+                        "h-3.5 w-3.5 text-gray-400 transition-transform",
+                        expandedSections.tasks && "rotate-90"
+                      )} />
+                      <CheckSquare className="h-4 w-4 text-blue-500" />
+                      <span className="text-sm text-gray-700">Tasks Due Today</span>
+                    </div>
+                    <span className="text-sm font-medium text-gray-900">
+                      {dueTodayTasks.length}
+                    </span>
+                  </button>
+                  {expandedSections.tasks && dueTodayTasks.length > 0 && (
+                    <div className="ml-6 mt-1 space-y-1">
+                      {dueTodayTasks.map((task) => (
+                        <Link
+                          key={task.id}
+                          href="/tasks"
+                          className="block p-2 rounded text-xs hover:bg-gray-50"
+                        >
+                          <p className="text-gray-700 truncate">{task.title}</p>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Quick Actions - Simplified */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-gray-700">Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 gap-2">
                 <Button
                   variant="outline"
-                  className="w-full justify-start"
+                  size="sm"
+                  className="justify-start text-xs h-9"
                   onClick={() => setQuickCreateType("deal")}
                 >
-                  <Kanban className="h-4 w-4 mr-2" />
-                  Create Deal
+                  <Kanban className="h-3.5 w-3.5 mr-1.5" />
+                  Deal
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full justify-start"
+                  size="sm"
+                  className="justify-start text-xs h-9"
                   onClick={() => setQuickCreateType("contact")}
                 >
-                  <Users className="h-4 w-4 mr-2" />
-                  Add Contact
+                  <Users className="h-3.5 w-3.5 mr-1.5" />
+                  Contact
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full justify-start"
+                  size="sm"
+                  className="justify-start text-xs h-9"
                   onClick={() => setQuickCreateType("company")}
                 >
-                  <Building2 className="h-4 w-4 mr-2" />
-                  Add Company
+                  <Building2 className="h-3.5 w-3.5 mr-1.5" />
+                  Company
                 </Button>
-                <Button variant="outline" className="w-full justify-start" asChild>
+                <Button variant="outline" size="sm" className="justify-start text-xs h-9" asChild>
                   <Link href="/dashboard?mode=cim">
-                    <FileText className="h-4 w-4 mr-2" />
-                    Create CIM
+                    <FileText className="h-3.5 w-3.5 mr-1.5" />
+                    CIM
                   </Link>
                 </Button>
               </CardContent>
             </Card>
-
-            {/* Recent Activity */}
-            {briefing?.recentActivity && briefing.recentActivity.length > 0 && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-gray-400" />
-                    Recent Activity
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {briefing.recentActivity.slice(0, 5).map((activity) => (
-                      <div key={activity.id} className="flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-gray-300 mt-2" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-gray-700 truncate">{activity.description}</p>
-                          <div className="flex items-center gap-2">
-                            {activity.dealName && (
-                              <span className="text-xs text-blue-600 font-medium">{activity.dealName}</span>
-                            )}
-                            <span className="text-xs text-gray-400">{formatTimeAgo(activity.timestamp)}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </div>
         </div>
       </main>
