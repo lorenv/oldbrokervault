@@ -454,30 +454,7 @@ export default function DashboardPage() {
     return due >= todayStart && due < todayEnd;
   });
 
-  // If mode=cim, show CIM generator
-  if (mode === 'cim') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
-        <main className="px-4 md:px-6 py-4 md:py-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-2xl font-semibold text-gray-900">Create CIM</h1>
-              <p className="text-sm text-gray-500 mt-1">Generate a professional Confidential Information Memorandum</p>
-            </div>
-            <Button variant="outline" onClick={() => setLocation('/dashboard')}>
-              <X className="h-4 w-4 mr-2" />
-              Cancel
-            </Button>
-          </div>
-          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4">
-            <CimGenerator dealId={dealId} />
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  // Build unified action items list
+  // Build unified action items list (must be before early returns to follow Rules of Hooks)
   const actionItems = useMemo(() => {
     const items: Array<{
       id: string;
@@ -562,9 +539,32 @@ export default function DashboardPage() {
   const urgentCount = actionItems.filter(i => i.priority === 'urgent').length;
   const totalActionItems = actionItems.length;
 
+  // If mode=cim, show CIM generator (after all hooks)
+  if (mode === 'cim') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
+        <main className="px-4 md:px-6 py-4 md:py-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-2xl font-semibold text-gray-900">Create CIM</h1>
+              <p className="text-sm text-gray-500 mt-1">Generate a professional Confidential Information Memorandum</p>
+            </div>
+            <Button variant="outline" onClick={() => setLocation('/dashboard')}>
+              <X className="h-4 w-4 mr-2" />
+              Cancel
+            </Button>
+          </div>
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4">
+            <CimGenerator dealId={dealId} />
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <main className="max-w-6xl mx-auto px-4 md:px-6 py-6">
+      <main className="max-w-7xl mx-auto px-4 md:px-6 py-4">
         {/* Compact Header with Quick Actions */}
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -600,8 +600,8 @@ export default function DashboardPage() {
         </div>
 
         {/* AI Summary - Compact */}
-        <Card className="mb-6 border-gray-200">
-          <CardContent className="py-4">
+        <Card className="mb-5 border-gray-200">
+          <CardContent className="py-3">
             <div className="flex items-start gap-3">
               <div className="p-1.5 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-md flex-shrink-0">
                 <Sparkles className="h-3.5 w-3.5 text-white" />
@@ -623,90 +623,90 @@ export default function DashboardPage() {
         </Card>
 
         {/* Quick Stats - With Icons */}
-        <div className="grid grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
           <button
             onClick={() => setLocation('/deals')}
-            className="bg-white rounded-lg border border-gray-200 p-3 text-left hover:border-gray-300 hover:shadow-sm transition-all"
+            className="bg-white rounded-lg border border-gray-200 p-4 text-left hover:border-gray-300 hover:shadow-sm transition-all"
           >
-            <div className="flex items-center gap-2.5">
-              <div className="p-1.5 bg-green-100 rounded-lg">
-                <DollarSign className="h-4 w-4 text-green-600" />
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <DollarSign className="h-5 w-5 text-green-600" />
               </div>
               <div>
-                <p className="text-lg font-semibold text-gray-900">
+                <p className="text-xl font-semibold text-gray-900">
                   {briefingLoading ? '—' : briefing ? formatCurrency(briefing.quickStats.pipelineValue) : '$0'}
                 </p>
-                <p className="text-xs text-gray-500">Pipeline</p>
+                <p className="text-sm text-gray-500">Pipeline</p>
               </div>
             </div>
           </button>
           <button
             onClick={() => setLocation('/deals')}
-            className="bg-white rounded-lg border border-gray-200 p-3 text-left hover:border-gray-300 hover:shadow-sm transition-all"
+            className="bg-white rounded-lg border border-gray-200 p-4 text-left hover:border-gray-300 hover:shadow-sm transition-all"
           >
-            <div className="flex items-center gap-2.5">
-              <div className="p-1.5 bg-blue-100 rounded-lg">
-                <Kanban className="h-4 w-4 text-blue-600" />
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Kanban className="h-5 w-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-lg font-semibold text-gray-900">
+                <p className="text-xl font-semibold text-gray-900">
                   {briefingLoading ? '—' : briefing?.quickStats.openDeals ?? 0}
                 </p>
-                <p className="text-xs text-gray-500">Open Deals</p>
+                <p className="text-sm text-gray-500">Open Deals</p>
               </div>
             </div>
           </button>
           <button
             onClick={() => setLocation('/deals')}
-            className="bg-white rounded-lg border border-gray-200 p-3 text-left hover:border-gray-300 hover:shadow-sm transition-all"
+            className="bg-white rounded-lg border border-gray-200 p-4 text-left hover:border-gray-300 hover:shadow-sm transition-all"
           >
-            <div className="flex items-center gap-2.5">
-              <div className="p-1.5 bg-emerald-100 rounded-lg">
-                <TrendingUp className="h-4 w-4 text-emerald-600" />
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-emerald-100 rounded-lg">
+                <TrendingUp className="h-5 w-5 text-emerald-600" />
               </div>
               <div>
-                <p className="text-lg font-semibold text-emerald-600">
+                <p className="text-xl font-semibold text-emerald-600">
                   {briefingLoading ? '—' : briefing?.quickStats.dealsWonThisMonth ?? 0}
                 </p>
-                <p className="text-xs text-gray-500">Won This Month</p>
+                <p className="text-sm text-gray-500">Won This Month</p>
               </div>
             </div>
           </button>
           <button
             onClick={() => setLocation('/tasks')}
             className={cn(
-              "bg-white rounded-lg border p-3 text-left hover:shadow-sm transition-all",
+              "bg-white rounded-lg border p-4 text-left hover:shadow-sm transition-all",
               overdueTasks.length > 0 ? "border-red-200 hover:border-red-300" : "border-gray-200 hover:border-gray-300"
             )}
           >
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-3">
               <div className={cn(
-                "p-1.5 rounded-lg",
+                "p-2 rounded-lg",
                 overdueTasks.length > 0 ? "bg-red-100" : "bg-gray-100"
               )}>
                 <AlertTriangle className={cn(
-                  "h-4 w-4",
+                  "h-5 w-5",
                   overdueTasks.length > 0 ? "text-red-600" : "text-gray-500"
                 )} />
               </div>
               <div>
-                <p className={cn("text-lg font-semibold", overdueTasks.length > 0 ? "text-red-600" : "text-gray-900")}>
+                <p className={cn("text-xl font-semibold", overdueTasks.length > 0 ? "text-red-600" : "text-gray-900")}>
                   {overdueTasks.length}
                 </p>
-                <p className="text-xs text-gray-500">Overdue Tasks</p>
+                <p className="text-sm text-gray-500">Overdue Tasks</p>
               </div>
             </div>
           </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           {/* Main Column - Action Required */}
           <div className="lg:col-span-2">
             <Card>
-              <CardHeader className="pb-3 border-b">
+              <CardHeader className="py-3 px-4 border-b">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base font-medium flex items-center gap-2">
-                    Action Required
+                    Priorities for Today
                     {totalActionItems > 0 && (
                       <span className="text-xs font-normal text-gray-500">
                         {totalActionItems} item{totalActionItems > 1 ? 's' : ''}
@@ -717,8 +717,8 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent className="p-0">
                 {actionItems.length === 0 ? (
-                  <div className="text-center py-12">
-                    <CheckSquare className="h-10 w-10 text-green-400 mx-auto mb-3" />
+                  <div className="text-center py-10">
+                    <CheckSquare className="h-12 w-12 text-green-400 mx-auto mb-3" />
                     <p className="text-gray-600 font-medium">You're all caught up!</p>
                     <p className="text-sm text-gray-400 mt-1">No urgent items need your attention</p>
                   </div>
@@ -728,28 +728,28 @@ export default function DashboardPage() {
                       <Link
                         key={item.id}
                         href={item.href}
-                        className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+                        className="flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 transition-colors"
                       >
                         {/* Priority Indicator */}
                         <div className={cn(
-                          "w-2 h-2 rounded-full flex-shrink-0",
+                          "w-2.5 h-2.5 rounded-full flex-shrink-0",
                           item.priority === 'urgent' ? "bg-red-500" :
                           item.priority === 'high' ? "bg-amber-500" : "bg-blue-400"
                         )} />
 
                         {/* Type Icon */}
                         <div className={cn(
-                          "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0",
+                          "w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0",
                           item.type === 'deal' ? "bg-blue-50" :
                           item.type === 'task' ? "bg-orange-50" :
                           item.type === 'signature' ? "bg-purple-50" :
                           item.type === 'approval' ? "bg-amber-50" : "bg-teal-50"
                         )}>
-                          {item.type === 'deal' && <Kanban className="h-4 w-4 text-blue-600" />}
-                          {item.type === 'task' && <CheckSquare className="h-4 w-4 text-orange-600" />}
-                          {item.type === 'signature' && <FileSignature className="h-4 w-4 text-purple-600" />}
-                          {item.type === 'approval' && <Users className="h-4 w-4 text-amber-600" />}
-                          {item.type === 'message' && <MessageSquare className="h-4 w-4 text-teal-600" />}
+                          {item.type === 'deal' && <Kanban className="h-4.5 w-4.5 text-blue-600" />}
+                          {item.type === 'task' && <CheckSquare className="h-4.5 w-4.5 text-orange-600" />}
+                          {item.type === 'signature' && <FileSignature className="h-4.5 w-4.5 text-purple-600" />}
+                          {item.type === 'approval' && <Users className="h-4.5 w-4.5 text-amber-600" />}
+                          {item.type === 'message' && <MessageSquare className="h-4.5 w-4.5 text-teal-600" />}
                         </div>
 
                         {/* Content */}
@@ -796,10 +796,10 @@ export default function DashboardPage() {
           <div className="space-y-4">
             {/* Pending Items - Collapsible Sections */}
             <Card>
-              <CardHeader className="pb-2">
+              <CardHeader className="py-3 px-4">
                 <CardTitle className="text-sm font-medium text-gray-700">Pending Items</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-1 p-2">
+              <CardContent className="space-y-1 p-3 pt-0">
                 {/* E-Signatures */}
                 <div>
                   <button

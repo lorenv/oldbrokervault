@@ -12,8 +12,9 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { SettingsLayout } from "@/components/layout/settings-layout";
-import { Plus, GripVertical, Trash2, Pencil, Building2, Users, Briefcase, Type, Hash, Calendar, List, CheckSquare, Link, Mail, Phone, DollarSign, Database } from "lucide-react";
+import { SettingsLayout, useSettingsAccess } from "@/components/layout/settings-layout";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Plus, GripVertical, Trash2, Pencil, Building2, Users, Briefcase, Type, Hash, Calendar, List, CheckSquare, Link, Mail, Phone, DollarSign, Database, Lock } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -77,8 +78,8 @@ const OBJECT_TYPES = [
   { value: "company", label: "Companies", icon: Building2 },
 ];
 
-function SortableCustomField({ field, onEdit, onDelete }: { field: CustomField; onEdit: () => void; onDelete: () => void }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: field.id });
+function SortableCustomField({ field, onEdit, onDelete, disabled }: { field: CustomField; onEdit: () => void; onDelete: () => void; disabled?: boolean }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: field.id, disabled });
   const Icon = FIELD_TYPE_ICONS[field.fieldType] || Type;
 
   const style = {
@@ -89,9 +90,11 @@ function SortableCustomField({ field, onEdit, onDelete }: { field: CustomField; 
 
   return (
     <div ref={setNodeRef} style={style} className="flex items-center gap-3 p-3 bg-white border rounded-lg">
-      <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
-        <GripVertical className="h-4 w-4 text-gray-400" />
-      </button>
+      {!disabled && (
+        <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
+          <GripVertical className="h-4 w-4 text-gray-400" />
+        </button>
+      )}
       <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
         <Icon className="h-4 w-4 text-gray-600" />
       </div>
@@ -103,8 +106,12 @@ function SortableCustomField({ field, onEdit, onDelete }: { field: CustomField; 
         </div>
         <p className="text-xs text-gray-500">{FIELD_TYPE_LABELS[field.fieldType]} &middot; {field.name}</p>
       </div>
-      <Button variant="ghost" size="sm" onClick={onEdit}><Pencil className="h-4 w-4" /></Button>
-      <Button variant="ghost" size="sm" onClick={onDelete}><Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" /></Button>
+      {!disabled && (
+        <>
+          <Button variant="ghost" size="sm" onClick={onEdit}><Pencil className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="sm" onClick={onDelete}><Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" /></Button>
+        </>
+      )}
     </div>
   );
 }
@@ -112,6 +119,7 @@ function SortableCustomField({ field, onEdit, onDelete }: { field: CustomField; 
 function CustomFieldsList({ objectType }: { objectType: string }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { canEdit, isViewOnly } = useSettingsAccess();
   const [isAddFieldOpen, setIsAddFieldOpen] = useState(false);
   const [editingField, setEditingField] = useState<CustomField | null>(null);
   const [newField, setNewField] = useState({
@@ -218,14 +226,24 @@ function CustomFieldsList({ objectType }: { objectType: string }) {
 
   return (
     <div>
+      {isViewOnly && (
+        <Alert className="mb-4 bg-amber-50 border-amber-200">
+          <Lock className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-700">
+            You have view-only access to custom fields settings. Contact an admin or owner to make changes.
+          </AlertDescription>
+        </Alert>
+      )}
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm text-gray-600">
           {fields.length} custom field{fields.length !== 1 ? 's' : ''}
         </p>
-        <Button onClick={() => setIsAddFieldOpen(true)} size="sm">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Field
-        </Button>
+        {canEdit && (
+          <Button onClick={() => setIsAddFieldOpen(true)} size="sm">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Field
+          </Button>
+        )}
       </div>
 
       {fields.length > 0 ? (
@@ -238,6 +256,7 @@ function CustomFieldsList({ objectType }: { objectType: string }) {
                   field={field}
                   onEdit={() => setEditingField(field)}
                   onDelete={() => deleteFieldMutation.mutate(field.id)}
+                  disabled={isViewOnly}
                 />
               ))}
             </div>

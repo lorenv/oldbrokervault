@@ -9,8 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Plus, Users, Trash2, CreditCard, Eye, AlertCircle, Clock, Mail } from "lucide-react";
-import { SettingsLayout } from "@/components/layout/settings-layout";
+import { Plus, Users, Trash2, CreditCard, Eye, AlertCircle, Clock, Mail, Lock } from "lucide-react";
+import { SettingsLayout, useSettingsAccess } from "@/components/layout/settings-layout";
 import { Link } from "wouter";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -18,6 +18,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 export default function TeamSettingsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { canEdit, isViewOnly } = useSettingsAccess();
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("member");
@@ -67,18 +68,19 @@ export default function TeamSettingsPage() {
   });
 
   const [removingMemberId, setRemovingMemberId] = useState<number | null>(null);
+  const [confirmRemoveDialog, setConfirmRemoveDialog] = useState<{ open: boolean; member: any | null }>({ open: false, member: null });
 
   const removeMutation = useMutation({
     mutationFn: (memberId: number) => {
       setRemovingMemberId(memberId);
       return apiRequest("DELETE", `/api/crm/organization/members/${memberId}`);
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       const member = members?.find(m => m.id === removingMemberId);
       const isPending = member?.isPending || member?.status === 'pending';
 
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/organization/members"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/organization"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/crm/organization/members"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/crm/organization"] });
       toast({
         title: isPending ? "Invitation cancelled" : "Member removed",
         description: isPending
@@ -86,9 +88,15 @@ export default function TeamSettingsPage() {
           : "The team member has been removed from your workspace."
       });
       setRemovingMemberId(null);
+      setConfirmRemoveDialog({ open: false, member: null });
     },
     onError: () => {
       setRemovingMemberId(null);
+      toast({
+        title: "Error",
+        description: "Failed to remove member. Please try again.",
+        variant: "destructive"
+      });
     },
   });
 
@@ -175,10 +183,17 @@ export default function TeamSettingsPage() {
               <CardTitle>Team Members</CardTitle>
               <CardDescription>People who have access to your workspace</CardDescription>
             </div>
-            <Button onClick={() => setIsInviteDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Invite Member
-            </Button>
+            {canEdit ? (
+              <Button onClick={() => setIsInviteDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Invite Member
+              </Button>
+            ) : (
+              <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-200">
+                <Lock className="h-3 w-3 mr-1" />
+                View Only
+              </Badge>
+            )}
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -233,11 +248,11 @@ export default function TeamSettingsPage() {
                           {member.role}
                           {member.role === 'viewer' && <span className="ml-1 opacity-70">(free)</span>}
                         </Badge>
-                        {member.role !== "owner" && (
+                        {member.role !== "owner" && canEdit && (
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => removeMutation.mutate(member.id)}
+                            onClick={() => setConfirmRemoveDialog({ open: true, member })}
                             title={isPending ? "Cancel invitation" : "Remove member"}
                           >
                             <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" />
@@ -253,6 +268,57 @@ export default function TeamSettingsPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Remove Member Confirmation Dialog */}
+        <Dialog open={confirmRemoveDialog.open} onOpenChange={(open) => setConfirmRemoveDialog({ open, member: open ? confirmRemoveDialog.member : null })}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {confirmRemoveDialog.member?.isPending || confirmRemoveDialog.member?.status === 'pending'
+                  ? "Cancel Invitation"
+                  : "Remove Team Member"}
+              </DialogTitle>
+              <DialogDescription>
+                {confirmRemoveDialog.member?.isPending || confirmRemoveDialog.member?.status === 'pending' ? (
+                  <>
+                    Are you sure you want to cancel the invitation for{" "}
+                    <span className="font-medium">{confirmRemoveDialog.member?.email}</span>?
+                  </>
+                ) : (
+                  <>
+                    Are you sure you want to remove{" "}
+                    <span className="font-medium">
+                      {confirmRemoveDialog.member?.firstName
+                        ? `${confirmRemoveDialog.member.firstName} ${confirmRemoveDialog.member.lastName}`
+                        : confirmRemoveDialog.member?.email}
+                    </span>{" "}
+                    from your team?
+                    <br /><br />
+                    <span className="text-red-600 font-medium">
+                      This will immediately revoke their access to all pages, documents, deals, and data in your workspace.
+                    </span>
+                  </>
+                )}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setConfirmRemoveDialog({ open: false, member: null })}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => confirmRemoveDialog.member && removeMutation.mutate(confirmRemoveDialog.member.id)}
+                disabled={removeMutation.isPending}
+              >
+                {removeMutation.isPending
+                  ? "Removing..."
+                  : confirmRemoveDialog.member?.isPending || confirmRemoveDialog.member?.status === 'pending'
+                    ? "Cancel Invitation"
+                    : "Remove Member"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Invite Dialog */}
         <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>

@@ -1057,7 +1057,7 @@ export function GlobalHeader() {
         </div>
 
         {/* Actions - pushed to right */}
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-1">
           {/* Keyboard Shortcuts */}
           <Button
             variant="ghost"
@@ -1097,7 +1097,7 @@ export function GlobalHeader() {
           {/* Quick Create Button */}
           <DropdownMenu open={createMenuOpen} onOpenChange={setCreateMenuOpen}>
             <DropdownMenuTrigger asChild>
-              <Button size="sm" className="gap-1.5">
+              <Button size="sm" className="gap-1.5 ml-2">
                 <Plus className="h-4 w-4" />
                 <span>Create</span>
               </Button>

@@ -724,7 +724,8 @@ router.get('/organization/members', async (req, res) => {
       .where(
         and(
           eq(organizationMembers.organizationId, orgData.organization.id),
-          ne(organizationMembers.status, 'pending')
+          ne(organizationMembers.status, 'pending'),
+          ne(organizationMembers.status, 'deactivated')
         )
       )
       .orderBy(asc(organizationMembers.createdAt));

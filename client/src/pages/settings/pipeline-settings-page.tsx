@@ -12,8 +12,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { SettingsLayout } from "@/components/layout/settings-layout";
-import { Plus, GripVertical, Trash2, Pencil, Sliders, Kanban, Users } from "lucide-react";
+import { SettingsLayout, useSettingsAccess } from "@/components/layout/settings-layout";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Plus, GripVertical, Trash2, Pencil, Sliders, Kanban, Users, Lock } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -49,8 +50,8 @@ interface Pipeline {
   stages: Stage[];
 }
 
-function SortableStage({ stage, onEdit, onDelete }: { stage: Stage; onEdit: () => void; onDelete: () => void }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: stage.id });
+function SortableStage({ stage, onEdit, onDelete, disabled }: { stage: Stage; onEdit: () => void; onDelete: () => void; disabled?: boolean }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: stage.id, disabled });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -60,9 +61,11 @@ function SortableStage({ stage, onEdit, onDelete }: { stage: Stage; onEdit: () =
 
   return (
     <div ref={setNodeRef} style={style} className="flex items-center gap-3 p-3 bg-white border rounded-lg">
-      <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
-        <GripVertical className="h-4 w-4 text-gray-400" />
-      </button>
+      {!disabled && (
+        <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
+          <GripVertical className="h-4 w-4 text-gray-400" />
+        </button>
+      )}
       <div className="w-3 h-3 rounded-full" style={{ backgroundColor: stage.color }} />
       <div className="flex-1">
         <p className="font-medium">{stage.name}</p>
@@ -73,9 +76,13 @@ function SortableStage({ stage, onEdit, onDelete }: { stage: Stage; onEdit: () =
           {stage.isWon ? "Won" : "Lost"}
         </span>
       )}
-      <Button variant="ghost" size="sm" onClick={onEdit}><Pencil className="h-4 w-4" /></Button>
-      {!stage.isWon && !stage.isLost && (
-        <Button variant="ghost" size="sm" onClick={onDelete}><Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" /></Button>
+      {!disabled && (
+        <>
+          <Button variant="ghost" size="sm" onClick={onEdit}><Pencil className="h-4 w-4" /></Button>
+          {!stage.isWon && !stage.isLost && (
+            <Button variant="ghost" size="sm" onClick={onDelete}><Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" /></Button>
+          )}
+        </>
       )}
     </div>
   );
@@ -84,6 +91,7 @@ function SortableStage({ stage, onEdit, onDelete }: { stage: Stage; onEdit: () =
 function PipelinesSection() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { canEdit, isViewOnly } = useSettingsAccess();
   const [isAddStageOpen, setIsAddStageOpen] = useState(false);
   const [editingStage, setEditingStage] = useState<Stage | null>(null);
   const [newStage, setNewStage] = useState({ name: "", probability: "50", color: "#6B7280" });
@@ -152,13 +160,23 @@ function PipelinesSection() {
 
   return (
     <>
+      {isViewOnly && (
+        <Alert className="mb-4 bg-amber-50 border-amber-200">
+          <Lock className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-700">
+            You have view-only access to pipeline settings. Contact an admin or owner to make changes.
+          </AlertDescription>
+        </Alert>
+      )}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="text-lg">{pipeline?.name || "Sales Pipeline"}</CardTitle>
             <CardDescription>Drag and drop to reorder stages</CardDescription>
           </div>
-          <Button onClick={() => setIsAddStageOpen(true)} size="sm"><Plus className="h-4 w-4 mr-2" />Add Stage</Button>
+          {canEdit && (
+            <Button onClick={() => setIsAddStageOpen(true)} size="sm"><Plus className="h-4 w-4 mr-2" />Add Stage</Button>
+          )}
         </CardHeader>
         <CardContent>
           {pipeline?.stages && pipeline.stages.length > 0 ? (
@@ -171,6 +189,7 @@ function PipelinesSection() {
                       stage={stage}
                       onEdit={() => setEditingStage(stage)}
                       onDelete={() => deleteStageMutation.mutate(stage.id)}
+                      disabled={isViewOnly}
                     />
                   ))}
                 </div>
@@ -289,8 +308,8 @@ interface BuyerStage {
   color: string;
 }
 
-function SortableBuyerStage({ stage, onEdit, onDelete }: { stage: BuyerStage; onEdit: () => void; onDelete: () => void }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: stage.id });
+function SortableBuyerStage({ stage, onEdit, onDelete, disabled }: { stage: BuyerStage; onEdit: () => void; onDelete: () => void; disabled?: boolean }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: stage.id, disabled });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -300,15 +319,21 @@ function SortableBuyerStage({ stage, onEdit, onDelete }: { stage: BuyerStage; on
 
   return (
     <div ref={setNodeRef} style={style} className="flex items-center gap-3 p-3 bg-white border rounded-lg">
-      <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
-        <GripVertical className="h-4 w-4 text-gray-400" />
-      </button>
+      {!disabled && (
+        <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
+          <GripVertical className="h-4 w-4 text-gray-400" />
+        </button>
+      )}
       <div className="w-3 h-3 rounded-full" style={{ backgroundColor: stage.color }} />
       <div className="flex-1">
         <p className="font-medium">{stage.name}</p>
       </div>
-      <Button variant="ghost" size="sm" onClick={onEdit}><Pencil className="h-4 w-4" /></Button>
-      <Button variant="ghost" size="sm" onClick={onDelete}><Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" /></Button>
+      {!disabled && (
+        <>
+          <Button variant="ghost" size="sm" onClick={onEdit}><Pencil className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="sm" onClick={onDelete}><Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" /></Button>
+        </>
+      )}
     </div>
   );
 }
@@ -316,6 +341,7 @@ function SortableBuyerStage({ stage, onEdit, onDelete }: { stage: BuyerStage; on
 function BuyerPipelineSection() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { canEdit, isViewOnly } = useSettingsAccess();
   const [isAddStageOpen, setIsAddStageOpen] = useState(false);
   const [editingStage, setEditingStage] = useState<BuyerStage | null>(null);
   const [newStage, setNewStage] = useState({ name: "", color: "#6B7280" });
@@ -389,13 +415,23 @@ function BuyerPipelineSection() {
 
   return (
     <>
+      {isViewOnly && (
+        <Alert className="mb-4 bg-amber-50 border-amber-200">
+          <Lock className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-700">
+            You have view-only access to pipeline settings. Contact an admin or owner to make changes.
+          </AlertDescription>
+        </Alert>
+      )}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="text-lg">Buyer Pipeline</CardTitle>
             <CardDescription>Customize stages for tracking buyers through your deal process</CardDescription>
           </div>
-          <Button onClick={() => setIsAddStageOpen(true)} size="sm"><Plus className="h-4 w-4 mr-2" />Add Stage</Button>
+          {canEdit && (
+            <Button onClick={() => setIsAddStageOpen(true)} size="sm"><Plus className="h-4 w-4 mr-2" />Add Stage</Button>
+          )}
         </CardHeader>
         <CardContent>
           {stages && stages.length > 0 ? (
@@ -408,6 +444,7 @@ function BuyerPipelineSection() {
                       stage={stage}
                       onEdit={() => setEditingStage(stage)}
                       onDelete={() => deleteStageMutation.mutate(stage.id)}
+                      disabled={isViewOnly}
                     />
                   ))}
                 </div>

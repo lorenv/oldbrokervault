@@ -479,7 +479,7 @@ export default function TasksPage() {
     switch (columnId) {
       case 'title':
         return (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button
               type="button"
               disabled={completeTaskMutation.isPending || uncompleteTaskMutation.isPending}

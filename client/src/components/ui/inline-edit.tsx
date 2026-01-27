@@ -228,12 +228,12 @@ export function InlineEdit({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       className={cn(
-        "inline-flex items-center gap-1.5 text-left rounded px-1 -mx-1 py-0.5 transition-colors",
+        "inline-flex items-center gap-1.5 text-left rounded px-1 -mx-1 py-0.5 transition-colors max-w-full",
         "hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
         className
       )}
     >
-      <span className={cn("text-sm text-gray-900", !displayValue && "text-muted-foreground italic", displayClassName)}>
+      <span className={cn("text-sm text-gray-900 truncate", !displayValue && "text-muted-foreground italic", displayClassName)}>
         {displayValue || emptyText}
       </span>
       {isHovered && (
@@ -378,7 +378,7 @@ export function InlineEditEmail(props: InlineEditEmailProps) {
                 <button
                   type="button"
                   className={cn(
-                    "text-sm hover:underline text-left",
+                    "text-sm hover:underline text-left truncate max-w-full",
                     displayClassName || "text-blue-600 hover:text-blue-700"
                   )}
                   onClick={(e) => {
@@ -392,7 +392,7 @@ export function InlineEditEmail(props: InlineEditEmailProps) {
                 <a
                   href={`mailto:${value}`}
                   className={cn(
-                    "text-sm hover:underline",
+                    "text-sm hover:underline truncate max-w-full block",
                     displayClassName || "text-blue-600 hover:text-blue-700"
                   )}
                   onClick={(e) => e.stopPropagation()}

@@ -9,6 +9,7 @@ interface TeamMember {
   firstName: string | null;
   lastName: string | null;
   email: string;
+  profilePhoto?: string | null;
 }
 
 interface MentionData {
@@ -44,10 +45,10 @@ export function MentionInput({
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Fetch team members
-  const { data: membersData } = useQuery<{ members: TeamMember[] }>({
-    queryKey: ["/api/crm/members"],
+  const { data: membersData } = useQuery<TeamMember[]>({
+    queryKey: ["/api/crm/organization/members"],
   });
-  const members = membersData?.members || [];
+  const members = membersData || [];
 
   // Filter members based on search query
   const filteredMembers = members.filter((member) => {
@@ -234,14 +235,23 @@ export function MentionInput({
               key={member.userId}
               type="button"
               className={cn(
-                "w-full px-3 py-2 text-left text-sm hover:bg-gray-100 flex flex-col",
+                "w-full px-3 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2",
                 index === selectedIndex && "bg-blue-50"
               )}
               onClick={() => selectMember(member)}
               onMouseEnter={() => setSelectedIndex(index)}
             >
-              <span className="font-medium text-gray-900">{getMemberName(member)}</span>
-              <span className="text-xs text-gray-500">{member.email}</span>
+              {member.profilePhoto ? (
+                <img src={member.profilePhoto} alt="" className="w-6 h-6 rounded-full object-cover flex-shrink-0" />
+              ) : (
+                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
+                  {(member.firstName?.[0] || member.email[0] || '').toUpperCase()}
+                </div>
+              )}
+              <div className="flex flex-col min-w-0">
+                <span className="font-medium text-gray-900 truncate">{getMemberName(member)}</span>
+                <span className="text-xs text-gray-500 truncate">{member.email}</span>
+              </div>
             </button>
           ))}
         </div>

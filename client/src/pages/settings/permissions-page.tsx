@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { SettingsLayout } from "@/components/layout/settings-layout";
+import { SettingsLayout, useSettingsAccess } from "@/components/layout/settings-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Lock, Check, X, AlertCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -60,6 +61,7 @@ export default function PermissionsPage() {
   const [activeTab, setActiveTab] = useState<PermissionCategory>("crm");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { canEdit, isViewOnly } = useSettingsAccess();
 
   // Fetch permissions matrix
   const { data, isLoading, error } = useQuery<PermissionsResponse>({
@@ -181,7 +183,15 @@ export default function PermissionsPage() {
       title="Permissions"
       description="Manage role-based access control and permissions"
     >
-      <div className="max-w-6xl">
+      <div className="max-w-6xl space-y-4">
+        {isViewOnly && (
+          <Alert className="bg-amber-50 border-amber-200">
+            <Lock className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-amber-700">
+              You have view-only access to permissions settings. Contact an admin or owner to make changes.
+            </AlertDescription>
+          </Alert>
+        )}
         <Card>
           <CardContent className="pt-6">
             {/* Category Tabs */}
@@ -204,6 +214,7 @@ export default function PermissionsPage() {
                       matrix={data?.matrix || ({} as Record<Role, Record<PermissionKey, boolean>>)}
                       onToggle={handleToggle}
                       isUpdating={updateMutation.isPending}
+                      isViewOnly={isViewOnly}
                     />
                   )}
                 </TabsContent>
@@ -241,9 +252,10 @@ interface PermissionsTableProps {
   matrix: Record<Role, Record<PermissionKey, boolean>>;
   onToggle: (permissionKey: PermissionKey, role: Role, currentValue: boolean) => void;
   isUpdating: boolean;
+  isViewOnly?: boolean;
 }
 
-function PermissionsTable({ groupedPermissions, matrix, onToggle, isUpdating }: PermissionsTableProps) {
+function PermissionsTable({ groupedPermissions, matrix, onToggle, isUpdating, isViewOnly }: PermissionsTableProps) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full table-fixed">
@@ -304,7 +316,7 @@ function PermissionsTable({ groupedPermissions, matrix, onToggle, isUpdating }: 
                             <Switch
                               checked={granted}
                               onCheckedChange={() => onToggle(perm.key, role, granted)}
-                              disabled={isUpdating}
+                              disabled={isUpdating || isViewOnly}
                               checkedColor={granted ? "#22c55e" : undefined}
                             />
                           </div>

@@ -52,7 +52,7 @@ export default function DocumentsPage() {
   }>({ open: false });
   const [exportingDocId, setExportingDocId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<'card' | 'list'>(() => {
-    return (localStorage.getItem('documentsViewMode') as 'card' | 'list') || 'card';
+    return (localStorage.getItem('documentsViewMode') as 'card' | 'list') || 'list';
   });
 
   // Filter and sort state

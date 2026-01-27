@@ -88,7 +88,7 @@ const TabsList = React.forwardRef<
         <TabsPrimitive.List
           ref={combinedRef}
           className={cn(
-            "relative inline-flex h-11 items-center gap-1 border-b border-border/50 bg-transparent p-0 text-muted-foreground",
+            "relative flex h-11 items-center gap-1 border-b border-border/50 bg-transparent p-0 text-muted-foreground overflow-x-auto scrollbar-hide flex-nowrap",
             className
           )}
           {...props}
@@ -108,7 +108,7 @@ const TabsList = React.forwardRef<
     <TabsPrimitive.List
       ref={ref}
       className={cn(
-        "inline-flex h-11 items-center gap-1 rounded-xl bg-muted/50 p-1.5 text-muted-foreground",
+        "flex h-11 items-center gap-1 rounded-xl bg-muted/50 p-1.5 text-muted-foreground overflow-x-auto scrollbar-hide flex-nowrap w-fit",
         className
       )}
       {...props}

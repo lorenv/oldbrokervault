@@ -3,14 +3,15 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { SettingsLayout } from "@/components/layout/settings-layout";
+import { SettingsLayout, useSettingsAccess } from "@/components/layout/settings-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Users, CreditCard, Plus, Minus, Eye, Check, Zap, Crown } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Users, CreditCard, Plus, Minus, Eye, Check, Zap, Crown, Lock } from "lucide-react";
 import { Link } from "wouter";
 
 const PRO_MONTHLY_PRICE = 59;
@@ -19,6 +20,7 @@ const PRO_ANNUAL_PRICE = 49;
 export default function BillingPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { canEdit, isViewOnly } = useSettingsAccess();
   const [additionalSeats, setAdditionalSeats] = useState(1);
   const [isLoadingPortal, setIsLoadingPortal] = useState(false);
   const [isAddingLicenses, setIsAddingLicenses] = useState(false);
@@ -199,7 +201,7 @@ export default function BillingPage() {
             <div className="mt-6 flex gap-3">
               {isFree ? (
                 <Link href="/pricing" className="flex-1">
-                  <Button className="w-full">
+                  <Button className="w-full" disabled={isViewOnly}>
                     <Zap className="h-4 w-4 mr-2" />
                     Upgrade to Pro
                   </Button>
@@ -208,10 +210,15 @@ export default function BillingPage() {
                 <Button
                   variant="outline"
                   onClick={handleManageSubscription}
-                  disabled={isLoadingPortal}
+                  disabled={isLoadingPortal || isViewOnly}
                   className="flex-1"
                 >
-                  {isLoadingPortal ? "Loading..." : "Manage Subscription"}
+                  {isViewOnly ? (
+                    <>
+                      <Lock className="h-4 w-4 mr-2" />
+                      View Only
+                    </>
+                  ) : isLoadingPortal ? "Loading..." : "Manage Subscription"}
                 </Button>
               )}
             </div>
@@ -270,50 +277,61 @@ export default function BillingPage() {
 
               {/* Add Licenses */}
               <div className="pt-3 border-t">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">Add licenses</p>
-                    <p className="text-xs text-gray-500">${pricePerSeat}/license/month</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => setAdditionalSeats(Math.max(1, additionalSeats - 1))}
-                      disabled={additionalSeats <= 1}
-                    >
-                      <Minus className="h-3 w-3" />
-                    </Button>
-                    <Input
-                      type="number"
-                      value={additionalSeats}
-                      onChange={(e) => setAdditionalSeats(Math.max(1, parseInt(e.target.value) || 1))}
-                      className="w-14 h-8 text-center text-sm"
-                      min={1}
-                    />
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => setAdditionalSeats(additionalSeats + 1)}
-                    >
-                      <Plus className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-                <div className="mt-3 flex items-center justify-between">
-                  <span className="text-sm text-gray-600">
-                    +${additionalSeats * pricePerSeat}/month
-                  </span>
-                  <Button
-                    size="sm"
-                    onClick={handleAddLicenses}
-                    disabled={isAddingLicenses}
-                  >
-                    {isAddingLicenses ? "Adding..." : "Add Licenses"}
-                  </Button>
-                </div>
+                {isViewOnly ? (
+                  <Alert className="bg-amber-50 border-amber-200">
+                    <Lock className="h-4 w-4 text-amber-600" />
+                    <AlertDescription className="text-amber-700">
+                      Contact an admin or owner to add more licenses.
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Add licenses</p>
+                        <p className="text-xs text-gray-500">${pricePerSeat}/license/month</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => setAdditionalSeats(Math.max(1, additionalSeats - 1))}
+                          disabled={additionalSeats <= 1}
+                        >
+                          <Minus className="h-3 w-3" />
+                        </Button>
+                        <Input
+                          type="number"
+                          value={additionalSeats}
+                          onChange={(e) => setAdditionalSeats(Math.max(1, parseInt(e.target.value) || 1))}
+                          className="w-14 h-8 text-center text-sm"
+                          min={1}
+                        />
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => setAdditionalSeats(additionalSeats + 1)}
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between">
+                      <span className="text-sm text-gray-600">
+                        +${additionalSeats * pricePerSeat}/month
+                      </span>
+                      <Button
+                        size="sm"
+                        onClick={handleAddLicenses}
+                        disabled={isAddingLicenses}
+                      >
+                        {isAddingLicenses ? "Adding..." : "Add Licenses"}
+                      </Button>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Link to Team Settings */}

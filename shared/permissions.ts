@@ -69,10 +69,14 @@ export const PERMISSION_KEYS = {
   // Settings
   'settings.team.view': { category: 'settings', label: 'View team members', group: 'Team' },
   'settings.team.manage': { category: 'settings', label: 'Manage team members', group: 'Team' },
+  'settings.permissions.view': { category: 'settings', label: 'View permissions', group: 'Team' },
+  'settings.permissions.manage': { category: 'settings', label: 'Manage permissions', group: 'Team' },
   'settings.pipelines.edit': { category: 'settings', label: 'Edit pipelines', group: 'Configuration' },
   'settings.custom_fields.edit': { category: 'settings', label: 'Edit custom fields', group: 'Configuration' },
   'settings.billing.view': { category: 'settings', label: 'View billing', group: 'Billing' },
   'settings.billing.manage': { category: 'settings', label: 'Manage billing', group: 'Billing' },
+  'settings.branding.view': { category: 'settings', label: 'View branding', group: 'Branding' },
+  'settings.branding.edit': { category: 'settings', label: 'Edit branding', group: 'Branding' },
   'settings.integrations.manage': { category: 'settings', label: 'Manage integrations', group: 'Integrations' },
 } as const;
 
@@ -145,10 +149,14 @@ export const DEFAULT_PERMISSIONS: Record<Role, Record<PermissionKey, boolean>> =
     // Settings
     'settings.team.view': true,
     'settings.team.manage': true,
+    'settings.permissions.view': true,
+    'settings.permissions.manage': true,
     'settings.pipelines.edit': true,
     'settings.custom_fields.edit': true,
     'settings.billing.view': true,
     'settings.billing.manage': false, // Admins cannot manage billing by default
+    'settings.branding.view': true,
+    'settings.branding.edit': true,
     'settings.integrations.manage': true,
   },
 
@@ -198,12 +206,16 @@ export const DEFAULT_PERMISSIONS: Record<Role, Record<PermissionKey, boolean>> =
     'sde_analyzer.view': true,
     'sde_analyzer.analyze': true,
     // Settings
-    'settings.team.view': true,
+    'settings.team.view': false,
     'settings.team.manage': false,
+    'settings.permissions.view': false,
+    'settings.permissions.manage': false,
     'settings.pipelines.edit': false,
     'settings.custom_fields.edit': false,
     'settings.billing.view': false,
     'settings.billing.manage': false,
+    'settings.branding.view': true,
+    'settings.branding.edit': false,
     'settings.integrations.manage': false,
   },
 
@@ -253,12 +265,16 @@ export const DEFAULT_PERMISSIONS: Record<Role, Record<PermissionKey, boolean>> =
     'sde_analyzer.view': true,
     'sde_analyzer.analyze': false,
     // Settings
-    'settings.team.view': true,
+    'settings.team.view': false,
     'settings.team.manage': false,
+    'settings.permissions.view': false,
+    'settings.permissions.manage': false,
     'settings.pipelines.edit': false,
     'settings.custom_fields.edit': false,
     'settings.billing.view': false,
     'settings.billing.manage': false,
+    'settings.branding.view': false,
+    'settings.branding.edit': false,
     'settings.integrations.manage': false,
   },
 };

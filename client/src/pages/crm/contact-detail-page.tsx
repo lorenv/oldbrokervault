@@ -563,7 +563,7 @@ export default function ContactDetailPage() {
             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-gray-200" />
             <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 text-sm">
               {/* Email */}
-              <div className="space-y-0.5">
+              <div className="space-y-0.5 min-w-0">
                 <Label className="text-xs text-gray-500 block">Email</Label>
                 <InlineEditEmail
                   value={(contact as any).email}
@@ -573,31 +573,31 @@ export default function ContactDetailPage() {
                 />
               </div>
               {/* Phone */}
-              <div className="space-y-0.5">
+              <div className="space-y-0.5 min-w-0">
                 <Label className="text-xs text-gray-500 block">Phone</Label>
                 <InlineEdit
                   value={(contact as any).phone}
                   onSave={(val) => handleContactUpdate('phone', val)}
                   type="phone"
                   emptyText="Add phone"
-                  displayClassName="text-gray-900"
+                  displayClassName="text-gray-900 truncate"
                 />
               </div>
               {/* Title */}
-              <div className="space-y-0.5">
+              <div className="space-y-0.5 min-w-0">
                 <Label className="text-xs text-gray-500 block">Title</Label>
                 <InlineEdit
                   value={(contact as any).title}
                   onSave={(val) => handleContactUpdate('title', val)}
                   emptyText="Add title"
                   placeholder="e.g., CEO"
-                  displayClassName="text-gray-900"
+                  displayClassName="text-gray-900 truncate"
                 />
               </div>
               {/* Source */}
-              <div className="space-y-0.5">
+              <div className="space-y-0.5 min-w-0">
                 <Label className="text-xs text-gray-500 block">Source</Label>
-                <p className="text-sm text-gray-900">{source ? source.replace(/_/g, ' ') : <span className="text-gray-400">—</span>}</p>
+                <p className="text-sm text-gray-900 truncate">{source ? source.replace(/_/g, ' ') : <span className="text-gray-400">—</span>}</p>
               </div>
             </div>
 
@@ -801,24 +801,26 @@ export default function ContactDetailPage() {
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="pt-2">
-            <TabsList variant="underline" className="w-full justify-start border-b">
-              <TabsTrigger variant="underline" value="activity">
-                <Clock className="h-4 w-4 mr-1" />
-                Activity
-              </TabsTrigger>
-              <TabsTrigger variant="underline" value="notes">
-                <MessageSquare className="h-4 w-4 mr-1" />
-                Notes
-              </TabsTrigger>
-              <TabsTrigger variant="underline" value="tasks">
-                <CheckSquare className="h-4 w-4 mr-1" />
-                Tasks
-              </TabsTrigger>
-              <TabsTrigger variant="underline" value="emails">
-                <Mail className="h-4 w-4 mr-1" />
-                Emails
-              </TabsTrigger>
-            </TabsList>
+            <div className="overflow-x-auto scrollbar-hide -mx-1 px-1">
+              <TabsList variant="underline" className="w-max min-w-full justify-start border-b">
+                <TabsTrigger variant="underline" value="activity">
+                  <Clock className="h-4 w-4 mr-1" />
+                  Activity
+                </TabsTrigger>
+                <TabsTrigger variant="underline" value="notes">
+                  <MessageSquare className="h-4 w-4 mr-1" />
+                  Notes
+                </TabsTrigger>
+                <TabsTrigger variant="underline" value="tasks">
+                  <CheckSquare className="h-4 w-4 mr-1" />
+                  Tasks
+                </TabsTrigger>
+                <TabsTrigger variant="underline" value="emails">
+                  <Mail className="h-4 w-4 mr-1" />
+                  Emails
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             {/* Activity Tab */}
             <TabsContent value="activity" className="mt-4">

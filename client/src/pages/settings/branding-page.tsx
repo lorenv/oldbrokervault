@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { UnifiedPdfTemplateSelector } from "@/components/unified-pdf-template-selector";
 import { DocumentDefaultsSettings } from "@/components/document-defaults-settings";
-import { SettingsLayout } from "@/components/layout/settings-layout";
+import { SettingsLayout, useSettingsAccess } from "@/components/layout/settings-layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,13 +11,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { FileImage, Globe, Palette, Upload, Check, RefreshCw } from "lucide-react";
+import { FileImage, Globe, Palette, Upload, Check, RefreshCw, Lock } from "lucide-react";
 import { compressImage, processLogoForDarkBackground } from "@/lib/image-utils";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function BrandingPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { canEdit, isViewOnly } = useSettingsAccess();
   const [isUploading, setIsUploading] = useState(false);
 
   // Get active tab from URL hash
@@ -161,6 +163,14 @@ export default function BrandingPage() {
 
         <TabsContent value="identity">
           <div className="space-y-6">
+            {isViewOnly && (
+              <Alert className="bg-amber-50 border-amber-200">
+                <Lock className="h-4 w-4 text-amber-600" />
+                <AlertDescription className="text-amber-700">
+                  You have view-only access to branding settings. Contact an admin or owner to make changes.
+                </AlertDescription>
+              </Alert>
+            )}
             {/* Logo Card */}
             <Card>
               <CardHeader>
@@ -193,7 +203,7 @@ export default function BrandingPage() {
                       <Button
                         variant="outline"
                         onClick={() => document.getElementById('logo-upload')?.click()}
-                        disabled={isUploading}
+                        disabled={isUploading || isViewOnly}
                       >
                         {isUploading ? (
                           <>

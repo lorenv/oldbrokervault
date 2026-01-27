@@ -764,36 +764,38 @@ export default function DealDetailPage() {
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList variant="underline" className="w-full justify-start border-b">
-              <TabsTrigger variant="underline" value="activity">
-                <Clock className="h-4 w-4 mr-1" />
-                Activity
-              </TabsTrigger>
-              <TabsTrigger variant="underline" value="notes">
-                <MessageSquare className="h-4 w-4 mr-1" />
-                Notes
-              </TabsTrigger>
-              <TabsTrigger variant="underline" value="tasks">
-                <CheckSquare className="h-4 w-4 mr-1" />
-                Tasks
-              </TabsTrigger>
-              <TabsTrigger variant="underline" value="emails">
-                <Mail className="h-4 w-4 mr-1" />
-                Emails
-              </TabsTrigger>
-              <TabsTrigger variant="underline" value="buyers">
-                <Users className="h-4 w-4 mr-1" />
-                Buyers
-              </TabsTrigger>
-              <TabsTrigger variant="underline" value="cims">
-                <FileText className="h-4 w-4 mr-1" />
-                CIMs
-              </TabsTrigger>
-              <TabsTrigger variant="underline" value="files">
-                <FolderOpen className="h-4 w-4 mr-1" />
-                Files
-              </TabsTrigger>
-            </TabsList>
+            <div className="overflow-x-auto scrollbar-hide -mx-1 px-1">
+              <TabsList variant="underline" className="w-max min-w-full justify-start border-b">
+                <TabsTrigger variant="underline" value="activity">
+                  <Clock className="h-4 w-4 mr-1" />
+                  Activity
+                </TabsTrigger>
+                <TabsTrigger variant="underline" value="notes">
+                  <MessageSquare className="h-4 w-4 mr-1" />
+                  Notes
+                </TabsTrigger>
+                <TabsTrigger variant="underline" value="tasks">
+                  <CheckSquare className="h-4 w-4 mr-1" />
+                  Tasks
+                </TabsTrigger>
+                <TabsTrigger variant="underline" value="emails">
+                  <Mail className="h-4 w-4 mr-1" />
+                  Emails
+                </TabsTrigger>
+                <TabsTrigger variant="underline" value="buyers">
+                  <Users className="h-4 w-4 mr-1" />
+                  Buyers
+                </TabsTrigger>
+                <TabsTrigger variant="underline" value="cims">
+                  <FileText className="h-4 w-4 mr-1" />
+                  CIMs
+                </TabsTrigger>
+                <TabsTrigger variant="underline" value="files">
+                  <FolderOpen className="h-4 w-4 mr-1" />
+                  Files
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value="activity" className="mt-4">
               <Card>
