@@ -144,7 +144,7 @@ export function ListingsPage() {
       document.title = listingsData.settings.title || `${listingsData.broker.businessName} - Listings`;
     }
     return () => {
-      document.title = "CIM Share";
+      document.title = "Broker Vault";
     };
   }, [listingsData]);
 

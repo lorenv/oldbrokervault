@@ -27,6 +27,8 @@ import {
   mentions,
   emailTemplates,
   esignEnvelopes,
+  crmImports,
+  userNotificationPreferences,
   insertOrganizationSchema,
   insertDealViewSchema,
   insertOrganizationMemberSchema,
@@ -51,8 +53,10 @@ import {
   TASK_STATUSES,
   TASK_PRIORITIES,
   TASK_REMINDER_OPTIONS,
+  CRM_IMPORT_ENTITY_TYPES,
   type OrganizationRole,
 } from '@shared/schema';
+import XLSX from 'xlsx';
 import { eq, and, or, desc, asc, sql, isNull, inArray, ilike, ne } from 'drizzle-orm';
 import * as crypto from 'crypto';
 import multer from 'multer';
@@ -4283,35 +4287,48 @@ router.post('/notes', async (req, res) => {
           actorId: req.user!.id,
         }).returning();
 
-        // Send email notification for the mention
+        // Send email notification for the mention (if user has enabled it)
         try {
-          // Get mentioned user's email
-          const [mentionedUserData] = await db
-            .select({ email: users.email, firstName: users.firstName, lastName: users.lastName })
-            .from(users)
-            .where(eq(users.id, mentionedUserId));
+          // Check user's notification preferences
+          const [notifPrefs] = await db
+            .select({ emailMentions: userNotificationPreferences.emailMentions })
+            .from(userNotificationPreferences)
+            .where(eq(userNotificationPreferences.userId, mentionedUserId));
 
-          if (mentionedUserData?.email) {
-            const mentionedUserName = mentionedUserData.firstName
-              ? `${mentionedUserData.firstName} ${mentionedUserData.lastName || ''}`.trim()
-              : '';
+          // Default to true if no preferences set (emailMentions defaults to true in schema)
+          const shouldSendEmail = notifPrefs?.emailMentions !== false;
 
-            await sendMentionNotificationEmail({
-              mentionedUserEmail: mentionedUserData.email,
-              mentionedUserName,
-              mentionerName: authorName,
-              entityType: parsed.data.objectType,
-              entityName,
-              entityId: parsed.data.objectId,
-              noteContent: parsed.data.content,
-            });
+          if (shouldSendEmail) {
+            // Get mentioned user's email
+            const [mentionedUserData] = await db
+              .select({ email: users.email, firstName: users.firstName, lastName: users.lastName })
+              .from(users)
+              .where(eq(users.id, mentionedUserId));
 
-            // Mark email as sent in notification
-            await db.update(notifications)
-              .set({ emailSent: true, emailSentAt: new Date() })
-              .where(eq(notifications.id, notification.id));
+            if (mentionedUserData?.email) {
+              const mentionedUserName = mentionedUserData.firstName
+                ? `${mentionedUserData.firstName} ${mentionedUserData.lastName || ''}`.trim()
+                : '';
 
-            console.log(`[CRM] Mention notification email sent to ${mentionedUserData.email}`);
+              await sendMentionNotificationEmail({
+                mentionedUserEmail: mentionedUserData.email,
+                mentionedUserName,
+                mentionerName: authorName,
+                entityType: parsed.data.objectType,
+                entityName,
+                entityId: parsed.data.objectId,
+                noteContent: parsed.data.content,
+              });
+
+              // Mark email as sent in notification
+              await db.update(notifications)
+                .set({ emailSent: true, emailSentAt: new Date() })
+                .where(eq(notifications.id, notification.id));
+
+              console.log(`[CRM] Mention notification email sent to ${mentionedUserData.email}`);
+            }
+          } else {
+            console.log(`[CRM] Mention email skipped for user ${mentionedUserId} - notifications disabled`);
           }
         } catch (emailError) {
           console.error('[CRM] Failed to send mention notification email:', emailError);
@@ -7131,6 +7148,996 @@ router.get('/organization/my-permissions', async (req, res) => {
   } catch (error) {
     console.error('[CRM] Error fetching user permissions:', error);
     res.status(500).json({ error: 'Failed to fetch permissions' });
+  }
+});
+
+// ==================== DATA IMPORT ROUTES ====================
+
+// Standard field definitions for each entity type
+const IMPORT_FIELD_DEFINITIONS = {
+  contact: {
+    standard: [
+      { key: 'firstName', label: 'First Name', required: true },
+      { key: 'lastName', label: 'Last Name', required: true },
+      { key: 'email', label: 'Email', required: true, unique: true },
+      { key: 'phone', label: 'Phone', required: false },
+      { key: 'title', label: 'Title', required: false },
+      { key: 'department', label: 'Department', required: false },
+      { key: 'lifecycleStage', label: 'Lifecycle Stage', required: false },
+      { key: 'contactType', label: 'Contact Type', required: false },
+      { key: 'linkedinUrl', label: 'LinkedIn URL', required: false },
+      { key: 'source', label: 'Source', required: false },
+      { key: 'notes', label: 'Notes', required: false },
+      { key: 'tags', label: 'Tags', required: false },
+    ],
+    associations: [
+      { key: 'companyName', label: 'Company Name', required: false },
+      { key: 'companyDomain', label: 'Company Domain', required: false },
+    ],
+  },
+  company: {
+    standard: [
+      { key: 'name', label: 'Name', required: true },
+      { key: 'domain', label: 'Domain', required: false, unique: true },
+      { key: 'website', label: 'Website', required: false },
+      { key: 'industry', label: 'Industry', required: false },
+      { key: 'size', label: 'Company Size', required: false },
+      { key: 'annualRevenue', label: 'Annual Revenue', required: false },
+      { key: 'phone', label: 'Phone', required: false },
+      { key: 'address', label: 'Address', required: false },
+      { key: 'city', label: 'City', required: false },
+      { key: 'state', label: 'State', required: false },
+      { key: 'country', label: 'Country', required: false },
+      { key: 'linkedinUrl', label: 'LinkedIn URL', required: false },
+      { key: 'description', label: 'Description', required: false },
+    ],
+    associations: [],
+  },
+  deal: {
+    standard: [
+      { key: 'name', label: 'Name', required: true },
+      { key: 'amount', label: 'Amount', required: false },
+      { key: 'currency', label: 'Currency', required: false },
+      { key: 'closeDate', label: 'Close Date', required: false },
+      { key: 'probability', label: 'Probability', required: false },
+      { key: 'priority', label: 'Priority', required: false },
+      { key: 'source', label: 'Source', required: false },
+      { key: 'description', label: 'Description', required: false },
+    ],
+    associations: [
+      { key: 'companyName', label: 'Company Name', required: false },
+      { key: 'companyDomain', label: 'Company Domain', required: false },
+      { key: 'contactEmails', label: 'Contact Emails', required: false },
+      { key: 'pipelineName', label: 'Pipeline', required: false },
+      { key: 'stageName', label: 'Stage', required: false },
+      { key: 'ownerEmail', label: 'Owner Email', required: false },
+    ],
+  },
+};
+
+// Get import template for an entity type (includes custom fields)
+router.get('/import/template/:entityType', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const { entityType } = req.params;
+    if (!['contact', 'company', 'deal'].includes(entityType)) {
+      return res.status(400).json({ error: 'Invalid entity type' });
+    }
+
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    // Get custom fields for this entity type
+    const customFields = await db
+      .select()
+      .from(customFieldDefinitions)
+      .where(
+        and(
+          eq(customFieldDefinitions.organizationId, orgData.organization.id),
+          eq(customFieldDefinitions.objectType, entityType)
+        )
+      )
+      .orderBy(customFieldDefinitions.displayOrder);
+
+    const fieldDef = IMPORT_FIELD_DEFINITIONS[entityType as keyof typeof IMPORT_FIELD_DEFINITIONS];
+
+    // Build headers: standard fields + associations + custom fields
+    const headers = [
+      ...fieldDef.standard.map(f => f.label + (f.required ? '*' : '')),
+      ...fieldDef.associations.map(f => f.label),
+      ...customFields.map(f => `[Custom] ${f.label}`),
+    ];
+
+    // Build example row
+    const exampleRow: string[] = [];
+    fieldDef.standard.forEach(f => {
+      switch (f.key) {
+        case 'firstName': exampleRow.push('John'); break;
+        case 'lastName': exampleRow.push('Smith'); break;
+        case 'email': exampleRow.push('john@example.com'); break;
+        case 'phone': exampleRow.push('555-0100'); break;
+        case 'title': exampleRow.push('VP Sales'); break;
+        case 'name': exampleRow.push(entityType === 'company' ? 'Acme Corporation' : 'Enterprise Deal'); break;
+        case 'domain': exampleRow.push('acme.com'); break;
+        case 'website': exampleRow.push('https://acme.com'); break;
+        case 'industry': exampleRow.push('Technology'); break;
+        case 'size': exampleRow.push('51-200'); break;
+        case 'amount': exampleRow.push('150000'); break;
+        case 'currency': exampleRow.push('USD'); break;
+        case 'closeDate': exampleRow.push('2026-03-15'); break;
+        case 'probability': exampleRow.push('60'); break;
+        case 'priority': exampleRow.push('high'); break;
+        case 'lifecycleStage': exampleRow.push('qualified'); break;
+        case 'contactType': exampleRow.push('buyer'); break;
+        case 'tags': exampleRow.push('enterprise,priority'); break;
+        default: exampleRow.push('');
+      }
+    });
+
+    fieldDef.associations.forEach(f => {
+      switch (f.key) {
+        case 'companyName': exampleRow.push('Acme Corporation'); break;
+        case 'companyDomain': exampleRow.push('acme.com'); break;
+        case 'contactEmails': exampleRow.push('john@acme.com,jane@acme.com'); break;
+        case 'pipelineName': exampleRow.push('Sales Pipeline'); break;
+        case 'stageName': exampleRow.push('Proposal'); break;
+        case 'ownerEmail': exampleRow.push('owner@yourcompany.com'); break;
+        default: exampleRow.push('');
+      }
+    });
+
+    // Empty values for custom fields in example
+    customFields.forEach(() => exampleRow.push(''));
+
+    // Create CSV content
+    const csvContent = [
+      headers.join(','),
+      exampleRow.map(v => `"${v.replace(/"/g, '""')}"`).join(','),
+    ].join('\n');
+
+    // Set headers for CSV download
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${entityType}s-import-template.csv"`);
+    res.send(csvContent);
+  } catch (error) {
+    console.error('[CRM] Error generating import template:', error);
+    res.status(500).json({ error: 'Failed to generate template' });
+  }
+});
+
+// Get field definitions for import mapping UI
+router.get('/import/fields/:entityType', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const { entityType } = req.params;
+    if (!['contact', 'company', 'deal'].includes(entityType)) {
+      return res.status(400).json({ error: 'Invalid entity type' });
+    }
+
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    // Get custom fields for this entity type
+    const customFields = await db
+      .select()
+      .from(customFieldDefinitions)
+      .where(
+        and(
+          eq(customFieldDefinitions.organizationId, orgData.organization.id),
+          eq(customFieldDefinitions.objectType, entityType)
+        )
+      )
+      .orderBy(customFieldDefinitions.displayOrder);
+
+    const fieldDef = IMPORT_FIELD_DEFINITIONS[entityType as keyof typeof IMPORT_FIELD_DEFINITIONS];
+
+    res.json({
+      standard: fieldDef.standard,
+      associations: fieldDef.associations,
+      custom: customFields.map(f => ({
+        key: `custom_${f.name}`,
+        label: f.label,
+        fieldType: f.fieldType,
+        required: f.isRequired,
+      })),
+    });
+  } catch (error) {
+    console.error('[CRM] Error fetching import fields:', error);
+    res.status(500).json({ error: 'Failed to fetch import fields' });
+  }
+});
+
+// Upload and parse import file
+router.post('/import/upload', upload.single('file'), async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const { entityType } = req.body;
+    if (!['contact', 'company', 'deal'].includes(entityType)) {
+      return res.status(400).json({ error: 'Invalid entity type' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    // Check permission
+    const userPerms = await getUserPermissions(req.user!.id);
+    if (!userPerms?.permissions['settings.data_import.manage']) {
+      return res.status(403).json({ error: 'Permission denied' });
+    }
+
+    // Parse the file
+    let data: any[][] = [];
+    const fileExt = req.file.originalname.toLowerCase().split('.').pop();
+
+    if (fileExt === 'csv') {
+      // Parse CSV
+      const csvContent = req.file.buffer.toString('utf-8');
+      const lines = csvContent.split(/\r?\n/).filter(line => line.trim());
+      data = lines.map(line => {
+        // Handle quoted CSV fields
+        const result: string[] = [];
+        let current = '';
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          if (char === '"') {
+            if (inQuotes && line[i + 1] === '"') {
+              current += '"';
+              i++;
+            } else {
+              inQuotes = !inQuotes;
+            }
+          } else if (char === ',' && !inQuotes) {
+            result.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        result.push(current.trim());
+        return result;
+      });
+    } else if (fileExt === 'xlsx' || fileExt === 'xls') {
+      // Parse Excel
+      const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+    } else {
+      return res.status(400).json({ error: 'Unsupported file type. Use CSV or XLSX.' });
+    }
+
+    if (data.length < 2) {
+      return res.status(400).json({ error: 'File must contain a header row and at least one data row' });
+    }
+
+    const headers = data[0].map((h: any) => String(h).trim());
+    const rows = data.slice(1).filter(row => row.some((cell: any) => cell !== ''));
+
+    // Get field definitions for auto-mapping
+    const fieldDef = IMPORT_FIELD_DEFINITIONS[entityType as keyof typeof IMPORT_FIELD_DEFINITIONS];
+    const allFields = [...fieldDef.standard, ...fieldDef.associations];
+
+    // Get custom fields
+    const customFields = await db
+      .select()
+      .from(customFieldDefinitions)
+      .where(
+        and(
+          eq(customFieldDefinitions.organizationId, orgData.organization.id),
+          eq(customFieldDefinitions.objectType, entityType)
+        )
+      );
+
+    // Auto-map headers to fields
+    const suggestedMapping: Record<string, string> = {};
+    headers.forEach((header: string, index: number) => {
+      const normalizedHeader = header.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+      // Try to match standard/association fields
+      for (const field of allFields) {
+        const normalizedLabel = field.label.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const normalizedKey = field.key.toLowerCase();
+        if (normalizedHeader === normalizedLabel || normalizedHeader === normalizedKey) {
+          suggestedMapping[header] = field.key;
+          break;
+        }
+      }
+
+      // Try to match custom fields
+      if (!suggestedMapping[header]) {
+        for (const cf of customFields) {
+          const normalizedLabel = cf.label.toLowerCase().replace(/[^a-z0-9]/g, '');
+          const normalizedKey = cf.name.toLowerCase();
+          if (normalizedHeader === normalizedLabel || normalizedHeader === normalizedKey ||
+              normalizedHeader === `custom${normalizedLabel}` || normalizedHeader === `custom${normalizedKey}`) {
+            suggestedMapping[header] = `custom_${cf.name}`;
+            break;
+          }
+        }
+      }
+    });
+
+    // Return parsed data with preview
+    res.json({
+      fileName: req.file.originalname,
+      fileSize: req.file.size,
+      headers,
+      totalRows: rows.length,
+      preview: rows.slice(0, 5).map(row => {
+        const obj: Record<string, any> = {};
+        headers.forEach((h: string, i: number) => {
+          obj[h] = row[i] ?? '';
+        });
+        return obj;
+      }),
+      suggestedMapping,
+      rawData: rows.map(row => {
+        const obj: Record<string, any> = {};
+        headers.forEach((h: string, i: number) => {
+          obj[h] = row[i] ?? '';
+        });
+        return obj;
+      }),
+    });
+  } catch (error) {
+    console.error('[CRM] Error parsing import file:', error);
+    res.status(500).json({ error: 'Failed to parse file' });
+  }
+});
+
+// Preview import with duplicate detection and association matching
+router.post('/import/preview', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const { entityType, data, mapping } = req.body;
+    if (!['contact', 'company', 'deal'].includes(entityType)) {
+      return res.status(400).json({ error: 'Invalid entity type' });
+    }
+
+    if (!Array.isArray(data) || !mapping) {
+      return res.status(400).json({ error: 'Invalid request data' });
+    }
+
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    // Check permission
+    const userPerms = await getUserPermissions(req.user!.id);
+    if (!userPerms?.permissions['settings.data_import.manage']) {
+      return res.status(403).json({ error: 'Permission denied' });
+    }
+
+    // Get existing records for duplicate detection
+    let existingRecords: any[] = [];
+    if (entityType === 'contact') {
+      existingRecords = await db
+        .select({ id: crmContacts.id, email: crmContacts.email, firstName: crmContacts.firstName, lastName: crmContacts.lastName })
+        .from(crmContacts)
+        .where(eq(crmContacts.organizationId, orgData.organization.id));
+    } else if (entityType === 'company') {
+      existingRecords = await db
+        .select({ id: companies.id, name: companies.name, domain: companies.domain })
+        .from(companies)
+        .where(eq(companies.organizationId, orgData.organization.id));
+    } else if (entityType === 'deal') {
+      existingRecords = await db
+        .select({
+          id: deals.id,
+          name: deals.name,
+          companyId: deals.companyId
+        })
+        .from(deals)
+        .where(and(
+          eq(deals.organizationId, orgData.organization.id),
+          isNull(deals.deletedAt)
+        ));
+    }
+
+    // Get all companies for association matching
+    const allCompanies = await db
+      .select({ id: companies.id, name: companies.name, domain: companies.domain })
+      .from(companies)
+      .where(eq(companies.organizationId, orgData.organization.id));
+
+    // Get all contacts for deal association matching
+    const allContacts = entityType === 'deal' ? await db
+      .select({ id: crmContacts.id, email: crmContacts.email })
+      .from(crmContacts)
+      .where(eq(crmContacts.organizationId, orgData.organization.id)) : [];
+
+    // Get pipelines and stages for deal association
+    const allPipelines = entityType === 'deal' ? await db
+      .select()
+      .from(pipelines)
+      .where(eq(pipelines.organizationId, orgData.organization.id)) : [];
+
+    const pipelineIds = allPipelines.map(p => p.id);
+    const allStages = entityType === 'deal' && pipelineIds.length > 0 ? await db
+      .select()
+      .from(pipelineStages)
+      .where(inArray(pipelineStages.pipelineId, pipelineIds)) : [];
+
+    // Get team members for owner matching
+    const teamMembers = entityType === 'deal' ? await db
+      .select({
+        id: organizationMembers.id,
+        userId: organizationMembers.userId,
+        email: users.email
+      })
+      .from(organizationMembers)
+      .innerJoin(users, eq(organizationMembers.userId, users.id))
+      .where(eq(organizationMembers.organizationId, orgData.organization.id)) : [];
+
+    // Process each row
+    const preview = data.map((row: any, index: number) => {
+      const mappedRow: Record<string, any> = {};
+      const errors: string[] = [];
+      let duplicateOf: any = null;
+      const associations: Record<string, any> = {};
+
+      // Apply mapping
+      Object.entries(mapping).forEach(([csvCol, fieldKey]) => {
+        if (fieldKey && row[csvCol] !== undefined) {
+          mappedRow[fieldKey as string] = row[csvCol];
+        }
+      });
+
+      // Validate required fields
+      const fieldDef = IMPORT_FIELD_DEFINITIONS[entityType as keyof typeof IMPORT_FIELD_DEFINITIONS];
+      fieldDef.standard.forEach(field => {
+        if (field.required && !mappedRow[field.key]) {
+          errors.push(`Missing required field: ${field.label}`);
+        }
+      });
+
+      // Check for duplicates (exact + case-insensitive)
+      if (entityType === 'contact' && mappedRow.email) {
+        const normalizedEmail = mappedRow.email.toLowerCase().trim();
+        const match = existingRecords.find(r => r.email?.toLowerCase() === normalizedEmail);
+        if (match) {
+          duplicateOf = { id: match.id, displayName: `${match.firstName || ''} ${match.lastName || ''} (${match.email})`.trim() };
+        }
+      } else if (entityType === 'company') {
+        // Match by domain first, then by name
+        if (mappedRow.domain) {
+          const normalizedDomain = mappedRow.domain.toLowerCase().trim();
+          const match = existingRecords.find(r => r.domain?.toLowerCase() === normalizedDomain);
+          if (match) {
+            duplicateOf = { id: match.id, displayName: match.name };
+          }
+        }
+        if (!duplicateOf && mappedRow.name) {
+          const normalizedName = mappedRow.name.toLowerCase().trim();
+          const match = existingRecords.find(r => r.name?.toLowerCase() === normalizedName);
+          if (match) {
+            duplicateOf = { id: match.id, displayName: match.name };
+          }
+        }
+      } else if (entityType === 'deal' && mappedRow.name) {
+        // For deals: exact name match + same company = duplicate
+        const normalizedName = mappedRow.name.toLowerCase().trim();
+        // First resolve company association
+        let companyId: number | null = null;
+        if (mappedRow.companyDomain) {
+          const company = allCompanies.find(c => c.domain?.toLowerCase() === mappedRow.companyDomain.toLowerCase());
+          if (company) companyId = company.id;
+        } else if (mappedRow.companyName) {
+          const company = allCompanies.find(c => c.name?.toLowerCase() === mappedRow.companyName.toLowerCase());
+          if (company) companyId = company.id;
+        }
+
+        const match = existingRecords.find(r =>
+          r.name?.toLowerCase() === normalizedName &&
+          (companyId === null || r.companyId === companyId)
+        );
+        if (match) {
+          duplicateOf = { id: match.id, displayName: match.name };
+        }
+      }
+
+      // Resolve associations
+      if (entityType === 'contact' || entityType === 'deal') {
+        // Company association
+        if (mappedRow.companyDomain || mappedRow.companyName) {
+          let matchedCompany = null;
+          if (mappedRow.companyDomain) {
+            matchedCompany = allCompanies.find(c => c.domain?.toLowerCase() === mappedRow.companyDomain.toLowerCase());
+          }
+          if (!matchedCompany && mappedRow.companyName) {
+            matchedCompany = allCompanies.find(c => c.name?.toLowerCase() === mappedRow.companyName.toLowerCase());
+          }
+
+          associations.company = {
+            inputValue: mappedRow.companyDomain || mappedRow.companyName,
+            match: matchedCompany ? { id: matchedCompany.id, name: matchedCompany.name } : null,
+            action: matchedCompany ? 'link' : 'create', // Default action
+          };
+        }
+      }
+
+      if (entityType === 'deal') {
+        // Contact associations
+        if (mappedRow.contactEmails) {
+          const emails = mappedRow.contactEmails.split(',').map((e: string) => e.trim().toLowerCase());
+          const contactMatches = emails.map((email: string) => {
+            const match = allContacts.find(c => c.email?.toLowerCase() === email);
+            return {
+              email,
+              match: match ? { id: match.id, email: match.email } : null,
+            };
+          });
+          associations.contacts = contactMatches;
+        }
+
+        // Pipeline/Stage association
+        if (mappedRow.pipelineName || mappedRow.stageName) {
+          let matchedPipeline = allPipelines.find(p =>
+            p.name?.toLowerCase() === (mappedRow.pipelineName || '').toLowerCase()
+          ) || allPipelines[0]; // Default to first pipeline
+
+          let matchedStage = null;
+          if (matchedPipeline) {
+            const pipelineStagesFiltered = allStages.filter(s => s.pipelineId === matchedPipeline!.id);
+            matchedStage = pipelineStagesFiltered.find(s =>
+              s.name?.toLowerCase() === (mappedRow.stageName || '').toLowerCase()
+            ) || pipelineStagesFiltered[0]; // Default to first stage
+          }
+
+          associations.pipeline = {
+            inputValue: mappedRow.pipelineName,
+            match: matchedPipeline ? { id: matchedPipeline.id, name: matchedPipeline.name } : null,
+          };
+          associations.stage = {
+            inputValue: mappedRow.stageName,
+            match: matchedStage ? { id: matchedStage.id, name: matchedStage.name } : null,
+          };
+        }
+
+        // Owner association
+        if (mappedRow.ownerEmail) {
+          const matchedMember = teamMembers.find(m =>
+            m.email?.toLowerCase() === mappedRow.ownerEmail.toLowerCase()
+          );
+          associations.owner = {
+            inputValue: mappedRow.ownerEmail,
+            match: matchedMember ? { id: matchedMember.id, email: matchedMember.email } : null,
+          };
+        }
+      }
+
+      return {
+        rowIndex: index,
+        originalData: row,
+        mappedData: mappedRow,
+        errors,
+        duplicateOf,
+        associations,
+        action: duplicateOf ? 'skip' : (errors.length > 0 ? 'error' : 'create'), // Default action
+      };
+    });
+
+    // Summary statistics
+    const summary = {
+      total: preview.length,
+      valid: preview.filter(r => r.errors.length === 0 && !r.duplicateOf).length,
+      duplicates: preview.filter(r => r.duplicateOf).length,
+      errors: preview.filter(r => r.errors.length > 0).length,
+      newCompanies: entityType !== 'company' ?
+        new Set(preview.filter(r => r.associations.company?.action === 'create').map(r => r.associations.company?.inputValue?.toLowerCase())).size : 0,
+    };
+
+    res.json({ preview, summary });
+  } catch (error) {
+    console.error('[CRM] Error generating import preview:', error);
+    res.status(500).json({ error: 'Failed to generate preview' });
+  }
+});
+
+// Execute the import
+router.post('/import/execute', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const { entityType, rows, mapping, fileName, fileSize } = req.body;
+    if (!['contact', 'company', 'deal'].includes(entityType)) {
+      return res.status(400).json({ error: 'Invalid entity type' });
+    }
+
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return res.status(400).json({ error: 'No rows to import' });
+    }
+
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    // Check permission
+    const userPerms = await getUserPermissions(req.user!.id);
+    if (!userPerms?.permissions['settings.data_import.manage']) {
+      return res.status(403).json({ error: 'Permission denied' });
+    }
+
+    // Get custom fields for this entity type
+    const customFields = await db
+      .select()
+      .from(customFieldDefinitions)
+      .where(
+        and(
+          eq(customFieldDefinitions.organizationId, orgData.organization.id),
+          eq(customFieldDefinitions.objectType, entityType)
+        )
+      );
+
+    const customFieldMap = new Map(customFields.map(f => [f.name, f]));
+
+    // Create import record
+    const [importRecord] = await db
+      .insert(crmImports)
+      .values({
+        organizationId: orgData.organization.id,
+        entityType,
+        fileName: fileName || 'import.csv',
+        fileSize: fileSize || 0,
+        totalRows: rows.length,
+        status: 'processing',
+        columnMapping: mapping || {},
+        createdBy: req.user!.id,
+      })
+      .returning();
+
+    // Track results
+    let importedCount = 0;
+    let skippedCount = 0;
+    let duplicateCount = 0;
+    let errorCount = 0;
+    const errors: any[] = [];
+
+    // Cache for created companies (to avoid creating duplicates within same import)
+    const createdCompanies = new Map<string, number>();
+
+    // Get default pipeline and stage for deals
+    let defaultPipeline: any = null;
+    let defaultStage: any = null;
+    if (entityType === 'deal') {
+      [defaultPipeline] = await db
+        .select()
+        .from(pipelines)
+        .where(eq(pipelines.organizationId, orgData.organization.id))
+        .limit(1);
+
+      if (defaultPipeline) {
+        [defaultStage] = await db
+          .select()
+          .from(pipelineStages)
+          .where(eq(pipelineStages.pipelineId, defaultPipeline.id))
+          .orderBy(pipelineStages.displayOrder)
+          .limit(1);
+      }
+    }
+
+    // Process each row
+    for (const row of rows) {
+      try {
+        // Skip rows marked for skipping
+        if (row.action === 'skip') {
+          if (row.duplicateOf) {
+            duplicateCount++;
+          } else {
+            skippedCount++;
+          }
+          continue;
+        }
+
+        // Skip rows with errors that aren't resolved
+        if (row.action === 'error' || row.errors?.length > 0) {
+          errorCount++;
+          errors.push({ row: row.rowIndex, errors: row.errors });
+          continue;
+        }
+
+        const mappedData = row.mappedData;
+        const associations = row.associations || {};
+
+        // Extract custom properties
+        const customProperties: Record<string, any> = {};
+        Object.entries(mappedData).forEach(([key, value]) => {
+          if (key.startsWith('custom_')) {
+            const fieldName = key.replace('custom_', '');
+            if (customFieldMap.has(fieldName)) {
+              customProperties[fieldName] = value;
+            }
+          }
+        });
+
+        if (entityType === 'company') {
+          // Create company
+          await db.insert(companies).values({
+            organizationId: orgData.organization.id,
+            name: mappedData.name,
+            domain: mappedData.domain || null,
+            website: mappedData.website || null,
+            industry: mappedData.industry || null,
+            size: mappedData.size || null,
+            annualRevenue: mappedData.annualRevenue || null,
+            phone: mappedData.phone || null,
+            address: mappedData.address || null,
+            city: mappedData.city || null,
+            state: mappedData.state || null,
+            country: mappedData.country || null,
+            linkedinUrl: mappedData.linkedinUrl || null,
+            description: mappedData.description || null,
+            customProperties,
+            ownerId: orgData.membership.id,
+          });
+          importedCount++;
+        } else if (entityType === 'contact') {
+          // Resolve company association
+          let companyId: number | null = null;
+          if (associations.company) {
+            if (associations.company.action === 'link' && associations.company.match) {
+              companyId = associations.company.match.id;
+            } else if (associations.company.action === 'create' && associations.company.inputValue) {
+              // Check cache first
+              const cacheKey = associations.company.inputValue.toLowerCase();
+              if (createdCompanies.has(cacheKey)) {
+                companyId = createdCompanies.get(cacheKey)!;
+              } else {
+                // Create new company
+                const [newCompany] = await db.insert(companies).values({
+                  organizationId: orgData.organization.id,
+                  name: associations.company.inputValue,
+                  domain: mappedData.companyDomain || null,
+                  ownerId: orgData.membership.id,
+                }).returning();
+                companyId = newCompany.id;
+                createdCompanies.set(cacheKey, companyId);
+              }
+            }
+          }
+
+          // Parse tags
+          let tags: string[] = [];
+          if (mappedData.tags) {
+            tags = mappedData.tags.split(',').map((t: string) => t.trim()).filter((t: string) => t);
+          }
+
+          // Create contact
+          await db.insert(crmContacts).values({
+            organizationId: orgData.organization.id,
+            email: mappedData.email,
+            firstName: mappedData.firstName || null,
+            lastName: mappedData.lastName || null,
+            phone: mappedData.phone || null,
+            title: mappedData.title || null,
+            department: mappedData.department || null,
+            companyId,
+            lifecycleStage: mappedData.lifecycleStage || null,
+            contactType: mappedData.contactType || null,
+            linkedinUrl: mappedData.linkedinUrl || null,
+            source: mappedData.source || 'import',
+            notes: mappedData.notes || null,
+            tags,
+            customProperties,
+            ownerId: orgData.membership.id,
+          });
+          importedCount++;
+        } else if (entityType === 'deal') {
+          // Resolve company association
+          let companyId: number | null = null;
+          if (associations.company) {
+            if (associations.company.action === 'link' && associations.company.match) {
+              companyId = associations.company.match.id;
+            } else if (associations.company.action === 'create' && associations.company.inputValue) {
+              const cacheKey = associations.company.inputValue.toLowerCase();
+              if (createdCompanies.has(cacheKey)) {
+                companyId = createdCompanies.get(cacheKey)!;
+              } else {
+                const [newCompany] = await db.insert(companies).values({
+                  organizationId: orgData.organization.id,
+                  name: associations.company.inputValue,
+                  domain: mappedData.companyDomain || null,
+                  ownerId: orgData.membership.id,
+                }).returning();
+                companyId = newCompany.id;
+                createdCompanies.set(cacheKey, companyId);
+              }
+            }
+          }
+
+          // Resolve pipeline and stage
+          const pipelineId = associations.pipeline?.match?.id || defaultPipeline?.id;
+          const stageId = associations.stage?.match?.id || defaultStage?.id;
+
+          if (!pipelineId || !stageId) {
+            errorCount++;
+            errors.push({ row: row.rowIndex, errors: ['No pipeline or stage available'] });
+            continue;
+          }
+
+          // Resolve owner
+          let ownerId = orgData.membership.id;
+          if (associations.owner?.match) {
+            ownerId = associations.owner.match.id;
+          }
+
+          // Parse amount
+          let amount: number | null = null;
+          if (mappedData.amount) {
+            amount = parseFloat(String(mappedData.amount).replace(/[^0-9.-]/g, ''));
+            if (isNaN(amount)) amount = null;
+          }
+
+          // Parse close date
+          let closeDate: Date | null = null;
+          if (mappedData.closeDate) {
+            closeDate = new Date(mappedData.closeDate);
+            if (isNaN(closeDate.getTime())) closeDate = null;
+          }
+
+          // Parse probability
+          let probability: number | null = null;
+          if (mappedData.probability) {
+            probability = parseInt(mappedData.probability);
+            if (isNaN(probability) || probability < 0 || probability > 100) probability = null;
+          }
+
+          // Create deal
+          const [newDeal] = await db.insert(deals).values({
+            organizationId: orgData.organization.id,
+            name: mappedData.name,
+            amount: amount !== null ? String(amount) : null,
+            currency: mappedData.currency || 'USD',
+            pipelineId,
+            stageId,
+            closeDate,
+            probability,
+            priority: ['low', 'normal', 'high'].includes(mappedData.priority) ? mappedData.priority : 'normal',
+            source: mappedData.source || 'import',
+            description: mappedData.description || null,
+            companyId,
+            ownerId,
+            customProperties,
+          }).returning();
+
+          // Link contacts to deal
+          if (associations.contacts) {
+            for (const contactAssoc of associations.contacts) {
+              if (contactAssoc.match) {
+                await db.insert(dealContacts).values({
+                  dealId: newDeal.id,
+                  contactId: contactAssoc.match.id,
+                });
+              }
+            }
+          }
+
+          importedCount++;
+        }
+      } catch (rowError: any) {
+        console.error(`[CRM] Error importing row ${row.rowIndex}:`, rowError);
+        errorCount++;
+        errors.push({ row: row.rowIndex, errors: [rowError.message || 'Unknown error'] });
+      }
+    }
+
+    // Update import record with results
+    await db
+      .update(crmImports)
+      .set({
+        status: 'completed',
+        importedCount,
+        skippedCount,
+        duplicateCount,
+        errorCount,
+        errors,
+        completedAt: new Date(),
+      })
+      .where(eq(crmImports.id, importRecord.id));
+
+    res.json({
+      success: true,
+      importId: importRecord.id,
+      summary: {
+        total: rows.length,
+        imported: importedCount,
+        skipped: skippedCount,
+        duplicates: duplicateCount,
+        errors: errorCount,
+      },
+      errors: errors.slice(0, 50), // Return first 50 errors
+    });
+  } catch (error) {
+    console.error('[CRM] Error executing import:', error);
+    res.status(500).json({ error: 'Failed to execute import' });
+  }
+});
+
+// Get import history
+router.get('/import/history', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    const imports = await db
+      .select({
+        id: crmImports.id,
+        entityType: crmImports.entityType,
+        fileName: crmImports.fileName,
+        totalRows: crmImports.totalRows,
+        importedCount: crmImports.importedCount,
+        skippedCount: crmImports.skippedCount,
+        duplicateCount: crmImports.duplicateCount,
+        errorCount: crmImports.errorCount,
+        status: crmImports.status,
+        createdAt: crmImports.createdAt,
+        completedAt: crmImports.completedAt,
+        createdByName: users.name,
+        createdByEmail: users.email,
+      })
+      .from(crmImports)
+      .innerJoin(users, eq(crmImports.createdBy, users.id))
+      .where(eq(crmImports.organizationId, orgData.organization.id))
+      .orderBy(desc(crmImports.createdAt))
+      .limit(50);
+
+    res.json(imports);
+  } catch (error) {
+    console.error('[CRM] Error fetching import history:', error);
+    res.status(500).json({ error: 'Failed to fetch import history' });
+  }
+});
+
+// Get import details (including errors)
+router.get('/import/:id', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const importId = parseInt(req.params.id);
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    const [importRecord] = await db
+      .select()
+      .from(crmImports)
+      .where(
+        and(
+          eq(crmImports.id, importId),
+          eq(crmImports.organizationId, orgData.organization.id)
+        )
+      );
+
+    if (!importRecord) {
+      return res.status(404).json({ error: 'Import not found' });
+    }
+
+    res.json(importRecord);
+  } catch (error) {
+    console.error('[CRM] Error fetching import details:', error);
+    res.status(500).json({ error: 'Failed to fetch import details' });
   }
 });
 

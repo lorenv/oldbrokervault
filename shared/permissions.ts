@@ -78,6 +78,7 @@ export const PERMISSION_KEYS = {
   'settings.branding.view': { category: 'settings', label: 'View branding', group: 'Branding' },
   'settings.branding.edit': { category: 'settings', label: 'Edit branding', group: 'Branding' },
   'settings.integrations.manage': { category: 'settings', label: 'Manage integrations', group: 'Integrations' },
+  'settings.data_import.manage': { category: 'settings', label: 'Import & dedupe data', group: 'Data Management' },
 } as const;
 
 export type PermissionKey = keyof typeof PERMISSION_KEYS;
@@ -158,6 +159,7 @@ export const DEFAULT_PERMISSIONS: Record<Role, Record<PermissionKey, boolean>> =
     'settings.branding.view': true,
     'settings.branding.edit': true,
     'settings.integrations.manage': true,
+    'settings.data_import.manage': true,
   },
 
   // Member defaults: Can view/create/edit but not delete or manage
@@ -217,6 +219,7 @@ export const DEFAULT_PERMISSIONS: Record<Role, Record<PermissionKey, boolean>> =
     'settings.branding.view': true,
     'settings.branding.edit': false,
     'settings.integrations.manage': false,
+    'settings.data_import.manage': false,
   },
 
   // Viewer has read-only access (cannot be modified)
@@ -276,6 +279,7 @@ export const DEFAULT_PERMISSIONS: Record<Role, Record<PermissionKey, boolean>> =
     'settings.branding.view': false,
     'settings.branding.edit': false,
     'settings.integrations.manage': false,
+    'settings.data_import.manage': false,
   },
 };
 

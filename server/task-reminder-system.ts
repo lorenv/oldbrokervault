@@ -219,7 +219,7 @@ export class TaskReminderSystem {
     <a href="${taskUrl}" style="display: inline-block; background: #4f46e5; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500;">View Task</a>
 
     <p style="margin-top: 30px; color: #6b7280; font-size: 14px;">
-      You're receiving this email because you have a task reminder set in CIM Share.
+      You're receiving this email because you have a task reminder set in Broker Vault.
     </p>
   </div>
 </body>

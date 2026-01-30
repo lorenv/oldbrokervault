@@ -22,6 +22,7 @@ import {
   Phone,
   RefreshCw,
   Download,
+  Upload,
   Filter,
   X,
   ArrowUpDown,
@@ -581,6 +582,15 @@ export default function ContactsPage() {
               onToggleVisibility={toggleColumnVisibility}
               onReorder={reorderColumns}
             />
+            <Link href="/settings/data-management">
+              <Button
+                variant="outline"
+                size="sm"
+                title="Import contacts"
+              >
+                <Upload className="h-4 w-4" />
+              </Button>
+            </Link>
             <Button
               variant="outline"
               size="sm"

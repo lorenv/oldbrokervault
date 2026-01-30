@@ -413,7 +413,7 @@ export class SlackProvider extends BaseProvider {
       type: 'context',
       elements: [{
         type: 'mrkdwn',
-        text: `Sent from CIMShare at ${new Date().toLocaleString()}`
+        text: `Sent from Broker Vault at ${new Date().toLocaleString()}`
       }]
     });
 

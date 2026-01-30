@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   Lock,
   Eye,
+  Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -124,6 +125,14 @@ const settingsNavSections: SettingsNavSection[] = [
         viewPermission: "settings.custom_fields.edit",
         editPermission: "settings.custom_fields.edit",
       },
+      {
+        label: "Data Management",
+        icon: Upload,
+        href: "/settings/data-management",
+        description: "Import and deduplicate records",
+        viewPermission: "settings.data_import.manage",
+        editPermission: "settings.data_import.manage",
+      },
     ],
   },
   {
@@ -179,6 +188,7 @@ const routePermissions: Record<string, { view?: PermissionKey; edit?: Permission
   '/settings/billing': { view: 'settings.billing.view', edit: 'settings.billing.manage' },
   '/settings/pipelines': { view: 'settings.pipelines.edit', edit: 'settings.pipelines.edit' },
   '/settings/custom-fields': { view: 'settings.custom_fields.edit', edit: 'settings.custom_fields.edit' },
+  '/settings/data-management': { view: 'settings.data_import.manage', edit: 'settings.data_import.manage' },
   '/settings/email': { view: 'settings.integrations.manage', edit: 'settings.integrations.manage' },
   '/settings/integrations': { view: 'settings.integrations.manage', edit: 'settings.integrations.manage' },
   '/settings/branding': { view: 'settings.branding.view', edit: 'settings.branding.edit' },

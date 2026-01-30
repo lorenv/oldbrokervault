@@ -507,11 +507,11 @@ async function sendPasswordResetEmail(
   return await sendEmail({
     to: userEmail,
     from: 'system@cimshare.com', // Use verified sender
-    subject: 'Reset Your CIM Share Password',
+    subject: 'Reset Your Broker Vault Password',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2>Password Reset Request</h2>
-        <p>You recently requested to reset your password for your CIM Share account.</p>
+        <p>You recently requested to reset your password for your Broker Vault account.</p>
         
         <p>Click the button below to reset your password:</p>
         
@@ -531,14 +531,14 @@ async function sendPasswordResetEmail(
         
         <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
         <p style="color: #666; font-size: 12px;">
-          This is an automated email from CIM Share. Please do not reply to this email.
+          This is an automated email from Broker Vault. Please do not reply to this email.
         </p>
       </div>
     `,
     text: `
       Password Reset Request
       
-      You recently requested to reset your password for your CIM Share account.
+      You recently requested to reset your password for your Broker Vault account.
       
       Click the link below to reset your password:
       ${resetLink}
@@ -682,7 +682,7 @@ async function sendOwnerApprovalNotification(
           <p><strong>Status:</strong> Awaiting your approval</p>
         </div>
         
-        <p>Please log in to your CIM Share documents page to review and approve this signer's access to the document.</p>
+        <p>Please log in to your Broker Vault documents page to review and approve this signer's access to the document.</p>
 
         <div style="text-align: center; margin: 30px 0;">
           <a href="https://cimshare.com/documents"
@@ -711,7 +711,7 @@ async function sendOwnerApprovalNotification(
       Signed: ${new Date().toLocaleString()}
       Status: Awaiting your approval
       
-      Please log in to your CIM Share documents page to review and approve this signer's access to the document.
+      Please log in to your Broker Vault documents page to review and approve this signer's access to the document.
 
       Documents: https://cimshare.com/documents
     `
@@ -758,7 +758,7 @@ async function sendRejectionEmail(
 
         <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
         <p style="color: #666; font-size: 12px;">
-          This is an automated notification from CIM Share.
+          This is an automated notification from Broker Vault.
         </p>
       </div>
     `,
@@ -823,14 +823,14 @@ async function sendCollaborationInvitationEmail(
         </div>
 
         <p style="color: #666; font-size: 14px;">
-          This invitation will expire in 7 days. If you don't have a CIM Share account, you'll be prompted to create one when accepting the invitation.
+          This invitation will expire in 7 days. If you don't have a Broker Vault account, you'll be prompted to create one when accepting the invitation.
         </p>
 
-        <p>Best regards,<br>The CIM Share Team</p>
+        <p>Best regards,<br>The Broker Vault Team</p>
 
         <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
         <p style="color: #666; font-size: 12px;">
-          This is an automated notification from CIM Share. If you received this in error, you can safely ignore it.
+          This is an automated notification from Broker Vault. If you received this in error, you can safely ignore it.
         </p>
       </div>
     `,
@@ -850,7 +850,7 @@ async function sendCollaborationInvitationEmail(
       This invitation will expire in 7 days.
 
       Best regards,
-      The CIM Share Team
+      The Broker Vault Team
     `
   });
 }
@@ -882,11 +882,11 @@ async function sendCollaboratorRemovedEmail(
           If you believe this was done in error, please contact ${removedByName} directly.
         </p>
 
-        <p>Best regards,<br>The CIM Share Team</p>
+        <p>Best regards,<br>The Broker Vault Team</p>
 
         <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
         <p style="color: #666; font-size: 12px;">
-          This is an automated notification from CIM Share.
+          This is an automated notification from Broker Vault.
         </p>
       </div>
     `,
@@ -902,7 +902,7 @@ async function sendCollaboratorRemovedEmail(
       If you believe this was done in error, please contact ${removedByName} directly.
 
       Best regards,
-      The CIM Share Team
+      The Broker Vault Team
     `
   });
 }
@@ -936,11 +936,11 @@ async function sendEditLockTakenOverEmail(
           Multiple people were trying to edit the same document at the same time. To avoid conflicts, only one person can edit at a time.
         </p>
 
-        <p>Best regards,<br>The CIM Share Team</p>
+        <p>Best regards,<br>The Broker Vault Team</p>
 
         <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
         <p style="color: #666; font-size: 12px;">
-          This is an automated notification from CIM Share.
+          This is an automated notification from Broker Vault.
         </p>
       </div>
     `,
@@ -956,7 +956,7 @@ async function sendEditLockTakenOverEmail(
       Multiple people were trying to edit the same document at the same time. To avoid conflicts, only one person can edit at a time.
 
       Best regards,
-      The CIM Share Team
+      The Broker Vault Team
     `
   });
 }
@@ -1167,7 +1167,7 @@ interface EsignEmailParams {
 
 async function sendEsignInvitationEmail(params: EsignEmailParams): Promise<boolean> {
   const primaryColor = params.branding?.primaryColor || '#0072CE';
-  const companyName = params.branding?.companyName || 'CIM Share';
+  const companyName = params.branding?.companyName || 'Broker Vault';
   const headerTextColor = getContrastTextColor(primaryColor);
   const buttonTextColor = getContrastTextColor(primaryColor);
 
@@ -1249,7 +1249,7 @@ If you have questions, please reply to this email.
 
 async function sendEsignReminderEmail(params: EsignEmailParams): Promise<boolean> {
   const primaryColor = params.branding?.primaryColor || '#0072CE';
-  const companyName = params.branding?.companyName || 'CIM Share';
+  const companyName = params.branding?.companyName || 'Broker Vault';
   const buttonTextColor = getContrastTextColor(primaryColor);
   // Reminder header uses amber/orange - calculate contrast for that
   const reminderHeaderColor = '#f59e0b';
@@ -1334,7 +1334,7 @@ async function sendEsignCompletedEmail(params: {
   };
 }): Promise<boolean> {
   const primaryColor = params.branding?.primaryColor || '#0072CE';
-  const companyName = params.branding?.companyName || 'CIM Share';
+  const companyName = params.branding?.companyName || 'Broker Vault';
   const buttonTextColor = getContrastTextColor(primaryColor);
   const hasAttachment = !!params.pdfAttachment;
   // Completed header uses green
@@ -1444,7 +1444,7 @@ async function sendEsignDeclinedEmail(params: {
     primaryColor?: string;
   };
 }): Promise<boolean> {
-  const companyName = params.branding?.companyName || 'CIM Share';
+  const companyName = params.branding?.companyName || 'Broker Vault';
   // Declined header uses red
   const declinedHeaderColor = '#dc2626';
   const declinedHeaderTextColor = getContrastTextColor(declinedHeaderColor);
@@ -1525,7 +1525,7 @@ async function sendEsignVoidedEmail(params: {
     primaryColor?: string;
   };
 }): Promise<boolean> {
-  const companyName = params.branding?.companyName || 'CIM Share';
+  const companyName = params.branding?.companyName || 'Broker Vault';
   // Voided header uses gray
   const voidedHeaderColor = '#6b7280';
   const voidedHeaderTextColor = getContrastTextColor(voidedHeaderColor);
@@ -1606,7 +1606,7 @@ async function sendFirstDocumentCongratulationsEmail(params: {
 
   return sendEmail({
     to: userEmail,
-    from: 'CIMShare <hello@cimshare.com>',
+    from: 'Broker Vault <hello@cimshare.com>',
     replyTo: 'support@cimshare.com',
     subject: `Congratulations on your first CIM! - ${documentTitle}`,
     html: `
@@ -1649,7 +1649,7 @@ async function sendFirstDocumentCongratulationsEmail(params: {
 
               <p style="margin: 12px 0; color: #555; font-size: 14px;">
                 <strong style="color: #667eea;">✍️ Use E-Signatures</strong><br>
-                Send documents for legally binding electronic signatures directly from CIMShare.
+                Send documents for legally binding electronic signatures directly from Broker Vault.
               </p>
             </div>
           </div>
@@ -1661,7 +1661,7 @@ async function sendFirstDocumentCongratulationsEmail(params: {
 
           <p style="font-size: 16px; color: #333; margin-top: 25px;">
             Best regards,<br>
-            <strong>The CIMShare Team</strong>
+            <strong>The Broker Vault Team</strong>
           </p>
         </div>
 
@@ -1691,13 +1691,13 @@ Require potential buyers to sign an NDA before viewing your confidential busines
 Set password protection, expiration dates, and control who can access your document.
 
 ✍️ Use E-Signatures
-Send documents for legally binding electronic signatures directly from CIMShare.
+Send documents for legally binding electronic signatures directly from Broker Vault.
 
 We're here to help you succeed. If you have any questions or feature suggestions,
 don't hesitate to reach out at support@cimshare.com!
 
 Best regards,
-The CIMShare Team
+The Broker Vault Team
     `.trim()
   });
 }
@@ -1736,7 +1736,7 @@ async function sendTeamInviteEmail(params: {
   return await sendEmail({
     to: inviteeEmail,
     from: 'system@cimshare.com',
-    subject: `You've been invited to join ${organizationName} on CIMShare`,
+    subject: `You've been invited to join ${organizationName} on Broker Vault`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 8px 8px 0 0; text-align: center;">
@@ -1747,7 +1747,7 @@ async function sendTeamInviteEmail(params: {
           <p style="font-size: 16px; color: #333;">Hello ${inviteeName || 'there'},</p>
 
           <p style="font-size: 16px; color: #333; line-height: 1.6;">
-            <strong>${inviterName}</strong> has invited you to join <strong>${organizationName}</strong> on CIMShare as a <strong>${role.charAt(0).toUpperCase() + role.slice(1)}</strong>.
+            <strong>${inviterName}</strong> has invited you to join <strong>${organizationName}</strong> on Broker Vault as a <strong>${role.charAt(0).toUpperCase() + role.slice(1)}</strong>.
           </p>
 
           <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 25px 0;">
@@ -1769,7 +1769,7 @@ async function sendTeamInviteEmail(params: {
 
           <p style="font-size: 16px; color: #333; margin-top: 25px;">
             Best regards,<br>
-            <strong>The CIMShare Team</strong>
+            <strong>The Broker Vault Team</strong>
           </p>
         </div>
 
@@ -1785,7 +1785,7 @@ You're Invited!
 
 Hello ${inviteeName || 'there'},
 
-${inviterName} has invited you to join ${organizationName} on CIMShare as a ${role.charAt(0).toUpperCase() + role.slice(1)}.
+${inviterName} has invited you to join ${organizationName} on Broker Vault as a ${role.charAt(0).toUpperCase() + role.slice(1)}.
 
 ${roleDescription}
 
@@ -1795,7 +1795,7 @@ ${actionUrl}
 ${actionDescription}
 
 Best regards,
-The CIMShare Team
+The Broker Vault Team
 
 If you didn't expect this invitation, you can safely ignore this email.
     `.trim()
@@ -1815,8 +1815,9 @@ async function sendMentionNotificationEmail(params: {
   const { mentionedUserEmail, mentionedUserName, mentionerName, entityType, entityName, entityId, noteContent } = params;
   const baseUrl = process.env.BASE_URL || 'https://cimshare.com';
 
-  // Build the URL to the entity
-  const entityUrl = `${baseUrl}/${entityType}s/${entityId}`;
+  // Build the URL to the entity (handle "company" -> "companies" plural)
+  const entityPlural = entityType === 'company' ? 'companies' : `${entityType}s`;
+  const entityUrl = `${baseUrl}/${entityPlural}/${entityId}`;
 
   // Truncate note content if too long
   const truncatedNote = noteContent.length > 500
@@ -1857,13 +1858,13 @@ async function sendMentionNotificationEmail(params: {
 
           <p style="font-size: 16px; color: #333; margin-top: 25px;">
             Best regards,<br>
-            <strong>The CIMShare Team</strong>
+            <strong>The Broker Vault Team</strong>
           </p>
         </div>
 
         <div style="background-color: #f8f9fa; padding: 15px 30px; border-radius: 0 0 8px 8px; border: 1px solid #eee; border-top: none;">
           <p style="margin: 0; color: #666; font-size: 12px; text-align: center;">
-            You received this email because you were mentioned in CIMShare.
+            You received this email because you were mentioned in Broker Vault.
             <a href="${baseUrl}/settings/notifications" style="color: #667eea;">Manage notification preferences</a>
           </p>
         </div>
@@ -1882,9 +1883,9 @@ ${truncatedNote}
 View the ${entityTypeDisplay.toLowerCase()}: ${entityUrl}
 
 Best regards,
-The CIMShare Team
+The Broker Vault Team
 
-You received this email because you were mentioned in CIMShare.
+You received this email because you were mentioned in Broker Vault.
     `.trim()
   });
 }

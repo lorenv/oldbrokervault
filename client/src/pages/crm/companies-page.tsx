@@ -40,6 +40,7 @@ import {
   ArrowUp,
   ArrowDown,
   Download,
+  Upload,
   Trash2,
   Pencil,
 } from "lucide-react";
@@ -369,6 +370,16 @@ export default function CompaniesPage() {
               onToggleVisibility={toggleColumnVisibility}
               onReorder={reorderColumns}
             />
+            <Link href="/settings/data-management">
+              <Button
+                variant="outline"
+                size="sm"
+                title="Import companies"
+                className="h-8"
+              >
+                <Upload className="h-4 w-4" />
+              </Button>
+            </Link>
             <Button
               variant="outline"
               size="sm"

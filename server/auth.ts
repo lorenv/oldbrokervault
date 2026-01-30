@@ -548,7 +548,7 @@ export function setupAuth(app: Express) {
       try {
         const { populateDefaultNDAForUser } = await import("./populate-default-nda");
         await populateDefaultNDAForUser(user.id);
-        console.log(`Created "CIM Share NDA" template for new user ${user.id}`);
+        console.log(`Created "Broker Vault NDA" template for new user ${user.id}`);
       } catch (ndaError) {
         console.error(`Failed to create default NDA template for user ${user.id}:`, ndaError);
         // Don't fail registration if NDA template creation fails

@@ -28,14 +28,14 @@ export async function populateDefaultNDAForAllUsers() {
         // Create default NDA template for this user
         await db.insert(ndaTemplates).values({
           userId: user.id,
-          name: "CIM Share NDA",
+          name: "Broker Vault NDA",
           fileContent: DEFAULT_NDA_BASE64,
           isDefault: true
         });
         
-        console.log(`Created "CIM Share NDA" template for user ${user.id} (${user.email})`);
+        console.log(`Created "Broker Vault NDA" template for user ${user.id} (${user.email})`);
       } else {
-        console.log(`User ${user.id} (${user.email}) already has a CIM Share NDA template`);
+        console.log(`User ${user.id} (${user.email}) already has a Broker Vault NDA template`);
       }
     }
     
@@ -66,11 +66,11 @@ export async function populateDefaultNDAForUser(userId: number) {
         isDefault: true
       });
       
-      console.log(`Created "CIM Share NDA" template for user ${userId}`);
-      return { success: true, message: 'CIM Share NDA template created' };
+      console.log(`Created "Broker Vault NDA" template for user ${userId}`);
+      return { success: true, message: 'Broker Vault NDA template created' };
     } else {
-      console.log(`User ${userId} already has a CIM Share NDA template`);
-      return { success: true, message: 'CIM Share NDA template already exists' };
+      console.log(`User ${userId} already has a Broker Vault NDA template`);
+      return { success: true, message: 'Broker Vault NDA template already exists' };
     }
   } catch (error) {
     console.error('Error creating default NDA template:', error);

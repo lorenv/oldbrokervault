@@ -48,6 +48,7 @@ import {
   X,
   Clock,
   Download,
+  Upload,
   User,
   Users,
   BriefcaseBusiness,
@@ -911,6 +912,16 @@ export default function DealsPage() {
               />
             )}
           </div>
+          <Link href="/settings/data-management">
+            <Button
+              variant="outline"
+              size="sm"
+              title="Import deals"
+              className="h-8"
+            >
+              <Upload className="h-4 w-4" />
+            </Button>
+          </Link>
           <Button variant="outline" onClick={() => setIsCreateDialogOpen(true)} className="h-8">
             <Plus className="h-4 w-4 mr-2" />
             <span className="hidden sm:inline">Add Deal</span>

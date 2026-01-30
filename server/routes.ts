@@ -1825,7 +1825,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     const supportEmail = process.env.SUPPORT_EMAIL || 'contact@cimshare.com';
-    const companyName = process.env.COMPANY_NAME || 'CIM Share';
+    const companyName = process.env.COMPANY_NAME || 'Broker Vault';
     
     res.json({
       stripe: {
@@ -6374,7 +6374,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const testEmailSent = await sendEmail({
         to: to,
         from: 'system@cimshare.com',
-        subject: 'Test Message from CIM Share',
+        subject: 'Test Message from Broker Vault',
         text: 'Hello! This is a simple test message to verify email delivery is working correctly. Please reply if you receive this.',
         html: '<p>Hello!</p><p>This is a simple test message to verify email delivery is working correctly.</p><p>Please reply if you receive this.</p>',
         replyTo: user.email
@@ -8360,7 +8360,7 @@ ${finalQuestion}
       // Prepare email content
       let emailHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>Support Request from CIM Share</h2>
+          <h2>Support Request from Broker Vault</h2>
           <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
             <p><strong>From:</strong> ${email}</p>
             <p><strong>Subject:</strong> ${subject}</p>
@@ -8371,7 +8371,7 @@ ${finalQuestion}
           </div>
           <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
           <p style="color: #666; font-size: 12px;">
-            This message was sent through the CIM Share support form.
+            This message was sent through the Broker Vault support form.
           </p>
         </div>
       `;

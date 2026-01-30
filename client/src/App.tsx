@@ -61,6 +61,7 @@ import EmailSettingsPage from "@/pages/settings/email-settings-page";
 import NotificationsPage from "@/pages/settings/notifications-page";
 import PermissionsPage from "@/pages/settings/permissions-page";
 import CustomFieldsPage from "@/pages/settings/custom-fields-page";
+import DataManagementPage from "@/pages/settings/data-management-page";
 import BrandingPage from "@/pages/settings/branding-page";
 import SettingsIndexPage from "@/pages/settings/settings-index-page";
 
@@ -183,6 +184,7 @@ function AuthenticatedRouter() {
         <ProtectedRoute path="/settings/permissions" component={PermissionsPage} />
         <ProtectedRoute path="/settings/pipelines" component={PipelineSettingsPage} />
         <ProtectedRoute path="/settings/custom-fields" component={CustomFieldsPage} />
+        <ProtectedRoute path="/settings/data-management" component={DataManagementPage} />
         <ProtectedRoute path="/settings/email" component={EmailSettingsPage} />
         <ProtectedRoute path="/settings/integrations" component={IntegrationsPage} />
         <ProtectedRoute path="/settings/webhooks" component={WebhooksPage} />

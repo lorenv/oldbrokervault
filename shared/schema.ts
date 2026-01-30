@@ -2725,6 +2725,46 @@ export const dealViews = pgTable("deal_views", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// CRM Imports - Track import history and status
+export const CRM_IMPORT_ENTITY_TYPES = ['contact', 'company', 'deal'] as const;
+export const CRM_IMPORT_STATUSES = ['pending', 'processing', 'completed', 'failed'] as const;
+
+export const crmImports = pgTable("crm_imports", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
+
+  // What type of entity was imported
+  entityType: text("entity_type").notNull(), // 'contact', 'company', 'deal'
+
+  // File info
+  fileName: text("file_name").notNull(),
+  fileSize: integer("file_size"), // bytes
+
+  // Import stats
+  totalRows: integer("total_rows").default(0).notNull(),
+  importedCount: integer("imported_count").default(0).notNull(),
+  skippedCount: integer("skipped_count").default(0).notNull(),
+  duplicateCount: integer("duplicate_count").default(0).notNull(),
+  errorCount: integer("error_count").default(0).notNull(),
+
+  // Status tracking
+  status: text("status").default("pending").notNull(), // 'pending', 'processing', 'completed', 'failed'
+
+  // Column mapping used for this import (for reference/debugging)
+  columnMapping: jsonb("column_mapping").default({}).notNull(),
+  // Structure: { csvColumn: schemaField, ... }
+
+  // Error details for failed rows
+  errors: jsonb("errors").default([]).notNull(),
+  // Structure: [{ row: number, field: string, message: string }, ...]
+
+  // Who initiated the import
+  createdBy: integer("created_by").notNull(), // FK to users
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+});
+
 // Dashboard AI Briefings - Cached daily AI summaries for each user
 export const dashboardBriefings = pgTable("dashboard_briefings", {
   id: serial("id").primaryKey(),
@@ -2956,6 +2996,22 @@ export const insertDealViewSchema = createInsertSchema(dealViews).pick({
     direction: z.enum(['asc', 'desc'])
   }).optional(),
   viewMode: z.enum(['list', 'kanban']).optional()
+});
+
+// Insert schema for CRM imports
+export const insertCrmImportSchema = createInsertSchema(crmImports).pick({
+  organizationId: true,
+  entityType: true,
+  fileName: true,
+  createdBy: true
+}).extend({
+  organizationId: z.number().min(1),
+  entityType: z.enum(CRM_IMPORT_ENTITY_TYPES as unknown as [string, ...string[]]),
+  fileName: z.string().min(1),
+  fileSize: z.number().optional(),
+  totalRows: z.number().optional(),
+  columnMapping: z.record(z.any()).optional(),
+  createdBy: z.number().min(1)
 });
 
 // Zod schemas for CRM system
@@ -3303,6 +3359,9 @@ export type InsertDealBuyer = z.infer<typeof insertDealBuyerSchema>;
 
 export type CustomFieldDefinition = typeof customFieldDefinitions.$inferSelect;
 export type InsertCustomFieldDefinition = z.infer<typeof insertCustomFieldDefinitionSchema>;
+
+export type CrmImport = typeof crmImports.$inferSelect;
+export type InsertCrmImport = z.infer<typeof insertCrmImportSchema>;
 
 export type DashboardBriefing = typeof dashboardBriefings.$inferSelect;
 

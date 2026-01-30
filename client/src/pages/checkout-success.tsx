@@ -53,7 +53,7 @@ export default function CheckoutSuccess() {
         setMessage('Your subscription has been activated successfully!');
         
         toast({
-          title: "Welcome to CIM Share Pro!",
+          title: "Welcome to Broker Vault Pro!",
           description: "Your account has been upgraded. Redirecting to your account...",
         });
 

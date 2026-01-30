@@ -1534,13 +1534,13 @@ export default function IntegrationsPage() {
                 <div className="space-y-3">
                   <Label>Field Mapping</Label>
                   <p className="text-xs text-gray-500">
-                    Map CIM Share event data to HubSpot fields. Required fields are marked with *.
+                    Map Broker Vault event data to HubSpot fields. Required fields are marked with *.
                   </p>
                   <div className="border rounded-lg overflow-hidden">
                     {/* Column Headers */}
                     <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 border-b text-xs font-medium text-gray-600">
                       <div className="w-1/3">HubSpot Field</div>
-                      <div className="flex-1">CIM Share Data</div>
+                      <div className="flex-1">Broker Vault Data</div>
                     </div>
                     <div className="space-y-2 max-h-[280px] overflow-y-auto p-3 bg-gray-50">
                       {hubspotProperties.slice(0, 15).map((prop) => (
@@ -3126,13 +3126,13 @@ export default function IntegrationsPage() {
               <div className="space-y-3">
                 <Label>Field Mapping</Label>
                 <p className="text-xs text-gray-500">
-                  Map CIM Share event data to HubSpot fields. Required fields are marked with *.
+                  Map Broker Vault event data to HubSpot fields. Required fields are marked with *.
                 </p>
                 <div className="border rounded-lg overflow-hidden">
                   {/* Column Headers */}
                   <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 border-b text-xs font-medium text-gray-600">
                     <div className="w-1/3">HubSpot Field</div>
-                    <div className="flex-1">CIM Share Data</div>
+                    <div className="flex-1">Broker Vault Data</div>
                   </div>
                   <div className="space-y-2 max-h-[280px] overflow-y-auto p-3 bg-gray-50">
                     {hubspotProperties.slice(0, 15).map((prop) => (

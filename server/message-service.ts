@@ -550,7 +550,7 @@ export class MessageService {
     try {
       const emailContent = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #2563eb;">Reply from CIM Share</h2>
+          <h2 style="color: #2563eb;">Reply from Broker Vault</h2>
 
           <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
             <p><strong>Re:</strong> ${thread.subject}</p>

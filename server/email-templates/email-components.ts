@@ -15,7 +15,7 @@ export const emailComponents = {
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="format-detection" content="telephone=no" />
   <meta name="x-apple-disable-message-reformatting" />
-  <title>CIM Share</title>
+  <title>Broker Vault</title>
   <!--[if mso]>
   <noscript>
     <xml>
@@ -277,7 +277,7 @@ export const emailComponents = {
     <table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt;">
       <tr>
         <td align="center" style="padding: 0 0 20px 0;">
-          <img src="https://cimshare.com/cim-share-logo.png" alt="CIM Share" width="150" height="auto" style="display: block; border: 0; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; max-width: 150px; height: auto;" />
+          <img src="https://cimshare.com/cim-share-logo.png" alt="Broker Vault" width="150" height="auto" style="display: block; border: 0; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; max-width: 150px; height: auto;" />
         </td>
       </tr>
       <tr>
@@ -307,17 +307,17 @@ export const emailComponents = {
       </tr>
       <tr>
         <td align="center" style="padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 13px; font-weight: 400; color: #94a3b8; line-height: 1.6;">
-          <strong style="font-weight: 600;">CIM Share</strong><br />
+          <strong style="font-weight: 600;">Broker Vault</strong><br />
           AI-Powered CIM Creation Platform<br />
           606 Venice Blvd<br />
           Venice, CA 90291<br />
           United States<br /><br />
 
-          You received this email because you signed up for CIM Share.<br />
+          You received this email because you signed up for Broker Vault.<br />
           ${unsubscribeLink ? `<a href="${unsubscribeLink}" style="color: #3b82f6; text-decoration: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Unsubscribe from onboarding emails</a> | ` : ''}
           <a href="https://cimshare.com/account" style="color: #3b82f6; text-decoration: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Manage email preferences</a><br /><br />
 
-          © 2024 CIM Share. All rights reserved.
+          © 2024 Broker Vault. All rights reserved.
         </td>
       </tr>
     </table>

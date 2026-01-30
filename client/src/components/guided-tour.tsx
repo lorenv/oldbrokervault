@@ -20,7 +20,7 @@ export function GuidedTour({ onComplete }: GuidedTourProps) {
 
   const tourSteps = [
     {
-      title: "Welcome to CIM Share! 🎉",
+      title: "Welcome to Broker Vault! 🎉",
       content: "You've successfully created your account! Let's take a quick tour of your new document management platform.",
       icon: <Sparkles className="w-8 h-8 text-blue-600" />,
     },

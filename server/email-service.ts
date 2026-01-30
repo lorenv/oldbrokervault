@@ -67,7 +67,7 @@ export class EmailService {
       templateId: 'd-470daf43d03f4e769ff1ad67effcb998',
       dynamicTemplateData: {
         user_name: userName || 'there',
-        app_name: 'CIM Share'
+        app_name: 'Broker Vault'
       }
     });
   }
