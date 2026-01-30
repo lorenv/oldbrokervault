@@ -301,9 +301,13 @@ function DocumentPageCanvas({
       const fieldConfig = FIELD_TYPES.find(f => f.type === item.type);
       const dimensions = fieldConfig?.defaultSize || { width: 20, height: 4 };
 
+      // Center the field on the drop point for smooth placement
+      const centeredX = percentCoords.x - dimensions.width / 2;
+      const centeredY = percentCoords.y - dimensions.height / 2;
+
       // Clamp coordinates to keep field within bounds
-      const clampedX = Math.max(0, Math.min(100 - dimensions.width, percentCoords.x));
-      const clampedY = Math.max(0, Math.min(100 - dimensions.height, percentCoords.y));
+      const clampedX = Math.max(0, Math.min(100 - dimensions.width, centeredX));
+      const clampedY = Math.max(0, Math.min(100 - dimensions.height, centeredY));
 
       // Create new field
       const newField: SignatureField = {
@@ -401,11 +405,12 @@ function DocumentPageCanvas({
     const handleMouseMove = (e: MouseEvent) => {
       if (!canvasRef.current) return;
 
-      // Use clientWidth/clientHeight which exclude borders (matches percentage positioning area)
+      // Use clientWidth/clientHeight for content area
       const canvasWidth = canvasRef.current.clientWidth;
       const canvasHeight = canvasRef.current.clientHeight;
       if (!canvasWidth || !canvasHeight) return;
 
+      // Convert mouse movement to percentage
       const deltaX = ((e.clientX - startX) / canvasWidth) * 100;
       const deltaY = ((e.clientY - startY) / canvasHeight) * 100;
 

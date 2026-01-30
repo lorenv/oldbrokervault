@@ -237,22 +237,15 @@ function DraggableField({
     startHeight: number;
     startFieldX: number;
     startFieldY: number;
-    canvasRect: DOMRect;
   } | null>(null);
   const fieldRef = useRef<HTMLDivElement>(null);
 
-  // Handle resize - uses displayed canvas dimensions for accurate scaling
+  // Handle resize
   const handleResizeStart = (e: React.MouseEvent, handle: ResizeHandle) => {
     e.stopPropagation();
     e.preventDefault();
     setIsResizing(true);
     onResizeStateChange(true);
-
-    // Get the canvas element (parent of the field)
-    const canvasElement = fieldRef.current?.parentElement;
-    const canvasRect = canvasElement?.getBoundingClientRect();
-
-    if (!canvasRect) return;
 
     resizeStartRef.current = {
       handle,
@@ -262,7 +255,6 @@ function DraggableField({
       startHeight: field.height,
       startFieldX: field.x,
       startFieldY: field.y,
-      canvasRect,
     };
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
@@ -270,14 +262,16 @@ function DraggableField({
 
       const { handle, startX, startY, startWidth, startHeight, startFieldX, startFieldY } = resizeStartRef.current;
 
-      // Get fresh canvas dimensions directly from the canvas ref
-      // Use clientWidth/clientHeight which exclude borders (matches percentage positioning area)
-      if (!canvasRef.current) return;
-      const canvasWidth = canvasRef.current.clientWidth;
-      const canvasHeight = canvasRef.current.clientHeight;
+      // Get canvas element for dimension calculations
+      const canvasElement = fieldRef.current?.parentElement;
+      if (!canvasElement) return;
+
+      // Use clientWidth/clientHeight for content area
+      const canvasWidth = canvasElement.clientWidth;
+      const canvasHeight = canvasElement.clientHeight;
       if (!canvasWidth || !canvasHeight) return;
 
-      // Convert mouse movement to percentage of canvas
+      // Convert mouse movement to percentage
       const deltaX = ((moveEvent.clientX - startX) / canvasWidth) * 100;
       const deltaY = ((moveEvent.clientY - startY) / canvasHeight) * 100;
 
@@ -336,7 +330,7 @@ function DraggableField({
     // Divide transform by zoom so the field follows the cursor correctly at any zoom level
     transform: transform ? `translate3d(${transform.x / zoom}px, ${transform.y / zoom}px, 0)` : undefined,
     zIndex: isDragging || isSelected || isResizing ? 100 : 10,
-    opacity: isDragging ? 0.7 : 1,
+    opacity: 1,
   };
 
   const fieldConfig = FIELD_TYPES.find(f => f.type === field.type);
@@ -606,6 +600,8 @@ export default function EsignTemplateEditor() {
   // Track canvas refs for accurate drop positioning
   const canvasRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const lastPointerPosition = useRef<{ x: number; y: number } | null>(null);
+  // Track the offset from field's top-left to where user clicked (for accurate drop positioning)
+  const dragOffset = useRef<{ x: number; y: number } | null>(null);
 
   // Track actual mouse position during drag using native events (more reliable than @dnd-kit delta)
   useEffect(() => {
@@ -653,12 +649,36 @@ export default function EsignTemplateEditor() {
         type: active.data.current.type,
         fromPalette: true,
       });
+      dragOffset.current = null; // No offset for new fields - will center on drop
     } else if (active.data.current?.field) {
+      const field = active.data.current.field as TemplateField;
       setActiveDragData({
-        type: active.data.current.field.type,
+        type: field.type,
         fromPalette: false,
-        field: active.data.current.field,
+        field: field,
       });
+
+      // Calculate offset from field's top-left to where user clicked
+      // We need to find which canvas the field is on and calculate the offset
+      const canvasRef = canvasRefs.current.get(field.page);
+      if (canvasRef && event.activatorEvent instanceof MouseEvent) {
+        const canvasRect = canvasRef.getBoundingClientRect();
+        const mouseX = event.activatorEvent.clientX;
+        const mouseY = event.activatorEvent.clientY;
+
+        // Convert mouse position to percentage of canvas
+        const mouseXPercent = ((mouseX - canvasRect.left) / canvasRect.width) * 100;
+        const mouseYPercent = ((mouseY - canvasRect.top) / canvasRect.height) * 100;
+
+        // Offset is how far from field's top-left the user clicked
+        dragOffset.current = {
+          x: mouseXPercent - field.x,
+          y: mouseYPercent - field.y,
+        };
+      } else {
+        // Fallback to centering if we can't calculate offset
+        dragOffset.current = null;
+      }
     }
   }, [isAnyFieldResizing]);
 
@@ -945,6 +965,7 @@ export default function EsignTemplateEditor() {
     const isExistingField = active.data.current?.field != null;
     if (!over || (!activeRecipientId && !isExistingField)) {
       lastPointerPosition.current = null;
+      dragOffset.current = null;
       return;
     }
 
@@ -955,6 +976,7 @@ export default function EsignTemplateEditor() {
 
       if (!canvasRef || !lastPointerPosition.current) {
         lastPointerPosition.current = null;
+        dragOffset.current = null;
         return;
       }
 
@@ -1004,16 +1026,27 @@ export default function EsignTemplateEditor() {
         // Moving existing field
         const field = active.data.current.field as TemplateField;
 
-        // Center on drop point
-        const centeredX = x - field.width / 2;
-        const centeredY = y - field.height / 2;
+        // Use the offset from drag start to place field where user expects
+        // (preserving where they grabbed the field)
+        let newX: number;
+        let newY: number;
+
+        if (dragOffset.current) {
+          // Subtract the offset so the field lands where the visual overlay was
+          newX = x - dragOffset.current.x;
+          newY = y - dragOffset.current.y;
+        } else {
+          // Fallback to centering if no offset was captured
+          newX = x - field.width / 2;
+          newY = y - field.height / 2;
+        }
 
         setFields(fields.map(f =>
           f.id === field.id
             ? {
                 ...f,
-                x: Math.max(0, Math.min(100 - f.width, centeredX)),
-                y: Math.max(0, Math.min(100 - f.height, centeredY)),
+                x: Math.max(0, Math.min(100 - f.width, newX)),
+                y: Math.max(0, Math.min(100 - f.height, newY)),
                 page: pageNumber,
               }
             : f
@@ -1022,6 +1055,7 @@ export default function EsignTemplateEditor() {
     }
 
     lastPointerPosition.current = null;
+    dragOffset.current = null;
   };
 
   // Handle tap-to-place on mobile
@@ -2010,26 +2044,54 @@ export default function EsignTemplateEditor() {
         </DialogContent>
       </Dialog>
 
-      {/* DragOverlay - shows visual feedback of the dragged item following the cursor */}
+      {/* DragOverlay - shows visual feedback only for new fields from palette */}
       <DragOverlay dropAnimation={null}>
-        {activeDragId && activeDragData && !isAnyFieldResizing && (
+        {activeDragId && activeDragData && activeDragData.fromPalette && !isAnyFieldResizing && (() => {
+          const fieldWidth = activeDragData.field
+            ? activeDragData.field.width * 6.12
+            : (FIELD_TYPES.find(f => f.type === activeDragData.type)?.defaultSize.width || 20) * 6.12;
+          const fieldHeight = activeDragData.field
+            ? activeDragData.field.height * 7.92
+            : (FIELD_TYPES.find(f => f.type === activeDragData.type)?.defaultSize.height || 4) * 7.92;
+
+          // For new fields from palette, center on cursor
+          // For existing fields, offset based on where user grabbed it
+          let translateX: number;
+          let translateY: number;
+
+          if (activeDragData.fromPalette) {
+            // Center on cursor for new fields
+            translateX = -fieldWidth / 2;
+            translateY = -fieldHeight / 2;
+          } else if (dragOffset.current && activeDragData.field) {
+            // Position based on grab point for existing fields
+            // dragOffset is in percentage, convert to pixels relative to field size
+            const offsetXRatio = dragOffset.current.x / activeDragData.field.width;
+            const offsetYRatio = dragOffset.current.y / activeDragData.field.height;
+            translateX = -offsetXRatio * fieldWidth;
+            translateY = -offsetYRatio * fieldHeight;
+          } else {
+            // Fallback to centering
+            translateX = -fieldWidth / 2;
+            translateY = -fieldHeight / 2;
+          }
+
+          // Get the correct color - for existing fields use field's assignedTo, otherwise use active recipient
+          const overlayColor = activeDragData.field
+            ? recipients.find(r => r.id === activeDragData.field!.assignedTo)?.color || '#888'
+            : (activeRecipientId ? recipients.find(r => r.id === activeRecipientId)?.color || '#888' : '#888');
+
+          return (
           <div
             className="rounded border-2 flex items-center justify-center gap-1 text-white font-medium shadow-lg pointer-events-none"
             style={{
-              backgroundColor: activeRecipientId
-                ? recipients.find(r => r.id === activeRecipientId)?.color || '#888'
-                : '#888',
-              borderColor: activeRecipientId
-                ? recipients.find(r => r.id === activeRecipientId)?.color || '#888'
-                : '#888',
+              backgroundColor: overlayColor,
+              borderColor: overlayColor,
               opacity: 0.9,
-              width: activeDragData.field
-                ? `${activeDragData.field.width * 6.12}px`
-                : `${(FIELD_TYPES.find(f => f.type === activeDragData.type)?.defaultSize.width || 20) * 6.12}px`,
-              height: activeDragData.field
-                ? `${activeDragData.field.height * 7.92}px`
-                : `${(FIELD_TYPES.find(f => f.type === activeDragData.type)?.defaultSize.height || 4) * 7.92}px`,
+              width: `${fieldWidth}px`,
+              height: `${fieldHeight}px`,
               fontSize: '12px',
+              transform: `translate(${translateX}px, ${translateY}px)`,
             }}
           >
             {(() => {
@@ -2043,7 +2105,8 @@ export default function EsignTemplateEditor() {
               );
             })()}
           </div>
-        )}
+          );
+        })()}
       </DragOverlay>
     </DndContext>
   );
