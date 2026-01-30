@@ -1367,10 +1367,10 @@ export const powerFormSettingsSchema = z.object({
   maxCompletions: z.number().nullable().optional(), // null = unlimited
   expiresAt: z.string().nullable().optional(), // ISO date string, null = never
   multiSignerMode: z.enum(['upfront', 'sequential', 'choice']).default('choice'), // How to handle multiple signers
-  redirectUrl: z.string().url().nullable().optional(), // Where to redirect after completion
+  redirectUrl: z.string().nullable().optional(), // Where to redirect after completion (URL validated separately if provided)
   customMessage: z.string().nullable().optional(), // Welcome message on PowerForm entry page
   allowLinkSharing: z.boolean().default(true), // Can signers copy link for next signer (in sequential mode)
-});
+}).passthrough(); // Allow extra fields to be passed through
 
 export type PowerFormSettings = z.infer<typeof powerFormSettingsSchema>;
 

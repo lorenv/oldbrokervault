@@ -508,7 +508,7 @@ export default function EsignTemplates() {
 
       {/* PowerForm Configuration Dialog */}
       <Dialog open={powerFormTemplate !== null} onOpenChange={() => setPowerFormTemplate(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Link2 className="h-5 w-5 text-blue-600" />
@@ -522,21 +522,15 @@ export default function EsignTemplates() {
           <div className="space-y-4 py-4">
             {/* URL Slug */}
             <div className="space-y-2">
-              <Label htmlFor="slug">Link URL</Label>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500 whitespace-nowrap">
-                  {window.location.origin}/esign/form/
-                </span>
-                <Input
-                  id="slug"
-                  value={powerFormSlug}
-                  onChange={(e) => setPowerFormSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                  placeholder="my-form"
-                  className="flex-1"
-                />
-              </div>
+              <Label htmlFor="slug">URL Slug</Label>
+              <Input
+                id="slug"
+                value={powerFormSlug}
+                onChange={(e) => setPowerFormSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                placeholder="my-form"
+              />
               <p className="text-xs text-gray-500">
-                Only lowercase letters, numbers, and hyphens allowed.
+                Only lowercase letters, numbers, and hyphens. Link will be: /esign/form/{powerFormSlug || 'your-slug'}
               </p>
             </div>
 
