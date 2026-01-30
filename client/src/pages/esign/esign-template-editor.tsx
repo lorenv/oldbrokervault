@@ -207,8 +207,10 @@ function DraggableField({
   onSelect,
   onDelete,
   onResize,
+  onResizeStateChange,
   zoom,
   canvasHeight,
+  canvasRef,
 }: {
   field: TemplateField;
   recipient: PlaceholderRecipient | undefined;
@@ -216,8 +218,10 @@ function DraggableField({
   onSelect: () => void;
   onDelete: () => void;
   onResize: (updates: { width?: number; height?: number; x?: number; y?: number }) => void;
+  onResizeStateChange: (isResizing: boolean) => void;
   zoom: number;
   canvasHeight: number;
+  canvasRef: React.RefObject<HTMLDivElement>;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: field.id,
@@ -242,6 +246,7 @@ function DraggableField({
     e.stopPropagation();
     e.preventDefault();
     setIsResizing(true);
+    onResizeStateChange(true);
 
     // Get the canvas element (parent of the field)
     const canvasElement = fieldRef.current?.parentElement;
@@ -263,15 +268,18 @@ function DraggableField({
     const handleMouseMove = (moveEvent: MouseEvent) => {
       if (!resizeStartRef.current) return;
 
-      const { handle, startX, startY, startWidth, startHeight, startFieldX, startFieldY, canvasRect } = resizeStartRef.current;
+      const { handle, startX, startY, startWidth, startHeight, startFieldX, startFieldY } = resizeStartRef.current;
 
-      // Use actual displayed canvas dimensions for consistent scaling
-      const displayedWidth = canvasRect.width;
-      const displayedHeight = canvasRect.height;
+      // Get fresh canvas dimensions directly from the canvas ref
+      // Use clientWidth/clientHeight which exclude borders (matches percentage positioning area)
+      if (!canvasRef.current) return;
+      const canvasWidth = canvasRef.current.clientWidth;
+      const canvasHeight = canvasRef.current.clientHeight;
+      if (!canvasWidth || !canvasHeight) return;
 
       // Convert mouse movement to percentage of canvas
-      const deltaX = ((moveEvent.clientX - startX) / displayedWidth) * 100;
-      const deltaY = ((moveEvent.clientY - startY) / displayedHeight) * 100;
+      const deltaX = ((moveEvent.clientX - startX) / canvasWidth) * 100;
+      const deltaY = ((moveEvent.clientY - startY) / canvasHeight) * 100;
 
       let newWidth = startWidth;
       let newHeight = startHeight;
@@ -309,6 +317,7 @@ function DraggableField({
 
     const handleMouseUp = () => {
       setIsResizing(false);
+      onResizeStateChange(false);
       resizeStartRef.current = null;
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
@@ -409,6 +418,7 @@ function DocumentCanvas({
   onSelectField,
   onDeleteField,
   onResizeField,
+  onResizeStateChange,
   zoom,
   onDrop,
   registerCanvasRef,
@@ -423,6 +433,7 @@ function DocumentCanvas({
   onSelectField: (id: string | null) => void;
   onDeleteField: (id: string) => void;
   onResizeField: (fieldId: string, updates: { width?: number; height?: number; x?: number; y?: number }) => void;
+  onResizeStateChange: (isResizing: boolean) => void;
   zoom: number;
   onDrop: (x: number, y: number, type: string) => void;
   registerCanvasRef: (pageNumber: number, ref: HTMLDivElement | null) => void;
@@ -514,8 +525,10 @@ function DocumentCanvas({
               onSelect={() => onSelectField(field.id)}
               onDelete={() => onDeleteField(field.id)}
               onResize={(updates) => onResizeField(field.id, updates)}
+              onResizeStateChange={onResizeStateChange}
               zoom={zoom}
               canvasHeight={canvasHeight}
+              canvasRef={canvasRef}
             />
           );
         })}
@@ -587,6 +600,9 @@ export default function EsignTemplateEditor() {
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [activeDragData, setActiveDragData] = useState<{ type: string; fromPalette: boolean; field?: TemplateField } | null>(null);
 
+  // Track if any field is being resized (to prevent drag during resize)
+  const [isAnyFieldResizing, setIsAnyFieldResizing] = useState(false);
+
   // Track canvas refs for accurate drop positioning
   const canvasRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const lastPointerPosition = useRef<{ x: number; y: number } | null>(null);
@@ -626,6 +642,9 @@ export default function EsignTemplateEditor() {
 
   // Handle drag start - track the active item for DragOverlay
   const handleDragStart = useCallback((event: DragStartEvent) => {
+    // Don't start drag if a field is being resized
+    if (isAnyFieldResizing) return;
+
     const { active } = event;
     setActiveDragId(active.id.toString());
 
@@ -641,7 +660,7 @@ export default function EsignTemplateEditor() {
         field: active.data.current.field,
       });
     }
-  }, []);
+  }, [isAnyFieldResizing]);
 
   // Track pointer position during drag (native mouse tracking is used via useEffect above)
   const handleDragMove = useCallback((event: DragMoveEvent) => {
@@ -708,8 +727,14 @@ export default function EsignTemplateEditor() {
 
   const saveTitle = () => {
     const trimmed = editingTitleValue.trim();
-    setName(trimmed || generateDefaultTitle());
+    const newName = trimmed || generateDefaultTitle();
+    setName(newName);
     setIsEditingTitle(false);
+
+    // Auto-save to server if editing an existing template
+    if (isEditing && templateId) {
+      updateTitleMutation.mutate(newName);
+    }
   };
 
   const cancelEditingTitle = () => {
@@ -1061,6 +1086,20 @@ export default function EsignTemplateEditor() {
         description: "Failed to save template. Please try again.",
         variant: "destructive",
       });
+    },
+  });
+
+  // Title update mutation (for auto-saving title changes)
+  const updateTitleMutation = useMutation({
+    mutationFn: async (newName: string) => {
+      if (!templateId) throw new Error("Template must be saved first");
+      return apiRequest("PUT", `/api/esign/templates/${templateId}`, {
+        body: { name: newName },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/esign/templates", templateId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/esign/templates"] });
     },
   });
 
@@ -1685,6 +1724,7 @@ export default function EsignTemplateEditor() {
                                 f.id === fieldId ? { ...f, ...updates } : f
                               ));
                             }}
+                            onResizeStateChange={setIsAnyFieldResizing}
                             zoom={zoom}
                             onDrop={() => {}}
                             registerCanvasRef={registerCanvasRef}
@@ -1972,7 +2012,7 @@ export default function EsignTemplateEditor() {
 
       {/* DragOverlay - shows visual feedback of the dragged item following the cursor */}
       <DragOverlay dropAnimation={null}>
-        {activeDragId && activeDragData && (
+        {activeDragId && activeDragData && !isAnyFieldResizing && (
           <div
             className="rounded border-2 flex items-center justify-center gap-1 text-white font-medium shadow-lg pointer-events-none"
             style={{

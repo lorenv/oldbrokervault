@@ -1211,7 +1211,7 @@ async function sendEsignInvitationEmail(params: EsignEmailParams): Promise<boole
           ` : ''}
 
           <div class="cta-section">
-            <a href="${params.signingUrl}" class="cta-button">Review & Sign Document</a>
+            <a href="${params.signingUrl}" class="cta-button" style="display: inline-block; background-color: ${primaryColor}; color: ${buttonTextColor}; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold;">Review & Sign Document</a>
           </div>
 
           <p style="font-size: 14px; color: #666;">
@@ -1288,7 +1288,7 @@ async function sendEsignReminderEmail(params: EsignEmailParams): Promise<boolean
           </div>
 
           <div class="cta-section">
-            <a href="${params.signingUrl}" class="cta-button">Review & Sign Now</a>
+            <a href="${params.signingUrl}" class="cta-button" style="display: inline-block; background-color: ${primaryColor}; color: ${buttonTextColor}; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold;">Review & Sign Now</a>
           </div>
         </div>
         <div class="footer">
@@ -1384,7 +1384,7 @@ async function sendEsignCompletedEmail(params: {
           ` : ''}
 
           <div style="text-align: center;">
-            <a href="${params.envelopeUrl}" class="cta-button">Go to Envelope</a>
+            <a href="${params.envelopeUrl}" class="cta-button" style="display: inline-block; background-color: ${primaryColor}; color: ${buttonTextColor}; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold;">Go to Envelope</a>
           </div>
 
           <p style="font-size: 14px; color: #666; margin-top: 30px;">

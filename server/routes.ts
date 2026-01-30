@@ -7471,6 +7471,8 @@ ${finalQuestion}
         profilePhoto: user.profilePhoto,
         email: user.email,
         brandColors: user.brandColors,
+        pdfPrimaryColor: user.pdfPrimaryColor,
+        pdfSecondaryColor: user.pdfSecondaryColor,
         brandedPdfTemplate: user.brandedPdfTemplate,
         customSubdomain: user.customSubdomain,
         timezone: user.timezone

@@ -64,7 +64,7 @@ export default function ContactsPage() {
     queryKey: ["/api/profile"],
     enabled: !!user,
   });
-  const brandColor = (profile as any)?.brandColors?.[0];
+  const brandColor = (profile as any)?.pdfPrimaryColor || (profile as any)?.brandColors?.[0];
   const needsDarkText = brandColor ? isLightColor(brandColor) : false;
 
   // Use the contact filters hook

@@ -664,7 +664,7 @@ export function GlobalHeader() {
   });
 
   // Get brand color and create light tint for header background
-  const brandColor = (profile as any)?.brandColors?.[0];
+  const brandColor = (profile as any)?.pdfPrimaryColor || (profile as any)?.brandColors?.[0];
   const headerBgColor = brandColor ? hexToLightTint(brandColor, 0.92) : '#ffffff';
 
   // Check if we're on a detail page

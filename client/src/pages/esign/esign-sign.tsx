@@ -853,7 +853,7 @@ export default function EsignSign() {
                                     hasValue ? (
                                       <div className="w-full h-full relative">
                                         {/* Signature content area - no border on the signature itself */}
-                                        <div className="w-full h-full flex items-center justify-center p-1 overflow-hidden">
+                                        <div className="w-full h-full flex items-center justify-center px-0.5 overflow-hidden">
                                           {field.value?.startsWith('data:') ? (
                                             <img
                                               src={field.value}

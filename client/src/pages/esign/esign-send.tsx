@@ -237,6 +237,7 @@ function DocumentPageCanvas({
   onTapToPlace,
 }: DocumentPageCanvasProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
+  const isResizingRef = useRef(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
 
@@ -330,6 +331,8 @@ function DocumentPageCanvas({
     e.preventDefault();
     e.stopPropagation();
 
+    // Don't start drag if resize is in progress
+    if (isResizingRef.current) return;
     if (!canvasRef.current) return;
 
     const rect = canvasRef.current.getBoundingClientRect();
@@ -383,6 +386,9 @@ function DocumentPageCanvas({
     e.preventDefault();
     e.stopPropagation();
 
+    // Mark resize as in progress
+    isResizingRef.current = true;
+
     if (!canvasRef.current) return;
 
     const startX = e.clientX;
@@ -395,8 +401,13 @@ function DocumentPageCanvas({
     const handleMouseMove = (e: MouseEvent) => {
       if (!canvasRef.current) return;
 
-      const deltaX = ((e.clientX - startX) / displayWidth) * 100;
-      const deltaY = ((e.clientY - startY) / displayHeight) * 100;
+      // Use clientWidth/clientHeight which exclude borders (matches percentage positioning area)
+      const canvasWidth = canvasRef.current.clientWidth;
+      const canvasHeight = canvasRef.current.clientHeight;
+      if (!canvasWidth || !canvasHeight) return;
+
+      const deltaX = ((e.clientX - startX) / canvasWidth) * 100;
+      const deltaY = ((e.clientY - startY) / canvasHeight) * 100;
 
       let newWidth = startWidth;
       let newHeight = startHeight;
@@ -435,6 +446,7 @@ function DocumentPageCanvas({
     };
 
     const handleMouseUp = () => {
+      isResizingRef.current = false;
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
@@ -721,8 +733,8 @@ export default function EsignSend() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Step state
-  const [currentStep, setCurrentStep] = useState(1);
+  // Step state - start at step 2 if template is pre-selected from URL
+  const [currentStep, setCurrentStep] = useState(templateIdFromUrl ? 2 : 1);
 
   // Form state
   const [title, setTitle] = useState("");

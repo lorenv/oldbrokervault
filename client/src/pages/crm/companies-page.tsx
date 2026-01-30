@@ -67,7 +67,7 @@ export default function CompaniesPage() {
     queryKey: ["/api/profile"],
     enabled: !!user,
   });
-  const brandColor = (profile as any)?.brandColors?.[0];
+  const brandColor = (profile as any)?.pdfPrimaryColor || (profile as any)?.brandColors?.[0];
   const needsDarkText = brandColor ? isLightColor(brandColor) : false;
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);

@@ -131,7 +131,7 @@ export function AppSidebar() {
   };
 
   // Get brand color from profile
-  const brandColor = (profile as any)?.brandColors?.[0];
+  const brandColor = (profile as any)?.pdfPrimaryColor || (profile as any)?.brandColors?.[0];
 
   // Render a navigation item
   const renderNavItem = (item: NavItem) => {
