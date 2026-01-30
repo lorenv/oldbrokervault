@@ -179,6 +179,7 @@ function DraggableFieldType({ type, label, icon: Icon, disabled }: {
       ref={setNodeRef}
       {...listeners}
       {...attributes}
+      data-palette-item="true"
       className={`flex items-center gap-2 p-2 rounded-md border cursor-grab active:cursor-grabbing transition-all ${
         isDragging ? 'opacity-50 scale-95' : 'hover:bg-gray-50'
       } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -645,11 +646,41 @@ export default function EsignTemplateEditor() {
     setActiveDragId(active.id.toString());
 
     if (active.data.current?.fromPalette) {
+      const type = active.data.current.type as TemplateField['type'];
       setActiveDragData({
-        type: active.data.current.type,
+        type,
         fromPalette: true,
       });
-      dragOffset.current = null; // No offset for new fields - will center on drop
+
+      // Calculate offset within the palette item where user clicked
+      // This will be used to position the DragOverlay and the dropped field
+      if (event.activatorEvent instanceof MouseEvent) {
+        const paletteElement = (event.activatorEvent.target as HTMLElement).closest('[data-palette-item]');
+        if (paletteElement) {
+          const paletteRect = paletteElement.getBoundingClientRect();
+          const mouseX = event.activatorEvent.clientX;
+          const mouseY = event.activatorEvent.clientY;
+
+          // Calculate click position as ratio of palette item dimensions
+          const clickXRatio = (mouseX - paletteRect.left) / paletteRect.width;
+          const clickYRatio = (mouseY - paletteRect.top) / paletteRect.height;
+
+          // Get the field dimensions that will be created
+          const fieldConfig = FIELD_TYPES.find(f => f.type === type);
+          const fieldWidth = fieldConfig?.defaultSize.width || 20;
+          const fieldHeight = fieldConfig?.defaultSize.height || 4;
+
+          // Convert ratio to percentage offset for the actual field size
+          dragOffset.current = {
+            x: clickXRatio * fieldWidth,
+            y: clickYRatio * fieldHeight,
+          };
+        } else {
+          dragOffset.current = null;
+        }
+      } else {
+        dragOffset.current = null;
+      }
     } else if (active.data.current?.field) {
       const field = active.data.current.field as TemplateField;
       setActiveDragData({
@@ -1004,15 +1035,25 @@ export default function EsignTemplateEditor() {
         const fieldWidth = fieldConfig?.defaultSize.width || 20;
         const fieldHeight = fieldConfig?.defaultSize.height || 4;
 
-        // Center the field on the drop point
-        const centeredX = x - fieldWidth / 2;
-        const centeredY = y - fieldHeight / 2;
+        // Place field using the offset from where user clicked on palette item
+        let newX: number;
+        let newY: number;
+
+        if (dragOffset.current) {
+          // Subtract the offset so the field lands where the visual overlay was
+          newX = x - dragOffset.current.x;
+          newY = y - dragOffset.current.y;
+        } else {
+          // Fallback to placing top-left at cursor
+          newX = x;
+          newY = y;
+        }
 
         const newField: TemplateField = {
           id: uuidv4(),
           type,
-          x: Math.max(0, Math.min(100 - fieldWidth, centeredX)),
-          y: Math.max(0, Math.min(100 - fieldHeight, centeredY)),
+          x: Math.max(0, Math.min(100 - fieldWidth, newX)),
+          y: Math.max(0, Math.min(100 - fieldHeight, newY)),
           width: fieldWidth,
           height: fieldHeight,
           page: pageNumber,
@@ -2059,10 +2100,16 @@ export default function EsignTemplateEditor() {
           let translateX: number;
           let translateY: number;
 
-          if (activeDragData.fromPalette) {
-            // Center on cursor for new fields
-            translateX = -fieldWidth / 2;
-            translateY = -fieldHeight / 2;
+          if (activeDragData.fromPalette && dragOffset.current) {
+            // Position based on where user clicked on the palette item
+            const offsetXRatio = dragOffset.current.x / (FIELD_TYPES.find(f => f.type === activeDragData.type)?.defaultSize.width || 20);
+            const offsetYRatio = dragOffset.current.y / (FIELD_TYPES.find(f => f.type === activeDragData.type)?.defaultSize.height || 4);
+            translateX = -offsetXRatio * fieldWidth;
+            translateY = -offsetYRatio * fieldHeight;
+          } else if (activeDragData.fromPalette) {
+            // Fallback: top-left at cursor
+            translateX = 0;
+            translateY = 0;
           } else if (dragOffset.current && activeDragData.field) {
             // Position based on grab point for existing fields
             // dragOffset is in percentage, convert to pixels relative to field size
