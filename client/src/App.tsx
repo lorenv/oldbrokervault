@@ -127,9 +127,18 @@ const authenticatedRoutes = [
   '/contacts',
 ];
 
+// Public esign routes that should NOT use sidebar even when logged in
+const publicEsignRoutes = ['/esign/form/', '/esign/sign/', '/esign/verify/'];
+
 // Check if current route should use sidebar layout
 function shouldUseSidebarLayout(location: string, user: any): boolean {
   if (!user) return false;
+
+  // Public esign routes should never use sidebar layout
+  if (publicEsignRoutes.some(route => location.startsWith(route))) {
+    return false;
+  }
+
   return authenticatedRoutes.some(route =>
     location === route || location.startsWith(route + '/')
   );

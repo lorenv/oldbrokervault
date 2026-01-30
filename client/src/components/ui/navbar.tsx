@@ -59,12 +59,10 @@ export function Navbar() {
       <div className="container mx-auto px-4 h-16 flex items-center">
         {/* Logo - always on the left */}
         <Link href={user ? "/dashboard" : "/"}>
-          <div className="flex items-center space-x-2 cursor-pointer">
-            <img
-              src="/cim-share-logo.png"
-              alt="CIM Share"
-              className={`h-10 ${isHomePage ? "brightness-0 invert" : ""}`}
-            />
+          <div className="flex items-center cursor-pointer">
+            <span className={`text-xl font-bold ${isHomePage ? "text-white" : "text-gray-900"}`}>
+              BrokerVault<span className="text-indigo-600">.ai</span>
+            </span>
           </div>
         </Link>
 

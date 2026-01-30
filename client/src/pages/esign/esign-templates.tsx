@@ -56,6 +56,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { PageHeader } from "@/components/layout/page-header";
 
 interface EsignTemplate {
   id: number;
@@ -211,33 +212,25 @@ export default function EsignTemplates() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 border-b border-slate-200 shadow-lg">
-        <div className="px-4 py-6 md:py-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-white mb-1 md:mb-2 flex items-center gap-2 md:gap-3">
-                <FileText className="h-6 w-6 md:h-8 md:w-8" />
-                <span className="hidden sm:inline">E-Signature Templates</span>
-                <span className="sm:hidden">Templates</span>
-              </h1>
-              <p className="text-slate-200 text-sm md:text-base">
-                Create reusable templates with pre-placed signature fields
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2 md:gap-3">
+      <main className="px-4 md:px-6 py-4 md:py-6">
+        <PageHeader
+          title="E-Signature Templates"
+          description="Create reusable templates with pre-placed signature fields"
+          icon={<FileText className="h-5 w-5" />}
+          actions={
+            <div className="flex flex-wrap gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                className="text-slate-700 border-slate-300"
                 onClick={() => setLocation("/esign")}
               >
                 <span className="hidden sm:inline">Back to Dashboard</span>
                 <span className="sm:hidden">Back</span>
               </Button>
               <Button
+                variant="outline"
                 size="sm"
-                className="bg-slate-700 hover:bg-slate-800 text-white"
                 onClick={() => setLocation("/esign/templates/new")}
               >
                 <Plus className="h-4 w-4 sm:mr-2" />
@@ -245,11 +238,8 @@ export default function EsignTemplates() {
                 <span className="sm:hidden">Create</span>
               </Button>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <main className="px-4 md:px-6 py-4 md:py-6">
+          }
+        />
         <Card className="bg-white shadow-lg overflow-hidden">
           <CardHeader className="border-b">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

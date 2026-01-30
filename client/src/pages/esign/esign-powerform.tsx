@@ -399,7 +399,7 @@ export default function EsignPowerForm() {
         {/* Footer */}
         <div className="text-center mt-6">
           <p className="text-xs text-slate-400">
-            Powered by <span className="font-medium">Broker Vault</span>
+            Powered by <span className="font-medium">BrokerVault.ai</span>
           </p>
         </div>
       </div>

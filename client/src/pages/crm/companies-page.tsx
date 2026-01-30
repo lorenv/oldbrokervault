@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
 import { useCompanyFilters } from "@/hooks/use-company-filters";
 import { CompaniesFilterBuilderIntegration } from "@/components/crm/companies-filter-builder-integration";
@@ -46,9 +47,28 @@ import {
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 
+// Helper to determine if a color is light (needs dark text)
+function isLightColor(hexColor: string): boolean {
+  const hex = hexColor.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.6;
+}
+
 export default function CompaniesPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
+
+  // Get brand color from profile
+  const { data: profile } = useQuery({
+    queryKey: ["/api/profile"],
+    enabled: !!user,
+  });
+  const brandColor = (profile as any)?.brandColors?.[0];
+  const needsDarkText = brandColor ? isLightColor(brandColor) : false;
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newCompany, setNewCompany] = useState({ name: "", website: "", industry: "", city: "", state: "" });
@@ -345,7 +365,17 @@ export default function CompaniesPage() {
     <div className="p-4 md:p-6">
       {/* Header - stacks on mobile */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div>
+        <div className="flex items-center gap-3">
+          <div
+            className="flex-shrink-0 p-2 md:p-2.5 rounded-lg md:rounded-xl shadow-md"
+            style={{
+              background: brandColor
+                ? `linear-gradient(to bottom right, ${brandColor}, ${brandColor}dd)`
+                : 'linear-gradient(to bottom right, #334155, #1e293b)'
+            }}
+          >
+            <Building2 className={`h-5 w-5 ${needsDarkText ? 'text-slate-800' : 'text-white'}`} />
+          </div>
           <h1 className="text-xl md:text-2xl font-semibold text-gray-900">Companies</h1>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">

@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
 import { useTaskFilters } from "@/hooks/use-task-filters";
 import { TasksColumnConfig } from "@/components/crm/tasks-column-config";
@@ -166,10 +167,29 @@ function formatDueDate(dueDate: string | null, dueTime: string | null): string {
   return dateStr;
 }
 
+// Helper to determine if a color is light (needs dark text)
+function isLightColor(hexColor: string): boolean {
+  const hex = hexColor.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.6;
+}
+
 export default function TasksPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
+
+  // Get brand color from profile
+  const { data: profile } = useQuery({
+    queryKey: ["/api/profile"],
+    enabled: !!user,
+  });
+  const brandColor = (profile as any)?.brandColors?.[0];
+  const needsDarkText = brandColor ? isLightColor(brandColor) : false;
 
   const {
     filters,
@@ -668,11 +688,23 @@ export default function TasksPage() {
     <div className="p-4 md:p-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-xl md:text-2xl font-semibold text-gray-900">Tasks</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Manage your tasks and follow-ups
-          </p>
+        <div className="flex items-center gap-3">
+          <div
+            className="flex-shrink-0 p-2 md:p-2.5 rounded-lg md:rounded-xl shadow-md"
+            style={{
+              background: brandColor
+                ? `linear-gradient(to bottom right, ${brandColor}, ${brandColor}dd)`
+                : 'linear-gradient(to bottom right, #334155, #1e293b)'
+            }}
+          >
+            <CheckCircle2 className={`h-5 w-5 ${needsDarkText ? 'text-slate-800' : 'text-white'}`} />
+          </div>
+          <div>
+            <h1 className="text-xl md:text-2xl font-semibold text-gray-900">Tasks</h1>
+            <p className="text-sm text-gray-500">
+              Manage your tasks and follow-ups
+            </p>
+          </div>
         </div>
         <Button variant="outline" onClick={() => setIsCreateDialogOpen(true)} className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />

@@ -1234,7 +1234,7 @@ export default function EsignTemplateEditor() {
             {/* Left Sidebar - Recipients & Fields */}
             <div className={`
               ${showMobileSidebar ? 'fixed inset-y-0 left-0 z-50 w-80 bg-gray-100 overflow-y-auto p-4 pt-20' : 'hidden'}
-              lg:block lg:static lg:w-72 xl:w-80 lg:flex-shrink-0 space-y-4
+              lg:block lg:static lg:w-72 xl:w-80 lg:flex-shrink-0 lg:h-[calc(100vh-180px)] lg:overflow-y-auto space-y-4
             `}>
               {/* Close button for mobile */}
               {showMobileSidebar && (

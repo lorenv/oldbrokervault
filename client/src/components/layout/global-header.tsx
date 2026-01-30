@@ -789,11 +789,17 @@ export function GlobalHeader() {
 
           {/* Logo */}
           <Link href="/dashboard" className="flex-1">
-            <img
-              src={(profile as any)?.businessLogo || "/cim-share-logo.png"}
-              alt={(profile as any)?.businessName || "BrokerVault.ai"}
-              className="h-8 max-w-[140px] object-contain"
-            />
+            {(profile as any)?.businessLogo ? (
+              <img
+                src={(profile as any).businessLogo}
+                alt={(profile as any)?.businessName || "BrokerVault.ai"}
+                className="h-8 max-w-[140px] object-contain"
+              />
+            ) : (
+              <span className="text-lg font-bold text-gray-900">
+                BrokerVault<span className="text-indigo-600">.ai</span>
+              </span>
+            )}
           </Link>
 
           {/* Search Button */}
@@ -962,11 +968,17 @@ export function GlobalHeader() {
       >
         {/* Logo */}
         <Link href="/dashboard" className="flex-shrink-0">
-          <img
-            src={(profile as any)?.businessLogo || "/cim-share-logo.png"}
-            alt={(profile as any)?.businessName || "BrokerVault.ai"}
-            className="h-10 max-w-[160px] object-contain"
-          />
+          {(profile as any)?.businessLogo ? (
+            <img
+              src={(profile as any).businessLogo}
+              alt={(profile as any)?.businessName || "BrokerVault.ai"}
+              className="h-10 max-w-[160px] object-contain"
+            />
+          ) : (
+            <span className="text-xl font-bold text-gray-900">
+              BrokerVault<span className="text-indigo-600">.ai</span>
+            </span>
+          )}
         </Link>
 
         {/* Global Search - wider search bar */}
