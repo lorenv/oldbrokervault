@@ -1227,6 +1227,12 @@ export const esignTemplates = pgTable("esign_templates", {
   totalPages: integer("total_pages").default(1).notNull(),
   placeholderRecipients: jsonb("placeholder_recipients").default([]).notNull(), // Array of { id, label, role, color, order }
   fields: jsonb("fields").default([]).notNull(), // Array of field definitions with assignedTo = placeholder ID
+  // PowerForm settings - allow self-service signing via shareable link
+  powerFormEnabled: boolean("power_form_enabled").default(false).notNull(),
+  powerFormSlug: text("power_form_slug").unique(), // URL slug for public access (e.g., "company-nda")
+  powerFormSettings: jsonb("power_form_settings").default({}).notNull(), // { maxCompletions, expiresAt, multiSignerMode, redirectUrl, customMessage, allowLinkSharing }
+  powerFormCompletions: integer("power_form_completions").default(0).notNull(),
+  powerFormCreatedAt: timestamp("power_form_created_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
@@ -1244,6 +1250,7 @@ export const esignEnvelopes = pgTable("esign_envelopes", {
   pageImages: jsonb("page_images").default([]).notNull(), // Page image URLs
   totalPages: integer("total_pages").default(1).notNull(),
   templateId: integer("template_id"), // If created from template
+  powerFormTemplateId: integer("power_form_template_id"), // If created via PowerForm (tracks which PowerForm was used)
   // Document integrity fields for E-SIGN Act / UETA compliance
   documentHash: text("document_hash"), // SHA-256 hash of original document for tamper detection
   signedDocumentHash: text("signed_document_hash"), // SHA-256 hash of final signed document
@@ -1283,7 +1290,10 @@ export const esignRecipients = pgTable("esign_recipients", {
   location: text("location"),
   userAgent: text("user_agent"),
   reminderCount: integer("reminder_count").default(0).notNull(),
-  lastReminderAt: timestamp("last_reminder_at")
+  lastReminderAt: timestamp("last_reminder_at"),
+  // PowerForm tracking - how this recipient was added
+  invitedVia: text("invited_via"), // 'email', 'powerform_link', 'link_share' - how they received the signing link
+  invitedByRecipientId: integer("invited_by_recipient_id") // For sequential handoff, FK to the recipient who invited them
 });
 
 // E-signature envelope fields
@@ -1352,6 +1362,18 @@ export const esignTemplateFieldSchema = z.object({
   required: z.boolean().default(true)
 });
 
+// PowerForm settings schema
+export const powerFormSettingsSchema = z.object({
+  maxCompletions: z.number().nullable().optional(), // null = unlimited
+  expiresAt: z.string().nullable().optional(), // ISO date string, null = never
+  multiSignerMode: z.enum(['upfront', 'sequential', 'choice']).default('choice'), // How to handle multiple signers
+  redirectUrl: z.string().url().nullable().optional(), // Where to redirect after completion
+  customMessage: z.string().nullable().optional(), // Welcome message on PowerForm entry page
+  allowLinkSharing: z.boolean().default(true), // Can signers copy link for next signer (in sequential mode)
+});
+
+export type PowerFormSettings = z.infer<typeof powerFormSettingsSchema>;
+
 export const insertUserBrandingSchema = createInsertSchema(userBranding).pick({
   logoUrl: true,
   primaryColor: true,
@@ -1383,6 +1405,17 @@ export const insertEsignTemplateSchema = createInsertSchema(esignTemplates).pick
   placeholderRecipients: z.array(esignPlaceholderRecipientSchema).optional(),
   fields: z.array(esignTemplateFieldSchema).optional()
 });
+
+// Schema for enabling/configuring PowerForm on a template
+export const updatePowerFormSchema = z.object({
+  enabled: z.boolean(),
+  slug: z.string().min(3, "Slug must be at least 3 characters").max(50, "Slug must be at most 50 characters")
+    .regex(/^[a-z0-9-]+$/, "Slug can only contain lowercase letters, numbers, and hyphens")
+    .optional(),
+  settings: powerFormSettingsSchema.optional(),
+});
+
+export type UpdatePowerForm = z.infer<typeof updatePowerFormSchema>;
 
 export const insertEsignEnvelopeSchema = createInsertSchema(esignEnvelopes).pick({
   title: true,

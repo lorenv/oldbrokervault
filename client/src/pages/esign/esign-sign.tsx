@@ -120,6 +120,21 @@ export default function EsignSign() {
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [showFieldsModal, setShowFieldsModal] = useState(false);
 
+  // PowerForm next signer state
+  const [nextSignerInfo, setNextSignerInfo] = useState<{
+    placeholderId: string;
+    label: string;
+    color: string;
+    allowLinkSharing: boolean;
+    envelopeId: string;
+    currentSignerToken: string;
+  } | null>(null);
+  const [nextSignerName, setNextSignerName] = useState("");
+  const [nextSignerEmail, setNextSignerEmail] = useState("");
+  const [sendingNextSigner, setSendingNextSigner] = useState(false);
+  const [nextSignerUrl, setNextSignerUrl] = useState<string | null>(null);
+  const [copiedNextSignerUrl, setCopiedNextSignerUrl] = useState(false);
+
   // Cached signatures for quick reuse (DocuSign-style)
   const [cachedSignature, setCachedSignature] = useState<string | null>(null);
   const [cachedInitials, setCachedInitials] = useState<string | null>(null);
@@ -347,6 +362,10 @@ export default function EsignSign() {
           ? "All parties have signed. You will receive the completed document shortly."
           : "Thank you for signing. Other parties will be notified.",
       });
+      // Capture next signer info for PowerForm sequential mode
+      if (result.nextSignerInfo) {
+        setNextSignerInfo(result.nextSignerInfo);
+      }
       // Show a success state instead of reloading
       setShowSuccessState(true);
     },
@@ -488,6 +507,69 @@ export default function EsignSign() {
     );
   }
 
+  // Function to add next signer for PowerForm
+  const handleAddNextSigner = async (sendEmail: boolean) => {
+    if (!nextSignerInfo || !nextSignerName.trim() || !nextSignerEmail.trim()) return;
+
+    setSendingNextSigner(true);
+    try {
+      const res = await fetch(`/api/esign/form/envelope/${nextSignerInfo.envelopeId}/add-signer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentSignerToken: nextSignerInfo.currentSignerToken,
+          nextSigner: {
+            placeholderId: nextSignerInfo.placeholderId,
+            name: nextSignerName,
+            email: nextSignerEmail,
+          },
+          sendEmail,
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to add signer');
+      }
+
+      const result = await res.json();
+
+      if (sendEmail) {
+        toast({
+          title: "Invitation sent!",
+          description: `${nextSignerName} has been notified to sign the document.`,
+        });
+        setNextSignerInfo(null); // Clear the form
+      } else {
+        setNextSignerUrl(result.recipient.signingUrl);
+        toast({
+          title: "Link generated!",
+          description: "Copy the link below to share with the next signer.",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setSendingNextSigner(false);
+    }
+  };
+
+  const copyNextSignerUrl = () => {
+    if (nextSignerUrl) {
+      navigator.clipboard.writeText(nextSignerUrl);
+      setCopiedNextSignerUrl(true);
+      setTimeout(() => setCopiedNextSignerUrl(false), 2000);
+      toast({
+        title: "Link copied!",
+        description: "Share this link with the next signer.",
+      });
+    }
+  };
+
   // Success state after signing
   if (showSuccessState) {
     return (
@@ -499,14 +581,103 @@ export default function EsignSign() {
                 <CheckCircle2 className="h-10 w-10 text-green-600" />
               </div>
               <h2 className="text-xl font-semibold mb-2">Successfully Signed!</h2>
-              <p className="text-gray-500 mb-6">
-                Thank you for signing "{data.envelope.title}". You will receive a copy of the completed document once all parties have signed.
+              <p className="text-gray-500 mb-4">
+                Thank you for signing "{data.envelope.title}".
+                {!nextSignerInfo && " You will receive a copy of the completed document once all parties have signed."}
               </p>
-              <div className="p-4 bg-gray-50 rounded-lg w-full">
+              <div className="p-4 bg-gray-50 rounded-lg w-full mb-4">
                 <p className="text-sm text-gray-600">Signed as</p>
                 <p className="font-medium">{data.recipient.name}</p>
                 <p className="text-sm text-gray-500">{data.recipient.email}</p>
               </div>
+
+              {/* Next signer section for PowerForm sequential mode */}
+              {nextSignerInfo && !nextSignerUrl && (
+                <div className="w-full border-t pt-4 mt-2">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: nextSignerInfo.color }}
+                    />
+                    <h3 className="font-medium text-gray-900">
+                      Next: {nextSignerInfo.label}
+                    </h3>
+                  </div>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Share this document with the next signer to complete:
+                  </p>
+                  <div className="space-y-3 text-left">
+                    <div>
+                      <Label htmlFor="nextName" className="text-sm">Name</Label>
+                      <Input
+                        id="nextName"
+                        value={nextSignerName}
+                        onChange={(e) => setNextSignerName(e.target.value)}
+                        placeholder="Enter their name"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="nextEmail" className="text-sm">Email</Label>
+                      <Input
+                        id="nextEmail"
+                        type="email"
+                        value={nextSignerEmail}
+                        onChange={(e) => setNextSignerEmail(e.target.value)}
+                        placeholder="Enter their email"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2 mt-4">
+                    <Button
+                      onClick={() => handleAddNextSigner(true)}
+                      disabled={!nextSignerName.trim() || !nextSignerEmail.trim() || sendingNextSigner}
+                      className="flex-1"
+                    >
+                      {sendingNextSigner ? (
+                        <Clock className="h-4 w-4 mr-2 animate-spin" />
+                      ) : null}
+                      Send Email Invitation
+                    </Button>
+                    {nextSignerInfo.allowLinkSharing && (
+                      <Button
+                        variant="outline"
+                        onClick={() => handleAddNextSigner(false)}
+                        disabled={!nextSignerName.trim() || !nextSignerEmail.trim() || sendingNextSigner}
+                        className="flex-1"
+                      >
+                        Get Link to Share
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Show generated link */}
+              {nextSignerUrl && (
+                <div className="w-full border-t pt-4 mt-2">
+                  <div className="flex items-center gap-2 mb-3">
+                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    <h3 className="font-medium text-gray-900">Link Ready!</h3>
+                  </div>
+                  <p className="text-sm text-gray-500 mb-3">
+                    Share this link with {nextSignerName} to sign:
+                  </p>
+                  <div className="flex gap-2">
+                    <Input
+                      value={nextSignerUrl}
+                      readOnly
+                      className="flex-1 text-sm"
+                    />
+                    <Button onClick={copyNextSignerUrl} variant="outline" size="icon">
+                      {copiedNextSignerUrl ? (
+                        <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <FileCheck className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

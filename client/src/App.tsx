@@ -86,6 +86,7 @@ import EsignCorrect from "@/pages/esign/esign-correct";
 import EsignSign from "@/pages/esign/esign-sign";
 import EsignVerify from "@/pages/esign/esign-verify";
 import EsignSettings from "@/pages/esign/esign-settings";
+import EsignPowerForm from "@/pages/esign/esign-powerform";
 
 // Lazy load SEO pages for better performance
 const NdaProtectionPage = lazy(() => import("@/pages/features/nda-protection"));
@@ -261,6 +262,7 @@ function PublicRouter() {
             {/* E-Signature Guest Signing and Verification */}
             <Route path="/esign/sign/:token" component={EsignSign} />
             <Route path="/esign/verify/:envelopeId" component={EsignVerify} />
+            <Route path="/esign/form/:slug" component={EsignPowerForm} />
 
             {/* SEO Feature Pages */}
             <Route path="/features/nda-protection">

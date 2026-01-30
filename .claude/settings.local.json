@@ -68,7 +68,9 @@
       "Bash(timeout 60 npm run:*)",
       "Bash(./scripts/kill-port.sh)",
       "Bash(git log:*)",
-      "Bash(git show:*)"
+      "Bash(git show:*)",
+      "WebFetch(domain:www.docusign.com)",
+      "WebFetch(domain:support.docusign.com)"
     ],
     "deny": [],
     "ask": [],
