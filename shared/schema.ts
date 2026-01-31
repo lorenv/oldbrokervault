@@ -147,6 +147,14 @@ export const users = pgTable("users", {
   microsoftId: text("microsoft_id").unique(),
   // Auth provider tracking (local, google, microsoft)
   authProvider: text("auth_provider").default("local"),
+  // Marketing attribution fields (captured at signup)
+  utmSource: text("utm_source"),
+  utmMedium: text("utm_medium"),
+  utmCampaign: text("utm_campaign"),
+  utmTerm: text("utm_term"),
+  utmContent: text("utm_content"),
+  referrerUrl: text("referrer_url"),
+  landingPage: text("landing_page"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -608,7 +616,15 @@ export const insertUserSchema = createInsertSchema(users).pick({
   businessName: z.string().optional(),
   phoneNumber: z.string().optional(),
   businessLogo: z.string().optional(),
-  adminCode: z.string().optional()
+  adminCode: z.string().optional(),
+  // Marketing attribution fields
+  utmSource: z.string().optional(),
+  utmMedium: z.string().optional(),
+  utmCampaign: z.string().optional(),
+  utmTerm: z.string().optional(),
+  utmContent: z.string().optional(),
+  referrerUrl: z.string().optional(),
+  landingPage: z.string().optional(),
 });
 
 // Default section directions

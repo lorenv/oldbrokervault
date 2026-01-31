@@ -135,6 +135,8 @@
     "pdf2pic": "^3.2.0",
     "pdfjs-dist": "^5.3.31",
     "pdfkit": "^0.16.0",
+    "posthog-js": "^1.336.4",
+    "posthog-node": "^5.24.7",
     "puppeteer": "^24.8.2",
     "qrcode": "^1.5.4",
     "react": "^18.3.1",

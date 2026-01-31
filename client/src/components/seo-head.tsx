@@ -14,7 +14,7 @@ interface SEOHeadProps {
 export function SEOHead({ title, description, canonicalUrl, ogImage }: SEOHeadProps) {
   useEffect(() => {
     // Update document title
-    const fullTitle = `${title} | CIM Share`;
+    const fullTitle = `${title} | Broker Vault`;
     document.title = fullTitle;
 
     // Update or create meta description
@@ -71,7 +71,7 @@ export function SEOHead({ title, description, canonicalUrl, ogImage }: SEOHeadPr
 
     // Cleanup function to restore defaults when component unmounts
     return () => {
-      document.title = "CIM Share - Create Professional CIMs in Minutes with AI";
+      document.title = "Broker Vault - The All-in-One Platform for Business Brokers & M&A Advisors";
     };
   }, [title, description, canonicalUrl, ogImage]);
 

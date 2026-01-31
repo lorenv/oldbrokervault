@@ -60,9 +60,17 @@ export function Navbar() {
         {/* Logo - always on the left */}
         <Link href={user ? "/dashboard" : "/"}>
           <div className="flex items-center cursor-pointer">
-            <span className={`text-xl font-bold ${isHomePage ? "text-white" : "text-gray-900"}`}>
-              BrokerVault<span className="text-indigo-600">.ai</span>
-            </span>
+            {user ? (
+              <img
+                src="/brokervaultlogo.svg"
+                alt="Broker Vault"
+                className="h-8 max-w-[160px] object-contain"
+              />
+            ) : (
+              <span className={`text-xl font-bold ${isHomePage ? "text-white" : "text-gray-900"}`}>
+                BrokerVault<span className="text-indigo-600">.ai</span>
+              </span>
+            )}
           </div>
         </Link>
 

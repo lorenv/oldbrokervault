@@ -635,6 +635,7 @@ interface SearchResult {
   title: string;
   subtitle?: string;
   envelopeId?: string; // For esign results
+  imageUrl?: string; // Profile photo for contacts, logo for companies
 }
 
 export function GlobalHeader() {
@@ -792,13 +793,15 @@ export function GlobalHeader() {
             {(profile as any)?.businessLogo ? (
               <img
                 src={(profile as any).businessLogo}
-                alt={(profile as any)?.businessName || "BrokerVault.ai"}
+                alt={(profile as any)?.businessName || "Broker Vault"}
                 className="h-8 max-w-[140px] object-contain"
               />
             ) : (
-              <span className="text-lg font-bold text-gray-900">
-                BrokerVault<span className="text-indigo-600">.ai</span>
-              </span>
+              <img
+                src="/brokervaultlogo.svg"
+                alt="Broker Vault"
+                className="h-7 max-w-[140px] object-contain"
+              />
             )}
           </Link>
 
@@ -934,7 +937,15 @@ export function GlobalHeader() {
                         className="w-full flex items-center gap-3 px-4 py-4 hover:bg-gray-50 text-left"
                       >
                         <div className="flex-shrink-0">
-                          {getIcon(result.type)}
+                          {result.imageUrl ? (
+                            <img
+                              src={result.imageUrl}
+                              alt=""
+                              className="h-8 w-8 rounded-full object-cover"
+                            />
+                          ) : (
+                            getIcon(result.type)
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="font-medium text-gray-900 truncate">{result.title}</div>
@@ -971,13 +982,15 @@ export function GlobalHeader() {
           {(profile as any)?.businessLogo ? (
             <img
               src={(profile as any).businessLogo}
-              alt={(profile as any)?.businessName || "BrokerVault.ai"}
+              alt={(profile as any)?.businessName || "Broker Vault"}
               className="h-10 max-w-[160px] object-contain"
             />
           ) : (
-            <span className="text-xl font-bold text-gray-900">
-              BrokerVault<span className="text-indigo-600">.ai</span>
-            </span>
+            <img
+              src="/brokervaultlogo.svg"
+              alt="Broker Vault"
+              className="h-8 max-w-[160px] object-contain"
+            />
           )}
         </Link>
 
@@ -1050,7 +1063,15 @@ export function GlobalHeader() {
                       onClick={() => handleSelect(result)}
                       className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer text-left"
                     >
-                      {getIcon(result.type)}
+                      {result.imageUrl ? (
+                        <img
+                          src={result.imageUrl}
+                          alt=""
+                          className="h-6 w-6 rounded-full object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        getIcon(result.type)
+                      )}
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-sm text-gray-900 truncate">{result.title}</div>
                         {result.subtitle && (

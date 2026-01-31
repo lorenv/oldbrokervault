@@ -1653,10 +1653,12 @@ router.post('/form/envelope/:envelopeId/add-signer', async (req: Request, res: R
         recipientEmail: validated.nextSigner.email,
         recipientName: validated.nextSigner.name,
         senderName: currentSigner.name, // The person who added them
+        senderEmail: owner?.email || currentSigner.email,
         documentTitle: envelope.title,
         message: envelope.message || undefined,
         signingUrl,
         branding: branding || undefined,
+        userId: envelope.userId, // Send from user's OAuth email if connected
       });
     }
 
@@ -2194,6 +2196,7 @@ router.post('/envelopes/:id/send', async (req: Request, res: Response) => {
             logoUrl: branding.logoUrl || undefined,
             primaryColor: branding.primaryColor || undefined,
           } : undefined,
+          userId: req.user.id, // Send from user's OAuth email if connected
         });
 
         if (emailSent) {
@@ -2786,6 +2789,7 @@ router.put('/envelopes/:id/correct', async (req: Request, res: Response) => {
                 logoUrl: branding.logoUrl || undefined,
                 primaryColor: branding.primaryColor || undefined,
               } : undefined,
+              userId: req.user.id, // Send from user's OAuth email if connected
             });
             console.log(`[ESIGN] Sent correction notification to ${recipient.email}`);
           } catch (emailError) {
@@ -2905,6 +2909,7 @@ async function reminderHandler(req: Request, res: Response) {
             logoUrl: branding.logoUrl || undefined,
             primaryColor: branding.primaryColor || undefined,
           } : undefined,
+          userId: req.user.id, // Send from user's OAuth email if connected
         });
         console.log(`[ESIGN] Sent reminder to ${recipient.email}`);
       } catch (emailError) {
@@ -3560,6 +3565,7 @@ router.post('/sign/:token/complete', async (req: Request, res: Response) => {
               logoUrl: branding.logoUrl || undefined,
               primaryColor: branding.primaryColor || undefined,
             } : undefined,
+            userId: envelope.userId, // Send from user's OAuth email if connected
           });
           console.log(`[ESIGN] Sent sequential signing invitation to ${nextSigner.email}`);
         } catch (emailError) {

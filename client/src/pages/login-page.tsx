@@ -23,7 +23,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { z } from "zod";
-import { Loader2, AlertTriangle, Shield, Zap, Lock, FileText, Database, Download, PenTool, Globe, CheckCircle, ArrowRight } from "lucide-react";
+import { Loader2, AlertTriangle, Shield, Zap, Lock, FileText, Database, Download, PenTool, Globe, CheckCircle, ArrowRight, Users, Workflow, Link2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -263,55 +263,69 @@ export default function LoginPage() {
         <div className="relative z-10 flex flex-col justify-center px-12 w-full">
           {/* Logo and Tagline */}
           <div className="mb-12">
-            <h1 className="text-5xl font-bold text-white mb-4">CIM Share</h1>
-            <p className="text-xl text-blue-200">Professional CIMs with Enterprise Security</p>
+            <img
+              src="/brokervaultlogo.svg"
+              alt="Broker Vault"
+              className="h-12 mb-4 brightness-0 invert"
+            />
+            <p className="text-xl text-blue-200">The All-in-One Platform for Business Brokers & M&A Advisors</p>
           </div>
 
           {/* Key Features Grid */}
           <div className="space-y-6 mb-12">
             <div className="flex items-start space-x-4">
               <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-green-500/20 flex items-center justify-center">
-                <Shield className="w-6 h-6 text-green-400" />
+                <PenTool className="w-6 h-6 text-green-400" />
               </div>
               <div>
-                <h3 className="text-white font-semibold mb-1">NDA Protection Built-In</h3>
-                <p className="text-blue-200 text-sm">Secure document sharing with integrated confidentiality agreements and audit trails</p>
+                <h3 className="text-white font-semibold mb-1">E-Signatures & NDAs</h3>
+                <p className="text-blue-200 text-sm">Legally binding signatures with built-in NDA workflows and automatic audit trails</p>
               </div>
             </div>
 
             <div className="flex items-start space-x-4">
               <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-orange-500/20 flex items-center justify-center">
-                <Zap className="w-6 h-6 text-orange-400" />
+                <Database className="w-6 h-6 text-orange-400" />
               </div>
               <div>
-                <h3 className="text-white font-semibold mb-1">AI-Powered Document Creation</h3>
-                <p className="text-blue-200 text-sm">Transform meeting transcripts into professional CIMs instantly with advanced AI</p>
+                <h3 className="text-white font-semibold mb-1">Centralized Deal Records</h3>
+                <p className="text-blue-200 text-sm">Keep all your documents, contacts, and deal data organized in one secure location</p>
               </div>
             </div>
 
             <div className="flex items-start space-x-4">
               <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                <Database className="w-6 h-6 text-purple-400" />
+                <Users className="w-6 h-6 text-purple-400" />
               </div>
               <div>
-                <h3 className="text-white font-semibold mb-1">Investor Management System</h3>
-                <p className="text-blue-200 text-sm">Track contacts, manage permissions, and monitor document engagement in real-time</p>
+                <h3 className="text-white font-semibold mb-1">Team Collaboration</h3>
+                <p className="text-blue-200 text-sm">Work together seamlessly with role-based access, shared workspaces, and real-time updates</p>
               </div>
             </div>
 
             <div className="flex items-start space-x-4">
               <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-cyan-500/20 flex items-center justify-center">
-                <Lock className="w-6 h-6 text-cyan-400" />
+                <Workflow className="w-6 h-6 text-cyan-400" />
               </div>
               <div>
-                <h3 className="text-white font-semibold mb-1">Bank-Level Encryption</h3>
-                <p className="text-blue-200 text-sm">Enterprise-grade security with end-to-end encryption</p>
+                <h3 className="text-white font-semibold mb-1">Automated Workflows</h3>
+                <p className="text-blue-200 text-sm">Streamline your deal process with automated tasks, reminders, and status tracking</p>
+              </div>
+            </div>
+
+            <div className="flex items-start space-x-4">
+              <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-pink-500/20 flex items-center justify-center">
+                <Link2 className="w-6 h-6 text-pink-400" />
+              </div>
+              <div>
+                <h3 className="text-white font-semibold mb-1">Powerful Integrations</h3>
+                <p className="text-blue-200 text-sm">Connect with your favorite tools including email, calendar, and CRM systems</p>
               </div>
             </div>
           </div>
 
           {/* Bottom Features */}
-          <div className="mt-12 flex flex-wrap gap-4">
+          <div className="mt-8 flex flex-wrap gap-4">
             <div className="flex items-center space-x-2 text-blue-300">
               <CheckCircle className="w-5 h-5 text-green-400" />
               <span className="text-sm">Free Plan Available</span>
@@ -322,7 +336,7 @@ export default function LoginPage() {
             </div>
             <div className="flex items-center space-x-2 text-blue-300">
               <CheckCircle className="w-5 h-5 text-green-400" />
-              <span className="text-sm">Cancel Anytime</span>
+              <span className="text-sm">Bank-Level Security</span>
             </div>
           </div>
         </div>
@@ -333,8 +347,12 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           {/* Mobile Logo (hidden on desktop) */}
           <div className="lg:hidden text-center mb-8">
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">CIM Share</h1>
-            <p className="text-slate-600">Professional CIMs with Enterprise Security</p>
+            <img
+              src="/brokervaultlogo.svg"
+              alt="Broker Vault"
+              className="h-10 mx-auto mb-2"
+            />
+            <p className="text-slate-600">The All-in-One Platform for Business Brokers</p>
           </div>
 
           <Card className="shadow-2xl border-0">
@@ -381,20 +399,20 @@ export default function LoginPage() {
               <div className="lg:hidden mt-8 pt-8 border-t">
                 <div className="grid grid-cols-2 gap-4 text-center">
                   <div>
-                    <Shield className="w-8 h-8 text-green-500 mx-auto mb-2" />
-                    <p className="text-xs text-slate-600">NDA Protection</p>
+                    <PenTool className="w-8 h-8 text-green-500 mx-auto mb-2" />
+                    <p className="text-xs text-slate-600">E-Signatures</p>
                   </div>
                   <div>
-                    <Zap className="w-8 h-8 text-orange-500 mx-auto mb-2" />
-                    <p className="text-xs text-slate-600">AI-Powered</p>
+                    <Database className="w-8 h-8 text-orange-500 mx-auto mb-2" />
+                    <p className="text-xs text-slate-600">Deal Records</p>
                   </div>
                   <div>
-                    <Database className="w-8 h-8 text-purple-500 mx-auto mb-2" />
-                    <p className="text-xs text-slate-600">Investor Database</p>
+                    <Users className="w-8 h-8 text-purple-500 mx-auto mb-2" />
+                    <p className="text-xs text-slate-600">Team Collaboration</p>
                   </div>
                   <div>
-                    <Lock className="w-8 h-8 text-cyan-500 mx-auto mb-2" />
-                    <p className="text-xs text-slate-600">Bank-Level Security</p>
+                    <Workflow className="w-8 h-8 text-cyan-500 mx-auto mb-2" />
+                    <p className="text-xs text-slate-600">Workflows</p>
                   </div>
                 </div>
               </div>

@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import { invalidateUserCache } from "./auth";
+import { trackSubscriptionStarted, trackSubscriptionCancelled, trackPaymentFailed } from "./posthog";
 
 // Validate required environment variables
 function validateStripeConfig() {
@@ -690,6 +691,15 @@ async function processStripeWebhookEvent(event: Stripe.Event) {
             subscriptionEndsAt: updatedUser.subscriptionEndsAt
           });
 
+          // Track subscription started in PostHog
+          trackSubscriptionStarted(updatedUser.id, {
+            plan: status,
+            priceId,
+            billingCycle: status.includes('monthly') ? 'monthly' : 'annual',
+            stripeCustomerId: subscription.customer as string,
+            subscriptionId: subscription.id,
+          });
+
           // Auto-allocate seats to organization based on subscription quantity
           const subscriptionQuantity = subscription.items.data[0]?.quantity || 1;
           try {
@@ -771,6 +781,13 @@ async function processStripeWebhookEvent(event: Stripe.Event) {
               subscriptionStatus: updatedUser.subscriptionStatus,
               subscriptionEndsAt: updatedUser.subscriptionEndsAt
             });
+
+            // Track cancellation in PostHog
+            trackSubscriptionCancelled(updatedUser.id, {
+              plan: updatedUser.subscriptionStatus,
+              reason: 'user_requested',
+            });
+
             invalidateUserCache(userId);
             return { userId, status: 'canceled', endsAt: new Date(subscription.current_period_end * 1000), subscriptionId: subscription.id };
           } else {
@@ -921,14 +938,20 @@ async function processStripeWebhookEvent(event: Stripe.Event) {
             email: updatedUser.email,
             subscriptionStatus: updatedUser.subscriptionStatus
           });
-          
+
+          // Track subscription ended in PostHog
+          trackSubscriptionCancelled(updatedUser.id, {
+            plan: 'free',
+            reason: 'subscription_ended',
+          });
+
           // Invalidate user cache to ensure fresh data on next request
           invalidateUserCache(updatedUser.id);
           console.log('✅ User cache invalidated for user:', updatedUser.id);
         } else {
           console.error('❌ Failed to revert user to free plan - user not found');
         }
-        
+
         return { userId, status: 'free', endsAt: new Date() };
       }
 

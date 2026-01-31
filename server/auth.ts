@@ -403,7 +403,11 @@ export function setupAuth(app: Express) {
       });
       
       // Handle JSON body parsing (FormData contains text fields)
-      const { email, password, name, businessName, phoneNumber, adminCode, agreeToTerms } = req.body;
+      const {
+        email, password, name, businessName, phoneNumber, adminCode, agreeToTerms,
+        // Attribution fields
+        utmSource, utmMedium, utmCampaign, utmTerm, utmContent, referrerUrl, landingPage
+      } = req.body;
       
       // Get files from the request (multer middleware populates this)
       const files = req.files as { [fieldname: string]: Express.Multer.File[] };
@@ -452,6 +456,9 @@ export function setupAuth(app: Express) {
         businessLogo: null,
         profilePhoto: null,
         isAdmin,
+        utmSource: utmSource || null,
+        utmMedium: utmMedium || null,
+        utmCampaign: utmCampaign || null,
       });
 
       const user = await storage.createUser({
@@ -463,6 +470,14 @@ export function setupAuth(app: Express) {
         businessLogo: undefined,
         profilePhoto: undefined,
         isAdmin,
+        // Attribution fields
+        utmSource: utmSource || undefined,
+        utmMedium: utmMedium || undefined,
+        utmCampaign: utmCampaign || undefined,
+        utmTerm: utmTerm || undefined,
+        utmContent: utmContent || undefined,
+        referrerUrl: referrerUrl || undefined,
+        landingPage: landingPage || undefined,
       });
 
       console.log("User created:", {

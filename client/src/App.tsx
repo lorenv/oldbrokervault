@@ -7,8 +7,7 @@ import { Navbar } from "@/components/ui/navbar";
 import { Footer } from "@/components/ui/footer";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { lazy, Suspense, useEffect } from "react";
-import { initGA } from "./lib/analytics";
-import { useAnalytics } from "./hooks/use-analytics";
+import { initializeTracking, useTracking } from "./hooks/use-tracking";
 import { useAuth } from "@/hooks/use-auth";
 import { AppLayout } from "@/components/layout/app-layout";
 
@@ -347,8 +346,8 @@ function Router() {
   const [location] = useLocation();
   const { user, isLoading } = useAuth();
 
-  // Track page views when routes change
-  useAnalytics();
+  // Track page views and user identification
+  useTracking();
 
   // Check if this is a route that requires authentication
   const isAuthenticatedRoute = authenticatedRoutes.some(route =>
@@ -376,9 +375,9 @@ function Router() {
 }
 
 function App() {
-  // Initialize Google Analytics
+  // Initialize PostHog and capture UTM attribution
   useEffect(() => {
-    initGA();
+    initializeTracking();
   }, []);
 
   return (

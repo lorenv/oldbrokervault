@@ -6818,6 +6818,7 @@ router.get('/search', async (req, res) => {
           lastName: crmContacts.lastName,
           email: crmContacts.email,
           companyName: companies.name,
+          avatarUrl: crmContacts.avatarUrl,
         })
         .from(crmContacts)
         .leftJoin(companies, eq(companies.id, crmContacts.companyId))
@@ -6839,6 +6840,7 @@ router.get('/search', async (req, res) => {
           id: c.id,
           title: [c.firstName, c.lastName].filter(Boolean).join(' ') || c.email,
           subtitle: c.companyName || c.email,
+          imageUrl: c.avatarUrl || undefined,
         }))
       );
     }
@@ -6850,6 +6852,7 @@ router.get('/search', async (req, res) => {
           id: companies.id,
           name: companies.name,
           website: companies.website,
+          logoUrl: companies.logoUrl,
         })
         .from(companies)
         .where(
@@ -6869,6 +6872,7 @@ router.get('/search', async (req, res) => {
           id: c.id,
           title: c.name,
           subtitle: c.website || undefined,
+          imageUrl: c.logoUrl || undefined,
         }))
       );
     }

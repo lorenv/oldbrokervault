@@ -2,6 +2,9 @@ import { MailService } from '@sendgrid/mail';
 import { db } from './db.js';
 import { eq } from 'drizzle-orm';
 import { users, cimDocuments } from '@shared/schema.ts';
+import * as emailSync from './services/email-sync';
+import { gmailProvider } from './integrations/providers/gmail';
+import { microsoftProvider } from './integrations/providers/microsoft';
 
 // Critical: Check for SENDGRID_API_KEY with detailed production debugging
 let mailService: MailService | null = null;
@@ -152,6 +155,97 @@ async function sendEmail(params: EmailParams): Promise<boolean> {
   }
 }
 
+/**
+ * Extended email options that support OAuth sending
+ */
+interface OAuthEmailParams extends EmailParams {
+  userId?: number; // If provided, will try to send via user's OAuth email
+  senderName?: string; // Display name for OAuth sender
+}
+
+/**
+ * Send email via user's OAuth connection if available, otherwise fall back to SendGrid
+ *
+ * When a user has connected their Gmail or Microsoft account, emails will be sent
+ * from their address for a more personal touch. Falls back to SendGrid system emails
+ * if OAuth is not available or fails.
+ */
+async function sendEmailWithOAuth(params: OAuthEmailParams): Promise<boolean> {
+  const { userId, senderName, ...emailParams } = params;
+
+  // If no userId provided, use SendGrid directly
+  if (!userId) {
+    return sendEmail(emailParams);
+  }
+
+  try {
+    // Check if user has OAuth email connection
+    const emailConnection = await emailSync.getEmailConnection(userId);
+
+    if (!emailConnection) {
+      console.log(`📧 No OAuth email connection for user ${userId}, using SendGrid`);
+      return sendEmail(emailParams);
+    }
+
+    const { provider, connection } = emailConnection;
+    const userEmail = connection.providerAccountId;
+
+    console.log(`📧 Sending email via OAuth (${provider}) from ${userEmail}`);
+
+    // Build HTML body - OAuth providers handle plain text conversion
+    const htmlBody = emailParams.html || `<p>${emailParams.text}</p>`;
+
+    // Map connection for provider
+    const mappedConnection = {
+      ...connection,
+      accessToken: connection.accessTokenEncrypted,
+      refreshToken: connection.refreshTokenEncrypted,
+    };
+
+    let result;
+
+    if (provider === 'gmail') {
+      result = await gmailProvider.sendEmail(mappedConnection as any, {
+        to: emailParams.to,
+        subject: emailParams.subject,
+        body: htmlBody,
+        isHtml: true,
+      });
+    } else {
+      result = await microsoftProvider.sendEmail(mappedConnection as any, {
+        to: emailParams.to,
+        subject: emailParams.subject,
+        body: htmlBody,
+        isHtml: true,
+      });
+    }
+
+    if (result.success) {
+      console.log(`✅ OAuth email sent successfully via ${provider} to ${emailParams.to}`);
+      return true;
+    } else {
+      console.warn(`⚠️ OAuth email failed (${result.error}), falling back to SendGrid`);
+      return sendEmail(emailParams);
+    }
+  } catch (error) {
+    console.error('OAuth email error:', error);
+    console.log('📧 Falling back to SendGrid due to OAuth error');
+    return sendEmail(emailParams);
+  }
+}
+
+/**
+ * Get user's connected email address if available
+ */
+async function getUserOAuthEmail(userId: number): Promise<string | null> {
+  try {
+    const emailConnection = await emailSync.getEmailConnection(userId);
+    return emailConnection?.connection.providerAccountId || null;
+  } catch {
+    return null;
+  }
+}
+
 // Send NDA confirmation email with attachment (separate from CIM link)
 async function sendNdaConfirmationEmail(
   viewerEmail: string,
@@ -249,7 +343,8 @@ async function sendCimLinkEmail(
     profilePhotoUrl?: string;
     businessLogoUrl?: string;
   },
-  copyMeOnEmails?: boolean
+  copyMeOnEmails?: boolean,
+  userId?: number // If provided, sends from user's OAuth email
 ): Promise<boolean> {
   const profilePhotoHtml = ownerProfile.profilePhotoUrl 
     ? `<img src="${ownerProfile.profilePhotoUrl}" alt="Profile Photo" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin-bottom: 15px;">` 
@@ -336,7 +431,12 @@ async function sendCimLinkEmail(
     emailOptions.cc = ownerProfile.email;
   }
 
-  return await sendEmail(emailOptions);
+  // Use OAuth email if user has connected their email account
+  return await sendEmailWithOAuth({
+    ...emailOptions,
+    userId,
+    senderName: ownerProfile.name,
+  });
 }
 
 // Send owner notification email (unchanged)
@@ -437,7 +537,8 @@ async function sendNdaSignedEmail(
   shareLink: string,
   signedNdaBase64: string,
   viewerName?: string,
-  ownerProfile?: any
+  ownerProfile?: any,
+  userId?: number // If provided, CIM link email sent from user's OAuth email
 ): Promise<boolean> {
   console.log('=== EMAIL SENDING DEBUG ===');
   console.log('Viewer email:', viewerEmail);
@@ -456,7 +557,7 @@ async function sendNdaSignedEmail(
   );
   console.log('NDA confirmation email result:', ndaConfirmationSuccess ? '✅ SUCCESS' : '❌ FAILED');
 
-  // Send CIM link email with contact information
+  // Send CIM link email with contact information (from user's OAuth email if connected)
   console.log('📧 STEP 2: Sending CIM link email to viewer...');
   const cimLinkSuccess = await sendCimLinkEmail(
     viewerEmail,
@@ -466,7 +567,9 @@ async function sendNdaSignedEmail(
     ownerProfile || {
       name: ownerName,
       email: ownerEmail
-    }
+    },
+    false, // copyMeOnEmails
+    userId // Send from user's OAuth email if connected
   );
   console.log('CIM link email result:', cimLinkSuccess ? '✅ SUCCESS' : '❌ FAILED');
 
@@ -595,7 +698,8 @@ async function sendApprovalEmail(
       title,
       shareUrl,
       profile,
-      copyMeOnEmails // Pass the CC flag
+      copyMeOnEmails, // Pass the CC flag
+      userId // Send from user's OAuth email if connected
     );
   }
   
@@ -1163,6 +1267,8 @@ interface EsignEmailParams {
     primaryColor?: string;
     companyName?: string | null;
   };
+  /** If provided, email will be sent from user's OAuth-connected email (Gmail/Microsoft) */
+  userId?: number;
 }
 
 async function sendEsignInvitationEmail(params: EsignEmailParams): Promise<boolean> {
@@ -1227,7 +1333,8 @@ async function sendEsignInvitationEmail(params: EsignEmailParams): Promise<boole
     </html>
   `;
 
-  return sendEmail({
+  // Use OAuth email if user has connected their email account
+  return sendEmailWithOAuth({
     to: params.recipientEmail,
     from: 'signatures@cimshare.com',
     replyTo: params.senderEmail,
@@ -1243,7 +1350,9 @@ ${params.message ? `\nMessage: ${params.message}` : ''}
 Click here to review and sign: ${params.signingUrl}
 
 If you have questions, please reply to this email.
-    `.trim()
+    `.trim(),
+    userId: params.userId,
+    senderName: params.senderName,
   });
 }
 
@@ -1299,7 +1408,8 @@ async function sendEsignReminderEmail(params: EsignEmailParams): Promise<boolean
     </html>
   `;
 
-  return sendEmail({
+  // Use OAuth email if user has connected their email account
+  return sendEmailWithOAuth({
     to: params.recipientEmail,
     from: 'signatures@cimshare.com',
     replyTo: params.senderEmail,
@@ -1312,7 +1422,9 @@ Document: ${params.documentTitle}
 From: ${params.senderName}
 
 Click here to sign: ${params.signingUrl}
-    `.trim()
+    `.trim(),
+    userId: params.userId,
+    senderName: params.senderName,
   });
 }
 

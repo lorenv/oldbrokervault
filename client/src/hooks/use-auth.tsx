@@ -9,6 +9,8 @@ import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import confetti from "canvas-confetti";
+import { getAttributionForSignup } from "../lib/utm";
+import { trackSignupCompleted, identifyUser } from "../lib/posthog";
 
 // Function to detect incognito/private browsing mode
 async function detectIncognitoMode(): Promise<boolean> {
@@ -175,7 +177,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        const res = await apiRequest("POST", "/api/register", { body: credentials });
+        // Get attribution data for signup
+        const attribution = getAttributionForSignup();
+
+        // Append attribution to credentials
+        let enrichedCredentials: InsertUser | FormData;
+        if (credentials instanceof FormData) {
+          enrichedCredentials = credentials;
+          if (attribution.utm_source) enrichedCredentials.append('utmSource', attribution.utm_source);
+          if (attribution.utm_medium) enrichedCredentials.append('utmMedium', attribution.utm_medium);
+          if (attribution.utm_campaign) enrichedCredentials.append('utmCampaign', attribution.utm_campaign);
+          if (attribution.utm_term) enrichedCredentials.append('utmTerm', attribution.utm_term);
+          if (attribution.utm_content) enrichedCredentials.append('utmContent', attribution.utm_content);
+          if (attribution.referrer_url) enrichedCredentials.append('referrerUrl', attribution.referrer_url);
+          if (attribution.landing_page) enrichedCredentials.append('landingPage', attribution.landing_page);
+        } else {
+          enrichedCredentials = {
+            ...credentials,
+            utmSource: attribution.utm_source,
+            utmMedium: attribution.utm_medium,
+            utmCampaign: attribution.utm_campaign,
+            utmTerm: attribution.utm_term,
+            utmContent: attribution.utm_content,
+            referrerUrl: attribution.referrer_url,
+            landingPage: attribution.landing_page,
+          };
+        }
+
+        const res = await apiRequest("POST", "/api/register", { body: enrichedCredentials });
         return await res.json();
       } catch (error: any) {
         // Parse the error message from the API response
@@ -208,12 +237,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (user: SelectUser) => {
       queryClient.setQueryData(["/api/user"], user);
-      
+
+      // Track signup completion in PostHog
+      trackSignupCompleted(user.id, user.email, {
+        businessName: user.businessName,
+        subscriptionStatus: user.subscriptionStatus,
+      });
+
+      // Identify user in PostHog
+      identifyUser(user.id, {
+        email: user.email,
+        name: user.name || undefined,
+        businessName: user.businessName || undefined,
+        subscriptionStatus: user.subscriptionStatus,
+        isAdmin: user.isAdmin,
+      });
+
       // Play success sound
       const audio = new Audio('/success-sound.mp3');
       audio.volume = 0.4;
       audio.play().catch(() => {});
-      
+
       // Trigger celebratory confetti
       try {
         confetti({
@@ -233,7 +277,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         // Silently handle any confetti errors
       }
-      
+
       // Mark user as new for get started checklist
       localStorage.setItem('show-get-started-checklist', 'true');
 
