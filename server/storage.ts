@@ -225,7 +225,7 @@ export interface IStorage {
   cleanupStaleLocks(minutesOld: number): Promise<number>;
   // Activity Log
   logActivity(documentId: number, userId: number | null, userName: string | null, userEmail: string | null, action: string, metadata?: any): Promise<void>;
-  getActivityLog(documentId: number, limit: number, offset: number): Promise<any[]>;
+  getActivityLog(documentId: number, options?: { limit?: number; offset?: number }): Promise<any[]>;
   // Custom Tags
   createCustomTag(userId: number, name: string, color: string): Promise<any>;
   getCustomTags(userId: number): Promise<any[]>;
@@ -1782,7 +1782,16 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
     };
   }
 
-  async getNdaSignerViewHistory(documentId: number, signerEmail: string): Promise<any[]> {
+  async getNdaSignerViewHistory(
+    documentId: number,
+    signerEmail: string,
+    options: { limit?: number; offset?: number } = {}
+  ): Promise<any[]> {
+    const { limit = 50, offset = 0 } = options;
+    const maxLimit = 100; // Cap the maximum to prevent unbounded results
+    const safeLimit = Math.min(Math.max(1, limit), maxLimit);
+    const safeOffset = Math.max(0, offset);
+
     return await db
       .select({
         id: documentViews.id,
@@ -1798,7 +1807,9 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
           eq(documentViews.viewerIdentifier, signerEmail)
         )
       )
-      .orderBy(desc(documentViews.viewedAt));
+      .orderBy(desc(documentViews.viewedAt))
+      .limit(safeLimit)
+      .offset(safeOffset);
   }
 
   async createCustomSection(section: {
@@ -2512,13 +2523,21 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
       });
   }
 
-  async getActivityLog(documentId: number, limit: number, offset: number): Promise<any[]> {
+  async getActivityLog(
+    documentId: number,
+    options: { limit?: number; offset?: number } = {}
+  ): Promise<any[]> {
+    const { limit = 50, offset = 0 } = options;
+    const maxLimit = 100; // Cap the maximum to prevent unbounded results
+    const safeLimit = Math.min(Math.max(1, limit), maxLimit);
+    const safeOffset = Math.max(0, offset);
+
     return await db.select()
       .from(documentActivityLog)
       .where(eq(documentActivityLog.documentId, documentId))
       .orderBy(desc(documentActivityLog.createdAt))
-      .limit(limit)
-      .offset(offset);
+      .limit(safeLimit)
+      .offset(safeOffset);
   }
 
   async createCustomTag(userId: number, name: string, color: string): Promise<any> {

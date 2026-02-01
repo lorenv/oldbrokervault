@@ -4,6 +4,7 @@ import { ObjectStorageService } from '../object-storage';
 import { randomUUID } from 'crypto';
 import multer from 'multer';
 import path from 'path';
+import { sanitizeFilename } from '../utils/sanitize-filename';
 
 const router = Router();
 
@@ -23,20 +24,23 @@ router.post('/upload-attachment', upload.single('file'), async (req, res) => {
     }
 
     const objectStorageService = new ObjectStorageService();
-    
+
+    // Sanitize filename to prevent path traversal attacks
+    const safeOriginalName = sanitizeFilename(req.file.originalname);
+
     // Generate unique file path
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}-${req.file.originalname}`;
-    
+    const storageFileName = `${Date.now()}-${Math.random().toString(36).substring(2)}-${safeOriginalName}`;
+
     // Upload to object storage
     const uploadResult = await objectStorageService.uploadBuffer(
-      `message-attachments/${fileName}`, 
+      `message-attachments/${storageFileName}`,
       req.file.buffer,
       req.file.mimetype
     );
-    
-    res.json({ 
+
+    res.json({
       filePath: uploadResult.url,
-      fileName: req.file.originalname,
+      fileName: safeOriginalName,
       size: req.file.size,
       mimeType: req.file.mimetype
     });

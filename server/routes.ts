@@ -218,6 +218,95 @@ async function addRoundedCorners(imageBuffer: Buffer, radius: number = 30): Prom
   }
 }
 
+// SendGrid Inbound Parse Webhook URL secret verification
+// Since Inbound Parse doesn't support signature verification, we use a secret in the URL
+function verifySendGridInboundSecret(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const urlSecret = req.query.secret as string;
+  const configuredSecret = process.env.SENDGRID_INBOUND_WEBHOOK_SECRET;
+
+  // Skip verification in development if no secret configured
+  if (!configuredSecret) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('SENDGRID_INBOUND_WEBHOOK_SECRET not configured in production');
+      // In production without a secret, still allow (for backward compatibility) but log warning
+      console.warn('WARNING: SendGrid inbound webhook running without secret verification');
+    }
+    return next();
+  }
+
+  // Verify the secret matches
+  if (!urlSecret) {
+    console.error('SendGrid inbound webhook: Missing secret in URL');
+    return res.status(401).json({ error: 'Unauthorized: Missing webhook secret' });
+  }
+
+  // Use timing-safe comparison to prevent timing attacks
+  const secretBuffer = Buffer.from(configuredSecret);
+  const providedBuffer = Buffer.from(urlSecret);
+
+  if (secretBuffer.length !== providedBuffer.length || !crypto.timingSafeEqual(secretBuffer, providedBuffer)) {
+    console.error('SendGrid inbound webhook: Invalid secret provided');
+    return res.status(401).json({ error: 'Unauthorized: Invalid webhook secret' });
+  }
+
+  next();
+}
+
+// SendGrid Event Webhook signature verification (ECDSA)
+function verifySendGridEventSignature(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const signature = req.headers['x-twilio-email-event-webhook-signature'] as string;
+  const timestamp = req.headers['x-twilio-email-event-webhook-timestamp'] as string;
+
+  // Get the verification key from environment
+  const webhookKey = process.env.SENDGRID_WEBHOOK_VERIFICATION_KEY;
+
+  // Skip verification in development if no key configured
+  if (!webhookKey) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('SENDGRID_WEBHOOK_VERIFICATION_KEY not configured in production');
+      // In production without a key, still allow (for backward compatibility) but log warning
+      console.warn('WARNING: SendGrid event webhook running without signature verification');
+    }
+    return next();
+  }
+
+  // Check for required headers
+  if (!signature || !timestamp) {
+    console.error('SendGrid event webhook: Missing signature or timestamp headers');
+    return res.status(401).json({ error: 'Unauthorized: Missing webhook signature' });
+  }
+
+  // Verify timestamp is recent (within 5 minutes) to prevent replay attacks
+  const timestampDate = new Date(parseInt(timestamp) * 1000);
+  const now = new Date();
+  const fiveMinutes = 5 * 60 * 1000;
+  if (Math.abs(now.getTime() - timestampDate.getTime()) > fiveMinutes) {
+    console.error('SendGrid event webhook: Timestamp too old or in future');
+    return res.status(401).json({ error: 'Unauthorized: Webhook timestamp expired' });
+  }
+
+  // Verify ECDSA signature
+  try {
+    // SendGrid signs: timestamp + payload
+    const payload = timestamp + JSON.stringify(req.body);
+    const verifier = crypto.createVerify('sha256');
+    verifier.update(payload);
+
+    // The webhook key should be the public key in PEM format
+    const isValid = verifier.verify(webhookKey, signature, 'base64');
+
+    if (!isValid) {
+      console.error('SendGrid event webhook: Invalid signature');
+      return res.status(401).json({ error: 'Unauthorized: Invalid webhook signature' });
+    }
+
+    next();
+  } catch (error) {
+    console.error('SendGrid event webhook verification error:', error);
+    return res.status(401).json({ error: 'Unauthorized: Webhook verification failed' });
+  }
+}
+
 // Configure multer for memory storage with REDUCED limits for memory efficiency
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -259,7 +348,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // SendGrid Inbound Email Webhook - Raw body capture approach
   // Captures raw body BEFORE any middleware to avoid multipart parsing corruption
-  app.post('/api/webhook/sendgrid/inbound', async (req, res) => {
+  // SEC-017: Added secret verification via URL query parameter
+  app.post('/api/webhook/sendgrid/inbound', verifySendGridInboundSecret, async (req, res) => {
 
     console.log('\n' + '='.repeat(80));
     console.log('📨 SENDGRID INBOUND WEBHOOK HIT!');
@@ -412,7 +502,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // SendGrid Event Webhook (for delivery tracking)
-  app.post('/api/webhook/sendgrid/events', express.json(), async (req, res) => {
+  // SEC-017: Added ECDSA signature verification
+  app.post('/api/webhook/sendgrid/events', express.json(), verifySendGridEventSignature, async (req, res) => {
     console.log("📊 SendGrid event webhook received");
     
     try {
@@ -469,21 +560,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // GET endpoint to check webhook configuration
   app.get('/api/webhook/sendgrid/info', (req, res) => {
-    const baseUrl = process.env.REPLIT_DOMAINS 
+    const baseUrl = process.env.REPLIT_DOMAINS
       ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}`
       : 'https://cimshare.com';
-    
+
+    // Check if webhook security is configured
+    const inboundSecretConfigured = !!process.env.SENDGRID_INBOUND_WEBHOOK_SECRET;
+    const eventSignatureConfigured = !!process.env.SENDGRID_WEBHOOK_VERIFICATION_KEY;
+
     res.json({
       status: "ready",
-      inboundWebhookUrl: `${baseUrl}/api/webhook/sendgrid/inbound`,
+      security: {
+        inboundWebhookSecretConfigured: inboundSecretConfigured,
+        eventWebhookSignatureConfigured: eventSignatureConfigured,
+        note: "For production, set SENDGRID_INBOUND_WEBHOOK_SECRET and SENDGRID_WEBHOOK_VERIFICATION_KEY environment variables"
+      },
+      inboundWebhookUrl: `${baseUrl}/api/webhook/sendgrid/inbound${inboundSecretConfigured ? '?secret=YOUR_SECRET' : ''}`,
       eventWebhookUrl: `${baseUrl}/api/webhook/sendgrid/events`,
       testEndpoint: `${baseUrl}/api/webhook/sendgrid/test`,
       instructions: {
         sendgrid: {
           step1: "Configure SendGrid Inbound Parse at https://app.sendgrid.com/settings/parse",
           step2: "Set host: reply.cimshare.com",
-          step3: `Set URL: ${baseUrl}/api/webhook/sendgrid/inbound`,
-          step4: "Ensure MX records point to mx.sendgrid.net for reply.cimshare.com"
+          step3: `Set URL: ${baseUrl}/api/webhook/sendgrid/inbound?secret=YOUR_SECRET (add the secret from SENDGRID_INBOUND_WEBHOOK_SECRET env var)`,
+          step4: "Ensure MX records point to mx.sendgrid.net for reply.cimshare.com",
+          step5: "For event webhooks, enable signature verification in SendGrid and add the public key to SENDGRID_WEBHOOK_VERIFICATION_KEY"
         },
         testing: {
           step1: "Send email to thread-XX@reply.cimshare.com (replace XX with actual thread ID)",
@@ -4067,7 +4168,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Document is not NDA protected" });
       }
 
-      const viewHistory = await storage.getNdaSignerViewHistory(docId, signerEmail);
+      const maxLimit = 100;
+      const limit = Math.min(parseInt(req.query.limit as string) || 50, maxLimit);
+      const offset = parseInt(req.query.offset as string) || 0;
+
+      const viewHistory = await storage.getNdaSignerViewHistory(docId, signerEmail, { limit, offset });
       res.json(viewHistory);
     } catch (error) {
       console.error("NDA signer view history error:", error);
@@ -5073,10 +5178,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "No access to this document" });
       }
 
-      const limit = parseInt(req.query.limit as string) || 50;
+      const maxLimit = 100;
+      const limit = Math.min(parseInt(req.query.limit as string) || 50, maxLimit);
       const offset = parseInt(req.query.offset as string) || 0;
 
-      const activities = await storage.getActivityLog(docId, limit, offset);
+      const activities = await storage.getActivityLog(docId, { limit, offset });
 
       res.json(activities);
     } catch (error) {
@@ -8381,30 +8487,42 @@ ${finalQuestion}
     }
   });
 
+  // Password reset rate limiter - strict limits to prevent abuse and email enumeration
+  const forgotPasswordLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 3, // 3 requests per 15 minutes per IP
+    keyGenerator: (req) => req.ip || 'unknown',
+    message: { error: 'Too many password reset requests. Please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
   // Password reset routes
-  app.post("/api/forgot-password", async (req, res) => {
+  app.post("/api/forgot-password", forgotPasswordLimiter, async (req, res) => {
     try {
       const { email } = req.body;
       const resetToken = crypto.randomBytes(32).toString('hex');
       const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
-      
+
       const success = await storage.createPasswordResetToken(email, resetToken, expiry);
-      
+
       if (success) {
         // Send password reset email using SendGrid
         const { sendPasswordResetEmail } = await import("./email");
         const emailSent = await sendPasswordResetEmail(email, resetToken);
-        
+
         // Security: Don't log sensitive password reset tokens
         console.log(`Password reset email sent to ${email}: ${emailSent}`);
-        
-        res.json({ message: "If an account with that email exists, a reset link has been sent." });
-      } else {
-        // Don't reveal if email exists or not for security
-        res.json({ message: "If an account with that email exists, a reset link has been sent." });
       }
+
+      // Security: Always return success message, even if email doesn't exist
+      // Use a small delay to normalize response time and prevent timing attacks
+      await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 100));
+      return res.json({ message: "If an account with that email exists, a reset link has been sent." });
     } catch (error) {
       console.error("Password reset error:", error);
+      // Still normalize timing on error to prevent information leakage
+      await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 100));
       res.status(500).json({ error: "Failed to process password reset request" });
     }
   });
@@ -8518,26 +8636,6 @@ ${finalQuestion}
     } catch (error) {
       console.error("Error updating user account:", error);
       res.status(500).json({ error: "Failed to update account" });
-    }
-  });
-
-  app.post("/api/reset-password", async (req, res) => {
-    try {
-      const { token, password } = req.body;
-      const user = await storage.getUserByResetToken(token);
-      
-      if (!user) {
-        return res.status(400).json({ error: "Invalid or expired reset token" });
-      }
-      
-      const { hashPassword } = await import("./auth");
-      const hashedPassword = await hashPassword(password);
-      await storage.updateUserPassword(user.id, hashedPassword);
-      await storage.clearPasswordResetToken(user.id);
-      
-      res.json({ message: "Password has been reset successfully" });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to reset password" });
     }
   });
 

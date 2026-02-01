@@ -491,22 +491,48 @@ export function setupSecurity(app: Express) {
   app.use('/api/upload', auditLogger('FILE_UPLOAD'));
 }
 
+/**
+ * Helper to detect if we're running in a secure (HTTPS) environment.
+ * Goes beyond just NODE_ENV to handle misconfigured or edge-case deployments.
+ */
+export function isSecureEnvironment(): boolean {
+  // Explicit production mode
+  if (process.env.NODE_ENV === 'production') return true;
+
+  // Check for explicit HTTPS indicators
+  if (process.env.HTTPS === 'true') return true;
+  if (process.env.SSL === 'true') return true;
+
+  // Force secure cookies via environment variable (for load-balanced/proxied environments)
+  if (process.env.FORCE_SECURE_COOKIES === 'true') return true;
+
+  // Check if running behind a reverse proxy that terminates SSL
+  if (process.env.TRUST_PROXY === 'true') return true;
+
+  return false;
+}
+
 // Enhanced session security - Dynamic configuration based on route
-export const getSessionConfig = (isPublicRoute: boolean = false) => ({
-  name: 'sessionId', // Don't use default session name
-  secret: process.env.SESSION_SECRET!,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-    httpOnly: true, // Prevent XSS access to cookies
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    // Use 'lax' for better browser compatibility in production
-    sameSite: process.env.NODE_ENV === 'production' ? 'lax' as const : 
-              (isPublicRoute ? 'lax' as const : 'strict' as const),
-  },
-  rolling: false, // Disable session rolling to prevent excessive deserializations
-});
+export const getSessionConfig = (isPublicRoute: boolean = false) => {
+  const isSecure = isSecureEnvironment();
+
+  return {
+    name: 'sessionId', // Don't use default session name
+    secret: process.env.SESSION_SECRET!,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: isSecure, // HTTPS only in secure environments
+      httpOnly: true, // Prevent XSS access to cookies
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      path: '/', // Explicit path for cookie scope
+      // Use 'lax' for better browser compatibility in secure environments
+      sameSite: isSecure ? 'lax' as const :
+                (isPublicRoute ? 'lax' as const : 'strict' as const),
+    },
+    rolling: false, // Disable session rolling to prevent excessive deserializations
+  };
+};
 
 // Legacy export for backwards compatibility
 export const secureSessionConfig = getSessionConfig(false);

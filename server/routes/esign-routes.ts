@@ -47,6 +47,7 @@ import { summarizeDocumentForSigner } from '../openai';
 import { summarizeDocumentWithVision } from '../services/anthropic-vision';
 import * as pdfParseModule from 'pdf-parse';
 import { dispatchIntegrationEvent } from '../integrations';
+import { sanitizeFilename, sanitizeExtension } from '../utils/sanitize-filename';
 import { dispatchWebhookEvent } from '../webhook-dispatcher';
 const pdfParse = (pdfParseModule as any).default || pdfParseModule;
 
@@ -539,7 +540,7 @@ router.post('/branding/logo', imageUpload.single('logo'), async (req: Request, r
 
     // Upload to object storage
     const objectStorage = new ObjectStorageService();
-    const ext = path.extname(req.file.originalname) || '.png';
+    const ext = sanitizeExtension(req.file.originalname) || '.png';
     const storageKey = `private/branding/${req.user.id}/logo${ext}`;
     const result = await objectStorage.uploadBuffer(storageKey, req.file.buffer, req.file.mimetype);
 
@@ -757,7 +758,8 @@ router.post('/templates/upload', upload.single('document'), async (req: Request,
     console.log(`[ESIGN] Processing document: ${req.file.originalname}, mimetype: ${req.file.mimetype}, size: ${req.file.buffer.length} bytes`);
 
     let pdfBuffer = req.file.buffer;
-    let originalFilename = req.file.originalname;
+    // Sanitize filename to prevent path traversal attacks
+    let originalFilename = sanitizeFilename(req.file.originalname);
 
     const fileExt = req.file.originalname.toLowerCase().split('.').pop() || '';
     const mimetype = req.file.mimetype;

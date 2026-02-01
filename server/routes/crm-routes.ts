@@ -81,6 +81,7 @@ import {
 import { PERMISSION_KEYS, CATEGORY_INFO, ALL_ROLES, DEFAULT_PERMISSIONS } from '@shared/permissions';
 import { sendTeamInviteEmail, sendMentionNotificationEmail } from '../email';
 import { queueLogoFetch, shouldFetchLogo } from '../services/company-logo-service';
+import { sanitizeFilename, sanitizeExtension } from '../utils/sanitize-filename';
 
 const router = Router();
 
@@ -5950,10 +5951,13 @@ router.post('/attachments', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'objectType and objectId are required' });
     }
 
-    // Generate unique filename
-    const ext = path.extname(req.file.originalname);
-    const fileName = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}${ext}`;
-    const filePath = path.join(crmUploadsDir, fileName);
+    // Sanitize filename to prevent path traversal attacks
+    const safeOriginalName = sanitizeFilename(req.file.originalname);
+    const ext = sanitizeExtension(req.file.originalname);
+
+    // Generate unique filename for storage
+    const storageFileName = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}${ext}`;
+    const filePath = path.join(crmUploadsDir, storageFileName);
 
     // Save file
     await fs.writeFile(filePath, req.file.buffer);
@@ -5964,8 +5968,8 @@ router.post('/attachments', upload.single('file'), async (req, res) => {
         organizationId: orgData.organization.id,
         objectType,
         objectId: parseInt(objectId),
-        fileName: req.file.originalname,
-        filePath: fileName,
+        fileName: safeOriginalName,
+        filePath: storageFileName,
         fileSize: req.file.size,
         mimeType: req.file.mimetype,
         uploadedBy: req.user!.id,
@@ -5979,7 +5983,7 @@ router.post('/attachments', upload.single('file'), async (req, res) => {
       objectType,
       parseInt(objectId),
       req.user!.id,
-      { fileName: req.file.originalname, attachmentId: newAttachment.id }
+      { fileName: safeOriginalName, attachmentId: newAttachment.id }
     );
 
     res.json(newAttachment);
@@ -8365,9 +8369,12 @@ router.post('/import/upload', upload.single('file'), async (req, res) => {
       }
     });
 
+    // Sanitize filename for response
+    const safeFileName = sanitizeFilename(req.file.originalname);
+
     // Return parsed data with preview
     res.json({
-      fileName: req.file.originalname,
+      fileName: safeFileName,
       fileSize: req.file.size,
       headers,
       totalRows: rows.length,
