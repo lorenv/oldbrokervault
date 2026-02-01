@@ -4,14 +4,12 @@ import { cn } from "@/lib/utils";
 import {
   User,
   Users,
-  CreditCard,
   Bell,
   Palette,
   Sliders,
   FileCheck,
   Workflow,
   Building2,
-  Shield,
   Mail,
   ChevronLeft,
   Lock,
@@ -81,28 +79,12 @@ const settingsNavSections: SettingsNavSection[] = [
     title: "Organization",
     items: [
       {
-        label: "Members & Roles",
+        label: "Manage Users",
         icon: Users,
-        href: "/settings/team",
-        description: "Manage team members",
+        href: "/settings/manage-users",
+        description: "Users, permissions & visibility",
         viewPermission: "settings.team.view",
         editPermission: "settings.team.manage",
-      },
-      {
-        label: "Permissions",
-        icon: Shield,
-        href: "/settings/permissions",
-        description: "Role-based access control",
-        viewPermission: "settings.permissions.view",
-        editPermission: "settings.permissions.manage",
-      },
-      {
-        label: "Billing & Subscription",
-        icon: CreditCard,
-        href: "/settings/billing",
-        description: "Manage your plan",
-        viewPermission: "settings.billing.view",
-        editPermission: "settings.billing.manage",
       },
     ],
   },
@@ -139,7 +121,7 @@ const settingsNavSections: SettingsNavSection[] = [
     title: "Integrations",
     items: [
       {
-        label: "Email",
+        label: "Email Sync",
         icon: Mail,
         href: "/settings/email",
         description: "Connect your email account",
@@ -183,9 +165,14 @@ const settingsNavSections: SettingsNavSection[] = [
 const routePermissions: Record<string, { view?: PermissionKey; edit?: PermissionKey; isPersonal?: boolean }> = {
   '/settings/profile': { isPersonal: true },
   '/settings/notifications': { isPersonal: true },
+  '/settings/manage-users': { view: 'settings.team.view', edit: 'settings.team.manage' },
+  // Legacy routes (redirect to manage-users)
   '/settings/team': { view: 'settings.team.view', edit: 'settings.team.manage' },
+  '/settings/crm-visibility': { view: 'settings.team.view', edit: 'settings.team.manage' },
+  '/settings/teams': { view: 'settings.team.view', edit: 'settings.team.manage' },
   '/settings/permissions': { view: 'settings.permissions.view', edit: 'settings.permissions.manage' },
   '/settings/billing': { view: 'settings.billing.view', edit: 'settings.billing.manage' },
+  // Other settings
   '/settings/pipelines': { view: 'settings.pipelines.edit', edit: 'settings.pipelines.edit' },
   '/settings/custom-fields': { view: 'settings.custom_fields.edit', edit: 'settings.custom_fields.edit' },
   '/settings/data-management': { view: 'settings.data_import.manage', edit: 'settings.data_import.manage' },

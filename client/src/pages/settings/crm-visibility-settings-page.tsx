@@ -5,7 +5,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Eye, Users, Building, Lock, Briefcase, User, Globe } from "lucide-react";
+import { Eye, Users, Building, Lock, Briefcase, User, Globe, ChevronRight, UsersRound } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { SettingsLayout, useSettingsAccess } from "@/components/layout/settings-layout";
 import { Link } from "wouter";
 
@@ -150,7 +151,7 @@ export default function CrmVisibilitySettingsPage() {
 
   if (isLoading) {
     return (
-      <SettingsLayout title="CRM Visibility" description="Control who can see CRM records">
+      <SettingsLayout title="Visibility Groups" description="Control who can see CRM records">
         <div className="max-w-3xl space-y-6">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-48 bg-gray-100 rounded-lg animate-pulse" />
@@ -164,10 +165,45 @@ export default function CrmVisibilitySettingsPage() {
 
   return (
     <SettingsLayout
-      title="CRM Visibility"
+      title="Visibility Groups"
       description="Control who can see CRM records based on ownership and team membership"
     >
       <div className="max-w-3xl space-y-6">
+        {/* Manage Teams Card */}
+        <Link href="/settings/teams">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer group">
+            <CardContent className="py-4">
+              <div className="flex items-center gap-4">
+                <div className="p-2.5 rounded-lg bg-teal-100">
+                  <UsersRound className="h-5 w-5 text-teal-600" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
+                      Manage Teams
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      {hasTeams ? (
+                        <Badge variant="secondary" className="bg-gray-100">
+                          {teams.length} team{teams.length !== 1 ? "s" : ""}
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-200">
+                          No teams yet
+                        </Badge>
+                      )}
+                      <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    Create teams and assign members to control record visibility
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
         {/* Info Card */}
         <Card className="bg-blue-50 border-blue-200">
           <CardContent className="pt-6">
@@ -191,15 +227,6 @@ export default function CrmVisibilitySettingsPage() {
                     to teams
                   </li>
                 </ul>
-                {!hasTeams && (
-                  <p className="text-sm text-blue-800 mt-3 border-t border-blue-200 pt-3">
-                    <span className="font-medium">Tip:</span> To use Team visibility, first{" "}
-                    <Link href="/settings/teams" className="underline font-medium">
-                      create teams
-                    </Link>{" "}
-                    and add members.
-                  </p>
-                )}
               </div>
             </div>
           </CardContent>

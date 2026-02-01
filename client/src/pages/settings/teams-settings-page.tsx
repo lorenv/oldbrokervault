@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueries, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,10 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { Plus, Users, Trash2, ChevronDown, ChevronRight, UserPlus, Lock } from "lucide-react";
+import { Plus, Users, Trash2, ChevronDown, ChevronRight, UserPlus, Lock, ArrowLeft } from "lucide-react";
 import { SettingsLayout, useSettingsAccess } from "@/components/layout/settings-layout";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Link } from "wouter";
 
 interface Team {
   id: number;
@@ -54,7 +55,7 @@ export default function TeamsSettingsPage() {
   const { canEdit } = useSettingsAccess();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isAddMemberDialogOpen, setIsAddMemberDialogOpen] = useState(false);
-  const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
+  const [selectedTeamIdForDialog, setSelectedTeamIdForDialog] = useState<number | null>(null);
   const [newTeamName, setNewTeamName] = useState("");
   const [newTeamDescription, setNewTeamDescription] = useState("");
   const [selectedMemberId, setSelectedMemberId] = useState<string>("");
@@ -68,9 +69,26 @@ export default function TeamsSettingsPage() {
     queryKey: ["/api/crm/organization/members"],
   });
 
-  const { data: selectedTeamDetails } = useQuery<TeamWithMembers>({
-    queryKey: ["/api/crm/teams", selectedTeamId],
-    enabled: selectedTeamId !== null && expandedTeams.has(selectedTeamId),
+  // Fetch details for ALL expanded teams
+  const expandedTeamIds = Array.from(expandedTeams);
+  const teamDetailsQueries = useQueries({
+    queries: expandedTeamIds.map((teamId) => ({
+      queryKey: ["/api/crm/teams", teamId],
+      queryFn: async () => {
+        const response = await apiRequest("GET", `/api/crm/teams/${teamId}`);
+        if (!response.ok) throw new Error("Failed to fetch team details");
+        return response.json() as Promise<TeamWithMembers>;
+      },
+    })),
+  });
+
+  // Build a map of team ID -> team details for quick lookup
+  const teamDetailsMap = new Map<number, TeamWithMembers>();
+  expandedTeamIds.forEach((teamId, index) => {
+    const query = teamDetailsQueries[index];
+    if (query.data) {
+      teamDetailsMap.set(teamId, query.data);
+    }
   });
 
   const createTeamMutation = useMutation({
@@ -120,9 +138,9 @@ export default function TeamsSettingsPage() {
       }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/teams"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/teams", selectedTeamId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/teams", variables.teamId] });
       setIsAddMemberDialogOpen(false);
       setSelectedMemberId("");
       toast({ title: "Member added", description: "Team member has been added." });
@@ -138,9 +156,9 @@ export default function TeamsSettingsPage() {
       if (!response.ok) throw new Error("Failed to remove member");
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/teams"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/teams", selectedTeamId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/teams", variables.teamId] });
       toast({ title: "Member removed", description: "Team member has been removed." });
     },
     onError: () => {
@@ -154,14 +172,14 @@ export default function TeamsSettingsPage() {
       newExpanded.delete(teamId);
     } else {
       newExpanded.add(teamId);
-      setSelectedTeamId(teamId);
     }
     setExpandedTeams(newExpanded);
   };
 
   const getTeamMembers = (teamId: number): TeamMember[] => {
-    if (selectedTeamId === teamId && selectedTeamDetails) {
-      return selectedTeamDetails.members;
+    const teamDetails = teamDetailsMap.get(teamId);
+    if (teamDetails) {
+      return teamDetails.members || [];
     }
     return [];
   };
@@ -174,10 +192,18 @@ export default function TeamsSettingsPage() {
 
   return (
     <SettingsLayout
-      title="Visibility Teams"
-      description="Create teams to group users for CRM visibility settings. Users can belong to multiple teams."
+      title="Teams"
+      description="Create teams to group users for visibility settings"
     >
       <div className="max-w-4xl space-y-6">
+        {/* Back to Visibility Groups */}
+        <Link href="/settings/crm-visibility">
+          <Button variant="ghost" size="sm" className="gap-2 text-gray-600 hover:text-gray-900 -ml-2">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Visibility Groups
+          </Button>
+        </Link>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
@@ -260,7 +286,7 @@ export default function TeamsSettingsPage() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => {
-                                  setSelectedTeamId(team.id);
+                                  setSelectedTeamIdForDialog(team.id);
                                   setIsAddMemberDialogOpen(true);
                                 }}
                               >
@@ -401,8 +427,8 @@ export default function TeamsSettingsPage() {
                     <SelectValue placeholder="Select a member" />
                   </SelectTrigger>
                   <SelectContent>
-                    {selectedTeamId &&
-                      getAvailableMembers(selectedTeamId).map((member) => (
+                    {selectedTeamIdForDialog &&
+                      getAvailableMembers(selectedTeamIdForDialog).map((member) => (
                         <SelectItem key={member.id} value={String(member.id)}>
                           {member.firstName
                             ? `${member.firstName} ${member.lastName || ""}`
@@ -419,9 +445,9 @@ export default function TeamsSettingsPage() {
               </Button>
               <Button
                 onClick={() =>
-                  selectedTeamId &&
+                  selectedTeamIdForDialog &&
                   addMemberMutation.mutate({
-                    teamId: selectedTeamId,
+                    teamId: selectedTeamIdForDialog,
                     organizationMemberId: parseInt(selectedMemberId),
                   })
                 }

@@ -1927,9 +1927,39 @@ router.get('/teams', async (req, res) => {
       .groupBy(teams.id)
       .orderBy(asc(teams.name));
 
+    // Get member previews for each team (first 5 members with profile photos)
+    const teamIds = teamList.map(t => t.team.id);
+    const memberPreviews = teamIds.length > 0 ? await db
+      .select({
+        teamId: teamMembers.teamId,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        profilePhoto: users.profilePhoto,
+      })
+      .from(teamMembers)
+      .innerJoin(organizationMembers, eq(organizationMembers.id, teamMembers.organizationMemberId))
+      .leftJoin(users, eq(users.id, organizationMembers.userId))
+      .where(inArray(teamMembers.teamId, teamIds))
+      .orderBy(asc(teamMembers.createdAt)) : [];
+
+    // Group previews by team ID and limit to 5 per team
+    const previewsByTeam = new Map<number, Array<{ firstName: string | null; lastName: string | null; profilePhoto: string | null }>>();
+    for (const preview of memberPreviews) {
+      const existing = previewsByTeam.get(preview.teamId) || [];
+      if (existing.length < 5) {
+        existing.push({
+          firstName: preview.firstName,
+          lastName: preview.lastName,
+          profilePhoto: preview.profilePhoto,
+        });
+        previewsByTeam.set(preview.teamId, existing);
+      }
+    }
+
     res.json(teamList.map(t => ({
       ...t.team,
       memberCount: t.memberCount || 0,
+      memberPreviews: previewsByTeam.get(t.team.id) || [],
     })));
   } catch (error) {
     console.error('[CRM] Error fetching teams:', error);

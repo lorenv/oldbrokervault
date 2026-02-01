@@ -59,6 +59,7 @@ import BillingPage from "@/pages/settings/billing-page";
 import EmailSettingsPage from "@/pages/settings/email-settings-page";
 import NotificationsPage from "@/pages/settings/notifications-page";
 import PermissionsPage from "@/pages/settings/permissions-page";
+import ManageUsersPage from "@/pages/settings/manage-users-page";
 import CustomFieldsPage from "@/pages/settings/custom-fields-page";
 import DataManagementPage from "@/pages/settings/data-management-page";
 import BrandingPage from "@/pages/settings/branding-page";
@@ -189,12 +190,15 @@ function AuthenticatedRouter() {
 
         {/* Settings Routes (sidebar settings section) */}
         <ProtectedRoute path="/settings/profile" component={ProfilePage} />
-        <ProtectedRoute path="/settings/billing" component={BillingPage} />
         <ProtectedRoute path="/settings/notifications" component={NotificationsPage} />
-        <ProtectedRoute path="/settings/team" component={TeamSettingsPage} />
-        <ProtectedRoute path="/settings/teams" component={TeamsSettingsPage} />
-        <ProtectedRoute path="/settings/crm-visibility" component={CrmVisibilitySettingsPage} />
-        <ProtectedRoute path="/settings/permissions" component={PermissionsPage} />
+        <ProtectedRoute path="/settings/manage-users" component={ManageUsersPage} />
+
+        {/* Legacy routes - redirect to consolidated Manage Users page */}
+        <ProtectedRoute path="/settings/billing" component={ManageUsersPage} />
+        <ProtectedRoute path="/settings/team" component={ManageUsersPage} />
+        <ProtectedRoute path="/settings/teams" component={ManageUsersPage} />
+        <ProtectedRoute path="/settings/crm-visibility" component={ManageUsersPage} />
+        <ProtectedRoute path="/settings/permissions" component={ManageUsersPage} />
         <ProtectedRoute path="/settings/pipelines" component={PipelineSettingsPage} />
         <ProtectedRoute path="/settings/custom-fields" component={CustomFieldsPage} />
         <ProtectedRoute path="/settings/data-management" component={DataManagementPage} />

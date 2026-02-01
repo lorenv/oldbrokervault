@@ -1333,7 +1333,7 @@ export default function IntegrationsPage() {
                 <div className="text-center py-8 text-gray-500">Loading runs...</div>
               ) : runsData?.runs?.length > 0 ? (
                 <div className="space-y-3">
-                  {runsData.runs.map((run: AutomationRun) => (
+                  {(runsData?.runs || []).map((run: AutomationRun) => (
                     <div
                       key={run.id}
                       className="p-3 bg-gray-50 rounded-lg space-y-2"
@@ -2060,7 +2060,7 @@ export default function IntegrationsPage() {
               </Card>
             ) : (
               <div className="space-y-3">
-                {allRunsData.runs.map((run: any) => (
+                {(allRunsData?.runs || []).map((run: any) => (
                   <Card key={run.id} className="hover:shadow-sm transition-shadow">
                     <CardContent className="py-4">
                       <div className="flex items-start justify-between">
@@ -2344,7 +2344,7 @@ export default function IntegrationsPage() {
                           {category.label}
                         </div>
                         <div className="space-y-2 pl-2">
-                          {category.events.map((event: string) => (
+                          {(category.events || []).map((event: string) => (
                             <label
                               key={event}
                               className="flex items-center gap-2 cursor-pointer"
@@ -2443,7 +2443,7 @@ export default function IntegrationsPage() {
                 <div>
                   <Label className="text-sm text-gray-500">Subscribed Events</Label>
                   <div className="flex flex-wrap gap-2 mt-2">
-                    {selectedOutgoingWebhook?.events.map(event => (
+                    {(selectedOutgoingWebhook?.events || []).map(event => (
                       <Badge key={event} variant="outline">
                         {eventLabels[event] || event}
                       </Badge>
@@ -3012,7 +3012,7 @@ export default function IntegrationsPage() {
                   {eventCategories && Object.entries(eventCategories).map(([key, category]) => (
                     <div key={key}>
                       <div className="px-2 py-1 text-xs font-semibold text-gray-500">{category.label}</div>
-                      {category.events.map((event) => (
+                      {(category.events || []).map((event) => (
                         <SelectItem key={event} value={event}>
                           {eventLabels[event] || event}
                         </SelectItem>
@@ -3063,7 +3063,7 @@ export default function IntegrationsPage() {
                     const hasConnection = connections.some(c => c.provider === provider.id);
                     const isWebhookBased = provider.authType === 'webhook';
 
-                    return provider.destinationTypes.map((destType) => (
+                    return (provider.destinationTypes || []).map((destType) => (
                       <SelectItem
                         key={destType}
                         value={destType}

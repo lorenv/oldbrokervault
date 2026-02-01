@@ -4,19 +4,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   User,
   Users,
-  CreditCard,
   Bell,
   Palette,
   Sliders,
   FileCheck,
   Workflow,
   Building2,
-  Shield,
-  Key,
-  Mail,
   ChevronRight,
-  Eye,
-  UsersRound,
 } from "lucide-react";
 
 interface SettingsCard {
@@ -29,6 +23,7 @@ interface SettingsCard {
 }
 
 const settingsCards: SettingsCard[] = [
+  // Personal
   {
     title: "Profile",
     description: "Manage your personal information and preferences",
@@ -38,37 +33,23 @@ const settingsCards: SettingsCard[] = [
     iconColor: "text-blue-600",
   },
   {
-    title: "Billing & Subscription",
-    description: "View your plan, billing history, and payment methods",
-    icon: CreditCard,
-    href: "/settings/billing",
-    iconBg: "bg-green-100",
-    iconColor: "text-green-600",
+    title: "Notifications",
+    description: "Configure email and notification preferences",
+    icon: Bell,
+    href: "/settings/notifications",
+    iconBg: "bg-red-100",
+    iconColor: "text-red-600",
   },
+  // Organization
   {
-    title: "Team Members",
-    description: "Invite team members and manage roles",
+    title: "Manage Users",
+    description: "Team members, permissions, visibility, and billing",
     icon: Users,
-    href: "/settings/team",
+    href: "/settings/manage-users",
     iconBg: "bg-purple-100",
     iconColor: "text-purple-600",
   },
-  {
-    title: "Visibility Teams",
-    description: "Create teams for CRM visibility groupings",
-    icon: UsersRound,
-    href: "/settings/teams",
-    iconBg: "bg-teal-100",
-    iconColor: "text-teal-600",
-  },
-  {
-    title: "CRM Visibility",
-    description: "Control who can see deals, contacts, and companies",
-    icon: Eye,
-    href: "/settings/crm-visibility",
-    iconBg: "bg-violet-100",
-    iconColor: "text-violet-600",
-  },
+  // CRM
   {
     title: "Pipelines & Stages",
     description: "Configure deal and buyer pipeline stages",
@@ -85,6 +66,16 @@ const settingsCards: SettingsCard[] = [
     iconBg: "bg-cyan-100",
     iconColor: "text-cyan-600",
   },
+  // Integrations
+  {
+    title: "Apps & Automations",
+    description: "Connect third-party apps and services",
+    icon: Workflow,
+    href: "/settings/integrations",
+    iconBg: "bg-indigo-100",
+    iconColor: "text-indigo-600",
+  },
+  // Branding
   {
     title: "Branding",
     description: "Customize your brand colors, logo, and PDF styling",
@@ -94,28 +85,12 @@ const settingsCards: SettingsCard[] = [
     iconColor: "text-pink-600",
   },
   {
-    title: "Apps & Automations",
-    description: "Connect third-party apps and services",
-    icon: Workflow,
-    href: "/settings/integrations",
-    iconBg: "bg-indigo-100",
-    iconColor: "text-indigo-600",
-  },
-  {
     title: "NDA Templates",
     description: "Create and manage NDA templates",
     icon: FileCheck,
     href: "/settings/nda-templates",
     iconBg: "bg-amber-100",
     iconColor: "text-amber-600",
-  },
-  {
-    title: "Notifications",
-    description: "Configure email and notification preferences",
-    icon: Bell,
-    href: "/settings/notifications",
-    iconBg: "bg-red-100",
-    iconColor: "text-red-600",
   },
 ];
 
