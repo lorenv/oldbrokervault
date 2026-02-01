@@ -12,23 +12,16 @@ const AUTH_TAG_LENGTH = 16;
 
 /**
  * Get the encryption key from environment
- * Falls back to a generated key in development (with warning)
+ * Requires INTEGRATION_ENCRYPTION_KEY to be set in all environments
  */
 function getEncryptionKey(): Buffer {
   const keyHex = process.env.INTEGRATION_ENCRYPTION_KEY;
 
   if (!keyHex) {
-    // In development, generate a consistent key based on a seed
-    // This is NOT secure for production!
-    if (process.env.NODE_ENV === 'production') {
-      console.error('CRITICAL: INTEGRATION_ENCRYPTION_KEY not set in production!');
-      throw new Error('INTEGRATION_ENCRYPTION_KEY environment variable is required');
-    }
-
-    console.warn('WARNING: Using development encryption key. Set INTEGRATION_ENCRYPTION_KEY for production.');
-
-    // Generate a deterministic key for development (same across restarts)
-    return crypto.createHash('sha256').update('dev-integration-key-do-not-use-in-prod').digest();
+    throw new Error(
+      'INTEGRATION_ENCRYPTION_KEY environment variable is required. ' +
+      'Generate a key with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"'
+    );
   }
 
   // Key should be 64 hex characters (32 bytes)

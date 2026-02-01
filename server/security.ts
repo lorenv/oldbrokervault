@@ -5,6 +5,11 @@ import { body, validationResult } from "express-validator";
 import hpp from "hpp";
 import { Express, Request, Response, NextFunction } from "express";
 
+// Validate SESSION_SECRET at module load time
+if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 32) {
+  throw new Error('SESSION_SECRET must be set and at least 32 characters');
+}
+
 // Rate limiting configurations
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes

@@ -236,21 +236,31 @@ async function getUserOrganization(userId: number) {
       // Group by company to create companies first
       const companiesMap = new Map<string, number>();
 
-      for (const contact of existingInvestorContacts) {
-        if (contact.company && !companiesMap.has(contact.company)) {
-          const [newCompany] = await db
-            .insert(companies)
-            .values({
-              organizationId: newOrg.id,
-              name: contact.company,
-            })
-            .returning();
-          companiesMap.set(contact.company, newCompany.id);
+      // Collect unique companies for batch insert
+      const uniqueCompanyNames = [...new Set(
+        existingInvestorContacts
+          .filter(contact => contact.company)
+          .map(contact => contact.company!)
+      )];
+
+      if (uniqueCompanyNames.length > 0) {
+        const companyValues = uniqueCompanyNames.map(companyName => ({
+          organizationId: newOrg.id,
+          name: companyName,
+        }));
+        const insertedCompanies = await db
+          .insert(companies)
+          .values(companyValues)
+          .returning();
+
+        // Build the map from company name to ID
+        for (const company of insertedCompanies) {
+          companiesMap.set(company.name, company.id);
         }
       }
 
-      // Now migrate contacts
-      for (const contact of existingInvestorContacts) {
+      // Collect all contact values for batch insert
+      const contactValues = existingInvestorContacts.map(contact => {
         // Parse name into first/last
         const nameParts = contact.name.split(' ');
         const firstName = nameParts[0] || '';
@@ -270,7 +280,7 @@ async function getUserOrganization(userId: number) {
         customProperties.migratedFromInvestorDatabase = true;
         customProperties.originalStatus = contact.status;
 
-        await db.insert(crmContacts).values({
+        return {
           organizationId: newOrg.id,
           email: contact.email,
           firstName,
@@ -278,15 +288,20 @@ async function getUserOrganization(userId: number) {
           companyId: contact.company ? companiesMap.get(contact.company) : null,
           notes: contact.notes,
           tags: contact.tags,
-          contactType: 'buyer', // Set contact type to buyer for migrated investor contacts
-          leadStatus: contact.status === 'new' ? 'new' :
-                      contact.status === 'contacted' ? 'contacted' :
-                      contact.status === 'interested' ? 'qualified' : 'new',
+          contactType: 'buyer' as const, // Set contact type to buyer for migrated investor contacts
+          leadStatus: contact.status === 'new' ? 'new' as const :
+                      contact.status === 'contacted' ? 'contacted' as const :
+                      contact.status === 'interested' ? 'qualified' as const : 'new' as const,
           source: 'investor_database_migration',
           lastActivityDate: contact.lastSeenAt || contact.lastContactDate,
           customProperties,
           createdAt: contact.createdAt,
-        });
+        };
+      });
+
+      // Batch insert all contacts
+      if (contactValues.length > 0) {
+        await db.insert(crmContacts).values(contactValues);
       }
       console.log(`[CRM] Migrated ${existingInvestorContacts.length} investor contacts for user ${userId}`);
     }

@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import crypto from "crypto";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { analyzeCimTranscript, generateFlexibleCimDocument, generateCimWithWebsiteAnalysis, startWebsiteAnalysis, type FlexibleCimDocument } from "./perplexity";
@@ -37,6 +38,8 @@ import { invalidateUserCache } from "./auth";
 import { logger } from "./logger";
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import os from 'os';
+import rateLimit from 'express-rate-limit';
 
 const execAsync = promisify(exec);
 import { registerNdaTemplateRoutes } from "./routes/nda-template-routes";
@@ -1606,6 +1609,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       fsDebug.appendFileSync('/tmp/pdf-debug.log', `brandColors: ${JSON.stringify(brandColors)}\n`);
       fsDebug.appendFileSync('/tmp/pdf-debug.log', `businessLogo: ${processedUserProfile.businessLogo}\n`);
 
+      // PERF-016: TODO - Move PDF generation to worker thread for better scalability
+      // PDF generation is CPU-intensive and blocks the main event loop, causing latency
+      // for other concurrent requests. To fix this:
+      //
+      // 1. Create server/workers/pdf-worker.ts:
+      //    import { parentPort, workerData } from 'worker_threads';
+      //    import { generatePDF } from '../document-export';
+      //    async function run() {
+      //      try {
+      //        const pdfBuffer = await generatePDF(...workerData.params);
+      //        parentPort?.postMessage({ success: true, buffer: pdfBuffer });
+      //      } catch (error) {
+      //        parentPort?.postMessage({ success: false, error: error.message });
+      //      }
+      //    }
+      //    run();
+      //
+      // 2. Create helper function in routes.ts:
+      //    import { Worker } from 'worker_threads';
+      //    function generatePDFInWorker(params: any[]): Promise<Buffer> {
+      //      return new Promise((resolve, reject) => {
+      //        const worker = new Worker('./workers/pdf-worker.js', { workerData: { params } });
+      //        worker.on('message', (result) => {
+      //          if (result.success) resolve(Buffer.from(result.buffer));
+      //          else reject(new Error(result.error));
+      //        });
+      //        worker.on('error', reject);
+      //      });
+      //    }
+      //
+      // 3. Replace this generatePDF call with generatePDFInWorker(params)
+      //
+      // Alternative: Use setImmediate() to yield to event loop during PDF generation,
+      // or implement a job queue (e.g., BullMQ) for background PDF processing.
       const pdfBuffer = await generatePDF(
         cimDoc.analysis, // Use cached analysis - no regeneration
         processedLogoUrl, // Use processed logo URL with proper base URL
@@ -1883,8 +1920,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
 
+  // PERF-019: Rate limiter for expensive AI generation endpoints
+  // Prevents abuse of AI resources with per-user rate limiting
+  const aiGenerationLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour window
+    max: 10, // 10 requests per hour per user
+    keyGenerator: (req) => {
+      // Use user ID for authenticated requests, fall back to IP
+      return req.user?.id?.toString() || req.ip || 'unknown';
+    },
+    message: { error: 'Too many AI generation requests. Please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+    // Skip rate limiting for users with unlimited plans (enterprise)
+    skip: async (req) => {
+      if (!req.user) return false;
+      try {
+        const user = await storage.getUser(req.user.id);
+        return user?.subscriptionTier === 'enterprise';
+      } catch {
+        return false;
+      }
+    }
+  });
+
   // CIM Document Routes with file upload support
-  app.post("/api/cim/generate", async (req, res) => {
+  app.post("/api/cim/generate", aiGenerationLimiter, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
@@ -2549,9 +2610,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create specialized upload configuration for large financial files
+  // PERF-006: Create specialized upload configuration for large financial files using disk storage
+  // This prevents large files (up to 200MB) from being stored entirely in memory, reducing memory pressure
   const largeFileUpload = multer({
-    storage: multer.memoryStorage(),
+    storage: multer.diskStorage({
+      destination: (req, file, cb) => {
+        cb(null, os.tmpdir());
+      },
+      filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+      }
+    }),
     limits: {
       fileSize: 200 * 1024 * 1024, // 200MB limit for financial files
       fieldSize: 200 * 1024 * 1024, // 200MB limit for field data
@@ -2560,25 +2630,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Helper function to read file from disk and return buffer (for disk-based uploads)
+  async function readFileFromDisk(file: Express.Multer.File): Promise<Buffer> {
+    if (file.buffer) {
+      // File is already in memory (for backwards compatibility)
+      return file.buffer;
+    }
+    // Read from disk path
+    return await fs.readFile(file.path);
+  }
+
+  // Helper function to clean up temp files after processing
+  async function cleanupTempFile(file: Express.Multer.File): Promise<void> {
+    if (file.path) {
+      try {
+        await fs.unlink(file.path);
+      } catch (err) {
+        console.warn(`Failed to cleanup temp file ${file.path}:`, err);
+      }
+    }
+  }
+
   // File upload endpoint for large text and financial files
-  app.post("/api/cim/upload", (req, res, next) => {
+  // PERF-019: Apply AI generation rate limiter to this endpoint as well
+  app.post("/api/cim/upload", aiGenerationLimiter, (req, res, next) => {
     largeFileUpload.any()(req, res, (err) => {
       if (err) {
         console.error("Multer upload error:", err);
         if (err.code === 'LIMIT_FILE_SIZE') {
-          return res.status(413).json({ 
+          return res.status(413).json({
             error: `File too large. Maximum size allowed is 200MB. Please reduce your file size and try again.`,
             details: `File size limit exceeded: ${(err.limit / (1024 * 1024)).toFixed(0)}MB`
           });
         } else if (err.code === 'LIMIT_FIELD_SIZE') {
-          return res.status(413).json({ 
+          return res.status(413).json({
             error: "Form data too large. Please reduce the size of your submission.",
             details: "Field size limit exceeded"
           });
         } else {
-          return res.status(400).json({ 
-            error: "File upload failed", 
-            details: err.message 
+          return res.status(400).json({
+            error: "File upload failed",
+            details: err.message
           });
         }
       }
@@ -2617,7 +2709,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const files = uploadedFiles;
       const transcriptFile = files.find(file => file.fieldname === 'transcript');
-      const transcript = transcriptFile ? transcriptFile.buffer.toString('utf-8') : req.body.transcript;
+      // PERF-006: Read transcript from disk instead of memory buffer
+      const transcript = transcriptFile
+        ? (await readFileFromDisk(transcriptFile)).toString('utf-8')
+        : req.body.transcript;
       
       // Parse JSON fields from FormData strings before schema validation
       let parsedBody = { ...req.body };
@@ -2853,8 +2948,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const coverImageFile = files.find(file => file.fieldname === 'coverImage' || file.fieldname === 'coverImageFile');
         if (coverImageFile) {
           try {
+            // PERF-006: Read from disk instead of memory buffer
+            const coverImageBuffer = await readFileFromDisk(coverImageFile);
             const coverImageMetadata = await imageManager.saveImageFromBuffer(
-              coverImageFile.buffer,
+              coverImageBuffer,
               coverImageFile.originalname,
               coverImageFile.mimetype,
               req.user!.id,
@@ -2862,6 +2959,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             );
             coverImageUrl = coverImageMetadata.publicPath;
             console.log('Cover image saved to persistent storage:', coverImageMetadata.publicPath);
+            // Clean up temp file after successful upload
+            await cleanupTempFile(coverImageFile);
           } catch (saveError) {
             console.error('Failed to save cover image to persistent storage:', saveError);
             // Keep original URL as fallback
@@ -2901,21 +3000,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Handle financial files upload using object storage
       let uploadedFinancialFiles = [];
       const financialFileFields = files.filter(file => file.fieldname.startsWith('financialFile_'));
-      
+
       console.log("Found financial files to upload:", financialFileFields.length);
-      
+
       if (financialFileFields.length > 0) {
         for (const file of financialFileFields) {
           try {
             console.log(`Uploading financial file: ${file.originalname} (${file.size} bytes)`);
+            // PERF-006: Read from disk instead of memory buffer
+            const fileBuffer = await readFileFromDisk(file);
             const fileMetadata = await fileStorageManager.saveFileFromBuffer(
-              file.buffer,
+              fileBuffer,
               file.originalname,
               file.mimetype,
               req.user!.id,
               'financial-files'
             );
-            
+
             uploadedFinancialFiles.push({
               fileName: fileMetadata.fileName,
               originalName: fileMetadata.originalName,
@@ -2924,8 +3025,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
               mimeType: fileMetadata.mimeType,
               publicPath: fileMetadata.publicPath
             });
-            
+
             console.log(`Financial file uploaded to object storage: ${fileMetadata.publicPath}`);
+            // Clean up temp file after successful upload
+            await cleanupTempFile(file);
           } catch (error) {
             console.error(`Failed to upload financial file ${file.originalname}:`, error);
             // Continue with other files even if one fails
@@ -3131,8 +3234,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const file of files) {
         try {
           console.log(`Uploading CIM file: ${file.originalname} (${file.size} bytes)`);
+          // PERF-006: Read from disk instead of memory buffer
+          const fileBuffer = await readFileFromDisk(file);
           const fileMetadata = await fileStorageManager.saveFileFromBuffer(
-            file.buffer,
+            fileBuffer,
             file.originalname,
             file.mimetype,
             req.user!.id,
@@ -3150,6 +3255,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           savedFiles.push(uploadedFile);
           console.log(`CIM file uploaded to object storage: ${fileMetadata.publicPath}`);
+          // Clean up temp file after successful upload
+          await cleanupTempFile(file);
         } catch (error) {
           console.error(`Failed to upload CIM file ${file.originalname}:`, error);
           // Continue with other files even if one fails
@@ -5977,12 +6084,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated() || !isAuthorizedAdmin(req.user)) {
       return res.sendStatus(401);
     }
-    
+
     try {
-      const users = await storage.getAllUsers();
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = Math.min(parseInt(req.query.limit as string) || 100, 500);
+      const offset = (page - 1) * limit;
+
+      const [users, totalCount] = await Promise.all([
+        storage.getAllUsers({ limit, offset }),
+        storage.getUsersCount()
+      ]);
       // SECURITY: Sanitize user data for admin view - exclude passwords, tokens, and sensitive fields
       const sanitizedUsers = users.map(user => sanitizeUser(user));
-      res.json(sanitizedUsers);
+      res.json({
+        users: sanitizedUsers,
+        pagination: {
+          page,
+          limit,
+          total: totalCount,
+          totalPages: Math.ceil(totalCount / limit),
+          hasMore: offset + users.length < totalCount
+        }
+      });
     } catch (error) {
       console.error("Error fetching users:", error);
       res.status(500).json({ error: "Failed to fetch users" });
@@ -8188,7 +8311,7 @@ ${finalQuestion}
   app.post("/api/forgot-password", async (req, res) => {
     try {
       const { email } = req.body;
-      const resetToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      const resetToken = crypto.randomBytes(32).toString('hex');
       const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
       
       const success = await storage.createPasswordResetToken(email, resetToken, expiry);
@@ -11427,10 +11550,10 @@ ${finalQuestion}
 
     try {
       console.log("Starting cover image migration...");
-      
-      // Get all CIM documents with external cover images
-      const allDocs = await storage.getAllCimDocuments();
-      const docsToMigrate = allDocs.filter(doc => 
+
+      // Get all CIM documents with external cover images (admin operation - explicit high limit)
+      const allDocs = await storage.getAllCimDocuments({ limit: 10000, offset: 0 });
+      const docsToMigrate = allDocs.filter(doc =>
         doc.coverImageUrl && coverImageService.isExternalImageUrl(doc.coverImageUrl)
       );
 

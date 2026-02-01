@@ -31,9 +31,10 @@ export class ImagePersistenceManager {
    */
   async createImageBackups(): Promise<void> {
     console.log('🔄 CREATING IMAGE BACKUPS FOR DEPLOYMENT PERSISTENCE...');
-    
+
     try {
-      const documents = await storage.getAllCimDocuments();
+      // Admin/system operation - explicit high limit to get all documents
+      const documents = await storage.getAllCimDocuments({ limit: 10000, offset: 0 });
       let backupCount = 0;
       
       for (const doc of documents) {
@@ -95,9 +96,10 @@ export class ImagePersistenceManager {
    */
   async restoreMissingImages(): Promise<void> {
     console.log('🔄 RESTORING MISSING IMAGES FROM DATABASE BACKUPS...');
-    
+
     try {
-      const documents = await storage.getAllCimDocuments();
+      // Admin/system operation - explicit high limit to get all documents
+      const documents = await storage.getAllCimDocuments({ limit: 10000, offset: 0 });
       let restoredCount = 0;
       
       for (const doc of documents) {

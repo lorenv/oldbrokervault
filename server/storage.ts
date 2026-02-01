@@ -115,8 +115,10 @@ export interface IStorage {
   }): Promise<any>;
   getUploadedFiles(cimDocumentId: number): Promise<any[]>;
   getCimDocuments(userId: number, options?: { page?: number; limit?: number; search?: string; filters?: string[]; dealId?: number }): Promise<{ documents: CimDocument[]; total: number; hasMore: boolean }>;
-  getAllUsers(): Promise<User[]>;
-  getAllCimDocuments(): Promise<CimDocument[]>;
+  getAllUsers(options?: { limit?: number; offset?: number }): Promise<User[]>;
+  getAllCimDocuments(options?: { limit?: number; offset?: number }): Promise<CimDocument[]>;
+  getUsersCount(): Promise<number>;
+  getCimDocumentsCount(): Promise<number>;
   getCimDocument(id: number): Promise<CimDocument | undefined>;
   updateCimDocument(id: number, doc: Partial<CimDocument>): Promise<CimDocument>;
   updateCimDocumentContent(id: number, editedContent: any): Promise<CimDocument>;
@@ -1101,12 +1103,24 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
     };
   }
 
-  async getAllUsers(): Promise<User[]> {
-    return db.select().from(users);
+  async getAllUsers(options: { limit?: number; offset?: number } = {}): Promise<User[]> {
+    const { limit = 100, offset = 0 } = options;
+    return db.select().from(users).limit(limit).offset(offset);
   }
 
-  async getAllCimDocuments(): Promise<CimDocument[]> {
-    return db.select().from(cimDocuments);
+  async getAllCimDocuments(options: { limit?: number; offset?: number } = {}): Promise<CimDocument[]> {
+    const { limit = 100, offset = 0 } = options;
+    return db.select().from(cimDocuments).limit(limit).offset(offset);
+  }
+
+  async getUsersCount(): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)` }).from(users);
+    return Number(result[0]?.count ?? 0);
+  }
+
+  async getCimDocumentsCount(): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)` }).from(cimDocuments);
+    return Number(result[0]?.count ?? 0);
   }
 
   async getCimDocument(id: number): Promise<CimDocument | undefined> {
@@ -1307,7 +1321,7 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
     try {
       // Read the default NDA template file
       const defaultTemplatePath = path.join(__dirname, 'default-nda-template.pdf');
-      const templateBuffer = fs.readFileSync(defaultTemplatePath);
+      const templateBuffer = await fs.promises.readFile(defaultTemplatePath);
       
       // Convert to base64 as expected by the schema
       const templateContent = templateBuffer.toString('base64');
@@ -2014,9 +2028,12 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
         for (const page of pageImages) {
           if (page.imagePath) {
             const fullPath = path.join(process.cwd(), 'public', page.imagePath);
-            if (fs.existsSync(fullPath)) {
-              fs.unlinkSync(fullPath);
+            try {
+              await fs.promises.access(fullPath);
+              await fs.promises.unlink(fullPath);
               console.log(`Cleaned up image file: ${fullPath}`);
+            } catch {
+              // File doesn't exist or couldn't be deleted, continue
             }
           }
         }

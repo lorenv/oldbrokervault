@@ -434,6 +434,16 @@ export function setupAuth(app: Express) {
         });
       }
 
+      // SEC-009: Enforce password strength requirements
+      // Password must be at least 8 chars with upper, lower, number, special
+      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+      if (!passwordRegex.test(password)) {
+        logger.warn("Registration password strength validation failed", { email });
+        return res.status(400).json({
+          message: "Password must be at least 8 characters with uppercase, lowercase, number, and special character (@$!%*?&)"
+        });
+      }
+
       const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
         return res.status(400).json({
@@ -762,10 +772,16 @@ export function setupAuth(app: Express) {
   // SOCIAL LOGIN ROUTES
   // ============================================
 
+  // Helper function to validate OAuth redirect URLs (SEC-008)
+  function isValidRedirect(url: string): boolean {
+    // Must start with / but not // (to prevent protocol-relative URLs)
+    return url.startsWith('/') && !url.startsWith('//');
+  }
+
   // Google OAuth routes
   app.get("/api/auth/google", (req, res, next) => {
-    // Store the redirect URL in session if provided
-    if (req.query.redirect) {
+    // Store the redirect URL in session if provided and validated
+    if (req.query.redirect && isValidRedirect(req.query.redirect as string)) {
       (req.session as any).oauthRedirect = req.query.redirect;
     }
     passport.authenticate("google", { scope: ["profile", "email"] })(req, res, next);
@@ -775,16 +791,17 @@ export function setupAuth(app: Express) {
     passport.authenticate("google", { failureRedirect: "/auth?error=google_auth_failed" }),
     (req, res) => {
       console.log("✓ Google OAuth callback successful for user:", req.user?.email);
-      const redirectUrl = (req.session as any).oauthRedirect || "/";
+      const redirectUrl = (req.session as any).oauthRedirect;
+      const safeRedirect = (redirectUrl && isValidRedirect(redirectUrl)) ? redirectUrl : '/';
       delete (req.session as any).oauthRedirect;
-      res.redirect(redirectUrl);
+      res.redirect(safeRedirect);
     }
   );
 
   // Microsoft OAuth routes
   app.get("/api/auth/microsoft", (req, res, next) => {
-    // Store the redirect URL in session if provided
-    if (req.query.redirect) {
+    // Store the redirect URL in session if provided and validated
+    if (req.query.redirect && isValidRedirect(req.query.redirect as string)) {
       (req.session as any).oauthRedirect = req.query.redirect;
     }
     passport.authenticate("microsoft", { scope: ["user.read"] })(req, res, next);
@@ -794,9 +811,10 @@ export function setupAuth(app: Express) {
     passport.authenticate("microsoft", { failureRedirect: "/auth?error=microsoft_auth_failed" }),
     (req, res) => {
       console.log("✓ Microsoft OAuth callback successful for user:", req.user?.email);
-      const redirectUrl = (req.session as any).oauthRedirect || "/";
+      const redirectUrl = (req.session as any).oauthRedirect;
+      const safeRedirect = (redirectUrl && isValidRedirect(redirectUrl)) ? redirectUrl : '/';
       delete (req.session as any).oauthRedirect;
-      res.redirect(redirectUrl);
+      res.redirect(safeRedirect);
     }
   );
 
@@ -878,48 +896,50 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Debug endpoint - added here to ensure it's registered
-  app.get("/api/debug/user", async (req, res) => {
-    console.log("Debug endpoint hit! Authentication status:", req.isAuthenticated());
-    
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ 
-        error: "Not authenticated",
-        isAuthenticated: false,
-        message: "Please log in first" 
-      });
-    }
-    
-    try {
-      const userFromDb = await storage.getUser(req.user!.id);
-      const sessionUser = req.user;
-      
-      res.json({
-        isAuthenticated: true,
-        sessionUser: {
-          id: sessionUser?.id,
-          email: sessionUser?.email,
-          subscriptionStatus: sessionUser?.subscriptionStatus,
-          name: sessionUser?.name,
-          phoneNumber: sessionUser?.phoneNumber,
-          businessName: sessionUser?.businessName,
-          businessLogo: sessionUser?.businessLogo,
-          profilePhoto: sessionUser?.profilePhoto
-        },
-        databaseUser: {
-          id: userFromDb?.id,
-          email: userFromDb?.email,
-          subscriptionStatus: userFromDb?.subscriptionStatus,
-          name: userFromDb?.name,
-          phoneNumber: userFromDb?.phoneNumber,
-          businessName: userFromDb?.businessName,
-          businessLogo: userFromDb?.businessLogo,
-          profilePhoto: userFromDb?.profilePhoto
-        }
-      });
-    } catch (error) {
-      console.error("Debug user error:", error);
-      res.status(500).json({ error: "Failed to fetch debug data" });
-    }
-  });
+  // SEC-010: Debug endpoint - only available in non-production environments
+  if (process.env.NODE_ENV !== 'production') {
+    app.get("/api/debug/user", async (req, res) => {
+      console.log("Debug endpoint hit! Authentication status:", req.isAuthenticated());
+
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({
+          error: "Not authenticated",
+          isAuthenticated: false,
+          message: "Please log in first"
+        });
+      }
+
+      try {
+        const userFromDb = await storage.getUser(req.user!.id);
+        const sessionUser = req.user;
+
+        res.json({
+          isAuthenticated: true,
+          sessionUser: {
+            id: sessionUser?.id,
+            email: sessionUser?.email,
+            subscriptionStatus: sessionUser?.subscriptionStatus,
+            name: sessionUser?.name,
+            phoneNumber: sessionUser?.phoneNumber,
+            businessName: sessionUser?.businessName,
+            businessLogo: sessionUser?.businessLogo,
+            profilePhoto: sessionUser?.profilePhoto
+          },
+          databaseUser: {
+            id: userFromDb?.id,
+            email: userFromDb?.email,
+            subscriptionStatus: userFromDb?.subscriptionStatus,
+            name: userFromDb?.name,
+            phoneNumber: userFromDb?.phoneNumber,
+            businessName: userFromDb?.businessName,
+            businessLogo: userFromDb?.businessLogo,
+            profilePhoto: userFromDb?.profilePhoto
+          }
+        });
+      } catch (error) {
+        console.error("Debug user error:", error);
+        res.status(500).json({ error: "Failed to fetch debug data" });
+      }
+    });
+  }
 }
