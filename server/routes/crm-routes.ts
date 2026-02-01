@@ -29,6 +29,9 @@ import {
   esignEnvelopes,
   crmImports,
   userNotificationPreferences,
+  teams,
+  teamMembers,
+  dealCollaborators,
   insertOrganizationSchema,
   insertDealViewSchema,
   insertOrganizationMemberSchema,
@@ -47,6 +50,9 @@ import {
   insertBuyerPipelineStageSchema,
   insertDealBuyerSchema,
   insertCustomFieldDefinitionSchema,
+  insertTeamSchema,
+  insertTeamMemberSchema,
+  insertDealCollaboratorSchema,
   ORGANIZATION_ROLES,
   CUSTOM_FIELD_TYPES,
   CUSTOM_FIELD_OBJECT_TYPES,
@@ -55,6 +61,8 @@ import {
   TASK_REMINDER_OPTIONS,
   CRM_IMPORT_ENTITY_TYPES,
   type OrganizationRole,
+  type CrmVisibility,
+  type CrmVisibilitySettings,
 } from '@shared/schema';
 import XLSX from 'xlsx';
 import { eq, and, or, desc, asc, sql, isNull, inArray, ilike, ne } from 'drizzle-orm';
@@ -365,6 +373,90 @@ async function getUserDisplayName(userId: number): Promise<string> {
     return `${user.firstName || ''} ${user.lastName || ''}`.trim();
   }
   return user.email.split('@')[0];
+}
+
+// ==================== VISIBILITY HELPER FUNCTIONS ====================
+
+// Get user's team IDs
+async function getUserTeamIds(memberId: number): Promise<number[]> {
+  const memberships = await db
+    .select({ teamId: teamMembers.teamId })
+    .from(teamMembers)
+    .where(eq(teamMembers.organizationMemberId, memberId));
+  return memberships.map(m => m.teamId);
+}
+
+// Get all member IDs in user's teams (for team visibility)
+async function getTeammateIds(memberId: number): Promise<number[]> {
+  const teamIds = await getUserTeamIds(memberId);
+  if (teamIds.length === 0) return [memberId]; // Just self if no teams
+
+  const teammates = await db
+    .selectDistinct({ memberId: teamMembers.organizationMemberId })
+    .from(teamMembers)
+    .where(inArray(teamMembers.teamId, teamIds));
+  return teammates.map(t => t.memberId);
+}
+
+// Get visibility settings from organization
+async function getCrmVisibilitySettings(orgId: number): Promise<CrmVisibilitySettings> {
+  const [org] = await db.select().from(organizations).where(eq(organizations.id, orgId));
+  const settings = (org?.settings as any) || {};
+  return {
+    deals: settings.crmVisibility?.deals || 'organization',
+    contacts: settings.crmVisibility?.contacts || 'organization',
+    companies: settings.crmVisibility?.companies || 'organization',
+  };
+}
+
+// Build visibility filter condition for CRM entities
+async function buildVisibilityFilter(
+  visibility: CrmVisibility,
+  memberId: number,
+  memberRole: string,
+  entityOwnerId: any, // The ownerId column reference
+  entityId?: any, // The deal id column for collaborator check
+  checkCollaborators: boolean = false
+): Promise<any | undefined> {
+  // Owner/admin bypass - see all records
+  if (memberRole === 'owner' || memberRole === 'admin') {
+    return undefined; // No additional filter
+  }
+
+  // Organization visibility - everyone sees all
+  if (visibility === 'organization') {
+    return undefined;
+  }
+
+  // Owner only - user sees only their records + collaborator access
+  if (visibility === 'owner_only') {
+    if (checkCollaborators && entityId) {
+      // Include deals where user is owner OR collaborator
+      const isCollaborator = sql`EXISTS (
+        SELECT 1 FROM deal_collaborators dc
+        WHERE dc.deal_id = ${entityId}
+        AND dc.organization_member_id = ${memberId}
+      )`;
+      return or(eq(entityOwnerId, memberId), isCollaborator);
+    }
+    return eq(entityOwnerId, memberId);
+  }
+
+  // Team visibility - user sees records from teammates + collaborator access
+  if (visibility === 'team') {
+    const teammateIds = await getTeammateIds(memberId);
+    if (checkCollaborators && entityId) {
+      const isCollaborator = sql`EXISTS (
+        SELECT 1 FROM deal_collaborators dc
+        WHERE dc.deal_id = ${entityId}
+        AND dc.organization_member_id = ${memberId}
+      )`;
+      return or(inArray(entityOwnerId, teammateIds), isCollaborator);
+    }
+    return inArray(entityOwnerId, teammateIds);
+  }
+
+  return undefined;
 }
 
 // ==================== ORGANIZATION ROUTES ====================
@@ -694,6 +786,87 @@ router.patch('/organization', async (req, res) => {
   } catch (error) {
     console.error('[CRM] Error updating organization:', error);
     res.status(500).json({ error: 'Failed to update organization' });
+  }
+});
+
+// Get CRM visibility settings
+router.get('/organization/visibility-settings', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    const settings = await getCrmVisibilitySettings(orgData.organization.id);
+    res.json(settings);
+  } catch (error) {
+    console.error('[CRM] Error fetching visibility settings:', error);
+    res.status(500).json({ error: 'Failed to fetch visibility settings' });
+  }
+});
+
+// Update CRM visibility settings (owner/admin only)
+router.patch('/organization/visibility-settings', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    // Only owners and admins can change visibility settings
+    if (!['owner', 'admin'].includes(orgData.membership.role)) {
+      return res.status(403).json({ error: 'Only owners and admins can change visibility settings' });
+    }
+
+    const { deals: dealsVisibility, contacts: contactsVisibility, companies: companiesVisibility } = req.body;
+
+    // Validate visibility values
+    const validOptions = ['owner_only', 'team', 'organization'];
+    if (dealsVisibility && !validOptions.includes(dealsVisibility)) {
+      return res.status(400).json({ error: 'Invalid deals visibility option' });
+    }
+    if (contactsVisibility && !validOptions.includes(contactsVisibility)) {
+      return res.status(400).json({ error: 'Invalid contacts visibility option' });
+    }
+    if (companiesVisibility && !validOptions.includes(companiesVisibility)) {
+      return res.status(400).json({ error: 'Invalid companies visibility option' });
+    }
+
+    // Get current settings and merge
+    const [org] = await db.select().from(organizations).where(eq(organizations.id, orgData.organization.id));
+    const currentSettings = (org?.settings as any) || {};
+    const currentVisibility = currentSettings.crmVisibility || {};
+
+    const updatedSettings = {
+      ...currentSettings,
+      crmVisibility: {
+        deals: dealsVisibility || currentVisibility.deals || 'organization',
+        contacts: contactsVisibility || currentVisibility.contacts || 'organization',
+        companies: companiesVisibility || currentVisibility.companies || 'organization',
+      },
+    };
+
+    const [updated] = await db
+      .update(organizations)
+      .set({
+        settings: updatedSettings,
+        updatedAt: new Date(),
+      })
+      .where(eq(organizations.id, orgData.organization.id))
+      .returning();
+
+    res.json({
+      deals: updatedSettings.crmVisibility.deals,
+      contacts: updatedSettings.crmVisibility.contacts,
+      companies: updatedSettings.crmVisibility.companies,
+    });
+  } catch (error) {
+    console.error('[CRM] Error updating visibility settings:', error);
+    res.status(500).json({ error: 'Failed to update visibility settings' });
   }
 });
 
@@ -1730,6 +1903,356 @@ router.delete('/layouts/:objectType', async (req, res) => {
   }
 });
 
+// ==================== TEAM ROUTES ====================
+
+// Get all teams in organization
+router.get('/teams', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    // Get teams with member counts
+    const teamList = await db
+      .select({
+        team: teams,
+        memberCount: sql<number>`count(${teamMembers.id})::int`,
+      })
+      .from(teams)
+      .leftJoin(teamMembers, eq(teamMembers.teamId, teams.id))
+      .where(eq(teams.organizationId, orgData.organization.id))
+      .groupBy(teams.id)
+      .orderBy(asc(teams.name));
+
+    res.json(teamList.map(t => ({
+      ...t.team,
+      memberCount: t.memberCount || 0,
+    })));
+  } catch (error) {
+    console.error('[CRM] Error fetching teams:', error);
+    res.status(500).json({ error: 'Failed to fetch teams' });
+  }
+});
+
+// Create a new team (owner/admin only)
+router.post('/teams', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    // Only owners and admins can create teams
+    if (!['owner', 'admin'].includes(orgData.membership.role)) {
+      return res.status(403).json({ error: 'Only owners and admins can create teams' });
+    }
+
+    const validatedData = insertTeamSchema.parse({
+      ...req.body,
+      organizationId: orgData.organization.id,
+      createdBy: orgData.membership.id,
+    });
+
+    const [newTeam] = await db
+      .insert(teams)
+      .values(validatedData)
+      .returning();
+
+    res.status(201).json(newTeam);
+  } catch (error) {
+    console.error('[CRM] Error creating team:', error);
+    res.status(500).json({ error: 'Failed to create team' });
+  }
+});
+
+// Get team details with members
+router.get('/teams/:id', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const teamId = parseInt(req.params.id);
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    // Get team
+    const [team] = await db
+      .select()
+      .from(teams)
+      .where(and(
+        eq(teams.id, teamId),
+        eq(teams.organizationId, orgData.organization.id)
+      ));
+
+    if (!team) {
+      return res.status(404).json({ error: 'Team not found' });
+    }
+
+    // Get team members with user info
+    const members = await db
+      .select({
+        teamMember: teamMembers,
+        member: organizationMembers,
+        user: users,
+      })
+      .from(teamMembers)
+      .innerJoin(organizationMembers, eq(organizationMembers.id, teamMembers.organizationMemberId))
+      .leftJoin(users, eq(users.id, organizationMembers.userId))
+      .where(eq(teamMembers.teamId, teamId));
+
+    res.json({
+      ...team,
+      members: members.map(m => ({
+        id: m.teamMember.id,
+        organizationMemberId: m.member.id,
+        userId: m.user?.id,
+        email: m.user?.email || m.member.inviteeEmail,
+        firstName: m.user?.firstName,
+        lastName: m.user?.lastName,
+        profilePhoto: m.user?.profilePhoto,
+        role: m.member.role,
+        addedAt: m.teamMember.createdAt,
+      })),
+    });
+  } catch (error) {
+    console.error('[CRM] Error fetching team:', error);
+    res.status(500).json({ error: 'Failed to fetch team' });
+  }
+});
+
+// Update team (owner/admin only)
+router.patch('/teams/:id', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const teamId = parseInt(req.params.id);
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    if (!['owner', 'admin'].includes(orgData.membership.role)) {
+      return res.status(403).json({ error: 'Only owners and admins can update teams' });
+    }
+
+    // Verify team belongs to org
+    const [existingTeam] = await db
+      .select()
+      .from(teams)
+      .where(and(
+        eq(teams.id, teamId),
+        eq(teams.organizationId, orgData.organization.id)
+      ));
+
+    if (!existingTeam) {
+      return res.status(404).json({ error: 'Team not found' });
+    }
+
+    const { name, description } = req.body;
+    const [updatedTeam] = await db
+      .update(teams)
+      .set({
+        ...(name && { name }),
+        ...(description !== undefined && { description }),
+        updatedAt: new Date(),
+      })
+      .where(eq(teams.id, teamId))
+      .returning();
+
+    res.json(updatedTeam);
+  } catch (error) {
+    console.error('[CRM] Error updating team:', error);
+    res.status(500).json({ error: 'Failed to update team' });
+  }
+});
+
+// Delete team (owner/admin only)
+router.delete('/teams/:id', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const teamId = parseInt(req.params.id);
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    if (!['owner', 'admin'].includes(orgData.membership.role)) {
+      return res.status(403).json({ error: 'Only owners and admins can delete teams' });
+    }
+
+    // Verify team belongs to org
+    const [existingTeam] = await db
+      .select()
+      .from(teams)
+      .where(and(
+        eq(teams.id, teamId),
+        eq(teams.organizationId, orgData.organization.id)
+      ));
+
+    if (!existingTeam) {
+      return res.status(404).json({ error: 'Team not found' });
+    }
+
+    // Delete team (cascades to team_members)
+    await db.delete(teams).where(eq(teams.id, teamId));
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[CRM] Error deleting team:', error);
+    res.status(500).json({ error: 'Failed to delete team' });
+  }
+});
+
+// Add member to team
+router.post('/teams/:id/members', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const teamId = parseInt(req.params.id);
+    const { organizationMemberId } = req.body;
+
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    if (!['owner', 'admin'].includes(orgData.membership.role)) {
+      return res.status(403).json({ error: 'Only owners and admins can manage team members' });
+    }
+
+    // Verify team belongs to org
+    const [team] = await db
+      .select()
+      .from(teams)
+      .where(and(
+        eq(teams.id, teamId),
+        eq(teams.organizationId, orgData.organization.id)
+      ));
+
+    if (!team) {
+      return res.status(404).json({ error: 'Team not found' });
+    }
+
+    // Verify member belongs to org
+    const [member] = await db
+      .select()
+      .from(organizationMembers)
+      .where(and(
+        eq(organizationMembers.id, organizationMemberId),
+        eq(organizationMembers.organizationId, orgData.organization.id),
+        eq(organizationMembers.status, 'active')
+      ));
+
+    if (!member) {
+      return res.status(404).json({ error: 'Organization member not found' });
+    }
+
+    // Check if already a member
+    const [existing] = await db
+      .select()
+      .from(teamMembers)
+      .where(and(
+        eq(teamMembers.teamId, teamId),
+        eq(teamMembers.organizationMemberId, organizationMemberId)
+      ));
+
+    if (existing) {
+      return res.status(400).json({ error: 'Member is already in this team' });
+    }
+
+    const [newTeamMember] = await db
+      .insert(teamMembers)
+      .values({
+        teamId,
+        organizationMemberId,
+        addedBy: orgData.membership.id,
+      })
+      .returning();
+
+    res.status(201).json(newTeamMember);
+  } catch (error) {
+    console.error('[CRM] Error adding team member:', error);
+    res.status(500).json({ error: 'Failed to add team member' });
+  }
+});
+
+// Remove member from team
+router.delete('/teams/:teamId/members/:memberId', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const teamId = parseInt(req.params.teamId);
+    const memberId = parseInt(req.params.memberId);
+
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    if (!['owner', 'admin'].includes(orgData.membership.role)) {
+      return res.status(403).json({ error: 'Only owners and admins can manage team members' });
+    }
+
+    // Verify team belongs to org
+    const [team] = await db
+      .select()
+      .from(teams)
+      .where(and(
+        eq(teams.id, teamId),
+        eq(teams.organizationId, orgData.organization.id)
+      ));
+
+    if (!team) {
+      return res.status(404).json({ error: 'Team not found' });
+    }
+
+    // Delete team member
+    await db
+      .delete(teamMembers)
+      .where(and(
+        eq(teamMembers.teamId, teamId),
+        eq(teamMembers.organizationMemberId, memberId)
+      ));
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[CRM] Error removing team member:', error);
+    res.status(500).json({ error: 'Failed to remove team member' });
+  }
+});
+
+// Get current user's teams
+router.get('/my-teams', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    const myTeams = await db
+      .select({
+        team: teams,
+      })
+      .from(teamMembers)
+      .innerJoin(teams, eq(teams.id, teamMembers.teamId))
+      .where(eq(teamMembers.organizationMemberId, orgData.membership.id));
+
+    res.json(myTeams.map(t => t.team));
+  } catch (error) {
+    console.error('[CRM] Error fetching my teams:', error);
+    res.status(500).json({ error: 'Failed to fetch teams' });
+  }
+});
+
 // ==================== COMPANY ROUTES ====================
 
 // Get companies
@@ -1758,7 +2281,19 @@ router.get('/companies', async (req, res) => {
     } = req.query;
     const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
 
-    let conditions = [eq(companies.organizationId, orgData.organization.id)];
+    let conditions: any[] = [eq(companies.organizationId, orgData.organization.id)];
+
+    // Apply visibility filtering for companies
+    const visibilitySettings = await getCrmVisibilitySettings(orgData.organization.id);
+    const visibilityFilter = await buildVisibilityFilter(
+      visibilitySettings.companies,
+      orgData.membership.id,
+      orgData.membership.role,
+      companies.ownerId
+    );
+    if (visibilityFilter) {
+      conditions.push(visibilityFilter);
+    }
 
     if (search) {
       const searchTerm = `%${search}%`;
@@ -2145,7 +2680,19 @@ router.get('/contacts', async (req, res) => {
     } = req.query;
     const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
 
-    let conditions = [eq(crmContacts.organizationId, orgData.organization.id)];
+    let conditions: any[] = [eq(crmContacts.organizationId, orgData.organization.id)];
+
+    // Apply visibility filtering for contacts
+    const visibilitySettings = await getCrmVisibilitySettings(orgData.organization.id);
+    const visibilityFilter = await buildVisibilityFilter(
+      visibilitySettings.contacts,
+      orgData.membership.id,
+      orgData.membership.role,
+      crmContacts.ownerId
+    );
+    if (visibilityFilter) {
+      conditions.push(visibilityFilter);
+    }
 
     if (companyId) {
       conditions.push(eq(crmContacts.companyId, parseInt(companyId as string)));
@@ -2853,6 +3400,20 @@ router.get('/deals', async (req, res) => {
       isNull(deals.deletedAt),
     ];
 
+    // Apply visibility filtering
+    const visibilitySettings = await getCrmVisibilitySettings(orgData.organization.id);
+    const visibilityFilter = await buildVisibilityFilter(
+      visibilitySettings.deals,
+      orgData.membership.id,
+      orgData.membership.role,
+      deals.ownerId,
+      deals.id,
+      true // Include collaborator access
+    );
+    if (visibilityFilter) {
+      conditions.push(visibilityFilter);
+    }
+
     // Pipeline filter
     if (pipelineId) {
       conditions.push(eq(deals.pipelineId, parseInt(pipelineId as string)));
@@ -3048,6 +3609,17 @@ router.get('/deals/kanban/:pipelineId', async (req, res) => {
       return res.status(404).json({ error: 'Pipeline not found' });
     }
 
+    // Get visibility filter for this user
+    const visibilitySettings = await getCrmVisibilitySettings(orgData.organization.id);
+    const visibilityFilter = await buildVisibilityFilter(
+      visibilitySettings.deals,
+      orgData.membership.id,
+      orgData.membership.role,
+      deals.ownerId,
+      deals.id,
+      true // Include collaborator access
+    );
+
     // Get stages with deals
     const stages = await db
       .select()
@@ -3057,6 +3629,15 @@ router.get('/deals/kanban/:pipelineId', async (req, res) => {
 
     const stagesWithDeals = await Promise.all(
       stages.map(async (stage) => {
+        const conditions = [
+          eq(deals.stageId, stage.id),
+          eq(deals.organizationId, orgData.organization.id),
+          isNull(deals.deletedAt),
+        ];
+        if (visibilityFilter) {
+          conditions.push(visibilityFilter);
+        }
+
         const stageDeals = await db
           .select({
             deal: deals,
@@ -3073,13 +3654,7 @@ router.get('/deals/kanban/:pipelineId', async (req, res) => {
           .from(deals)
           .leftJoin(companies, eq(companies.id, deals.companyId))
           .leftJoin(users, eq(users.id, deals.ownerId))
-          .where(
-            and(
-              eq(deals.stageId, stage.id),
-              eq(deals.organizationId, orgData.organization.id),
-              isNull(deals.deletedAt)
-            )
-          )
+          .where(and(...conditions))
           .orderBy(desc(deals.updatedAt));
 
         return {
@@ -3142,6 +3717,43 @@ router.get('/deals/:id', async (req, res) => {
 
     if (!result) {
       return res.status(404).json({ error: 'Deal not found' });
+    }
+
+    // Check visibility access
+    const visibilitySettings = await getCrmVisibilitySettings(orgData.organization.id);
+    if (orgData.membership.role !== 'owner' && orgData.membership.role !== 'admin') {
+      const dealOwnerId = result.deal.ownerId;
+
+      if (visibilitySettings.deals === 'owner_only') {
+        const isOwner = dealOwnerId === orgData.membership.id;
+        const [isCollaborator] = await db
+          .select()
+          .from(dealCollaborators)
+          .where(and(
+            eq(dealCollaborators.dealId, dealId),
+            eq(dealCollaborators.organizationMemberId, orgData.membership.id)
+          ))
+          .limit(1);
+
+        if (!isOwner && !isCollaborator) {
+          return res.status(403).json({ error: 'Access denied' });
+        }
+      } else if (visibilitySettings.deals === 'team') {
+        const teammateIds = await getTeammateIds(orgData.membership.id);
+        const isTeammate = dealOwnerId ? teammateIds.includes(dealOwnerId) : false;
+        const [isCollaborator] = await db
+          .select()
+          .from(dealCollaborators)
+          .where(and(
+            eq(dealCollaborators.dealId, dealId),
+            eq(dealCollaborators.organizationMemberId, orgData.membership.id)
+          ))
+          .limit(1);
+
+        if (!isTeammate && !isCollaborator) {
+          return res.status(403).json({ error: 'Access denied' });
+        }
+      }
     }
 
     // Get associated contacts
@@ -3539,6 +4151,239 @@ router.delete('/deals/:id', async (req, res) => {
   } catch (error) {
     console.error('[CRM] Error deleting deal:', error);
     res.status(500).json({ error: 'Failed to delete deal' });
+  }
+});
+
+// ==================== DEAL COLLABORATORS ====================
+
+// Get deal collaborators
+router.get('/deals/:dealId/collaborators', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const dealId = parseInt(req.params.dealId);
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    // Verify deal belongs to org
+    const [deal] = await db
+      .select()
+      .from(deals)
+      .where(and(
+        eq(deals.id, dealId),
+        eq(deals.organizationId, orgData.organization.id)
+      ));
+
+    if (!deal) {
+      return res.status(404).json({ error: 'Deal not found' });
+    }
+
+    // Get collaborators with user info
+    const collaborators = await db
+      .select({
+        collaborator: dealCollaborators,
+        member: organizationMembers,
+        user: users,
+      })
+      .from(dealCollaborators)
+      .innerJoin(organizationMembers, eq(organizationMembers.id, dealCollaborators.organizationMemberId))
+      .leftJoin(users, eq(users.id, organizationMembers.userId))
+      .where(eq(dealCollaborators.dealId, dealId));
+
+    res.json(collaborators.map(c => ({
+      id: c.collaborator.id,
+      organizationMemberId: c.member.id,
+      userId: c.user?.id,
+      email: c.user?.email || c.member.inviteeEmail,
+      firstName: c.user?.firstName,
+      lastName: c.user?.lastName,
+      profilePhoto: c.user?.profilePhoto,
+      permission: c.collaborator.permission,
+      createdAt: c.collaborator.createdAt,
+    })));
+  } catch (error) {
+    console.error('[CRM] Error fetching deal collaborators:', error);
+    res.status(500).json({ error: 'Failed to fetch collaborators' });
+  }
+});
+
+// Add collaborator to deal
+router.post('/deals/:dealId/collaborators', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const dealId = parseInt(req.params.dealId);
+    const { organizationMemberId, permission = 'view' } = req.body;
+
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    // Verify deal belongs to org
+    const [deal] = await db
+      .select()
+      .from(deals)
+      .where(and(
+        eq(deals.id, dealId),
+        eq(deals.organizationId, orgData.organization.id)
+      ));
+
+    if (!deal) {
+      return res.status(404).json({ error: 'Deal not found' });
+    }
+
+    // Only deal owner or admin can add collaborators
+    const isOwner = deal.ownerId === orgData.membership.id;
+    const isAdmin = ['owner', 'admin'].includes(orgData.membership.role);
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ error: 'Only deal owner or admin can add collaborators' });
+    }
+
+    // Verify member belongs to org
+    const [member] = await db
+      .select()
+      .from(organizationMembers)
+      .where(and(
+        eq(organizationMembers.id, organizationMemberId),
+        eq(organizationMembers.organizationId, orgData.organization.id),
+        eq(organizationMembers.status, 'active')
+      ));
+
+    if (!member) {
+      return res.status(404).json({ error: 'Organization member not found' });
+    }
+
+    // Check if already a collaborator
+    const [existing] = await db
+      .select()
+      .from(dealCollaborators)
+      .where(and(
+        eq(dealCollaborators.dealId, dealId),
+        eq(dealCollaborators.organizationMemberId, organizationMemberId)
+      ));
+
+    if (existing) {
+      return res.status(400).json({ error: 'Member is already a collaborator on this deal' });
+    }
+
+    const [newCollaborator] = await db
+      .insert(dealCollaborators)
+      .values({
+        dealId,
+        organizationMemberId,
+        permission,
+        invitedBy: orgData.membership.id,
+      })
+      .returning();
+
+    res.status(201).json(newCollaborator);
+  } catch (error) {
+    console.error('[CRM] Error adding deal collaborator:', error);
+    res.status(500).json({ error: 'Failed to add collaborator' });
+  }
+});
+
+// Update collaborator permission
+router.patch('/deals/:dealId/collaborators/:collaboratorId', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const dealId = parseInt(req.params.dealId);
+    const collaboratorId = parseInt(req.params.collaboratorId);
+    const { permission } = req.body;
+
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    // Verify deal belongs to org
+    const [deal] = await db
+      .select()
+      .from(deals)
+      .where(and(
+        eq(deals.id, dealId),
+        eq(deals.organizationId, orgData.organization.id)
+      ));
+
+    if (!deal) {
+      return res.status(404).json({ error: 'Deal not found' });
+    }
+
+    // Only deal owner or admin can update collaborators
+    const isOwner = deal.ownerId === orgData.membership.id;
+    const isAdmin = ['owner', 'admin'].includes(orgData.membership.role);
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ error: 'Only deal owner or admin can update collaborators' });
+    }
+
+    const [updated] = await db
+      .update(dealCollaborators)
+      .set({ permission })
+      .where(and(
+        eq(dealCollaborators.id, collaboratorId),
+        eq(dealCollaborators.dealId, dealId)
+      ))
+      .returning();
+
+    if (!updated) {
+      return res.status(404).json({ error: 'Collaborator not found' });
+    }
+
+    res.json(updated);
+  } catch (error) {
+    console.error('[CRM] Error updating deal collaborator:', error);
+    res.status(500).json({ error: 'Failed to update collaborator' });
+  }
+});
+
+// Remove collaborator from deal
+router.delete('/deals/:dealId/collaborators/:collaboratorId', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const dealId = parseInt(req.params.dealId);
+    const collaboratorId = parseInt(req.params.collaboratorId);
+
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    // Verify deal belongs to org
+    const [deal] = await db
+      .select()
+      .from(deals)
+      .where(and(
+        eq(deals.id, dealId),
+        eq(deals.organizationId, orgData.organization.id)
+      ));
+
+    if (!deal) {
+      return res.status(404).json({ error: 'Deal not found' });
+    }
+
+    // Only deal owner or admin can remove collaborators
+    const isOwner = deal.ownerId === orgData.membership.id;
+    const isAdmin = ['owner', 'admin'].includes(orgData.membership.role);
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ error: 'Only deal owner or admin can remove collaborators' });
+    }
+
+    await db
+      .delete(dealCollaborators)
+      .where(and(
+        eq(dealCollaborators.id, collaboratorId),
+        eq(dealCollaborators.dealId, dealId)
+      ));
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[CRM] Error removing deal collaborator:', error);
+    res.status(500).json({ error: 'Failed to remove collaborator' });
   }
 });
 

@@ -74,6 +74,8 @@ import ContactDetailPage from "@/pages/crm/contact-detail-page";
 import TasksPage from "@/pages/crm/tasks-page";
 import TeamSettingsPage from "@/pages/settings/team-settings-page";
 import PipelineSettingsPage from "@/pages/settings/pipeline-settings-page";
+import TeamsSettingsPage from "@/pages/settings/teams-settings-page";
+import CrmVisibilitySettingsPage from "@/pages/settings/crm-visibility-settings-page";
 
 // E-Signature Pages
 import EsignDashboard from "@/pages/esign/esign-dashboard";
@@ -190,6 +192,8 @@ function AuthenticatedRouter() {
         <ProtectedRoute path="/settings/billing" component={BillingPage} />
         <ProtectedRoute path="/settings/notifications" component={NotificationsPage} />
         <ProtectedRoute path="/settings/team" component={TeamSettingsPage} />
+        <ProtectedRoute path="/settings/teams" component={TeamsSettingsPage} />
+        <ProtectedRoute path="/settings/crm-visibility" component={CrmVisibilitySettingsPage} />
         <ProtectedRoute path="/settings/permissions" component={PermissionsPage} />
         <ProtectedRoute path="/settings/pipelines" component={PipelineSettingsPage} />
         <ProtectedRoute path="/settings/custom-fields" component={CustomFieldsPage} />

@@ -15,6 +15,8 @@ import {
   Key,
   Mail,
   ChevronRight,
+  Eye,
+  UsersRound,
 } from "lucide-react";
 
 interface SettingsCard {
@@ -50,6 +52,22 @@ const settingsCards: SettingsCard[] = [
     href: "/settings/team",
     iconBg: "bg-purple-100",
     iconColor: "text-purple-600",
+  },
+  {
+    title: "Visibility Teams",
+    description: "Create teams for CRM visibility groupings",
+    icon: UsersRound,
+    href: "/settings/teams",
+    iconBg: "bg-teal-100",
+    iconColor: "text-teal-600",
+  },
+  {
+    title: "CRM Visibility",
+    description: "Control who can see deals, contacts, and companies",
+    icon: Eye,
+    href: "/settings/crm-visibility",
+    iconBg: "bg-violet-100",
+    iconColor: "text-violet-600",
   },
   {
     title: "Pipelines & Stages",

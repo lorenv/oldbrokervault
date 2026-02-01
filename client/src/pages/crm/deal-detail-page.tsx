@@ -129,6 +129,7 @@ function formatActivityTitle(activity: Activity): string {
   }
 }
 import { BuyerPipeline } from "@/components/crm/buyer-pipeline";
+import { DealCollaborators } from "@/components/crm/deal-collaborators";
 import { InlineEdit, InlineEditEmail, InlineEditCurrency, InlineEditDate } from "@/components/ui/inline-edit";
 import { EmailList } from "@/components/crm/email-list";
 import { TaskDialog } from "@/components/crm/task-dialog";
@@ -1495,6 +1496,15 @@ export default function DealDetailPage() {
                     })}
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Deal Collaborators */}
+              <div className="pt-2 border-t">
+                <DealCollaborators
+                  dealId={parseInt(id!)}
+                  dealOwnerId={deal.ownerId || undefined}
+                  canManage={true}
+                />
               </div>
 
               <div>

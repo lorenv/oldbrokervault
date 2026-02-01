@@ -2287,6 +2287,46 @@ export const organizationMembers = pgTable("organization_members", {
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 
+// CRM Visibility Settings Types
+export const CRM_VISIBILITY_OPTIONS = ['owner_only', 'team', 'organization'] as const;
+export type CrmVisibility = typeof CRM_VISIBILITY_OPTIONS[number];
+
+export interface CrmVisibilitySettings {
+  deals: CrmVisibility;
+  contacts: CrmVisibility;
+  companies: CrmVisibility;
+}
+
+// Teams - Custom visibility teams within an organization
+export const teams = pgTable("teams", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdBy: integer("created_by").notNull(), // FK to organization_members
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Team Members - Users can belong to multiple teams
+export const teamMembers = pgTable("team_members", {
+  id: serial("id").primaryKey(),
+  teamId: integer("team_id").notNull(),
+  organizationMemberId: integer("organization_member_id").notNull(),
+  addedBy: integer("added_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Deal Collaborators - Specific access to individual deals
+export const dealCollaborators = pgTable("deal_collaborators", {
+  id: serial("id").primaryKey(),
+  dealId: integer("deal_id").notNull(),
+  organizationMemberId: integer("organization_member_id").notNull(),
+  permission: text("permission").notNull().default("view"), // 'view' or 'edit'
+  invitedBy: integer("invited_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Role Permissions - Customizable permissions for organization roles
 export const rolePermissions = pgTable("role_permissions", {
   id: serial("id").primaryKey(),
@@ -3088,6 +3128,41 @@ export const insertOrganizationMemberSchema = createInsertSchema(organizationMem
   status: z.enum(ORGANIZATION_MEMBER_STATUSES as unknown as [string, ...string[]]).default('active')
 });
 
+// Insert schemas for Teams
+export const insertTeamSchema = createInsertSchema(teams).pick({
+  organizationId: true,
+  name: true,
+  createdBy: true
+}).extend({
+  organizationId: z.number().min(1),
+  name: z.string().min(1, "Team name is required").max(100),
+  description: z.string().max(500).nullable().optional(),
+  createdBy: z.number().min(1)
+});
+
+export const insertTeamMemberSchema = createInsertSchema(teamMembers).pick({
+  teamId: true,
+  organizationMemberId: true,
+  addedBy: true
+}).extend({
+  teamId: z.number().min(1),
+  organizationMemberId: z.number().min(1),
+  addedBy: z.number().min(1)
+});
+
+export const DEAL_COLLABORATOR_PERMISSIONS = ['view', 'edit'] as const;
+
+export const insertDealCollaboratorSchema = createInsertSchema(dealCollaborators).pick({
+  dealId: true,
+  organizationMemberId: true,
+  invitedBy: true
+}).extend({
+  dealId: z.number().min(1),
+  organizationMemberId: z.number().min(1),
+  permission: z.enum(DEAL_COLLABORATOR_PERMISSIONS).default('view'),
+  invitedBy: z.number().min(1)
+});
+
 // Helper to normalize URLs - automatically adds https:// if no protocol is present
 const normalizeUrlValue = (val: unknown): string | null => {
   if (val === '' || val === undefined || val === null) return null;
@@ -3365,6 +3440,15 @@ export type InsertOrganizationMember = z.infer<typeof insertOrganizationMemberSc
 
 export type RolePermission = typeof rolePermissions.$inferSelect;
 export type InsertRolePermission = z.infer<typeof insertRolePermissionSchema>;
+
+export type Team = typeof teams.$inferSelect;
+export type InsertTeam = z.infer<typeof insertTeamSchema>;
+
+export type TeamMember = typeof teamMembers.$inferSelect;
+export type InsertTeamMember = z.infer<typeof insertTeamMemberSchema>;
+
+export type DealCollaborator = typeof dealCollaborators.$inferSelect;
+export type InsertDealCollaborator = z.infer<typeof insertDealCollaboratorSchema>;
 
 export type Company = typeof companies.$inferSelect;
 export type InsertCompany = z.infer<typeof insertCompanySchema>;
