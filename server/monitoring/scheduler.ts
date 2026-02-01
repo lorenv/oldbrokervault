@@ -132,6 +132,10 @@ async function sendEmailAlert(subject: string, body: string, recipients: string[
 
     const fromEmail = process.env.SUPPORT_EMAIL || 'monitoring@app.com';
 
+    // Use timeout for external SendGrid API call (PERF-013)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
     const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
       method: 'POST',
       headers: {
@@ -144,7 +148,10 @@ async function sendEmailAlert(subject: string, body: string, recipients: string[
         subject,
         content: [{ type: 'text/plain', value: body }],
       }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (response.ok || response.status === 202) {
       console.log(`📧 Alert email sent to ${recipients.join(', ')}`);
@@ -164,6 +171,10 @@ async function sendEmailAlert(subject: string, body: string, recipients: string[
  */
 async function sendWebhookAlert(webhookUrl: string, report: SystemHealthReport): Promise<boolean> {
   try {
+    // Use timeout for external webhook call (PERF-013)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
     const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -179,7 +190,10 @@ async function sendWebhookAlert(webhookUrl: string, report: SystemHealthReport):
           latencyMs: c.latencyMs,
         })),
       }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (response.ok) {
       console.log('🔔 Webhook alert sent successfully');
@@ -242,11 +256,18 @@ async function sendSlackAlert(webhookUrl: string, report: SystemHealthReport): P
       });
     }
 
+    // Use timeout for external Slack webhook call (PERF-013)
+    const slackController = new AbortController();
+    const slackTimeoutId = setTimeout(() => slackController.abort(), 30000); // 30 second timeout
+
     const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ blocks }),
+      signal: slackController.signal,
     });
+
+    clearTimeout(slackTimeoutId);
 
     if (response.ok) {
       console.log('💬 Slack alert sent successfully');

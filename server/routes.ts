@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import crypto from "crypto";
+import bcrypt from "bcryptjs";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { analyzeCimTranscript, generateFlexibleCimDocument, generateCimWithWebsiteAnalysis, startWebsiteAnalysis, type FlexibleCimDocument } from "./perplexity";
@@ -34,6 +35,7 @@ import { sendNdaSignedEmail, sendEmail, sendApprovalEmail, sendOwnerApprovalNoti
 import { generateSecureToken, generateRedirectId } from "./token-utils";
 import { sanitizeUser, sanitizeUserForSharing, sanitizeForLogging, validateResponseSafety } from "./data-sanitizer";
 import { responseSanitizationMiddleware, securityHeadersMiddleware, sensitiveEndpointLimiter } from "./security-middleware";
+import { isUrlSafeForFetch } from "./security";
 import { invalidateUserCache } from "./auth";
 import { logger } from "./logger";
 import { exec } from 'child_process';
@@ -98,6 +100,30 @@ createDirectoriesAsync().catch(error => {
 
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+
+// Constants for bcrypt password hashing
+const BCRYPT_ROUNDS = 10;
+
+// Helper function to hash a share password
+async function hashSharePassword(password: string): Promise<string> {
+  return bcrypt.hash(password, BCRYPT_ROUNDS);
+}
+
+// Helper function to verify a share password
+// Handles both bcrypt hashed passwords and legacy plaintext passwords
+async function verifySharePassword(providedPassword: string, storedPassword: string): Promise<boolean> {
+  // Check if the stored password is a bcrypt hash (starts with $2a$ or $2b$)
+  if (storedPassword.startsWith('$2a$') || storedPassword.startsWith('$2b$')) {
+    return bcrypt.compare(providedPassword, storedPassword);
+  }
+  // Legacy plaintext password - use timing-safe comparison
+  const providedBuffer = Buffer.from(providedPassword);
+  const storedBuffer = Buffer.from(storedPassword);
+  if (providedBuffer.length !== storedBuffer.length) {
+    return false;
+  }
+  return crypto.timingSafeEqual(providedBuffer, storedBuffer);
+}
 
 // Helper function to check if user is an authorized admin using database field
 function isAuthorizedAdmin(user: any): boolean {
@@ -1085,17 +1111,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check password protection
       if (cimDoc.sharePassword) {
         const { password } = req.query;
+        const passwordsMatch = password ? await verifySharePassword(password as string, cimDoc.sharePassword) : false;
         console.log("Password protection check:", {
           hasPassword: !!cimDoc.sharePassword,
           providedPassword: !!password,
-          passwordsMatch: password === cimDoc.sharePassword
+          passwordsMatch
         });
-        
-        if (!password || password !== cimDoc.sharePassword) {
+
+        if (!password || !passwordsMatch) {
           console.log("ERROR: Invalid or missing password for protected document");
-          return res.status(401).json({ 
+          return res.status(401).json({
             error: "Password required",
-            requiresPassword: true 
+            requiresPassword: true
           });
         }
         console.log("Password authentication successful");
@@ -1418,17 +1445,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check password protection for PDF export
       if (cimDoc.sharePassword) {
         const { password } = req.body;
+        const passwordsMatch = password ? await verifySharePassword(password as string, cimDoc.sharePassword) : false;
         console.log("PDF export password protection check:", {
           hasPassword: !!cimDoc.sharePassword,
           providedPassword: !!password,
-          passwordsMatch: password === cimDoc.sharePassword
+          passwordsMatch
         });
-        
-        if (!password || password !== cimDoc.sharePassword) {
+
+        if (!password || !passwordsMatch) {
           console.log("ERROR: Invalid or missing password for protected document PDF export");
-          return res.status(401).json({ 
+          return res.status(401).json({
             error: "Password required for PDF export",
-            requiresPassword: true 
+            requiresPassword: true
           });
         }
         console.log("PDF export password authentication successful");
@@ -1716,17 +1744,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check password protection for Word export
       if (cimDoc.sharePassword) {
         const { password } = req.body;
+        const passwordsMatch = password ? await verifySharePassword(password as string, cimDoc.sharePassword) : false;
         console.log("Word export password protection check:", {
           hasPassword: !!cimDoc.sharePassword,
           providedPassword: !!password,
-          passwordsMatch: password === cimDoc.sharePassword
+          passwordsMatch
         });
-        
-        if (!password || password !== cimDoc.sharePassword) {
+
+        if (!password || !passwordsMatch) {
           console.log("ERROR: Invalid or missing password for protected document Word export");
-          return res.status(401).json({ 
+          return res.status(401).json({
             error: "Password required for Word export",
-            requiresPassword: true 
+            requiresPassword: true
           });
         }
         console.log("Word export password authentication successful");
@@ -2045,6 +2074,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let logoExtractionPromise: Promise<string | null> = Promise.resolve(null);
 
         if (data.websiteUrl) {
+          // Validate URL before processing to prevent SSRF attacks
+          if (!isUrlSafeForFetch(data.websiteUrl.startsWith('http') ? data.websiteUrl : `https://${data.websiteUrl}`)) {
+            console.error("Blocked unsafe website URL:", data.websiteUrl);
+            return res.status(400).json({ error: "Invalid or blocked website URL" });
+          }
           try {
             normalizedUrl = normalizeUrl(data.websiteUrl);
             console.log("🚀 Starting parallel website processing for regeneration...");
@@ -2124,6 +2158,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let imageExtractionPromise: Promise<string[]> = Promise.resolve([]);
 
       if (data.websiteUrl) {
+        // Validate URL before processing to prevent SSRF attacks
+        if (!isUrlSafeForFetch(data.websiteUrl.startsWith('http') ? data.websiteUrl : `https://${data.websiteUrl}`)) {
+          console.error("Blocked unsafe website URL:", data.websiteUrl);
+          return res.status(400).json({ error: "Invalid or blocked website URL" });
+        }
         try {
           normalizedUrl = normalizeUrl(data.websiteUrl);
           console.log("🚀 Starting ALL website operations in parallel at the beginning...");
@@ -2853,6 +2892,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let logoExtractionPromise: Promise<string | null> = Promise.resolve(null);
 
       if (data.websiteUrl) {
+        // Validate URL before processing to prevent SSRF attacks
+        if (!isUrlSafeForFetch(data.websiteUrl.startsWith('http') ? data.websiteUrl : `https://${data.websiteUrl}`)) {
+          console.error("Blocked unsafe website URL:", data.websiteUrl);
+          return res.status(400).json({ error: "Invalid or blocked website URL" });
+        }
         try {
           normalizedUrl = normalizeUrl(data.websiteUrl);
           console.log("🚀 Starting website operations in parallel (upload route)...");
@@ -3907,7 +3951,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const websiteUrl = decodeURIComponent(req.params.websiteUrl);
       console.log(`Image extraction request for: ${websiteUrl}`);
-      
+
+      // Validate URL before processing to prevent SSRF attacks
+      if (!isUrlSafeForFetch(websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`)) {
+        console.error("Blocked unsafe website URL for image extraction:", websiteUrl);
+        return res.status(400).json({ error: "Invalid or blocked website URL" });
+      }
+
       const imageUrls = await extractWebsiteImages(websiteUrl);
       
       // Check if no images were extracted and provide helpful message
@@ -3932,15 +3982,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/download-images", async (req, res) => {
     try {
       const { imageUrls, websiteUrl } = req.body;
-      
+
       if (!imageUrls || !Array.isArray(imageUrls) || !websiteUrl) {
         return res.status(400).json({ error: "imageUrls array and websiteUrl are required" });
       }
-      
+
+      // Validate all image URLs before processing to prevent SSRF attacks
+      for (const imageUrl of imageUrls) {
+        if (!isUrlSafeForFetch(imageUrl)) {
+          console.error("Blocked unsafe image URL:", imageUrl);
+          return res.status(400).json({ error: "Invalid or blocked image URL" });
+        }
+      }
+
       console.log(`Downloading ${imageUrls.length} images for: ${websiteUrl}`);
-      
+
       const savedPaths = await downloadSelectedImages(imageUrls, websiteUrl);
-      
+
       res.json({ savedPaths });
     } catch (error) {
       console.error("Error downloading images:", error);
@@ -7233,11 +7291,19 @@ ${finalQuestion}
         }
       }
 
+      // Hash the password before storing if provided
+      let hashedPassword: string | null | undefined = password;
+      if (password && password.trim()) {
+        hashedPassword = await hashSharePassword(password);
+      } else if (password === '' || password === null) {
+        hashedPassword = null;
+      }
+
       const updatedDoc = await storage.updateCimShareSettings(docId, {
         shareEnabled: isPublic,
         shareSlug: shareSlug || undefined,
         customSlug: validatedCustomSlug,
-        sharePassword: password,
+        sharePassword: hashedPassword,
         shareExpiresAt: expiresAt,
         ndaProtected: ndaProtected !== undefined ? ndaProtected : requireNda,
         ndaTemplateId: ndaTemplateId !== undefined ? ndaTemplateId : doc.ndaTemplateId,
@@ -7378,11 +7444,19 @@ ${finalQuestion}
         validatedCustomSlug = null;
       }
 
+      // Hash the password before storing if provided
+      let hashedPassword: string | null | undefined = sharePassword;
+      if (sharePassword && sharePassword.trim()) {
+        hashedPassword = await hashSharePassword(sharePassword);
+      } else if (sharePassword === '' || sharePassword === null) {
+        hashedPassword = null;
+      }
+
       const updatedDoc = await storage.updateCimShareSettings(docId, {
         shareEnabled,
         shareSlug,
         customSlug: validatedCustomSlug,
-        sharePassword,
+        sharePassword: hashedPassword,
         shareExpiresAt,
         ndaProtected,
         ndaTemplateId

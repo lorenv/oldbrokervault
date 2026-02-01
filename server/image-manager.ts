@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import sharp from 'sharp';
 import { objectStorageImageManager } from './image-manager-object-storage';
 import { log } from './vite';
+import { isUrlSafeForFetch } from './security';
 
 export interface ImageMetadata {
   id: string;
@@ -213,15 +214,20 @@ export class ImageManager {
     type: 'logos' | 'business-images' | 'profile-photos' | 'custom-sections' = 'business-images',
     options: { optimize?: boolean; maxWidth?: number; maxHeight?: number } = {}
   ): Promise<ImageMetadata> {
+    // Validate URL before fetching to prevent SSRF attacks
+    if (!isUrlSafeForFetch(imageUrl)) {
+      throw new Error(`Invalid or blocked URL: ${imageUrl}`);
+    }
+
     const response = await fetch(imageUrl);
     if (!response.ok) {
       throw new Error(`Failed to fetch image from URL: ${response.statusText}`);
     }
-    
+
     const buffer = Buffer.from(await response.arrayBuffer());
     const mimeType = response.headers.get('content-type') || 'image/jpeg';
     const originalName = path.basename(new URL(imageUrl).pathname) || 'downloaded-image';
-    
+
     return this.saveImageFromBuffer(buffer, originalName, mimeType, userId, type, options);
   }
 

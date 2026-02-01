@@ -12,6 +12,7 @@ import { dirname } from 'path';
 import OpenAI from 'openai';
 import XLSX from 'xlsx';
 import { promises as fsPromises } from 'fs';
+import { API_TIMEOUTS } from './utils/fetch-with-timeout';
 
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -83,10 +84,12 @@ function getOpenAIClient(): OpenAI | null {
   }
 
   if (!openai) {
+    // Initialize OpenAI client with timeout (PERF-013)
     openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
+      timeout: API_TIMEOUTS.AI_API, // 60 second timeout for AI API calls
     });
-    logger.info('OpenAI client initialized');
+    logger.info('OpenAI client initialized with timeout');
   }
 
   return openai;

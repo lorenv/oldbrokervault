@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -230,7 +230,9 @@ export const cimDocuments = pgTable("cim_documents", {
     sectionStyle: 'cards' | 'flat' | 'minimal';
     contactPosition: 'sidebar' | 'bottom';
   }>()
-});
+}, (table) => ({
+  userDeletedAtIdx: index("cim_documents_user_deleted_at_idx").on(table.userId, table.deletedAt),
+}));
 
 export const uploadedFiles = pgTable("uploaded_files", {
   id: serial("id").primaryKey(),
@@ -303,7 +305,9 @@ export const ndaSigningSessions = pgTable("nda_signing_sessions", {
   completedAt: timestamp("completed_at"),
   expiresAt: timestamp("expires_at"),
   settings: jsonb("settings").default({}).notNull(), // Signing preferences, reminders, etc.
-});
+}, (table) => ({
+  documentStatusIdx: index("nda_signing_sessions_document_status_idx").on(table.cimDocumentId, table.status),
+}));
 
 // E-Signature Recipients - Multi-party signing support
 export const ndaRecipients = pgTable("nda_recipients", {
@@ -371,7 +375,9 @@ export const ndaSignatures = pgTable("nda_signatures", {
   fieldValues: jsonb("field_values").default({}).notNull(), // Field ID to value mapping
   signingSessionId: integer("signing_session_id"), // Link to new signing session
   stage: text("stage"), // Kanban stage for organizing signers
-});
+}, (table) => ({
+  documentApprovedIdx: index("nda_signatures_document_approved_idx").on(table.cimDocumentId, table.approved),
+}));
 
 // NDA Access Tokens - unique tokens for users who signed NDAs
 export const ndaAccessTokens = pgTable("nda_access_tokens", {
@@ -411,7 +417,9 @@ export const documentViews = pgTable("document_views", {
   sessionId: text("session_id"), // Unique session identifier for tracking time spent
   timeSpentSeconds: integer("time_spent_seconds").default(0), // Total time spent viewing
   lastHeartbeat: timestamp("last_heartbeat"), // Last heartbeat timestamp for session tracking
-});
+}, (table) => ({
+  documentViewedAtIdx: index("document_views_document_viewed_at_idx").on(table.cimDocumentId, table.viewedAt),
+}));
 
 // Download tracking for analytics
 export const documentDownloads = pgTable("document_downloads", {
@@ -2285,7 +2293,9 @@ export const organizationMembers = pgTable("organization_members", {
 
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
-});
+}, (table) => ({
+  orgStatusIdx: index("organization_members_org_status_idx").on(table.organizationId, table.status),
+}));
 
 // CRM Visibility Settings Types
 export const CRM_VISIBILITY_OPTIONS = ['owner_only', 'team', 'organization'] as const;

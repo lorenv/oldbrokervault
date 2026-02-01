@@ -14,6 +14,7 @@ import { Send, Mail, MessageSquare, Clock, CheckCircle, AlertCircle, Archive, Ar
 import { formatDistanceToNow } from 'date-fns';
 import { RichTextEditor } from '@/components/RichTextEditor';
 import { Input } from '@/components/ui/input';
+import { sanitizeHtml } from '@/lib/sanitize';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -894,12 +895,12 @@ export function EnhancedMessageCenter() {
                             )}
                           </div>
                           {message.richContent ? (
-                            <div 
+                            <div
                               className={`prose prose-sm max-w-none break-words overflow-wrap-anywhere [&>p]:mb-2 [&>p:last-child]:mb-0 [&>p:first-child]:mt-0 ${
                                 message.senderType === 'owner' ? 'text-white' : ''
                               }`}
-                              dangerouslySetInnerHTML={{ 
-                                __html: message.richContent
+                              dangerouslySetInnerHTML={{
+                                __html: sanitizeHtml(message.richContent
                                   // Clean up TipTap's extra paragraph wrapping
                                   .replace(/^<p[^>]*>([\s\S]*)<\/p>$/, '$1')  // Remove wrapping p tags if it's the only content
                                   .replace(/<p[^>]*>\s*<\/p>/g, '')       // Remove empty p tags
@@ -907,7 +908,7 @@ export function EnhancedMessageCenter() {
                                   .replace(/<\/p>/g, '<br>')             // Convert closing p tags to breaks
                                   .replace(/(<br>\s*){2,}/g, '<br><br>') // Normalize multiple breaks
                                   .replace(/^<br>+/, '')                 // Remove leading breaks
-                                  .replace(/<br>+$/, '')                 // Remove trailing breaks
+                                  .replace(/<br>+$/, ''))                // Remove trailing breaks
                               }}
                             />
                           ) : (

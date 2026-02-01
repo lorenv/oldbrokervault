@@ -54,6 +54,7 @@ import { FormattingProfileSelector, type CustomStyleConfig } from "./formatting-
 import type { FormattingProfile } from "@shared/formatting-config";
 import { ContentStyleSection } from "./content-style-section";
 import { SDEAnalyzerModal } from "./sde-analyzer-modal";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 // Default section lines for the new interface
 const DEFAULT_SECTION_LINES = [
@@ -965,7 +966,7 @@ export function CimGenerator({ onModeChange, dealId }: CimGeneratorProps = {}) {
                   {coverImageAttribution && (
                     <div
                       className="text-xs text-gray-500 p-2 bg-gray-50 rounded"
-                      dangerouslySetInnerHTML={{ __html: coverImageAttribution }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(coverImageAttribution) }}
                     />
                   )}
 

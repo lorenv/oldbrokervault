@@ -4,6 +4,68 @@ import slowDown from "express-slow-down";
 import { body, validationResult } from "express-validator";
 import hpp from "hpp";
 import { Express, Request, Response, NextFunction } from "express";
+import { URL } from 'url';
+
+/**
+ * Validates if a URL is safe to fetch from the server.
+ * Prevents SSRF attacks by blocking internal network addresses, localhost, and private IP ranges.
+ * @param urlString The URL string to validate
+ * @returns true if the URL is safe to fetch, false otherwise
+ */
+export function isUrlSafeForFetch(urlString: string): boolean {
+  try {
+    const url = new URL(urlString);
+
+    // Only allow http and https protocols
+    if (!['http:', 'https:'].includes(url.protocol)) {
+      return false;
+    }
+
+    const hostname = url.hostname.toLowerCase();
+
+    // Block localhost variants
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') {
+      return false;
+    }
+
+    // Block IPv6 localhost
+    if (hostname === '[::1]') {
+      return false;
+    }
+
+    // Block private IP ranges (IPv4)
+    const ipv4Parts = hostname.split('.').map(Number);
+    if (ipv4Parts.length === 4 && ipv4Parts.every(p => !isNaN(p) && p >= 0 && p <= 255)) {
+      // 10.0.0.0/8 - Private network
+      if (ipv4Parts[0] === 10) return false;
+      // 172.16.0.0/12 - Private network
+      if (ipv4Parts[0] === 172 && ipv4Parts[1] >= 16 && ipv4Parts[1] <= 31) return false;
+      // 192.168.0.0/16 - Private network
+      if (ipv4Parts[0] === 192 && ipv4Parts[1] === 168) return false;
+      // 169.254.0.0/16 - Link-local
+      if (ipv4Parts[0] === 169 && ipv4Parts[1] === 254) return false;
+      // 127.0.0.0/8 - Loopback
+      if (ipv4Parts[0] === 127) return false;
+      // 0.0.0.0
+      if (ipv4Parts.every(p => p === 0)) return false;
+    }
+
+    // Block common internal hostnames and cloud metadata endpoints
+    if (hostname.endsWith('.local') ||
+        hostname.endsWith('.internal') ||
+        hostname.endsWith('.localhost') ||
+        hostname.includes('metadata') ||
+        hostname.includes('169.254.169.254') ||
+        hostname === 'metadata.google.internal' ||
+        hostname === 'instance-data') {
+      return false;
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 // Validate SESSION_SECRET at module load time
 if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 32) {

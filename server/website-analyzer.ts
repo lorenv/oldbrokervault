@@ -6,6 +6,8 @@
 import { PERPLEXITY_API_URL } from './perplexity';
 import fetch from 'node-fetch';
 import { objectStorage } from './object-storage';
+import { API_TIMEOUTS } from './utils/fetch-with-timeout';
+import { isUrlSafeForFetch } from './security';
 
 
 
@@ -120,15 +122,21 @@ export function normalizeUrl(urlString: string): string {
 export async function extractWebsiteImages(websiteUrl: string): Promise<string[]> {
   try {
     console.log(`Starting image extraction for: ${websiteUrl}`);
-    
-    // Try different URL variations to handle certificate issues
-    const urlsToTry = [];
-    
+
     // Add original URL (clean it up first)
     let cleanUrl = websiteUrl.trim().toLowerCase();
     if (!cleanUrl.startsWith('http')) {
       cleanUrl = `https://${cleanUrl}`;
     }
+
+    // Validate URL before fetching to prevent SSRF attacks
+    if (!isUrlSafeForFetch(cleanUrl)) {
+      console.error(`Blocked unsafe URL in extractWebsiteImages: ${websiteUrl}`);
+      return [];
+    }
+
+    // Try different URL variations to handle certificate issues
+    const urlsToTry = [];
     urlsToTry.push(cleanUrl);
     
     // Add alternative without www if original has it, or with www if it doesn't
@@ -153,6 +161,8 @@ export async function extractWebsiteImages(websiteUrl: string): Promise<string[]
     for (const tryUrl of urlsToTry) {
       try {
         console.log(`Trying URL: ${tryUrl}`);
+        // Use explicit timeout for external website fetch (PERF-013)
+        // node-fetch supports timeout directly in options
         const response = await fetch(tryUrl, {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -163,11 +173,12 @@ export async function extractWebsiteImages(websiteUrl: string): Promise<string[]
             'Connection': 'keep-alive',
             'Upgrade-Insecure-Requests': '1',
           },
-          timeout: 15000,
+          // node-fetch timeout option (PERF-013)
+          timeout: API_TIMEOUTS.STANDARD,
           // Add TLS options to handle certificate issues
           agent: false,
-          redirect: 'follow'
-        });
+          redirect: 'follow',
+        } as any);
         
         if (response.ok) {
           html = await response.text();
@@ -247,13 +258,14 @@ export async function extractWebsiteImages(websiteUrl: string): Promise<string[]
         } else {
           // For URLs without clear extensions, do a quick HEAD request
           try {
-            const imgResponse = await fetch(imageUrl, { 
-              method: 'HEAD', 
-              timeout: 2000,
+            // Use explicit timeout (PERF-013) - node-fetch timeout option
+            const imgResponse = await fetch(imageUrl, {
+              method: 'HEAD',
+              timeout: API_TIMEOUTS.FAST,
               headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-              }
-            });
+              },
+            } as any);
             const contentType = imgResponse.headers.get('content-type');
             if (imgResponse.ok && contentType && contentType.startsWith('image/')) {
               imageUrls.push(imageUrl);
@@ -329,6 +341,12 @@ export async function captureWebsiteScreenshot(websiteUrl: string): Promise<stri
  */
 async function downloadAndSaveLogo(logoUrl: string, websiteUrl: string, userId: number = 1): Promise<string | null> {
   try {
+    // Validate URL before fetching to prevent SSRF attacks
+    if (!isUrlSafeForFetch(logoUrl)) {
+      console.error(`Blocked unsafe logo URL in downloadAndSaveLogo: ${logoUrl}`);
+      return null;
+    }
+
     const crypto = await import('crypto');
 
     // Generate filename based on website - always use PNG for better compatibility
@@ -348,8 +366,9 @@ async function downloadAndSaveLogo(logoUrl: string, websiteUrl: string, userId: 
       console.log('Logo not found in storage, proceeding with download');
     }
 
-    // Download the logo
-    const response = await fetch(logoUrl);
+    // Download the logo with timeout (PERF-013) - node-fetch timeout option
+    const response = await fetch(logoUrl, { timeout: API_TIMEOUTS.STANDARD } as any);
+
     if (!response.ok) {
       console.error(`Failed to download logo: ${response.statusText}`);
       return null;
@@ -451,14 +470,21 @@ export async function extractLogoFromWebsite(websiteUrl: string, userId: number 
     console.log(`Attempting to extract logo from website: ${websiteUrl}`);
     const normalizedUrl = normalizeUrl(websiteUrl);
     console.log(`Normalized URL: ${normalizedUrl}`);
-    
-    // Fetch the website HTML
+
+    // Validate URL before fetching to prevent SSRF attacks
+    if (!isUrlSafeForFetch(normalizedUrl)) {
+      console.error(`Blocked unsafe URL in extractLogoFromWebsite: ${websiteUrl}`);
+      return null;
+    }
+
+    // Fetch the website HTML with timeout (PERF-013) - node-fetch timeout option
     console.log(`Fetching website HTML...`);
     const response = await fetch(normalizedUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-      }
-    });
+      },
+      timeout: API_TIMEOUTS.STANDARD,
+    } as any);
     
     if (!response.ok) {
       console.error(`Failed to fetch website: ${response.status} ${response.statusText}`);
@@ -513,10 +539,10 @@ export async function extractLogoFromWebsite(websiteUrl: string, userId: number 
           console.log(`Converted relative URL to: ${logoUrl}`);
         }
         
-        // Verify the logo URL is accessible
+        // Verify the logo URL is accessible with timeout (PERF-013) - node-fetch timeout option
         try {
           console.log(`Checking if logo URL is accessible: ${logoUrl}`);
-          const logoResponse = await fetch(logoUrl, { method: 'HEAD' });
+          const logoResponse = await fetch(logoUrl, { method: 'HEAD', timeout: API_TIMEOUTS.FAST } as any);
           if (!logoResponse.ok) {
             console.log(`Logo URL returned status ${logoResponse.status}: ${logoResponse.statusText}`);
             continue; // Try next pattern
@@ -553,9 +579,9 @@ export async function extractLogoFromWebsite(websiteUrl: string, userId: number 
     // Default favicon location as last resort
     const defaultFavicon = `${baseUrl}/favicon.ico`;
     
-    // Check if default favicon exists
+    // Check if default favicon exists with timeout (PERF-013) - node-fetch timeout option
     try {
-      const faviconResponse = await fetch(defaultFavicon, { method: 'HEAD' });
+      const faviconResponse = await fetch(defaultFavicon, { method: 'HEAD', timeout: API_TIMEOUTS.FAST } as any);
       if (faviconResponse.ok) {
         console.log(`Using default favicon location: ${defaultFavicon}`);
         return defaultFavicon;
@@ -623,6 +649,7 @@ export async function analyzeWebsite(websiteUrl: string): Promise<any> {
       - If unsure whether something is on the website, mark it as not available
     `;
 
+    // Use timeout for external AI API call (PERF-013) - node-fetch timeout option
     const response = await fetch(PERPLEXITY_API_URL, {
       method: 'POST',
       headers: {
@@ -649,8 +676,9 @@ export async function analyzeWebsite(websiteUrl: string): Promise<any> {
         return_related_questions: false,
         stream: false,
         frequency_penalty: 0
-      })
-    });
+      }),
+      timeout: API_TIMEOUTS.AI_API, // 60 second timeout
+    } as any);
 
     if (!response.ok) {
       // Try to get more detailed error information

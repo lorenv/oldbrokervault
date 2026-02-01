@@ -1,7 +1,14 @@
 import OpenAI from "openai";
 
+// Import timeout config for AI API calls (PERF-013)
+import { API_TIMEOUTS } from "./utils/fetch-with-timeout";
+
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Initialize with timeout to prevent hanging requests (PERF-013)
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+  timeout: API_TIMEOUTS.AI_API, // 60 second timeout for AI API calls
+});
 
 /**
  * Summarizes document text for e-signature signers using GPT-4o-mini for cost efficiency

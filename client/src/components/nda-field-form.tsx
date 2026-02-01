@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar, Mail, Type, FileSignature, AlignLeft } from 'lucide-react';
-
+import { sanitizeHtml } from '@/lib/sanitize';
 import { useToast } from '@/hooks/use-toast';
 
 interface SignatureField {
@@ -231,9 +231,9 @@ export default function NdaFieldForm({
                 <CardTitle className="text-lg">Non-Disclosure Agreement</CardTitle>
               </CardHeader>
               <CardContent>
-                <div 
+                <div
                   className="prose prose-sm max-w-none text-gray-700 max-h-64 overflow-y-auto"
-                  dangerouslySetInnerHTML={{ __html: ndaContent }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(ndaContent) }}
                 />
               </CardContent>
             </Card>

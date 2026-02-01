@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Save, X, Type } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { RichTextEditor, htmlToPlainText, plainTextWithFormattingToHtml } from "./rich-text-editor";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 interface EnhancedInlineEditorProps {
   value: string | string[];
@@ -247,7 +248,7 @@ export function EnhancedInlineEditor({
         {enableRichText && displayValue.includes('<') && displayValue.includes('>') ? (
           <div
             className="prose prose-sm max-w-none"
-            dangerouslySetInnerHTML={{ __html: displayValue }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(displayValue) }}
           />
         ) : (
           <span className={displayValue ? "" : "text-muted-foreground"}>

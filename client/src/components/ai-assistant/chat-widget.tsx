@@ -14,6 +14,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -273,7 +274,7 @@ export function AIChatWidget() {
                     {msg.role === "assistant" ? (
                       <div
                         className="prose prose-sm max-w-none [&>ul]:list-disc [&>ul]:pl-4"
-                        dangerouslySetInnerHTML={{ __html: formatMessage(msg.content) }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(formatMessage(msg.content)) }}
                       />
                     ) : (
                       msg.content

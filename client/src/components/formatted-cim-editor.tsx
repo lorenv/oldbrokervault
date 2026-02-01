@@ -6,6 +6,7 @@ import { RichTextEditor } from '@/components/rich-text-editor';
 import { FormattingProfileSelector } from '@/components/formatting-profile-selector';
 import { type FormattingProfile } from '@shared/formatting-config';
 import { Settings, Eye, Edit } from 'lucide-react';
+import { sanitizeHtml } from '@/lib/sanitize';
 
 interface FormattedCimEditorProps {
   initialContent?: string;
@@ -155,9 +156,9 @@ export function FormattedCimEditor({
                 </CardHeader>
                 <CardContent>
                   {content ? (
-                    <div 
+                    <div
                       className="prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ __html: content }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }}
                     />
                   ) : (
                     <div className="text-center py-8 text-gray-500">

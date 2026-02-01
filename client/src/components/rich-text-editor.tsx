@@ -14,6 +14,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Bold as BoldIcon, Italic as ItalicIcon, List, ListOrdered, Table as TableIcon, Save, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getFormattingConfig, type FormattingProfile } from '@shared/formatting-config';
+import { sanitizeHtml } from '@/lib/sanitize';
 
 interface RichTextEditorProps {
   value: string;
@@ -106,9 +107,9 @@ export function RichTextEditor({
 
   if (!isEditing) {
     return (
-      <div 
+      <div
         className={`prose prose-sm max-w-none ${className}`}
-        dangerouslySetInnerHTML={{ __html: content }}
+        dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }}
       />
     );
   }
