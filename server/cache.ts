@@ -11,7 +11,7 @@ interface CacheEntry<T> {
 
 class MemoryCache {
   private cache = new Map<string, CacheEntry<any>>();
-  private maxSize = 1000; // Maximum number of cache entries
+  private maxSize = 5000; // Increased from 1000 for better cache hit rates
   private cleanupInterval: NodeJS.Timeout | null = null;
   private cleanupIntervalMs = 60000; // Run cleanup every minute
 
@@ -48,38 +48,62 @@ class MemoryCache {
   private cleanupExpired(): void {
     const now = Date.now();
     let cleanedCount = 0;
-    
-    for (const [key, entry] of Array.from(this.cache.entries())) {
+
+    // Use iterator directly to avoid creating Array.from copy (O(n) space -> O(1) space)
+    for (const [key, entry] of this.cache) {
       if (now - entry.timestamp > entry.ttl) {
         this.cache.delete(key);
         cleanedCount++;
       }
     }
 
-    if (cleanedCount > 0) {
+    // Only log in development to reduce production overhead
+    if (cleanedCount > 0 && process.env.NODE_ENV !== 'production') {
       console.log(`[Cache] Cleaned up ${cleanedCount} expired entries`);
     }
   }
-  
+
   set<T>(key: string, data: T, ttlMs: number = 60000): void {
-    // Clean up old entries if cache is full
+    // STRICT maxSize enforcement - always clean before adding if at limit
     if (this.cache.size >= this.maxSize) {
       const now = Date.now();
-      for (const [k, entry] of Array.from(this.cache.entries())) {
+
+      // First pass: delete expired entries (efficient - no sorting)
+      for (const [k, entry] of this.cache) {
         if (now - entry.timestamp > entry.ttl) {
           this.cache.delete(k);
         }
+        // Stop early if we've freed enough space
+        if (this.cache.size < this.maxSize * 0.8) break;
       }
-      
-      // If still full, remove oldest entries
+
+      // Second pass: if still at limit, remove oldest entries using LRU-style eviction
       if (this.cache.size >= this.maxSize) {
-        const entries = Array.from(this.cache.entries());
-        entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
-        const toRemove = entries.slice(0, Math.floor(this.maxSize * 0.2));
-        toRemove.forEach(([k]) => this.cache.delete(k));
+        // Find oldest entries efficiently without full sort
+        const targetRemoval = Math.floor(this.maxSize * 0.2);
+        const oldestKeys: string[] = [];
+        let oldestTime = Infinity;
+
+        for (const [k, entry] of this.cache) {
+          if (entry.timestamp < oldestTime || oldestKeys.length < targetRemoval) {
+            oldestKeys.push(k);
+            if (entry.timestamp < oldestTime) {
+              oldestTime = entry.timestamp;
+            }
+            // Keep only targetRemoval candidates
+            if (oldestKeys.length > targetRemoval * 2) {
+              oldestKeys.shift();
+            }
+          }
+        }
+
+        // Remove oldest entries
+        for (const k of oldestKeys.slice(0, targetRemoval)) {
+          this.cache.delete(k);
+        }
       }
     }
-    
+
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
@@ -169,15 +193,15 @@ class MemoryCache {
 export const shareCache = new MemoryCache();
 export { MemoryCache };
 
-// Cache configuration constants
+// Cache configuration constants - optimized TTLs for better hit rates
 export const CACHE_TTL = {
-  SHARE_DOCUMENT: 2 * 60 * 1000, // 2 minutes
-  USER_PROFILE: 5 * 60 * 1000,   // 5 minutes
-  CUSTOM_SECTIONS: 3 * 60 * 1000, // 3 minutes
-  NDA_STATUS: 1 * 60 * 1000,     // 1 minute
-  NDA_CHECK: 30 * 1000,          // 30 seconds
-  MESSAGE_THREADS: 1 * 60 * 1000, // 1 minute
-  THREAD_MESSAGES: 2 * 60 * 1000, // 2 minutes
-  UNREAD_COUNT: 30 * 1000,       // 30 seconds
-  CIM_DOCUMENTS: 5 * 60 * 1000,  // 5 minutes
+  SHARE_DOCUMENT: 5 * 60 * 1000, // 5 minutes (increased for stable data)
+  USER_PROFILE: 15 * 60 * 1000,  // 15 minutes (profiles rarely change)
+  CUSTOM_SECTIONS: 10 * 60 * 1000, // 10 minutes (sections are fairly stable)
+  NDA_STATUS: 2 * 60 * 1000,     // 2 minutes (balance freshness vs. load)
+  NDA_CHECK: 60 * 1000,          // 1 minute (increased from 30s)
+  MESSAGE_THREADS: 2 * 60 * 1000, // 2 minutes
+  THREAD_MESSAGES: 3 * 60 * 1000, // 3 minutes
+  UNREAD_COUNT: 60 * 1000,       // 1 minute (balance freshness vs. load)
+  CIM_DOCUMENTS: 10 * 60 * 1000, // 10 minutes (documents don't change often)
 };

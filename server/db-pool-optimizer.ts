@@ -43,33 +43,32 @@ export class ConnectionPoolOptimizer {
     this.startAutoAdjustment();
   }
 
+  // Store bound listeners for proper cleanup
+  private connectListener = () => { this.metrics.totalConnections++; };
+  private removeListener = () => { this.metrics.totalConnections--; };
+  private errorListener = (err: Error) => {
+    this.metrics.connectionErrors++;
+    this.metrics.lastError = err.message;
+    if (this.metrics.connectionErrors > 10) {
+      console.error('[Pool Critical] High error rate detected:', this.metrics.connectionErrors);
+    }
+  };
+
   /**
    * Setup monitoring hooks for the connection pool
    */
   private setupMonitoring() {
-    // Monitor connection events
-    this.pool.on('connect', () => {
-      this.metrics.totalConnections++;
-    });
+    // Monitor connection events with stored references for cleanup
+    this.pool.on('connect', this.connectListener);
+    this.pool.on('remove', this.removeListener);
+    this.pool.on('error', this.errorListener);
 
-    this.pool.on('remove', () => {
-      this.metrics.totalConnections--;
-    });
-
-    this.pool.on('error', (err) => {
-      this.metrics.connectionErrors++;
-      this.metrics.lastError = err.message;
-      
-      // Log critical errors
-      if (this.metrics.connectionErrors > 10) {
-        console.error('[Pool Critical] High error rate detected:', this.metrics.connectionErrors);
-      }
-    });
-
-    // Start metrics collection
-    this.metricsInterval = setInterval(() => {
-      this.collectMetrics();
-    }, 5000); // Collect every 5 seconds
+    // Start metrics collection (only in production or when explicitly enabled)
+    if (process.env.NODE_ENV === 'production' || process.env.ENABLE_POOL_METRICS) {
+      this.metricsInterval = setInterval(() => {
+        this.collectMetrics();
+      }, 10000); // Collect every 10 seconds (reduced from 5s)
+    }
   }
 
   /**
@@ -262,15 +261,30 @@ export class ConnectionPoolOptimizer {
   }
 
   /**
-   * Cleanup on shutdown
+   * Cleanup on shutdown - properly removes all event listeners and intervals
    */
   destroy() {
+    // Clear intervals
     if (this.adjustmentInterval) {
       clearInterval(this.adjustmentInterval);
+      this.adjustmentInterval = null;
     }
     if (this.metricsInterval) {
       clearInterval(this.metricsInterval);
+      this.metricsInterval = null;
     }
+
+    // Remove event listeners to prevent memory leaks
+    try {
+      this.pool.off('connect', this.connectListener);
+      this.pool.off('remove', this.removeListener);
+      this.pool.off('error', this.errorListener);
+    } catch (err) {
+      // Pool may already be closed, ignore errors
+    }
+
+    // Clear query times array
+    this.queryTimes = [];
   }
 }
 
