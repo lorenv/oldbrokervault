@@ -1,0 +1,103 @@
+# Docker Image Size Optimization
+# Excludes files not needed at runtime to stay under 8 GiB limit
+
+# Git
+.git
+.gitignore
+
+# IDE and editor
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+
+# Replit specific dev files (not needed in container)
+.replit
+.cache
+.config
+.local
+.upm
+.browserslistrc
+replit.nix
+replit.md
+
+# ALL PDF files in root directory (saves ~200MB+)
+# These are test/debug PDFs, not runtime assets
+/*.pdf
+
+# Test and debug session files
+cookies.txt
+new-cookies.txt
+prod-session.txt
+production-cookies.txt
+test*.txt
+test-session*.txt
+
+# Base64 data files
+nda_base64.txt
+
+# Log and temp files
+*.log
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Debug and test scripts at root level
+debug-*.js
+debug-*.ts
+test-*.js
+test-*.ts
+check-*.js
+check-*.ts
+verify-*.js
+verify-*.ts
+diagnose-*.js
+monitor-*.js
+
+# SQL migration files at root
+add-copy-me-on-emails-column.sql
+
+# Development-only scripts
+build-deployment.js
+build-static.sh
+vite.config.deployment.ts
+wordpress-export.py
+upgrade-*.ts
+create-*.ts
+fix-*.ts
+backup-*.ts
+
+# Documentation (not needed at runtime)
+docs/
+CLAUDE.md
+COLLABORATION.md
+DEPLOYMENT-FIX.md
+DEPLOYMENT-SUCCESS-GUIDE.md
+AUTOSCALE-DEPLOYMENT-READY.md
+EMAIL_WEBHOOK_DEBUG.md
+image-persistence-audit.md
+*.md
+!README.md
+
+# Backup directories
+database-backups/
+
+# Chrome extension (separate project)
+chrome-extension/
+
+# Large directories not needed at runtime
+attached_assets/
+financial-files/
+
+# Development config files
+deployment.json
+deployment-static.json
+deployment-env-check.js
+
+# Source maps (bundled in build)
+*.map
+
+# Puppeteer browser cache (300MB+)
+.cache/puppeteer/

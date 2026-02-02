@@ -1,0 +1,40 @@
+# Exclude from Nix builds (helps reduce image size)
+# Mirrors .dockerignore for consistency
+
+# Git
+.git
+
+# IDE and editor
+.vscode
+.idea
+
+# Replit dev files
+.cache
+.config
+.local
+.upm
+
+# ALL PDF files in root (test/debug, not runtime assets)
+/*.pdf
+
+# Test session files
+cookies.txt
+new-cookies.txt
+prod-session.txt
+production-cookies.txt
+nda_base64.txt
+
+# Large asset directories not needed at runtime
+attached_assets/
+database-backups/
+financial-files/
+chrome-extension/
+
+# Documentation
+docs/
+
+# Temporary and log files
+*.log
+*.tmp
+*.temp
+*.bak

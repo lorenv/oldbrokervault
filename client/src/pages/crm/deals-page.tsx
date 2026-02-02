@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, memo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import {
@@ -129,8 +129,8 @@ function getDaysColor(days: number): string {
   return "text-red-500";
 }
 
-// Draggable Deal Card Component
-function DealCard({ deal, isDragging, isOverlay }: { deal: Deal; isDragging?: boolean; isOverlay?: boolean }) {
+// Draggable Deal Card Component - memoized for performance
+const DealCard = memo(function DealCard({ deal, isDragging, isOverlay }: { deal: Deal; isDragging?: boolean; isOverlay?: boolean }) {
   const { attributes, listeners, setNodeRef, transform, isDragging: isCurrentlyDragging } = useDraggable({
     id: deal.id,
     data: deal,
@@ -218,10 +218,10 @@ function DealCard({ deal, isDragging, isOverlay }: { deal: Deal; isDragging?: bo
       </div>
     </div>
   );
-}
+});
 
-// Droppable Stage Column
-function StageColumn({
+// Droppable Stage Column - memoized for performance
+const StageColumn = memo(function StageColumn({
   stage,
   children,
 }: {
@@ -277,7 +277,7 @@ function StageColumn({
       </div>
     </div>
   );
-}
+});
 
 // Inline Editable Cell
 function InlineEditableCell({

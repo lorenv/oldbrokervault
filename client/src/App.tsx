@@ -4,75 +4,86 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "./hooks/use-auth";
 import { ErrorBoundary } from "@/components/error-boundary";
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { initializeTracking, useTracking } from "./hooks/use-tracking";
 import { useAuth } from "@/hooks/use-auth";
 import { AppLayout } from "@/components/layout/app-layout";
 
-// Page imports
-import DashboardPage from "@/pages/dashboard-page";
+// Core pages (loaded immediately for fast initial render)
 import LoginPage from "@/pages/login-page";
 import RegisterPage from "@/pages/register-page";
-import AdminPage from "@/pages/admin-page";
-import DocumentsPage from "@/pages/documents-page";
-import AnalyticsPage from "@/pages/analytics-page";
-import CheckoutSuccess from "@/pages/checkout-success";
-import { SharePage } from "@/pages/share-page";
-import { TeaserPage } from "@/pages/teaser-page";
-import { TeaserEmbedPage } from "@/pages/teaser-embed-page";
-import { ListingsPage } from "@/pages/listings-page";
-import { NdaRedirectPage } from "@/pages/nda-redirect-page";
-import { UnsubscribePage } from "@/pages/unsubscribe-page";
-import { AcceptCollaborationPage } from "@/pages/accept-collaboration-page";
-import { InvitationLandingPage } from "@/pages/invitation-landing-page";
 import NotFound from "@/pages/not-found";
 import { ProtectedRoute } from "./lib/protected-route";
-import PremiumDashboard from "@/pages/premium-dashboard";
-import InvestorDatabasePage from "@/pages/investor-database-page";
-import { DocumentDetailPage } from "@/pages/document-detail-page";
-import NdaTemplatesPage from "@/pages/nda-templates-page";
-import EnhancedNdaSigningPage from "@/pages/enhanced-nda-signing-page";
-import SignDocumentPage from "@/pages/sign-document";
-import Messages from "@/pages/messages";
-import EnhancedTemplateEditorPage from "@/pages/enhanced-template-editor-page";
 import { GetStartedChecklist } from "@/components/get-started-checklist";
-import SDEAnalyzerPage from "@/pages/sde-analyzer-page";
-import IntegrationsPage from "@/pages/integrations-page";
-import WebhooksPage from "@/pages/webhooks-page";
-import DataRoomPage from "@/pages/data-room-page";
 
-// New settings pages
-import ListingsSettingsPage from "@/pages/listings-settings-page";
-import ProfilePage from "@/pages/settings/profile-page";
-import NotificationsPage from "@/pages/settings/notifications-page";
-import ManageUsersPage from "@/pages/settings/manage-users-page";
-import CustomFieldsPage from "@/pages/settings/custom-fields-page";
-import DataManagementPage from "@/pages/settings/data-management-page";
-import BrandingPage from "@/pages/settings/branding-page";
-import SettingsIndexPage from "@/pages/settings/settings-index-page";
-import EmailSettingsPage from "@/pages/settings/email-settings-page";
-import PipelineSettingsPage from "@/pages/settings/pipeline-settings-page";
+// Lazy-loaded pages (code splitting for better performance)
+const DashboardPage = lazy(() => import("@/pages/dashboard-page"));
+const AdminPage = lazy(() => import("@/pages/admin-page"));
+const DocumentsPage = lazy(() => import("@/pages/documents-page"));
+const AnalyticsPage = lazy(() => import("@/pages/analytics-page"));
+const CheckoutSuccess = lazy(() => import("@/pages/checkout-success"));
+const SharePage = lazy(() => import("@/pages/share-page").then(m => ({ default: m.SharePage })));
+const TeaserPage = lazy(() => import("@/pages/teaser-page").then(m => ({ default: m.TeaserPage })));
+const TeaserEmbedPage = lazy(() => import("@/pages/teaser-embed-page").then(m => ({ default: m.TeaserEmbedPage })));
+const ListingsPage = lazy(() => import("@/pages/listings-page").then(m => ({ default: m.ListingsPage })));
+const NdaRedirectPage = lazy(() => import("@/pages/nda-redirect-page").then(m => ({ default: m.NdaRedirectPage })));
+const UnsubscribePage = lazy(() => import("@/pages/unsubscribe-page").then(m => ({ default: m.UnsubscribePage })));
+const AcceptCollaborationPage = lazy(() => import("@/pages/accept-collaboration-page").then(m => ({ default: m.AcceptCollaborationPage })));
+const InvitationLandingPage = lazy(() => import("@/pages/invitation-landing-page").then(m => ({ default: m.InvitationLandingPage })));
+const PremiumDashboard = lazy(() => import("@/pages/premium-dashboard"));
+const InvestorDatabasePage = lazy(() => import("@/pages/investor-database-page"));
+const DocumentDetailPage = lazy(() => import("@/pages/document-detail-page").then(m => ({ default: m.DocumentDetailPage })));
+const NdaTemplatesPage = lazy(() => import("@/pages/nda-templates-page"));
+const EnhancedNdaSigningPage = lazy(() => import("@/pages/enhanced-nda-signing-page"));
+const SignDocumentPage = lazy(() => import("@/pages/sign-document"));
+const Messages = lazy(() => import("@/pages/messages"));
+const EnhancedTemplateEditorPage = lazy(() => import("@/pages/enhanced-template-editor-page"));
+const SDEAnalyzerPage = lazy(() => import("@/pages/sde-analyzer-page"));
+const IntegrationsPage = lazy(() => import("@/pages/integrations-page"));
+const WebhooksPage = lazy(() => import("@/pages/webhooks-page"));
+const DataRoomPage = lazy(() => import("@/pages/data-room-page"));
 
-// CRM Pages
-import DealsPage from "@/pages/crm/deals-page";
-import DealDetailPage from "@/pages/crm/deal-detail-page";
-import CompaniesPage from "@/pages/crm/companies-page";
-import CompanyDetailPage from "@/pages/crm/company-detail-page";
-import ContactsPage from "@/pages/crm/contacts-page";
-import ContactDetailPage from "@/pages/crm/contact-detail-page";
-import TasksPage from "@/pages/crm/tasks-page";
+// Lazy-loaded settings pages
+const ListingsSettingsPage = lazy(() => import("@/pages/listings-settings-page"));
+const ProfilePage = lazy(() => import("@/pages/settings/profile-page"));
+const NotificationsPage = lazy(() => import("@/pages/settings/notifications-page"));
+const ManageUsersPage = lazy(() => import("@/pages/settings/manage-users-page"));
+const CustomFieldsPage = lazy(() => import("@/pages/settings/custom-fields-page"));
+const DataManagementPage = lazy(() => import("@/pages/settings/data-management-page"));
+const BrandingPage = lazy(() => import("@/pages/settings/branding-page"));
+const SettingsIndexPage = lazy(() => import("@/pages/settings/settings-index-page"));
+const EmailSettingsPage = lazy(() => import("@/pages/settings/email-settings-page"));
+const PipelineSettingsPage = lazy(() => import("@/pages/settings/pipeline-settings-page"));
 
-// E-Signature Pages
-import EsignDashboard from "@/pages/esign/esign-dashboard";
-import EsignTemplates from "@/pages/esign/esign-templates";
-import EsignTemplateEditor from "@/pages/esign/esign-template-editor";
-import EsignSend from "@/pages/esign/esign-send";
-import EsignEnvelopeDetail from "@/pages/esign/esign-envelope-detail";
-import EsignCorrect from "@/pages/esign/esign-correct";
-import EsignSign from "@/pages/esign/esign-sign";
-import EsignVerify from "@/pages/esign/esign-verify";
-import EsignSettings from "@/pages/esign/esign-settings";
-import EsignPowerForm from "@/pages/esign/esign-powerform";
+// Lazy-loaded CRM Pages
+const DealsPage = lazy(() => import("@/pages/crm/deals-page"));
+const DealDetailPage = lazy(() => import("@/pages/crm/deal-detail-page"));
+const CompaniesPage = lazy(() => import("@/pages/crm/companies-page"));
+const CompanyDetailPage = lazy(() => import("@/pages/crm/company-detail-page"));
+const ContactsPage = lazy(() => import("@/pages/crm/contacts-page"));
+const ContactDetailPage = lazy(() => import("@/pages/crm/contact-detail-page"));
+const TasksPage = lazy(() => import("@/pages/crm/tasks-page"));
+
+// Lazy-loaded E-Signature Pages
+const EsignDashboard = lazy(() => import("@/pages/esign/esign-dashboard"));
+const EsignTemplates = lazy(() => import("@/pages/esign/esign-templates"));
+const EsignTemplateEditor = lazy(() => import("@/pages/esign/esign-template-editor"));
+const EsignSend = lazy(() => import("@/pages/esign/esign-send"));
+const EsignEnvelopeDetail = lazy(() => import("@/pages/esign/esign-envelope-detail"));
+const EsignCorrect = lazy(() => import("@/pages/esign/esign-correct"));
+const EsignSign = lazy(() => import("@/pages/esign/esign-sign"));
+const EsignVerify = lazy(() => import("@/pages/esign/esign-verify"));
+const EsignSettings = lazy(() => import("@/pages/esign/esign-settings"));
+const EsignPowerForm = lazy(() => import("@/pages/esign/esign-powerform"));
+
+// Loading spinner for lazy-loaded components
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center min-h-[200px]">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+    </div>
+  );
+}
 
 // Routes that should use the sidebar layout (authenticated app routes)
 const authenticatedRoutes = [
@@ -123,6 +134,7 @@ function AuthenticatedRouter() {
 
   return (
     <AppLayout>
+      <Suspense fallback={<PageLoader />}>
       <Switch>
         <ProtectedRoute path="/dashboard" component={DashboardPage} />
         <ProtectedRoute path="/documents" component={DocumentsPage} />
@@ -203,6 +215,7 @@ function AuthenticatedRouter() {
 
         <Route component={NotFound} />
       </Switch>
+      </Suspense>
       {user && <GetStartedChecklist />}
     </AppLayout>
   );
@@ -211,6 +224,7 @@ function AuthenticatedRouter() {
 // Public routes (no navbar/footer - these are standalone pages)
 function PublicRouter() {
   return (
+    <Suspense fallback={<PageLoader />}>
     <Switch>
       {/* Auth routes - Login is at root */}
       <Route path="/" component={LoginPage} />
@@ -242,6 +256,7 @@ function PublicRouter() {
 
       <Route component={NotFound} />
     </Switch>
+    </Suspense>
   );
 }
 

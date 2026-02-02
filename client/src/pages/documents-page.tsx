@@ -86,14 +86,13 @@ export default function DocumentsPage() {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  // Debounce search query
-  const debouncedSearchQuery = useMemo(() => {
-    const timer = setTimeout(() => searchQuery, 300);
-    return searchQuery;
-  }, [searchQuery]);
+  // Properly debounced search query
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
 
   useEffect(() => {
     const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+      // Reset to page 1 when search changes
       if (currentPage !== 1) {
         setCurrentPage(1);
       }
