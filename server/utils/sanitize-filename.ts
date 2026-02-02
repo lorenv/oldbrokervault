@@ -83,3 +83,23 @@ export function sanitizeExtension(filename: string): string {
 
   return ext;
 }
+
+/**
+ * Escape HTML special characters to prevent XSS/HTML injection attacks.
+ * Use this when embedding user input into HTML templates (emails, rendered pages, etc.)
+ *
+ * @param text - The untrusted user input
+ * @returns HTML-escaped string safe for embedding in HTML
+ */
+export function escapeHtml(text: string): string {
+  if (!text || typeof text !== 'string') {
+    return '';
+  }
+
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}

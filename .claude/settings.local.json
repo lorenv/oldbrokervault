@@ -72,7 +72,8 @@
       "WebFetch(domain:www.docusign.com)",
       "WebFetch(domain:support.docusign.com)",
       "Bash(git -C /home/runner/workspace log --oneline --all)",
-      "Bash(git -C /home/runner/workspace show:*)"
+      "Bash(git -C /home/runner/workspace show:*)",
+      "Bash(du:*)"
     ],
     "deny": [],
     "ask": [],

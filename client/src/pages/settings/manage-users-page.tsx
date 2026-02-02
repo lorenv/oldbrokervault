@@ -749,7 +749,7 @@ function PermissionsTable({ groupedPermissions, matrix, onToggle, isUpdating, is
                           </div>
                         ) : (
                           <div className="flex justify-center">
-                            <Switch checked={granted} onCheckedChange={() => onToggle(perm.key, role, granted)} disabled={isUpdating || isViewOnly} checkedColor={granted ? "#22c55e" : undefined} />
+                            <Switch checked={granted} onCheckedChange={() => onToggle(perm.key, role, granted)} disabled={isUpdating || isViewOnly} checkedColor={granted ? "#3b82f6" : undefined} />
                           </div>
                         )}
                       </td>

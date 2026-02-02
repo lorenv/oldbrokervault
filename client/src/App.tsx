@@ -3,29 +3,20 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "./hooks/use-auth";
-import { Navbar } from "@/components/ui/navbar";
-import { Footer } from "@/components/ui/footer";
 import { ErrorBoundary } from "@/components/error-boundary";
-import { lazy, Suspense, useEffect } from "react";
+import { useEffect } from "react";
 import { initializeTracking, useTracking } from "./hooks/use-tracking";
 import { useAuth } from "@/hooks/use-auth";
 import { AppLayout } from "@/components/layout/app-layout";
 
 // Page imports
-import HomePage from "@/pages/home-page";
 import DashboardPage from "@/pages/dashboard-page";
 import LoginPage from "@/pages/login-page";
+import RegisterPage from "@/pages/register-page";
 import AdminPage from "@/pages/admin-page";
 import DocumentsPage from "@/pages/documents-page";
 import AnalyticsPage from "@/pages/analytics-page";
-import PricingPage from "@/pages/pricing-page";
 import CheckoutSuccess from "@/pages/checkout-success";
-import ContactPage from "@/pages/contact-page";
-import EulaPage from "@/pages/eula-page";
-import PrivacyPolicyPage from "@/pages/privacy-policy-page";
-import TermsOfServicePage from "@/pages/terms-of-service-page";
-import CookiePolicyPage from "@/pages/cookie-policy-page";
-import DataSecurityPage from "@/pages/data-security-page";
 import { SharePage } from "@/pages/share-page";
 import { TeaserPage } from "@/pages/teaser-page";
 import { TeaserEmbedPage } from "@/pages/teaser-embed-page";
@@ -45,7 +36,6 @@ import SignDocumentPage from "@/pages/sign-document";
 import Messages from "@/pages/messages";
 import EnhancedTemplateEditorPage from "@/pages/enhanced-template-editor-page";
 import { GetStartedChecklist } from "@/components/get-started-checklist";
-import VirtualDataRoomPage from "@/pages/virtual-data-room-page";
 import SDEAnalyzerPage from "@/pages/sde-analyzer-page";
 import IntegrationsPage from "@/pages/integrations-page";
 import WebhooksPage from "@/pages/webhooks-page";
@@ -53,17 +43,15 @@ import DataRoomPage from "@/pages/data-room-page";
 
 // New settings pages
 import ListingsSettingsPage from "@/pages/listings-settings-page";
-import AccountSettingsPage from "@/pages/settings/account-settings-page";
 import ProfilePage from "@/pages/settings/profile-page";
-import BillingPage from "@/pages/settings/billing-page";
-import EmailSettingsPage from "@/pages/settings/email-settings-page";
 import NotificationsPage from "@/pages/settings/notifications-page";
-import PermissionsPage from "@/pages/settings/permissions-page";
 import ManageUsersPage from "@/pages/settings/manage-users-page";
 import CustomFieldsPage from "@/pages/settings/custom-fields-page";
 import DataManagementPage from "@/pages/settings/data-management-page";
 import BrandingPage from "@/pages/settings/branding-page";
 import SettingsIndexPage from "@/pages/settings/settings-index-page";
+import EmailSettingsPage from "@/pages/settings/email-settings-page";
+import PipelineSettingsPage from "@/pages/settings/pipeline-settings-page";
 
 // CRM Pages
 import DealsPage from "@/pages/crm/deals-page";
@@ -73,10 +61,6 @@ import CompanyDetailPage from "@/pages/crm/company-detail-page";
 import ContactsPage from "@/pages/crm/contacts-page";
 import ContactDetailPage from "@/pages/crm/contact-detail-page";
 import TasksPage from "@/pages/crm/tasks-page";
-import TeamSettingsPage from "@/pages/settings/team-settings-page";
-import PipelineSettingsPage from "@/pages/settings/pipeline-settings-page";
-import TeamsSettingsPage from "@/pages/settings/teams-settings-page";
-import CrmVisibilitySettingsPage from "@/pages/settings/crm-visibility-settings-page";
 
 // E-Signature Pages
 import EsignDashboard from "@/pages/esign/esign-dashboard";
@@ -89,19 +73,6 @@ import EsignSign from "@/pages/esign/esign-sign";
 import EsignVerify from "@/pages/esign/esign-verify";
 import EsignSettings from "@/pages/esign/esign-settings";
 import EsignPowerForm from "@/pages/esign/esign-powerform";
-
-// Lazy load SEO pages for better performance
-const NdaProtectionPage = lazy(() => import("@/pages/features/nda-protection"));
-const AiPoweredCimPage = lazy(() => import("@/pages/features/ai-powered-cim"));
-const ESignaturesFeaturePage = lazy(() => import("@/pages/features/esignatures"));
-const InvestorDatabaseFeaturePage = lazy(() => import("@/pages/features/investor-database"));
-const SdeAnalyzerFeaturePage = lazy(() => import("@/pages/features/sde-analyzer"));
-const MessagesFeaturePage = lazy(() => import("@/pages/features/messages"));
-const AnalyticsFeaturePage = lazy(() => import("@/pages/features/analytics"));
-const IntegrationsFeaturePage = lazy(() => import("@/pages/features/integrations"));
-const BusinessBrokersPage = lazy(() => import("@/pages/solutions/business-brokers"));
-const InvestmentBankingPage = lazy(() => import("@/pages/solutions/investment-banking"));
-const ResourcesPage = lazy(() => import("@/pages/resources-page"));
 
 // Routes that should use the sidebar layout (authenticated app routes)
 const authenticatedRoutes = [
@@ -237,116 +208,40 @@ function AuthenticatedRouter() {
   );
 }
 
-// Public routes with navbar/footer
+// Public routes (no navbar/footer - these are standalone pages)
 function PublicRouter() {
-  const [location] = useLocation();
-  const isSharePage = location.startsWith('/share/') || location.startsWith('/cims/') || location.startsWith('/teaser/') || location.startsWith('/listings/');
-
   return (
-    <>
-      {!isSharePage && <Navbar />}
-      <div className={isSharePage ? "" : "min-h-screen flex flex-col"}>
-        <div className={isSharePage ? "" : "flex-1"}>
-          <Switch>
-            <Route path="/" component={HomePage} />
-            <Route path="/pricing" component={PricingPage} />
-            <Route path="/virtual-data-room" component={VirtualDataRoomPage} />
-            <Route path="/checkout-success" component={CheckoutSuccess} />
-            <Route path="/contact" component={ContactPage} />
-            <Route path="/eula" component={EulaPage} />
-            <Route path="/privacy-policy" component={PrivacyPolicyPage} />
-            <Route path="/terms-of-service" component={TermsOfServicePage} />
-            <Route path="/cookie-policy" component={CookiePolicyPage} />
-            <Route path="/data-security" component={DataSecurityPage} />
-            <Route path="/login" component={LoginPage} />
-            <Route path="/auth" component={LoginPage} />
-            <Route path="/reset-password" component={LoginPage} />
-            <Route path="/unsubscribe" component={UnsubscribePage} />
-            <Route path="/invitation/:token" component={InvitationLandingPage} />
-            <Route path="/accept-collaboration/:token" component={AcceptCollaborationPage} />
+    <Switch>
+      {/* Auth routes - Login is at root */}
+      <Route path="/" component={LoginPage} />
+      <Route path="/login" component={LoginPage} />
+      <Route path="/register" component={RegisterPage} />
+      <Route path="/auth" component={LoginPage} />
+      <Route path="/reset-password" component={LoginPage} />
 
-            {/* Share/Public pages (no navbar) */}
-            <Route path="/share/:shareSlug" component={SharePage} />
-            <Route path="/cims/:shareSlug" component={SharePage} />
-            <Route path="/teaser/:slug" component={TeaserPage} />
-            <Route path="/teaser/:slug/embed" component={TeaserEmbedPage} />
-            <Route path="/listings/:slug" component={ListingsPage} />
-            <Route path="/nda/redirect/:redirectId" component={NdaRedirectPage} />
-            <Route path="/share/:shareSlug/sign-nda" component={EnhancedNdaSigningPage} />
-            <Route path="/sign/:accessToken" component={SignDocumentPage} />
+      {/* Functional public routes */}
+      <Route path="/checkout-success" component={CheckoutSuccess} />
+      <Route path="/unsubscribe" component={UnsubscribePage} />
+      <Route path="/invitation/:token" component={InvitationLandingPage} />
+      <Route path="/accept-collaboration/:token" component={AcceptCollaborationPage} />
 
-            {/* E-Signature Guest Signing and Verification */}
-            <Route path="/esign/sign/:token" component={EsignSign} />
-            <Route path="/esign/verify/:envelopeId" component={EsignVerify} />
-            <Route path="/esign/form/:slug" component={EsignPowerForm} />
+      {/* Share/Public pages */}
+      <Route path="/share/:shareSlug" component={SharePage} />
+      <Route path="/cims/:shareSlug" component={SharePage} />
+      <Route path="/teaser/:slug" component={TeaserPage} />
+      <Route path="/teaser/:slug/embed" component={TeaserEmbedPage} />
+      <Route path="/listings/:slug" component={ListingsPage} />
+      <Route path="/nda/redirect/:redirectId" component={NdaRedirectPage} />
+      <Route path="/share/:shareSlug/sign-nda" component={EnhancedNdaSigningPage} />
+      <Route path="/sign/:accessToken" component={SignDocumentPage} />
 
-            {/* SEO Feature Pages */}
-            <Route path="/features/nda-protection">
-              <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
-                <NdaProtectionPage />
-              </Suspense>
-            </Route>
-            <Route path="/features/ai-powered-cim">
-              <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
-                <AiPoweredCimPage />
-              </Suspense>
-            </Route>
-            <Route path="/features/esignatures">
-              <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
-                <ESignaturesFeaturePage />
-              </Suspense>
-            </Route>
-            <Route path="/features/investor-database">
-              <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
-                <InvestorDatabaseFeaturePage />
-              </Suspense>
-            </Route>
-            <Route path="/features/sde-analyzer">
-              <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
-                <SdeAnalyzerFeaturePage />
-              </Suspense>
-            </Route>
-            <Route path="/features/messages">
-              <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
-                <MessagesFeaturePage />
-              </Suspense>
-            </Route>
-            <Route path="/features/analytics">
-              <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
-                <AnalyticsFeaturePage />
-              </Suspense>
-            </Route>
-            <Route path="/features/integrations">
-              <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
-                <IntegrationsFeaturePage />
-              </Suspense>
-            </Route>
+      {/* E-Signature Guest Signing and Verification */}
+      <Route path="/esign/sign/:token" component={EsignSign} />
+      <Route path="/esign/verify/:envelopeId" component={EsignVerify} />
+      <Route path="/esign/form/:slug" component={EsignPowerForm} />
 
-            {/* SEO Solution Pages */}
-            <Route path="/solutions/business-brokers">
-              <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
-                <BusinessBrokersPage />
-              </Suspense>
-            </Route>
-            <Route path="/solutions/investment-banking">
-              <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
-                <InvestmentBankingPage />
-              </Suspense>
-            </Route>
-
-            {/* Resources Page */}
-            <Route path="/resources">
-              <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
-                <ResourcesPage />
-              </Suspense>
-            </Route>
-
-            <Route component={NotFound} />
-          </Switch>
-        </div>
-        {!isSharePage && <Footer />}
-      </div>
-    </>
+      <Route component={NotFound} />
+    </Switch>
   );
 }
 

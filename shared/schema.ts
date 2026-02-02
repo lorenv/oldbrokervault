@@ -404,6 +404,22 @@ export const ndaRedirectLinks = pgTable("nda_redirect_links", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Extension Tokens - Chrome extension authentication
+export const extensionTokens = pgTable("extension_tokens", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  organizationId: integer("organization_id"), // Optional - for org-scoped tokens
+  token: text("token").notNull().unique(), // Format: ext_<48 hex chars>
+  deviceInfo: text("device_info"), // Browser/OS info from extension
+  lastUsedAt: timestamp("last_used_at"),
+  expiresAt: timestamp("expires_at").notNull(), // 30 days from creation
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  revokedAt: timestamp("revoked_at"), // Set when token is explicitly revoked
+}, (table) => ({
+  userIdIdx: index("extension_tokens_user_id_idx").on(table.userId),
+  tokenIdx: index("extension_tokens_token_idx").on(table.token),
+}));
+
 // View tracking for granular analytics based on NDA protection
 export const documentViews = pgTable("document_views", {
   id: serial("id").primaryKey(),
@@ -832,6 +848,15 @@ export const insertNdaRedirectLinkSchema = createInsertSchema(ndaRedirectLinks).
   signerEmail: true
 });
 
+export const insertExtensionTokenSchema = createInsertSchema(extensionTokens).pick({
+  userId: true,
+  token: true,
+  expiresAt: true
+}).extend({
+  organizationId: z.number().optional(),
+  deviceInfo: z.string().optional()
+});
+
 export const insertDocumentViewSchema = createInsertSchema(documentViews).pick({
   cimDocumentId: true,
   viewerType: true,
@@ -923,6 +948,8 @@ export type NdaAccessToken = typeof ndaAccessTokens.$inferSelect;
 export type InsertNdaAccessToken = z.infer<typeof insertNdaAccessTokenSchema>;
 export type NdaRedirectLink = typeof ndaRedirectLinks.$inferSelect;
 export type InsertNdaRedirectLink = z.infer<typeof insertNdaRedirectLinkSchema>;
+export type ExtensionToken = typeof extensionTokens.$inferSelect;
+export type InsertExtensionToken = z.infer<typeof insertExtensionTokenSchema>;
 export type CustomSection = typeof customSections.$inferSelect;
 export type FinancialFile = typeof financialFiles.$inferSelect;
 export type InvestorContact = typeof investorContacts.$inferSelect;

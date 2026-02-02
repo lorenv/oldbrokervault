@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CIM Generator</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <h1>CIM Generator</h1>
+    </div>
+
+    <!-- Not Signed In State -->
+    <div id="signedOutState" class="state">
+      <p class="description">Sign in to generate CIM documents from any webpage.</p>
+      <button id="signInBtn" class="btn btn-primary">Sign In</button>
+    </div>
+
+    <!-- Signed In - Ready State -->
+    <div id="readyState" class="state hidden">
+      <div class="user-info">
+        <span id="userEmail" class="user-email"></span>
+        <button id="signOutBtn" class="btn btn-link">Sign Out</button>
+      </div>
+
+      <div class="page-info">
+        <p class="page-title" id="pageTitle">Loading page info...</p>
+        <p class="page-url" id="pageUrl"></p>
+      </div>
+
+      <button id="generateBtn" class="btn btn-primary">Generate CIM</button>
+
+      <div class="recent-docs">
+        <h3>Recent Documents</h3>
+        <ul id="recentDocsList"></ul>
+      </div>
+    </div>
+
+    <!-- Generating State -->
+    <div id="generatingState" class="state hidden">
+      <div class="spinner"></div>
+      <p class="status-text">Generating your CIM document...</p>
+      <p class="status-substep" id="statusSubstep"></p>
+    </div>
+
+    <!-- Error State -->
+    <div id="errorState" class="state hidden">
+      <div class="error-icon">!</div>
+      <p class="error-message" id="errorMessage"></p>
+      <button id="retryBtn" class="btn btn-secondary">Try Again</button>
+    </div>
+
+    <!-- Success State -->
+    <div id="successState" class="state hidden">
+      <div class="success-icon">&#10004;</div>
+      <p class="success-message">CIM document created!</p>
+      <a id="viewDocLink" href="#" class="btn btn-primary" target="_blank">View & Edit Document</a>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

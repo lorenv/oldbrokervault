@@ -8,7 +8,12 @@ export class PremiumSearchService {
   async searchDocuments(userId: number, query: string, filters?: {
     dateRange?: { start: Date; end: Date };
     tags?: string[];
+    page?: number;
+    limit?: number;
   }) {
+    const page = filters?.page || 1;
+    const limit = Math.min(filters?.limit || 25, 50); // Max 50 per page
+    const offset = (page - 1) * limit;
     const searchTerms = query.split(' ').filter(term => term.length > 2);
     
     if (searchTerms.length === 0) {
@@ -59,9 +64,17 @@ export class PremiumSearchService {
 
     const results = await baseQuery
       .orderBy(desc(sql`relevance`), desc(cimDocuments.createdAt))
-      .limit(50);
+      .limit(limit)
+      .offset(offset);
 
-    return results;
+    return {
+      results,
+      pagination: {
+        page,
+        limit,
+        hasMore: results.length === limit
+      }
+    };
   }
 
   // Update search index when document changes

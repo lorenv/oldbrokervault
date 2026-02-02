@@ -160,7 +160,8 @@ async function gatherBriefingData(userId: number, orgId: number): Promise<any> {
           isNull(deals.closedAt)
         )
       )
-      .orderBy(desc(deals.updatedAt));
+      .orderBy(desc(deals.updatedAt))
+      .limit(200); // Limit to prevent unbounded queries - dashboard shows priority deals
     console.log('[Dashboard] Open deals count:', openDeals.length);
   } catch (error) {
     console.error('[Dashboard] Error fetching open deals:', error);

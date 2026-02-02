@@ -1245,17 +1245,31 @@ router.get('/pipelines', async (req, res) => {
       .where(eq(pipelines.organizationId, orgData.organization.id))
       .orderBy(desc(pipelines.isDefault), asc(pipelines.createdAt));
 
-    // Get stages for each pipeline
-    const pipelinesWithStages = await Promise.all(
-      pipelineList.map(async (pipeline) => {
-        const stages = await db
-          .select()
-          .from(pipelineStages)
-          .where(eq(pipelineStages.pipelineId, pipeline.id))
-          .orderBy(asc(pipelineStages.displayOrder));
-        return { ...pipeline, stages };
-      })
-    );
+    // Batch load all stages for all pipelines in ONE query (fixes N+1)
+    const pipelineIds = pipelineList.map(p => p.id);
+    let allStages: any[] = [];
+    if (pipelineIds.length > 0) {
+      allStages = await db
+        .select()
+        .from(pipelineStages)
+        .where(inArray(pipelineStages.pipelineId, pipelineIds))
+        .orderBy(asc(pipelineStages.displayOrder));
+    }
+
+    // Group stages by pipelineId in memory
+    const stagesByPipeline = new Map<number, typeof allStages>();
+    for (const stage of allStages) {
+      if (!stagesByPipeline.has(stage.pipelineId)) {
+        stagesByPipeline.set(stage.pipelineId, []);
+      }
+      stagesByPipeline.get(stage.pipelineId)!.push(stage);
+    }
+
+    // Combine pipelines with their stages
+    const pipelinesWithStages = pipelineList.map(pipeline => ({
+      ...pipeline,
+      stages: stagesByPipeline.get(pipeline.id) || [],
+    }));
 
     res.json(pipelinesWithStages);
   } catch (error) {
@@ -3666,53 +3680,67 @@ router.get('/deals/kanban/:pipelineId', async (req, res) => {
       true // Include collaborator access
     );
 
-    // Get stages with deals
+    // Get stages for this pipeline
     const stages = await db
       .select()
       .from(pipelineStages)
       .where(eq(pipelineStages.pipelineId, pipelineId))
       .orderBy(asc(pipelineStages.displayOrder));
 
-    const stagesWithDeals = await Promise.all(
-      stages.map(async (stage) => {
-        const conditions = [
-          eq(deals.stageId, stage.id),
-          eq(deals.organizationId, orgData.organization.id),
-          isNull(deals.deletedAt),
-        ];
-        if (visibilityFilter) {
-          conditions.push(visibilityFilter);
-        }
+    // Get all stage IDs for batch query
+    const stageIds = stages.map(s => s.id);
 
-        const stageDeals = await db
-          .select({
-            deal: deals,
-            company: companies,
-            owner: {
-              id: users.id,
-              email: users.email,
-              name: users.name,
-              firstName: users.firstName,
-              lastName: users.lastName,
-              profilePhoto: users.profilePhoto,
-            },
-          })
-          .from(deals)
-          .leftJoin(companies, eq(companies.id, deals.companyId))
-          .leftJoin(users, eq(users.id, deals.ownerId))
-          .where(and(...conditions))
-          .orderBy(desc(deals.updatedAt));
+    // Batch load all deals for all stages in ONE query (fixes N+1 problem)
+    const baseConditions = [
+      inArray(deals.stageId, stageIds),
+      eq(deals.organizationId, orgData.organization.id),
+      isNull(deals.deletedAt),
+    ];
+    if (visibilityFilter) {
+      baseConditions.push(visibilityFilter);
+    }
 
-        return {
-          ...stage,
-          deals: stageDeals.map((d) => ({
-            ...d.deal,
-            company: d.company,
-            owner: d.owner?.id ? d.owner : null,
-          })),
-        };
+    const allDeals = await db
+      .select({
+        deal: deals,
+        company: companies,
+        owner: {
+          id: users.id,
+          email: users.email,
+          name: users.name,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          profilePhoto: users.profilePhoto,
+        },
       })
-    );
+      .from(deals)
+      .leftJoin(companies, eq(companies.id, deals.companyId))
+      .leftJoin(users, eq(users.id, deals.ownerId))
+      .where(and(...baseConditions))
+      .orderBy(desc(deals.updatedAt))
+      .limit(500); // Safety limit per stage batch
+
+    // Group deals by stageId in memory (much faster than N separate queries)
+    const dealsByStage = new Map<number, typeof allDeals>();
+    for (const dealRow of allDeals) {
+      const stageId = dealRow.deal.stageId;
+      if (stageId) {
+        if (!dealsByStage.has(stageId)) {
+          dealsByStage.set(stageId, []);
+        }
+        dealsByStage.get(stageId)!.push(dealRow);
+      }
+    }
+
+    // Combine stages with their deals
+    const stagesWithDeals = stages.map(stage => ({
+      ...stage,
+      deals: (dealsByStage.get(stage.id) || []).map((d) => ({
+        ...d.deal,
+        company: d.company,
+        owner: d.owner?.id ? d.owner : null,
+      })),
+    }));
 
     res.json({ pipeline, stages: stagesWithDeals });
   } catch (error) {

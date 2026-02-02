@@ -33,6 +33,7 @@ import archiver from 'archiver';
 import { addCertificateToNda } from "./pdf-utils";
 import { sendNdaSignedEmail, sendEmail, sendApprovalEmail, sendOwnerApprovalNotification, sendRejectionEmail, sendCollaborationInvitationEmail, sendCollaboratorRemovedEmail, sendEditLockTakenOverEmail } from "./email";
 import { generateSecureToken, generateRedirectId } from "./token-utils";
+import { escapeHtml } from "./utils/sanitize-filename";
 import { sanitizeUser, sanitizeUserForSharing, sanitizeForLogging, validateResponseSafety } from "./data-sanitizer";
 import { responseSanitizationMiddleware, securityHeadersMiddleware, sensitiveEndpointLimiter } from "./security-middleware";
 import { isUrlSafeForFetch } from "./security";
@@ -68,6 +69,8 @@ import listingsRoutes from "./routes/listings-routes";
 import crmRoutes from "./routes/crm-routes";
 import dashboardRoutes from "./routes/dashboard-routes";
 import aiAssistantRoutes from "./routes/ai-assistant-routes";
+import extensionAuthRoutes from "./routes/extension-auth-routes";
+import extensionRoutes from "./routes/extension-routes";
 import { dispatchWebhookEvent } from "./webhook-dispatcher";
 import { dispatchIntegrationEvent } from "./integrations";
 
@@ -307,23 +310,73 @@ function verifySendGridEventSignature(req: express.Request, res: express.Respons
   }
 }
 
-// Configure multer for memory storage with REDUCED limits for memory efficiency
+// Configure temporary uploads directory for disk storage
+const tmpUploadsDir = path.join(os.tmpdir(), 'brokervault-uploads');
+if (!fsSync.existsSync(tmpUploadsDir)) {
+  fsSync.mkdirSync(tmpUploadsDir, { recursive: true });
+}
+
+// Configure multer to use disk storage for large files (prevents OOM on concurrent uploads)
+const diskStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, tmpUploadsDir);
+  },
+  filename: (req, file, cb) => {
+    // Generate unique filename to prevent collisions
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, `upload-${uniqueSuffix}-${file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`);
+  }
+});
+
+// Main upload handler - uses disk storage to prevent memory issues
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage: diskStorage,
   limits: {
-    fileSize: 50 * 1024 * 1024, // REDUCED: 50MB limit for large files (was 100MB)
-    fieldSize: 10 * 1024 * 1024, // REDUCED: 10MB limit for field data (was 100MB)
-    fields: 30, // REDUCED: field count limit (was 50)
-    files: 10 // REDUCED: file count limit (was 20)
+    fileSize: 50 * 1024 * 1024, // 50MB limit
+    fieldSize: 10 * 1024 * 1024, // 10MB limit for field data
+    fields: 30,
+    files: 10
   },
   fileFilter: (req, file, cb) => {
     // Log large file uploads for monitoring
-    if (file.size > 10 * 1024 * 1024) {
-      console.log(`⚠️ Large file upload: ${file.originalname} - ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`📁 File upload: ${file.originalname}`);
     }
     cb(null, true);
   }
 });
+
+// Helper to clean up temporary files after request processing
+export async function cleanupTempFile(filePath: string | undefined): Promise<void> {
+  if (filePath && filePath.startsWith(tmpUploadsDir)) {
+    try {
+      await fs.unlink(filePath);
+    } catch (err) {
+      // File may already be deleted or moved, ignore
+    }
+  }
+}
+
+// Clean up old temp files on startup and periodically
+async function cleanupOldTempFiles() {
+  try {
+    const files = await fs.readdir(tmpUploadsDir);
+    const oneHourAgo = Date.now() - (60 * 60 * 1000);
+
+    for (const file of files) {
+      const filePath = path.join(tmpUploadsDir, file);
+      const stats = await fs.stat(filePath);
+      if (stats.mtimeMs < oneHourAgo) {
+        await fs.unlink(filePath);
+      }
+    }
+  } catch (err) {
+    // Ignore cleanup errors
+  }
+}
+// Run cleanup on startup and every hour
+cleanupOldTempFiles();
+setInterval(cleanupOldTempFiles, 60 * 60 * 1000);
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Import message service for webhook processing
@@ -953,8 +1006,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Rate limiter for share endpoints to prevent brute-force slug discovery
+  const shareLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 30, // 30 requests per minute per IP
+    message: { error: "Too many requests, please try again later" },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
   // Serve uploaded file content for sharing
-  app.get("/api/share/:shareSlug/file", async (req, res) => {
+  app.get("/api/share/:shareSlug/file", shareLimiter, async (req, res) => {
     try {
       const { shareSlug } = req.params;
       console.log("Serving uploaded file for slug:", shareSlug);
@@ -1135,7 +1197,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Public share endpoints (comprehensively optimized for performance)
-  app.get("/api/share/:shareSlug", async (req, res) => {
+  app.get("/api/share/:shareSlug", shareLimiter, async (req, res) => {
     const startTime = Date.now();
     try {
       const { shareSlug } = req.params;
@@ -8654,17 +8716,22 @@ ${finalQuestion}
         return res.status(400).json({ error: "Missing required fields" });
       }
 
-      // Prepare email content
+      // Sanitize user inputs to prevent HTML injection
+      const safeEmail = escapeHtml(email);
+      const safeSubject = escapeHtml(subject);
+      const safeMessage = escapeHtml(message);
+
+      // Prepare email content with sanitized inputs
       let emailHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2>Support Request from Broker Vault</h2>
           <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
-            <p><strong>From:</strong> ${email}</p>
-            <p><strong>Subject:</strong> ${subject}</p>
+            <p><strong>From:</strong> ${safeEmail}</p>
+            <p><strong>Subject:</strong> ${safeSubject}</p>
           </div>
           <div style="background-color: white; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
             <h3>Message:</h3>
-            <p style="white-space: pre-wrap;">${message}</p>
+            <p style="white-space: pre-wrap;">${safeMessage}</p>
           </div>
           <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
           <p style="color: #666; font-size: 12px;">
@@ -11887,6 +11954,11 @@ ${finalQuestion}
 
   // Register AI Assistant routes
   app.use('/api/ai-assistant', aiAssistantRoutes);
+
+  // Register Extension routes (Chrome extension authentication and CIM generation)
+  app.use('/api/extension', extensionAuthRoutes);
+  app.use('/api/extension', extensionRoutes);
+  console.log('✅ Extension routes registered');
 
   // ========== Notification Preferences Routes ==========
 
