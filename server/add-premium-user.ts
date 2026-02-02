@@ -10,11 +10,21 @@ import { eq } from 'drizzle-orm';
 import { hashPassword } from './auth';
 
 async function addPremiumUser() {
+  // Validate required environment variables
+  const email = process.env.ADMIN_EMAIL;
+  const password = process.env.ADMIN_PASSWORD;
+
+  if (!email || !password) {
+    console.error('❌ Missing required environment variables:');
+    if (!email) console.error('   - ADMIN_EMAIL is not set');
+    if (!password) console.error('   - ADMIN_PASSWORD is not set');
+    console.error('\nUsage: ADMIN_EMAIL=user@example.com ADMIN_PASSWORD=securepassword tsx server/add-premium-user.ts');
+    process.exit(1);
+  }
+
   try {
     console.log('🔐 Creating admin user with premium access...');
-    
-    const email = 'robert@dealve.cc';
-    const password = 'Flydccstone500!';
+
     const hashedPassword = await hashPassword(password);
     
     // Set subscription end date to 2035 
@@ -23,15 +33,15 @@ async function addPremiumUser() {
     const [user] = await db.insert(users).values({
       email,
       password: hashedPassword,
-      name: 'Robert Smith',
-      title: 'CIM Share Administrator',
+      name: 'Admin User',
+      title: 'Administrator',
       isAdmin: true,
       subscriptionStatus: 'premium',
       subscriptionEndsAt,
       monthlyDocumentsCreated: 0,
       monthlyRegenerationsUsed: 0,
-      businessName: 'CIM Share',
-      phoneNumber: '(555) 123-4567'
+      businessName: 'Admin',
+      phoneNumber: ''
     }).returning();
     
     console.log('✅ Admin user created successfully:');
@@ -51,12 +61,12 @@ async function addPremiumUser() {
           isAdmin: true,
           subscriptionStatus: 'premium',
           subscriptionEndsAt: new Date('2035-12-31T23:59:59Z'),
-          name: 'Robert Smith',
-          title: 'CIM Share Administrator',
-          businessName: 'CIM Share',
-          phoneNumber: '(555) 123-4567'
+          name: 'Admin User',
+          title: 'Administrator',
+          businessName: 'Admin',
+          phoneNumber: ''
         })
-        .where(eq(users.email, 'robert@dealve.cc'))
+        .where(eq(users.email, email))
         .returning();
         
       console.log('✅ Admin user updated successfully:');

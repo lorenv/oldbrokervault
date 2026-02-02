@@ -40,7 +40,19 @@ import {
   File,
   ChevronDown,
   Pointer,
+  Link2,
+  Copy,
+  Loader2,
+  ExternalLink,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { ESIGN_RECIPIENT_COLORS, ESIGN_CC_COLOR } from "@shared/schema";
@@ -167,6 +179,7 @@ function DraggableFieldType({ type, label, icon: Icon, disabled }: {
       ref={setNodeRef}
       {...listeners}
       {...attributes}
+      data-palette-item="true"
       className={`flex items-center gap-2 p-2 rounded-md border cursor-grab active:cursor-grabbing transition-all ${
         isDragging ? 'opacity-50 scale-95' : 'hover:bg-gray-50'
       } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -195,8 +208,10 @@ function DraggableField({
   onSelect,
   onDelete,
   onResize,
+  onResizeStateChange,
   zoom,
   canvasHeight,
+  canvasRef,
 }: {
   field: TemplateField;
   recipient: PlaceholderRecipient | undefined;
@@ -204,8 +219,10 @@ function DraggableField({
   onSelect: () => void;
   onDelete: () => void;
   onResize: (updates: { width?: number; height?: number; x?: number; y?: number }) => void;
+  onResizeStateChange: (isResizing: boolean) => void;
   zoom: number;
   canvasHeight: number;
+  canvasRef: React.RefObject<HTMLDivElement>;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: field.id,
@@ -221,21 +238,15 @@ function DraggableField({
     startHeight: number;
     startFieldX: number;
     startFieldY: number;
-    canvasRect: DOMRect;
   } | null>(null);
   const fieldRef = useRef<HTMLDivElement>(null);
 
-  // Handle resize - uses displayed canvas dimensions for accurate scaling
+  // Handle resize
   const handleResizeStart = (e: React.MouseEvent, handle: ResizeHandle) => {
     e.stopPropagation();
     e.preventDefault();
     setIsResizing(true);
-
-    // Get the canvas element (parent of the field)
-    const canvasElement = fieldRef.current?.parentElement;
-    const canvasRect = canvasElement?.getBoundingClientRect();
-
-    if (!canvasRect) return;
+    onResizeStateChange(true);
 
     resizeStartRef.current = {
       handle,
@@ -245,21 +256,25 @@ function DraggableField({
       startHeight: field.height,
       startFieldX: field.x,
       startFieldY: field.y,
-      canvasRect,
     };
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
       if (!resizeStartRef.current) return;
 
-      const { handle, startX, startY, startWidth, startHeight, startFieldX, startFieldY, canvasRect } = resizeStartRef.current;
+      const { handle, startX, startY, startWidth, startHeight, startFieldX, startFieldY } = resizeStartRef.current;
 
-      // Use actual displayed canvas dimensions for consistent scaling
-      const displayedWidth = canvasRect.width;
-      const displayedHeight = canvasRect.height;
+      // Get canvas element for dimension calculations
+      const canvasElement = fieldRef.current?.parentElement;
+      if (!canvasElement) return;
 
-      // Convert mouse movement to percentage of canvas
-      const deltaX = ((moveEvent.clientX - startX) / displayedWidth) * 100;
-      const deltaY = ((moveEvent.clientY - startY) / displayedHeight) * 100;
+      // Use clientWidth/clientHeight for content area
+      const canvasWidth = canvasElement.clientWidth;
+      const canvasHeight = canvasElement.clientHeight;
+      if (!canvasWidth || !canvasHeight) return;
+
+      // Convert mouse movement to percentage
+      const deltaX = ((moveEvent.clientX - startX) / canvasWidth) * 100;
+      const deltaY = ((moveEvent.clientY - startY) / canvasHeight) * 100;
 
       let newWidth = startWidth;
       let newHeight = startHeight;
@@ -297,6 +312,7 @@ function DraggableField({
 
     const handleMouseUp = () => {
       setIsResizing(false);
+      onResizeStateChange(false);
       resizeStartRef.current = null;
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
@@ -315,7 +331,7 @@ function DraggableField({
     // Divide transform by zoom so the field follows the cursor correctly at any zoom level
     transform: transform ? `translate3d(${transform.x / zoom}px, ${transform.y / zoom}px, 0)` : undefined,
     zIndex: isDragging || isSelected || isResizing ? 100 : 10,
-    opacity: isDragging ? 0.7 : 1,
+    opacity: 1,
   };
 
   const fieldConfig = FIELD_TYPES.find(f => f.type === field.type);
@@ -340,7 +356,7 @@ function DraggableField({
       style={style}
       {...(isResizing ? {} : attributes)}
       {...(isResizing ? {} : listeners)}
-      className={`rounded border-2 cursor-move flex items-center justify-center gap-1 text-white font-medium transition-shadow ${
+      className={`rounded cursor-move flex items-center justify-center gap-1 text-white font-medium transition-shadow ${
         isSelected ? 'ring-2 ring-offset-1 ring-blue-500' : ''
       }`}
       onClick={(e) => {
@@ -349,9 +365,10 @@ function DraggableField({
       }}
     >
       <div
-        className="w-full h-full flex items-center justify-center gap-1 rounded overflow-hidden"
+        className="w-full h-full flex items-center justify-center gap-1 rounded border-2 overflow-hidden"
         style={{
           backgroundColor: recipient?.color || '#888',
+          borderColor: recipient?.color || '#888',
           opacity: 0.9,
           fontSize: `${Math.min(fontSize, 14)}px`, // Cap display font size for template preview
         }}
@@ -396,6 +413,7 @@ function DocumentCanvas({
   onSelectField,
   onDeleteField,
   onResizeField,
+  onResizeStateChange,
   zoom,
   onDrop,
   registerCanvasRef,
@@ -410,6 +428,7 @@ function DocumentCanvas({
   onSelectField: (id: string | null) => void;
   onDeleteField: (id: string) => void;
   onResizeField: (fieldId: string, updates: { width?: number; height?: number; x?: number; y?: number }) => void;
+  onResizeStateChange: (isResizing: boolean) => void;
   zoom: number;
   onDrop: (x: number, y: number, type: string) => void;
   registerCanvasRef: (pageNumber: number, ref: HTMLDivElement | null) => void;
@@ -501,8 +520,10 @@ function DocumentCanvas({
               onSelect={() => onSelectField(field.id)}
               onDelete={() => onDeleteField(field.id)}
               onResize={(updates) => onResizeField(field.id, updates)}
+              onResizeStateChange={onResizeStateChange}
               zoom={zoom}
               canvasHeight={canvasHeight}
+              canvasRef={canvasRef}
             />
           );
         })}
@@ -563,13 +584,37 @@ export default function EsignTemplateEditor() {
   const [mobileFieldType, setMobileFieldType] = useState<string | null>(null);
   const [isTapToPlaceMode, setIsTapToPlaceMode] = useState(false);
 
+  // PowerForm state
+  const [showPowerFormDialog, setShowPowerFormDialog] = useState(false);
+  const [powerFormEnabled, setPowerFormEnabled] = useState(false);
+  const [powerFormSlug, setPowerFormSlug] = useState("");
+  const [powerFormUrl, setPowerFormUrl] = useState<string | null>(null);
+  const [copiedPowerFormUrl, setCopiedPowerFormUrl] = useState(false);
+
   // Track active dragging item for DragOverlay visual feedback
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [activeDragData, setActiveDragData] = useState<{ type: string; fromPalette: boolean; field?: TemplateField } | null>(null);
 
+  // Track if any field is being resized (to prevent drag during resize)
+  const [isAnyFieldResizing, setIsAnyFieldResizing] = useState(false);
+
   // Track canvas refs for accurate drop positioning
   const canvasRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const lastPointerPosition = useRef<{ x: number; y: number } | null>(null);
+  // Track the offset from field's top-left to where user clicked (for accurate drop positioning)
+  const dragOffset = useRef<{ x: number; y: number } | null>(null);
+
+  // Track actual mouse position during drag using native events (more reliable than @dnd-kit delta)
+  useEffect(() => {
+    if (!activeDragId) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      lastPointerPosition.current = { x: e.clientX, y: e.clientY };
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    return () => document.removeEventListener('mousemove', handleMouseMove);
+  }, [activeDragId]);
 
   const registerCanvasRef = useCallback((pageNumber: number, ref: HTMLDivElement | null) => {
     if (ref) {
@@ -594,33 +639,84 @@ export default function EsignTemplateEditor() {
 
   // Handle drag start - track the active item for DragOverlay
   const handleDragStart = useCallback((event: DragStartEvent) => {
+    // Don't start drag if a field is being resized
+    if (isAnyFieldResizing) return;
+
     const { active } = event;
     setActiveDragId(active.id.toString());
 
     if (active.data.current?.fromPalette) {
+      const type = active.data.current.type as TemplateField['type'];
       setActiveDragData({
-        type: active.data.current.type,
+        type,
         fromPalette: true,
       });
-    } else if (active.data.current?.field) {
-      setActiveDragData({
-        type: active.data.current.field.type,
-        fromPalette: false,
-        field: active.data.current.field,
-      });
-    }
-  }, []);
 
-  // Track pointer position during drag for accurate drop placement
-  const handleDragMove = useCallback((event: DragMoveEvent) => {
-    // Store the current pointer position from the activator event
-    const { activatorEvent } = event;
-    if (activatorEvent && 'clientX' in activatorEvent) {
-      lastPointerPosition.current = {
-        x: (activatorEvent as PointerEvent).clientX + (event.delta?.x || 0),
-        y: (activatorEvent as PointerEvent).clientY + (event.delta?.y || 0),
-      };
+      // Calculate offset within the palette item where user clicked
+      // This will be used to position the DragOverlay and the dropped field
+      if (event.activatorEvent instanceof MouseEvent) {
+        const paletteElement = (event.activatorEvent.target as HTMLElement).closest('[data-palette-item]');
+        if (paletteElement) {
+          const paletteRect = paletteElement.getBoundingClientRect();
+          const mouseX = event.activatorEvent.clientX;
+          const mouseY = event.activatorEvent.clientY;
+
+          // Calculate click position as ratio of palette item dimensions
+          const clickXRatio = (mouseX - paletteRect.left) / paletteRect.width;
+          const clickYRatio = (mouseY - paletteRect.top) / paletteRect.height;
+
+          // Get the field dimensions that will be created
+          const fieldConfig = FIELD_TYPES.find(f => f.type === type);
+          const fieldWidth = fieldConfig?.defaultSize.width || 20;
+          const fieldHeight = fieldConfig?.defaultSize.height || 4;
+
+          // Convert ratio to percentage offset for the actual field size
+          dragOffset.current = {
+            x: clickXRatio * fieldWidth,
+            y: clickYRatio * fieldHeight,
+          };
+        } else {
+          dragOffset.current = null;
+        }
+      } else {
+        dragOffset.current = null;
+      }
+    } else if (active.data.current?.field) {
+      const field = active.data.current.field as TemplateField;
+      setActiveDragData({
+        type: field.type,
+        fromPalette: false,
+        field: field,
+      });
+
+      // Calculate offset from field's top-left to where user clicked
+      // We need to find which canvas the field is on and calculate the offset
+      const canvasRef = canvasRefs.current.get(field.page);
+      if (canvasRef && event.activatorEvent instanceof MouseEvent) {
+        const canvasRect = canvasRef.getBoundingClientRect();
+        const mouseX = event.activatorEvent.clientX;
+        const mouseY = event.activatorEvent.clientY;
+
+        // Convert mouse position to percentage of canvas
+        const mouseXPercent = ((mouseX - canvasRect.left) / canvasRect.width) * 100;
+        const mouseYPercent = ((mouseY - canvasRect.top) / canvasRect.height) * 100;
+
+        // Offset is how far from field's top-left the user clicked
+        dragOffset.current = {
+          x: mouseXPercent - field.x,
+          y: mouseYPercent - field.y,
+        };
+      } else {
+        // Fallback to centering if we can't calculate offset
+        dragOffset.current = null;
+      }
     }
+  }, [isAnyFieldResizing]);
+
+  // Track pointer position during drag (native mouse tracking is used via useEffect above)
+  const handleDragMove = useCallback((event: DragMoveEvent) => {
+    // Native mouse tracking is now used instead for more accurate position
+    // This callback is kept for potential future use but position is tracked via document mousemove
   }, []);
 
   // Fetch existing template if editing
@@ -654,6 +750,15 @@ export default function EsignTemplateEditor() {
       }
       setRecipients(template.placeholderRecipients || []);
       setFields(template.fields || []);
+
+      // Load PowerForm settings
+      if (template.powerFormEnabled) {
+        setPowerFormEnabled(true);
+        setPowerFormSlug(template.powerFormSlug || "");
+        if (template.powerFormSlug) {
+          setPowerFormUrl(`${window.location.origin}/esign/form/${template.powerFormSlug}`);
+        }
+      }
     }
   }, [template]);
 
@@ -673,8 +778,14 @@ export default function EsignTemplateEditor() {
 
   const saveTitle = () => {
     const trimmed = editingTitleValue.trim();
-    setName(trimmed || generateDefaultTitle());
+    const newName = trimmed || generateDefaultTitle();
+    setName(newName);
     setIsEditingTitle(false);
+
+    // Auto-save to server if editing an existing template
+    if (isEditing && templateId) {
+      updateTitleMutation.mutate(newName);
+    }
   };
 
   const cancelEditingTitle = () => {
@@ -874,14 +985,18 @@ export default function EsignTemplateEditor() {
 
   // Handle drag end
   const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over, activatorEvent } = event;
+    const { active, over } = event;
 
     // Clear active drag state
     setActiveDragId(null);
     setActiveDragData(null);
 
-    if (!over || !activeRecipientId) {
+    // For new fields from palette, require a recipient to be selected
+    // For existing fields, allow moving regardless of recipient selection
+    const isExistingField = active.data.current?.field != null;
+    if (!over || (!activeRecipientId && !isExistingField)) {
       lastPointerPosition.current = null;
+      dragOffset.current = null;
       return;
     }
 
@@ -890,37 +1005,28 @@ export default function EsignTemplateEditor() {
       const pageNumber = parseInt(over.id.toString().split('-').pop() || '1');
       const canvasRef = canvasRefs.current.get(pageNumber);
 
-      if (!canvasRef) {
+      if (!canvasRef || !lastPointerPosition.current) {
         lastPointerPosition.current = null;
+        dragOffset.current = null;
         return;
       }
 
       // Get canvas bounding rect for accurate position calculation
       const canvasRect = canvasRef.getBoundingClientRect();
 
-      // Calculate pointer position - use last tracked position or calculate from event
-      let pointerX: number;
-      let pointerY: number;
+      // Use the native mouse position tracked via document mousemove
+      const pointerX = lastPointerPosition.current.x;
+      const pointerY = lastPointerPosition.current.y;
 
-      if (lastPointerPosition.current) {
-        pointerX = lastPointerPosition.current.x;
-        pointerY = lastPointerPosition.current.y;
-      } else if (activatorEvent && 'clientX' in activatorEvent) {
-        pointerX = (activatorEvent as PointerEvent).clientX + (event.delta?.x || 0);
-        pointerY = (activatorEvent as PointerEvent).clientY + (event.delta?.y || 0);
-      } else {
-        lastPointerPosition.current = null;
-        return;
-      }
+      // Calculate position relative to canvas
+      // The canvas is displayed at baseWidth * zoom, so we need to convert screen pixels to percentage
+      const relativeX = pointerX - canvasRect.left;
+      const relativeY = pointerY - canvasRect.top;
 
-      // Calculate position relative to canvas, accounting for zoom
-      const relativeX = (pointerX - canvasRect.left) / zoom;
-      const relativeY = (pointerY - canvasRect.top) / zoom;
-
-      // Convert to percentage of canvas dimensions (unzoomed)
-      const baseWidth = 612;
-      const x = (relativeX / baseWidth) * 100;
-      const y = (relativeY / (canvasRect.height / zoom)) * 100;
+      // Convert to percentage of canvas dimensions
+      // canvasRect.width and height are already the zoomed dimensions
+      const x = (relativeX / canvasRect.width) * 100;
+      const y = (relativeY / canvasRect.height) * 100;
 
       // Check if from palette or existing field
       if (active.data.current?.fromPalette) {
@@ -929,15 +1035,25 @@ export default function EsignTemplateEditor() {
         const fieldWidth = fieldConfig?.defaultSize.width || 20;
         const fieldHeight = fieldConfig?.defaultSize.height || 4;
 
-        // Center the field on the drop point
-        const centeredX = x - fieldWidth / 2;
-        const centeredY = y - fieldHeight / 2;
+        // Place field using the offset from where user clicked on palette item
+        let newX: number;
+        let newY: number;
+
+        if (dragOffset.current) {
+          // Subtract the offset so the field lands where the visual overlay was
+          newX = x - dragOffset.current.x;
+          newY = y - dragOffset.current.y;
+        } else {
+          // Fallback to placing top-left at cursor
+          newX = x;
+          newY = y;
+        }
 
         const newField: TemplateField = {
           id: uuidv4(),
           type,
-          x: Math.max(0, Math.min(100 - fieldWidth, centeredX)),
-          y: Math.max(0, Math.min(100 - fieldHeight, centeredY)),
+          x: Math.max(0, Math.min(100 - fieldWidth, newX)),
+          y: Math.max(0, Math.min(100 - fieldHeight, newY)),
           width: fieldWidth,
           height: fieldHeight,
           page: pageNumber,
@@ -951,16 +1067,27 @@ export default function EsignTemplateEditor() {
         // Moving existing field
         const field = active.data.current.field as TemplateField;
 
-        // Center on drop point
-        const centeredX = x - field.width / 2;
-        const centeredY = y - field.height / 2;
+        // Use the offset from drag start to place field where user expects
+        // (preserving where they grabbed the field)
+        let newX: number;
+        let newY: number;
+
+        if (dragOffset.current) {
+          // Subtract the offset so the field lands where the visual overlay was
+          newX = x - dragOffset.current.x;
+          newY = y - dragOffset.current.y;
+        } else {
+          // Fallback to centering if no offset was captured
+          newX = x - field.width / 2;
+          newY = y - field.height / 2;
+        }
 
         setFields(fields.map(f =>
           f.id === field.id
             ? {
                 ...f,
-                x: Math.max(0, Math.min(100 - f.width, centeredX)),
-                y: Math.max(0, Math.min(100 - f.height, centeredY)),
+                x: Math.max(0, Math.min(100 - f.width, newX)),
+                y: Math.max(0, Math.min(100 - f.height, newY)),
                 page: pageNumber,
               }
             : f
@@ -969,6 +1096,7 @@ export default function EsignTemplateEditor() {
     }
 
     lastPointerPosition.current = null;
+    dragOffset.current = null;
   };
 
   // Handle tap-to-place on mobile
@@ -1020,7 +1148,7 @@ export default function EsignTemplateEditor() {
       }
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["/api/esign/templates"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/esign/templates"] });
       toast({
         title: isEditing ? "Template updated" : "Template created",
         description: "Your template has been saved successfully.",
@@ -1035,6 +1163,70 @@ export default function EsignTemplateEditor() {
       });
     },
   });
+
+  // Title update mutation (for auto-saving title changes)
+  const updateTitleMutation = useMutation({
+    mutationFn: async (newName: string) => {
+      if (!templateId) throw new Error("Template must be saved first");
+      return apiRequest("PUT", `/api/esign/templates/${templateId}`, {
+        body: { name: newName },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/esign/templates", templateId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/esign/templates"] });
+    },
+  });
+
+  // PowerForm mutation
+  const powerFormMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      if (!templateId) throw new Error("Template must be saved first");
+      return apiRequest("POST", `/api/esign/templates/${templateId}/powerform`, {
+        body: { enabled },
+      });
+    },
+    onSuccess: async (data: any) => {
+      await queryClient.refetchQueries({ queryKey: ["/api/esign/templates", templateId] });
+      if (data.powerFormUrl) {
+        setPowerFormEnabled(true);
+        setPowerFormSlug(data.slug);
+        setPowerFormUrl(data.powerFormUrl);
+        toast({
+          title: "PowerForm enabled",
+          description: "Your template now has a shareable PowerForm link.",
+        });
+      } else {
+        setPowerFormEnabled(false);
+        setPowerFormSlug("");
+        setPowerFormUrl(null);
+        toast({
+          title: "PowerForm disabled",
+          description: "The PowerForm link has been deactivated.",
+        });
+      }
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update PowerForm settings. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Copy PowerForm URL to clipboard
+  const copyPowerFormUrl = () => {
+    if (powerFormUrl) {
+      navigator.clipboard.writeText(powerFormUrl);
+      setCopiedPowerFormUrl(true);
+      setTimeout(() => setCopiedPowerFormUrl(false), 2000);
+      toast({
+        title: "Copied!",
+        description: "PowerForm link copied to clipboard.",
+      });
+    }
+  };
 
   // canSave is always true for name since we auto-generate one
   const canSave = documentUrl && pageImages.length > 0 && recipients.length > 0;
@@ -1085,7 +1277,7 @@ export default function EsignTemplateEditor() {
                       className="group flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded-md px-2 py-1 -mx-2 transition-colors"
                       onClick={startEditingTitle}
                     >
-                      <h1 className="font-semibold text-lg truncate">{name}</h1>
+                      <h1 className="font-semibold text-lg truncate text-gray-900">{name}</h1>
                       <Pencil className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
                     </div>
                   )}
@@ -1102,6 +1294,32 @@ export default function EsignTemplateEditor() {
                 >
                   <Menu className="h-4 w-4" />
                 </Button>
+
+                {/* PowerForm Button - only show for saved templates */}
+                {isEditing && (
+                  <>
+                    {/* Desktop button with text */}
+                    <Button
+                      variant={powerFormEnabled ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setShowPowerFormDialog(true)}
+                      className="hidden md:flex"
+                    >
+                      <Link2 className="h-4 w-4 mr-2" />
+                      {powerFormEnabled ? "PowerForm Active" : "Enable PowerForm"}
+                    </Button>
+                    {/* Mobile icon-only button */}
+                    <Button
+                      variant={powerFormEnabled ? "default" : "outline"}
+                      size="icon"
+                      onClick={() => setShowPowerFormDialog(true)}
+                      className="md:hidden"
+                      title={powerFormEnabled ? "PowerForm Active" : "Enable PowerForm"}
+                    >
+                      <Link2 className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
 
                 <Button
                   onClick={() => saveMutation.mutate()}
@@ -1130,7 +1348,7 @@ export default function EsignTemplateEditor() {
             {/* Left Sidebar - Recipients & Fields */}
             <div className={`
               ${showMobileSidebar ? 'fixed inset-y-0 left-0 z-50 w-80 bg-gray-100 overflow-y-auto p-4 pt-20' : 'hidden'}
-              lg:block lg:static lg:w-72 xl:w-80 lg:flex-shrink-0 space-y-4
+              lg:block lg:static lg:w-72 xl:w-80 lg:flex-shrink-0 lg:h-[calc(100vh-180px)] lg:overflow-y-auto space-y-4
             `}>
               {/* Close button for mobile */}
               {showMobileSidebar && (
@@ -1581,6 +1799,7 @@ export default function EsignTemplateEditor() {
                                 f.id === fieldId ? { ...f, ...updates } : f
                               ));
                             }}
+                            onResizeStateChange={setIsAnyFieldResizing}
                             zoom={zoom}
                             onDrop={() => {}}
                             registerCanvasRef={registerCanvasRef}
@@ -1735,23 +1954,191 @@ export default function EsignTemplateEditor() {
         )}
       </div>
 
-      {/* DragOverlay - shows visual feedback of the dragged item following the cursor */}
+      {/* PowerForm Dialog */}
+      <Dialog open={showPowerFormDialog} onOpenChange={setShowPowerFormDialog}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Link2 className="h-5 w-5" />
+              PowerForm Settings
+            </DialogTitle>
+            <DialogDescription>
+              Enable PowerForm to create a shareable link that anyone can use to fill out and sign this template.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {powerFormEnabled ? (
+              <>
+                {/* PowerForm is enabled - show link */}
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full" />
+                    <span className="font-medium text-green-800">PowerForm Active</span>
+                  </div>
+                  <p className="text-sm text-green-700 mb-3">
+                    Anyone with this link can fill out and sign the template.
+                  </p>
+
+                  {/* Link display */}
+                  <div className="bg-white rounded border p-2 mb-3">
+                    <code className="text-xs text-gray-700 break-all">
+                      {powerFormUrl}
+                    </code>
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={copyPowerFormUrl}
+                      className="flex-1"
+                    >
+                      {copiedPowerFormUrl ? (
+                        <>
+                          <Check className="h-4 w-4 mr-2" />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy Link
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => window.open(powerFormUrl!, '_blank')}
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Open
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Disable button */}
+                <Button
+                  variant="outline"
+                  className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                  onClick={() => powerFormMutation.mutate(false)}
+                  disabled={powerFormMutation.isPending}
+                >
+                  {powerFormMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Disabling...
+                    </>
+                  ) : (
+                    "Disable PowerForm"
+                  )}
+                </Button>
+              </>
+            ) : (
+              <>
+                {/* PowerForm is disabled - show enable option */}
+                <div className="bg-gray-50 border rounded-lg p-4">
+                  <h4 className="font-medium text-gray-900 mb-2">What is PowerForm?</h4>
+                  <ul className="text-sm text-gray-600 space-y-2">
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-500 mt-0.5">•</span>
+                      Create a shareable link to this template
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-500 mt-0.5">•</span>
+                      Anyone can fill out and sign without you sending an envelope
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-500 mt-0.5">•</span>
+                      You'll be notified when someone completes the form
+                    </li>
+                  </ul>
+                </div>
+
+                <Button
+                  className="w-full"
+                  onClick={() => powerFormMutation.mutate(true)}
+                  disabled={powerFormMutation.isPending}
+                >
+                  {powerFormMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Enabling...
+                    </>
+                  ) : (
+                    <>
+                      <Link2 className="h-4 w-4 mr-2" />
+                      Enable PowerForm
+                    </>
+                  )}
+                </Button>
+              </>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPowerFormDialog(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* DragOverlay - shows visual feedback only for new fields from palette */}
       <DragOverlay dropAnimation={null}>
-        {activeDragId && activeDragData && (
+        {activeDragId && activeDragData && activeDragData.fromPalette && !isAnyFieldResizing && (() => {
+          const fieldWidth = activeDragData.field
+            ? activeDragData.field.width * 6.12
+            : (FIELD_TYPES.find(f => f.type === activeDragData.type)?.defaultSize.width || 20) * 6.12;
+          const fieldHeight = activeDragData.field
+            ? activeDragData.field.height * 7.92
+            : (FIELD_TYPES.find(f => f.type === activeDragData.type)?.defaultSize.height || 4) * 7.92;
+
+          // For new fields from palette, center on cursor
+          // For existing fields, offset based on where user grabbed it
+          let translateX: number;
+          let translateY: number;
+
+          if (activeDragData.fromPalette && dragOffset.current) {
+            // Position based on where user clicked on the palette item
+            const offsetXRatio = dragOffset.current.x / (FIELD_TYPES.find(f => f.type === activeDragData.type)?.defaultSize.width || 20);
+            const offsetYRatio = dragOffset.current.y / (FIELD_TYPES.find(f => f.type === activeDragData.type)?.defaultSize.height || 4);
+            translateX = -offsetXRatio * fieldWidth;
+            translateY = -offsetYRatio * fieldHeight;
+          } else if (activeDragData.fromPalette) {
+            // Fallback: top-left at cursor
+            translateX = 0;
+            translateY = 0;
+          } else if (dragOffset.current && activeDragData.field) {
+            // Position based on grab point for existing fields
+            // dragOffset is in percentage, convert to pixels relative to field size
+            const offsetXRatio = dragOffset.current.x / activeDragData.field.width;
+            const offsetYRatio = dragOffset.current.y / activeDragData.field.height;
+            translateX = -offsetXRatio * fieldWidth;
+            translateY = -offsetYRatio * fieldHeight;
+          } else {
+            // Fallback to centering
+            translateX = -fieldWidth / 2;
+            translateY = -fieldHeight / 2;
+          }
+
+          // Get the correct color - for existing fields use field's assignedTo, otherwise use active recipient
+          const overlayColor = activeDragData.field
+            ? recipients.find(r => r.id === activeDragData.field!.assignedTo)?.color || '#888'
+            : (activeRecipientId ? recipients.find(r => r.id === activeRecipientId)?.color || '#888' : '#888');
+
+          return (
           <div
             className="rounded border-2 flex items-center justify-center gap-1 text-white font-medium shadow-lg pointer-events-none"
             style={{
-              backgroundColor: activeRecipientId
-                ? recipients.find(r => r.id === activeRecipientId)?.color || '#888'
-                : '#888',
+              backgroundColor: overlayColor,
+              borderColor: overlayColor,
               opacity: 0.9,
-              width: activeDragData.field
-                ? `${activeDragData.field.width * 6.12}px`
-                : `${(FIELD_TYPES.find(f => f.type === activeDragData.type)?.defaultSize.width || 20) * 6.12}px`,
-              height: activeDragData.field
-                ? `${activeDragData.field.height * 7.92}px`
-                : `${(FIELD_TYPES.find(f => f.type === activeDragData.type)?.defaultSize.height || 4) * 7.92}px`,
+              width: `${fieldWidth}px`,
+              height: `${fieldHeight}px`,
               fontSize: '12px',
+              transform: `translate(${translateX}px, ${translateY}px)`,
             }}
           >
             {(() => {
@@ -1765,7 +2152,8 @@ export default function EsignTemplateEditor() {
               );
             })()}
           </div>
-        )}
+          );
+        })()}
       </DragOverlay>
     </DndContext>
   );

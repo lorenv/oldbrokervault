@@ -26,6 +26,36 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// Animated checkmark component
+function AnimatedCheckmark({ visible }: { visible: boolean }) {
+  return (
+    <svg
+      className={cn(
+        "h-3 w-3 transition-all duration-200",
+        visible ? "scale-100 opacity-100" : "scale-0 opacity-0"
+      )}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path
+        d="M5 12l5 5L20 7"
+        className={cn(
+          visible && "animate-draw-check"
+        )}
+        style={{
+          strokeDasharray: 24,
+          strokeDashoffset: visible ? 0 : 24,
+          transition: "stroke-dashoffset 0.3s ease-in-out 0.1s"
+        }}
+      />
+    </svg>
+  );
+}
+
 interface Task {
   id: number;
   title: string;
@@ -185,7 +215,7 @@ export function TaskList({
         res.json()
       ),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/tasks"], refetchType: 'all' });
       if (objectType && objectId) {
         queryClient.invalidateQueries({
           queryKey: [`/api/crm/tasks/${objectType}/${objectId}`],
@@ -215,7 +245,7 @@ export function TaskList({
         res.json()
       ),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/tasks"], refetchType: 'all' });
       if (objectType && objectId) {
         queryClient.invalidateQueries({
           queryKey: [`/api/crm/tasks/${objectType}/${objectId}`],
@@ -243,7 +273,7 @@ export function TaskList({
     mutationFn: (taskId: number) =>
       apiRequest("DELETE", `/api/crm/tasks/${taskId}`).then((res) => res.json()),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/tasks"], refetchType: 'all' });
       if (objectType && objectId) {
         queryClient.invalidateQueries({
           queryKey: [`/api/crm/tasks/${objectType}/${objectId}`],
@@ -310,17 +340,15 @@ export function TaskList({
                 }
               }}
               className={cn(
-                "mt-0.5 flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                "mt-0.5 flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200",
                 isComplete
-                  ? "bg-green-500 border-green-500 text-white hover:bg-green-600 hover:border-green-600"
+                  ? "bg-green-500 border-green-500 text-white hover:bg-green-600 hover:border-green-600 scale-100"
                   : "border-gray-300 hover:border-green-500 hover:bg-green-50",
                 (completeTaskMutation.isPending || uncompleteTaskMutation.isPending) && "opacity-50"
               )}
               title={isComplete ? "Mark as incomplete" : "Mark as complete"}
             >
-              {isComplete && (
-                <CheckCircle2 className="h-3 w-3" />
-              )}
+              <AnimatedCheckmark visible={isComplete} />
             </button>
 
             <div className="flex-1 min-w-0">
@@ -329,14 +357,14 @@ export function TaskList({
                   <div className="flex items-center gap-2">
                     <h4
                       className={cn(
-                        "font-medium text-sm text-gray-900",
-                        isComplete && "line-through text-gray-500"
+                        "font-medium text-sm transition-all duration-200",
+                        isComplete ? "line-through text-gray-400" : "text-gray-900"
                       )}
                     >
                       {task.title}
                     </h4>
                     {/* Association badge - shows what record this task is linked to */}
-                    {association && (
+                    {showLinkedEntity && association && (
                       <Link
                         href={association.href}
                         onClick={(e) => e.stopPropagation()}

@@ -176,7 +176,7 @@ export default function EsignSettings() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
       {/* Header */}
       <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 border-b border-slate-200 shadow-lg">
-        <div className="container mx-auto px-4 py-6 md:py-8">
+        <div className="px-4 md:px-6 py-4 md:py-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-3 md:gap-4">
               <Button
@@ -213,7 +213,7 @@ export default function EsignSettings() {
         </div>
       </div>
 
-      <main className="container mx-auto px-4 py-6 md:py-8 max-w-3xl">
+      <main className="px-4 md:px-6 py-4 md:py-6">
         {/* Company Logo */}
         <Card className="mb-4 md:mb-6">
           <CardHeader>
@@ -261,7 +261,27 @@ export default function EsignSettings() {
                       variant="outline"
                       size="sm"
                       className="text-red-600 hover:text-red-700"
-                      onClick={() => setFormData((prev) => ({ ...prev, logoUrl: null }))}
+                      onClick={async () => {
+                        setFormData((prev) => ({ ...prev, logoUrl: null }));
+                        // Sync logo removal to both eSignature branding and user profile
+                        try {
+                          await apiRequest("PUT", "/api/esign/branding", { body: { logoUrl: null } });
+                          await apiRequest("PUT", "/api/profile", { body: { businessLogo: "" } });
+                          queryClient.invalidateQueries({ queryKey: ["/api/esign/branding"] });
+                          queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
+                          queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+                          toast({
+                            title: "Logo removed",
+                            description: "Logo removed from all settings.",
+                          });
+                        } catch (error) {
+                          toast({
+                            title: "Error",
+                            description: "Failed to remove logo.",
+                            variant: "destructive",
+                          });
+                        }
+                      }}
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Remove
@@ -271,6 +291,12 @@ export default function EsignSettings() {
                 <p className="text-xs sm:text-sm text-gray-500 mt-2">
                   Recommended: 400x100px or similar aspect ratio. Max 5MB.
                 </p>
+                {formData.logoUrl && (
+                  <div className="flex items-center gap-2 text-xs text-green-600 mt-2">
+                    <Check className="h-3 w-3" />
+                    Synced to Profile, PDF, and Branding settings
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>

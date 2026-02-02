@@ -27,6 +27,7 @@ interface TeamMember {
   email: string;
   firstName: string | null;
   lastName: string | null;
+  profilePhoto: string | null;
 }
 
 interface Task {
@@ -132,6 +133,7 @@ export function TaskDialog({
         email: m.email,
         firstName: m.firstName,
         lastName: m.lastName,
+        profilePhoto: m.profilePhoto,
       }));
     },
   });
@@ -143,7 +145,7 @@ export function TaskDialog({
         res.json()
       ),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/tasks"], refetchType: 'all' });
       if (objectType && objectId) {
         queryClient.invalidateQueries({
           queryKey: [`/api/crm/tasks/${objectType}/${objectId}`],
@@ -175,7 +177,7 @@ export function TaskDialog({
         (res) => res.json()
       ),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/tasks"], refetchType: 'all' });
       if (objectType && objectId) {
         queryClient.invalidateQueries({
           queryKey: [`/api/crm/tasks/${objectType}/${objectId}`],
@@ -325,17 +327,61 @@ export function TaskDialog({
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select team member" />
+                  <SelectValue placeholder="Select team member">
+                    {formData.assignedTo && formData.assignedTo !== "unassigned" && teamMembers && (() => {
+                      const selectedMember = teamMembers.find(m => m.id.toString() === formData.assignedTo);
+                      if (!selectedMember) return null;
+                      const displayName = selectedMember.firstName && selectedMember.lastName
+                        ? `${selectedMember.firstName} ${selectedMember.lastName}`
+                        : selectedMember.email;
+                      return (
+                        <span className="flex items-center gap-2">
+                          {selectedMember.profilePhoto ? (
+                            <img
+                              src={selectedMember.profilePhoto}
+                              alt={displayName}
+                              className="w-5 h-5 rounded-full object-cover flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                              <span className="text-xs font-medium text-blue-600">
+                                {displayName.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                          <span className="truncate text-gray-900">{displayName}</span>
+                        </span>
+                      );
+                    })()}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="unassigned">Unassigned</SelectItem>
-                  {teamMembers?.map((member) => (
-                    <SelectItem key={member.id} value={member.id.toString()}>
-                      {member.firstName && member.lastName
-                        ? `${member.firstName} ${member.lastName}`
-                        : member.email}
-                    </SelectItem>
-                  ))}
+                  {teamMembers?.map((member) => {
+                    const displayName = member.firstName && member.lastName
+                      ? `${member.firstName} ${member.lastName}`
+                      : member.email;
+                    return (
+                      <SelectItem key={member.id} value={member.id.toString()}>
+                        <span className="flex items-center gap-2">
+                          {member.profilePhoto ? (
+                            <img
+                              src={member.profilePhoto}
+                              alt={displayName}
+                              className="w-5 h-5 rounded-full object-cover flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                              <span className="text-xs font-medium text-blue-600">
+                                {displayName.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                          <span className="text-gray-900">{displayName}</span>
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>

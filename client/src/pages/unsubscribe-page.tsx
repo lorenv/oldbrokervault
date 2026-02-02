@@ -167,7 +167,7 @@ export function UnsubscribePage() {
         <div className="text-center mb-6">
           <Mail className="h-16 w-16 text-blue-600 mx-auto" />
           <h1 className="mt-4 text-2xl font-bold text-gray-900">Manage Email Preferences</h1>
-          <p className="mt-2 text-gray-600">Choose which emails you'd like to receive from CIM Share</p>
+          <p className="mt-2 text-gray-600">Choose which emails you'd like to receive from Broker Vault</p>
           {email && (
             <p className="mt-1 text-sm text-gray-500">Managing preferences for: {email}</p>
           )}
@@ -197,7 +197,7 @@ export function UnsubscribePage() {
               <div className="ml-3">
                 <p className="font-medium text-gray-900">Onboarding Emails</p>
                 <p className="text-sm text-gray-600">
-                  Helpful tips and guides to get the most out of CIM Share
+                  Helpful tips and guides to get the most out of Broker Vault
                 </p>
               </div>
             </label>

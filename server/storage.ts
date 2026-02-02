@@ -1,4 +1,4 @@
-import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, uploadedFiles, customSections, ndaTemplates, ndaSignatures, ndaAccessTokens, ndaRedirectLinks, documentViews, documentDownloads, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, NdaAccessToken, InsertNdaAccessToken, NdaRedirectLink, InsertNdaRedirectLink, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator, documentLocks, DocumentLock, documentActivityLog, DocumentActivityLog, customTags, analysisTemplates, AnalysisTemplate, InsertAnalysisTemplate, financialFiles, documentVersions, documentAnalytics, documentBaselines, DocumentBaseline, InsertDocumentBaseline, contentStyleTemplates, ContentStyleTemplate, InsertContentStyleTemplate, messageAttachments, MessageAttachment, InsertMessageAttachment, onboardingEmailSequences, userEmailQueue, OnboardingEmailSequence, UserEmailQueue, InsertUserEmailQueue, teasers, deals } from "@shared/schema";
+import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, uploadedFiles, customSections, ndaTemplates, ndaSignatures, ndaAccessTokens, ndaRedirectLinks, documentViews, documentDownloads, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, NdaAccessToken, InsertNdaAccessToken, NdaRedirectLink, InsertNdaRedirectLink, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator, documentLocks, DocumentLock, documentActivityLog, DocumentActivityLog, customTags, analysisTemplates, AnalysisTemplate, InsertAnalysisTemplate, financialFiles, documentVersions, documentAnalytics, documentBaselines, DocumentBaseline, InsertDocumentBaseline, contentStyleTemplates, ContentStyleTemplate, InsertContentStyleTemplate, messageAttachments, MessageAttachment, InsertMessageAttachment, onboardingEmailSequences, userEmailQueue, OnboardingEmailSequence, UserEmailQueue, InsertUserEmailQueue, teasers, deals, supportTickets, userNotificationPreferences, UserNotificationPreferences } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
@@ -57,8 +57,12 @@ function getSessionStore(): session.Store {
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByGoogleId(googleId: string): Promise<User | undefined>;
+  getUserByMicrosoftId(microsoftId: string): Promise<User | undefined>;
   getUserProfile(id: number): Promise<User | undefined>;
   createUser(user: InsertUser & { isAdmin: boolean }): Promise<User>;
+  createOAuthUser(data: { email: string; firstName?: string; lastName?: string; profilePhoto?: string; googleId?: string; microsoftId?: string; authProvider: string }): Promise<User>;
+  linkOAuthProvider(userId: number, provider: 'google' | 'microsoft', providerId: string): Promise<User>;
   updateUser(id: number, updates: Partial<User>): Promise<User>;
   updateSubscription(userId: number, status: string, endsAt: Date): Promise<void>;
   updateUserUsage(userId: number): Promise<void>;
@@ -111,8 +115,10 @@ export interface IStorage {
   }): Promise<any>;
   getUploadedFiles(cimDocumentId: number): Promise<any[]>;
   getCimDocuments(userId: number, options?: { page?: number; limit?: number; search?: string; filters?: string[]; dealId?: number }): Promise<{ documents: CimDocument[]; total: number; hasMore: boolean }>;
-  getAllUsers(): Promise<User[]>;
-  getAllCimDocuments(): Promise<CimDocument[]>;
+  getAllUsers(options?: { limit?: number; offset?: number }): Promise<User[]>;
+  getAllCimDocuments(options?: { limit?: number; offset?: number }): Promise<CimDocument[]>;
+  getUsersCount(): Promise<number>;
+  getCimDocumentsCount(): Promise<number>;
   getCimDocument(id: number): Promise<CimDocument | undefined>;
   updateCimDocument(id: number, doc: Partial<CimDocument>): Promise<CimDocument>;
   updateCimDocumentContent(id: number, editedContent: any): Promise<CimDocument>;
@@ -219,7 +225,7 @@ export interface IStorage {
   cleanupStaleLocks(minutesOld: number): Promise<number>;
   // Activity Log
   logActivity(documentId: number, userId: number | null, userName: string | null, userEmail: string | null, action: string, metadata?: any): Promise<void>;
-  getActivityLog(documentId: number, limit: number, offset: number): Promise<any[]>;
+  getActivityLog(documentId: number, options?: { limit?: number; offset?: number }): Promise<any[]>;
   // Custom Tags
   createCustomTag(userId: number, name: string, color: string): Promise<any>;
   getCustomTags(userId: number): Promise<any[]>;
@@ -248,6 +254,11 @@ export interface IStorage {
   getPendingEmails(): Promise<any[]>;
   markEmailAsSent(queueId: number): Promise<void>;
   markEmailAsFailed(queueId: number, errorMessage: string): Promise<void>;
+  // Support tickets
+  createSupportTicket(ticket: { userId: number; organizationId?: number | null; type: string; subject: string; description: string; attachments?: any[]; browserInfo?: string; pageUrl?: string }): Promise<any>;
+  // Notification preferences
+  getNotificationPreferences(userId: number): Promise<UserNotificationPreferences | null>;
+  upsertNotificationPreferences(userId: number, preferences: Partial<UserNotificationPreferences>): Promise<UserNotificationPreferences>;
   sessionStore: session.Store;
 }
 
@@ -273,6 +284,76 @@ export class DatabaseStorage implements IStorage {
       console.error('Error in getUserByEmail:', error);
       throw error;
     }
+  }
+
+  async getUserByGoogleId(googleId: string): Promise<User | undefined> {
+    try {
+      const [user] = await db.select().from(users).where(eq(users.googleId, googleId)).limit(1);
+      return user;
+    } catch (error) {
+      console.error('Error in getUserByGoogleId:', error);
+      throw error;
+    }
+  }
+
+  async getUserByMicrosoftId(microsoftId: string): Promise<User | undefined> {
+    try {
+      const [user] = await db.select().from(users).where(eq(users.microsoftId, microsoftId)).limit(1);
+      return user;
+    } catch (error) {
+      console.error('Error in getUserByMicrosoftId:', error);
+      throw error;
+    }
+  }
+
+  async createOAuthUser(data: {
+    email: string;
+    firstName?: string;
+    lastName?: string;
+    profilePhoto?: string;
+    googleId?: string;
+    microsoftId?: string;
+    authProvider: string
+  }): Promise<User> {
+    // Generate a random secure password for OAuth users (they won't use it)
+    const randomPassword = require('crypto').randomBytes(32).toString('hex');
+    const hashedPassword = await require('./auth').hashPassword(randomPassword);
+
+    const [user] = await db
+      .insert(users)
+      .values({
+        email: data.email,
+        password: hashedPassword,
+        firstName: data.firstName || null,
+        lastName: data.lastName || null,
+        profilePhoto: data.profilePhoto || null,
+        googleId: data.googleId || null,
+        microsoftId: data.microsoftId || null,
+        authProvider: data.authProvider,
+        isAdmin: false,
+        subscriptionStatus: "free",
+        emailVerified: true, // OAuth users are pre-verified
+      })
+      .returning();
+
+    return user;
+  }
+
+  async linkOAuthProvider(userId: number, provider: 'google' | 'microsoft', providerId: string): Promise<User> {
+    const updateData: Partial<User> = {};
+    if (provider === 'google') {
+      updateData.googleId = providerId;
+    } else if (provider === 'microsoft') {
+      updateData.microsoftId = providerId;
+    }
+
+    const [user] = await db
+      .update(users)
+      .set(updateData)
+      .where(eq(users.id, userId))
+      .returning();
+
+    return user;
   }
 
   async getUserProfile(id: number): Promise<User | undefined> {
@@ -1022,12 +1103,24 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
     };
   }
 
-  async getAllUsers(): Promise<User[]> {
-    return db.select().from(users);
+  async getAllUsers(options: { limit?: number; offset?: number } = {}): Promise<User[]> {
+    const { limit = 100, offset = 0 } = options;
+    return db.select().from(users).limit(limit).offset(offset);
   }
 
-  async getAllCimDocuments(): Promise<CimDocument[]> {
-    return db.select().from(cimDocuments);
+  async getAllCimDocuments(options: { limit?: number; offset?: number } = {}): Promise<CimDocument[]> {
+    const { limit = 100, offset = 0 } = options;
+    return db.select().from(cimDocuments).limit(limit).offset(offset);
+  }
+
+  async getUsersCount(): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)` }).from(users);
+    return Number(result[0]?.count ?? 0);
+  }
+
+  async getCimDocumentsCount(): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)` }).from(cimDocuments);
+    return Number(result[0]?.count ?? 0);
   }
 
   async getCimDocument(id: number): Promise<CimDocument | undefined> {
@@ -1228,7 +1321,7 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
     try {
       // Read the default NDA template file
       const defaultTemplatePath = path.join(__dirname, 'default-nda-template.pdf');
-      const templateBuffer = fs.readFileSync(defaultTemplatePath);
+      const templateBuffer = await fs.promises.readFile(defaultTemplatePath);
       
       // Convert to base64 as expected by the schema
       const templateContent = templateBuffer.toString('base64');
@@ -1689,7 +1782,16 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
     };
   }
 
-  async getNdaSignerViewHistory(documentId: number, signerEmail: string): Promise<any[]> {
+  async getNdaSignerViewHistory(
+    documentId: number,
+    signerEmail: string,
+    options: { limit?: number; offset?: number } = {}
+  ): Promise<any[]> {
+    const { limit = 50, offset = 0 } = options;
+    const maxLimit = 100; // Cap the maximum to prevent unbounded results
+    const safeLimit = Math.min(Math.max(1, limit), maxLimit);
+    const safeOffset = Math.max(0, offset);
+
     return await db
       .select({
         id: documentViews.id,
@@ -1705,7 +1807,9 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
           eq(documentViews.viewerIdentifier, signerEmail)
         )
       )
-      .orderBy(desc(documentViews.viewedAt));
+      .orderBy(desc(documentViews.viewedAt))
+      .limit(safeLimit)
+      .offset(safeOffset);
   }
 
   async createCustomSection(section: {
@@ -1935,9 +2039,12 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
         for (const page of pageImages) {
           if (page.imagePath) {
             const fullPath = path.join(process.cwd(), 'public', page.imagePath);
-            if (fs.existsSync(fullPath)) {
-              fs.unlinkSync(fullPath);
+            try {
+              await fs.promises.access(fullPath);
+              await fs.promises.unlink(fullPath);
               console.log(`Cleaned up image file: ${fullPath}`);
+            } catch {
+              // File doesn't exist or couldn't be deleted, continue
             }
           }
         }
@@ -2416,13 +2523,21 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
       });
   }
 
-  async getActivityLog(documentId: number, limit: number, offset: number): Promise<any[]> {
+  async getActivityLog(
+    documentId: number,
+    options: { limit?: number; offset?: number } = {}
+  ): Promise<any[]> {
+    const { limit = 50, offset = 0 } = options;
+    const maxLimit = 100; // Cap the maximum to prevent unbounded results
+    const safeLimit = Math.min(Math.max(1, limit), maxLimit);
+    const safeOffset = Math.max(0, offset);
+
     return await db.select()
       .from(documentActivityLog)
       .where(eq(documentActivityLog.documentId, documentId))
       .orderBy(desc(documentActivityLog.createdAt))
-      .limit(limit)
-      .offset(offset);
+      .limit(safeLimit)
+      .offset(safeOffset);
   }
 
   async createCustomTag(userId: number, name: string, color: string): Promise<any> {
@@ -2681,11 +2796,68 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
   async markEmailAsFailed(queueId: number, errorMessage: string): Promise<void> {
     return await withRetry(async () => {
       await db.update(userEmailQueue)
-        .set({ 
+        .set({
           status: 'failed',
           errorMessage
         })
         .where(eq(userEmailQueue.id, queueId));
+    });
+  }
+
+  async createSupportTicket(ticket: { userId: number; organizationId?: number | null; type: string; subject: string; description: string; attachments?: any[]; browserInfo?: string; pageUrl?: string }): Promise<any> {
+    return await withRetry(async () => {
+      const [newTicket] = await db.insert(supportTickets).values({
+        userId: ticket.userId,
+        organizationId: ticket.organizationId || null,
+        type: ticket.type,
+        subject: ticket.subject,
+        description: ticket.description,
+        attachments: ticket.attachments || [],
+        browserInfo: ticket.browserInfo || null,
+        pageUrl: ticket.pageUrl || null,
+      }).returning();
+      return newTicket;
+    });
+  }
+
+  async getNotificationPreferences(userId: number): Promise<UserNotificationPreferences | null> {
+    return await withRetry(async () => {
+      const [prefs] = await db
+        .select()
+        .from(userNotificationPreferences)
+        .where(eq(userNotificationPreferences.userId, userId))
+        .limit(1);
+      return prefs || null;
+    });
+  }
+
+  async upsertNotificationPreferences(userId: number, preferences: Partial<UserNotificationPreferences>): Promise<UserNotificationPreferences> {
+    return await withRetry(async () => {
+      // Check if preferences exist
+      const existing = await this.getNotificationPreferences(userId);
+
+      if (existing) {
+        // Update existing preferences
+        const [updated] = await db
+          .update(userNotificationPreferences)
+          .set({
+            ...preferences,
+            updatedAt: new Date(),
+          })
+          .where(eq(userNotificationPreferences.userId, userId))
+          .returning();
+        return updated;
+      } else {
+        // Create new preferences with defaults
+        const [created] = await db
+          .insert(userNotificationPreferences)
+          .values({
+            userId,
+            ...preferences,
+          })
+          .returning();
+        return created;
+      }
     });
   }
 }

@@ -1,5 +1,7 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import { Strategy as MicrosoftStrategy } from "passport-microsoft";
 import { Express } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
@@ -113,6 +115,8 @@ export function setupAuth(app: Express) {
                          req.path.startsWith('/nda/redirect/') ||
                          req.path.startsWith('/api/register') ||
                          req.path.startsWith('/api/login') ||
+                         req.path.startsWith('/api/auth/google') ||
+                         req.path.startsWith('/api/auth/microsoft') ||
                          req.path.startsWith('/api/integrations/oauth/callback') ||
                          req.path.startsWith('/api/integrations/auth');
     
@@ -163,6 +167,139 @@ export function setupAuth(app: Express) {
       }
     )
   );
+
+  // Google OAuth Strategy
+  // Uses existing Google credentials (same as email integration)
+  const googleClientId = process.env.GOOGLE_CLIENT_ID || process.env.google_client_id;
+  const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET || process.env.google_client_secret;
+
+  if (googleClientId && googleClientSecret) {
+    passport.use(
+      new GoogleStrategy(
+        {
+          clientID: googleClientId,
+          clientSecret: googleClientSecret,
+          callbackURL: "/api/auth/google/callback",
+          scope: ["profile", "email"],
+        },
+        async (accessToken, refreshToken, profile, done) => {
+          try {
+            const email = profile.emails?.[0]?.value;
+            if (!email) {
+              return done(new Error("No email provided by Google"));
+            }
+
+            // Check if user exists by Google ID
+            let user = await storage.getUserByGoogleId(profile.id);
+
+            if (user) {
+              // User exists with this Google ID - log them in
+              setCachedUser(user);
+              return done(null, user);
+            }
+
+            // Check if user exists by email
+            user = await storage.getUserByEmail(email);
+
+            if (user) {
+              // User exists with this email - link Google account
+              user = await storage.linkOAuthProvider(user.id, 'google', profile.id);
+              setCachedUser(user);
+              return done(null, user);
+            }
+
+            // Create new user
+            user = await storage.createOAuthUser({
+              email,
+              firstName: profile.name?.givenName,
+              lastName: profile.name?.familyName,
+              profilePhoto: profile.photos?.[0]?.value,
+              googleId: profile.id,
+              authProvider: 'google',
+            });
+
+            // Populate default NDA template for new users
+            await populateDefaultNDAForUser(user.id);
+
+            setCachedUser(user);
+            return done(null, user);
+          } catch (error) {
+            logger.error("Google OAuth error", { error });
+            return done(error as Error);
+          }
+        }
+      )
+    );
+    console.log("✓ Google OAuth strategy configured");
+  } else {
+    console.log("⚠ Google OAuth not configured (missing GOOGLE_CLIENT_ID or google_client_id)");
+  }
+
+  // Microsoft OAuth Strategy
+  // Uses existing Azure AD credentials (same as email integration)
+  const microsoftClientId = process.env.MICROSOFT_CLIENT_ID || process.env.azure_client_id;
+  const microsoftClientSecret = process.env.MICROSOFT_CLIENT_SECRET || process.env.azure_client_secret;
+
+  if (microsoftClientId && microsoftClientSecret) {
+    passport.use(
+      new MicrosoftStrategy(
+        {
+          clientID: microsoftClientId,
+          clientSecret: microsoftClientSecret,
+          callbackURL: "/api/auth/microsoft/callback",
+          scope: ["user.read"],
+        },
+        async (accessToken: string, refreshToken: string, profile: any, done: any) => {
+          try {
+            const email = profile.emails?.[0]?.value || profile._json?.mail || profile._json?.userPrincipalName;
+            if (!email) {
+              return done(new Error("No email provided by Microsoft"));
+            }
+
+            // Check if user exists by Microsoft ID
+            let user = await storage.getUserByMicrosoftId(profile.id);
+
+            if (user) {
+              // User exists with this Microsoft ID - log them in
+              setCachedUser(user);
+              return done(null, user);
+            }
+
+            // Check if user exists by email
+            user = await storage.getUserByEmail(email);
+
+            if (user) {
+              // User exists with this email - link Microsoft account
+              user = await storage.linkOAuthProvider(user.id, 'microsoft', profile.id);
+              setCachedUser(user);
+              return done(null, user);
+            }
+
+            // Create new user
+            user = await storage.createOAuthUser({
+              email,
+              firstName: profile.name?.givenName || profile._json?.givenName,
+              lastName: profile.name?.familyName || profile._json?.surname,
+              microsoftId: profile.id,
+              authProvider: 'microsoft',
+            });
+
+            // Populate default NDA template for new users
+            await populateDefaultNDAForUser(user.id);
+
+            setCachedUser(user);
+            return done(null, user);
+          } catch (error) {
+            logger.error("Microsoft OAuth error", { error });
+            return done(error as Error);
+          }
+        }
+      )
+    );
+    console.log("✓ Microsoft OAuth strategy configured");
+  } else {
+    console.log("⚠ Microsoft OAuth not configured (missing MICROSOFT_CLIENT_ID/azure_client_id or MICROSOFT_CLIENT_SECRET/azure_client_secret)");
+  }
 
   passport.serializeUser((user, done) => {
     const serializeStart = Date.now();
@@ -266,7 +403,11 @@ export function setupAuth(app: Express) {
       });
       
       // Handle JSON body parsing (FormData contains text fields)
-      const { email, password, name, businessName, phoneNumber, adminCode, agreeToTerms } = req.body;
+      const {
+        email, password, name, businessName, phoneNumber, adminCode, agreeToTerms,
+        // Attribution fields
+        utmSource, utmMedium, utmCampaign, utmTerm, utmContent, referrerUrl, landingPage
+      } = req.body;
       
       // Get files from the request (multer middleware populates this)
       const files = req.files as { [fieldname: string]: Express.Multer.File[] };
@@ -293,6 +434,16 @@ export function setupAuth(app: Express) {
         });
       }
 
+      // SEC-009: Enforce password strength requirements
+      // Password must be at least 8 chars with upper, lower, number, special
+      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+      if (!passwordRegex.test(password)) {
+        logger.warn("Registration password strength validation failed", { email });
+        return res.status(400).json({
+          message: "Password must be at least 8 characters with uppercase, lowercase, number, and special character (@$!%*?&)"
+        });
+      }
+
       const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
         return res.status(400).json({
@@ -315,6 +466,9 @@ export function setupAuth(app: Express) {
         businessLogo: null,
         profilePhoto: null,
         isAdmin,
+        utmSource: utmSource || null,
+        utmMedium: utmMedium || null,
+        utmCampaign: utmCampaign || null,
       });
 
       const user = await storage.createUser({
@@ -326,6 +480,14 @@ export function setupAuth(app: Express) {
         businessLogo: undefined,
         profilePhoto: undefined,
         isAdmin,
+        // Attribution fields
+        utmSource: utmSource || undefined,
+        utmMedium: utmMedium || undefined,
+        utmCampaign: utmCampaign || undefined,
+        utmTerm: utmTerm || undefined,
+        utmContent: utmContent || undefined,
+        referrerUrl: referrerUrl || undefined,
+        landingPage: landingPage || undefined,
       });
 
       console.log("User created:", {
@@ -411,10 +573,62 @@ export function setupAuth(app: Express) {
       try {
         const { populateDefaultNDAForUser } = await import("./populate-default-nda");
         await populateDefaultNDAForUser(user.id);
-        console.log(`Created "CIM Share NDA" template for new user ${user.id}`);
+        console.log(`Created "Broker Vault NDA" template for new user ${user.id}`);
       } catch (ndaError) {
         console.error(`Failed to create default NDA template for user ${user.id}:`, ndaError);
         // Don't fail registration if NDA template creation fails
+      }
+
+      // Check for pending team invitations for this email
+      // This handles both: 1) invite token in query/body, 2) any pending invites by email
+      try {
+        const { db } = await import("./db");
+        const { organizationMembers, organizations } = await import("../shared/schema");
+        const { eq, and, or, isNull } = await import("drizzle-orm");
+
+        const inviteToken = req.body.inviteToken || req.query.invite;
+        const normalizedEmail = email.toLowerCase().trim();
+
+        // Find pending invitations - either by token or by email
+        const pendingInvitations = await db
+          .select({
+            membership: organizationMembers,
+            organization: organizations,
+          })
+          .from(organizationMembers)
+          .innerJoin(organizations, eq(organizationMembers.organizationId, organizations.id))
+          .where(
+            and(
+              eq(organizationMembers.status, 'pending'),
+              isNull(organizationMembers.userId),
+              or(
+                inviteToken ? eq(organizationMembers.inviteToken, inviteToken) : undefined,
+                eq(organizationMembers.inviteeEmail, normalizedEmail)
+              )
+            )
+          );
+
+        if (pendingInvitations.length > 0) {
+          console.log(`[Registration] Found ${pendingInvitations.length} pending invitation(s) for ${email}`);
+
+          for (const { membership, organization } of pendingInvitations) {
+            // Activate the pending invitation
+            await db
+              .update(organizationMembers)
+              .set({
+                userId: user.id,
+                status: 'active',
+                joinedAt: new Date(),
+                inviteToken: null, // Clear the token after use
+              })
+              .where(eq(organizationMembers.id, membership.id));
+
+            console.log(`[Registration] User ${user.id} automatically joined organization "${organization.name}" as ${membership.role}`);
+          }
+        }
+      } catch (inviteError) {
+        console.error(`[Registration] Failed to process pending invitations for user ${user.id}:`, inviteError);
+        // Don't fail registration if invitation processing fails
       }
 
       // Create example CIM document for new user
@@ -554,6 +768,72 @@ export function setupAuth(app: Express) {
     });
   });
 
+  // ============================================
+  // SOCIAL LOGIN ROUTES
+  // ============================================
+
+  // Helper function to validate OAuth redirect URLs (SEC-008)
+  function isValidRedirect(url: string): boolean {
+    // Must start with / but not // (to prevent protocol-relative URLs)
+    return url.startsWith('/') && !url.startsWith('//');
+  }
+
+  // Google OAuth routes
+  app.get("/api/auth/google", (req, res, next) => {
+    // Store the redirect URL in session if provided and validated
+    if (req.query.redirect && isValidRedirect(req.query.redirect as string)) {
+      (req.session as any).oauthRedirect = req.query.redirect;
+    }
+    passport.authenticate("google", { scope: ["profile", "email"] })(req, res, next);
+  });
+
+  app.get("/api/auth/google/callback",
+    passport.authenticate("google", { failureRedirect: "/auth?error=google_auth_failed" }),
+    (req, res) => {
+      console.log("✓ Google OAuth callback successful for user:", req.user?.email);
+      const redirectUrl = (req.session as any).oauthRedirect;
+      const safeRedirect = (redirectUrl && isValidRedirect(redirectUrl)) ? redirectUrl : '/';
+      delete (req.session as any).oauthRedirect;
+      res.redirect(safeRedirect);
+    }
+  );
+
+  // Microsoft OAuth routes
+  app.get("/api/auth/microsoft", (req, res, next) => {
+    // Store the redirect URL in session if provided and validated
+    if (req.query.redirect && isValidRedirect(req.query.redirect as string)) {
+      (req.session as any).oauthRedirect = req.query.redirect;
+    }
+    passport.authenticate("microsoft", { scope: ["user.read"] })(req, res, next);
+  });
+
+  app.get("/api/auth/microsoft/callback",
+    passport.authenticate("microsoft", { failureRedirect: "/auth?error=microsoft_auth_failed" }),
+    (req, res) => {
+      console.log("✓ Microsoft OAuth callback successful for user:", req.user?.email);
+      const redirectUrl = (req.session as any).oauthRedirect;
+      const safeRedirect = (redirectUrl && isValidRedirect(redirectUrl)) ? redirectUrl : '/';
+      delete (req.session as any).oauthRedirect;
+      res.redirect(safeRedirect);
+    }
+  );
+
+  // Check which social providers are configured
+  app.get("/api/auth/providers", (req, res) => {
+    const googleConfigured = !!(
+      (process.env.GOOGLE_CLIENT_ID || process.env.google_client_id) &&
+      (process.env.GOOGLE_CLIENT_SECRET || process.env.google_client_secret)
+    );
+    const microsoftConfigured = !!(
+      (process.env.MICROSOFT_CLIENT_ID || process.env.azure_client_id) &&
+      (process.env.MICROSOFT_CLIENT_SECRET || process.env.azure_client_secret)
+    );
+    res.json({
+      google: googleConfigured,
+      microsoft: microsoftConfigured,
+    });
+  });
+
   app.get("/api/user", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({
@@ -616,48 +896,50 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Debug endpoint - added here to ensure it's registered
-  app.get("/api/debug/user", async (req, res) => {
-    console.log("Debug endpoint hit! Authentication status:", req.isAuthenticated());
-    
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ 
-        error: "Not authenticated",
-        isAuthenticated: false,
-        message: "Please log in first" 
-      });
-    }
-    
-    try {
-      const userFromDb = await storage.getUser(req.user!.id);
-      const sessionUser = req.user;
-      
-      res.json({
-        isAuthenticated: true,
-        sessionUser: {
-          id: sessionUser?.id,
-          email: sessionUser?.email,
-          subscriptionStatus: sessionUser?.subscriptionStatus,
-          name: sessionUser?.name,
-          phoneNumber: sessionUser?.phoneNumber,
-          businessName: sessionUser?.businessName,
-          businessLogo: sessionUser?.businessLogo,
-          profilePhoto: sessionUser?.profilePhoto
-        },
-        databaseUser: {
-          id: userFromDb?.id,
-          email: userFromDb?.email,
-          subscriptionStatus: userFromDb?.subscriptionStatus,
-          name: userFromDb?.name,
-          phoneNumber: userFromDb?.phoneNumber,
-          businessName: userFromDb?.businessName,
-          businessLogo: userFromDb?.businessLogo,
-          profilePhoto: userFromDb?.profilePhoto
-        }
-      });
-    } catch (error) {
-      console.error("Debug user error:", error);
-      res.status(500).json({ error: "Failed to fetch debug data" });
-    }
-  });
+  // SEC-010: Debug endpoint - only available in non-production environments
+  if (process.env.NODE_ENV !== 'production') {
+    app.get("/api/debug/user", async (req, res) => {
+      console.log("Debug endpoint hit! Authentication status:", req.isAuthenticated());
+
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({
+          error: "Not authenticated",
+          isAuthenticated: false,
+          message: "Please log in first"
+        });
+      }
+
+      try {
+        const userFromDb = await storage.getUser(req.user!.id);
+        const sessionUser = req.user;
+
+        res.json({
+          isAuthenticated: true,
+          sessionUser: {
+            id: sessionUser?.id,
+            email: sessionUser?.email,
+            subscriptionStatus: sessionUser?.subscriptionStatus,
+            name: sessionUser?.name,
+            phoneNumber: sessionUser?.phoneNumber,
+            businessName: sessionUser?.businessName,
+            businessLogo: sessionUser?.businessLogo,
+            profilePhoto: sessionUser?.profilePhoto
+          },
+          databaseUser: {
+            id: userFromDb?.id,
+            email: userFromDb?.email,
+            subscriptionStatus: userFromDb?.subscriptionStatus,
+            name: userFromDb?.name,
+            phoneNumber: userFromDb?.phoneNumber,
+            businessName: userFromDb?.businessName,
+            businessLogo: userFromDb?.businessLogo,
+            profilePhoto: userFromDb?.profilePhoto
+          }
+        });
+      } catch (error) {
+        console.error("Debug user error:", error);
+        res.status(500).json({ error: "Failed to fetch debug data" });
+      }
+    });
+  }
 }

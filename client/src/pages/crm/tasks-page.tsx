@@ -21,10 +21,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
 import { useTaskFilters } from "@/hooks/use-task-filters";
 import { TasksColumnConfig } from "@/components/crm/tasks-column-config";
 import { TaskDialog } from "@/components/crm/task-dialog";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import {
   Plus,
@@ -46,6 +48,33 @@ import {
   RotateCcw,
   Download,
 } from "lucide-react";
+
+// Animated checkmark component for task completion
+function AnimatedCheckmark({ visible }: { visible: boolean }) {
+  return (
+    <svg
+      className={cn(
+        "h-3 w-3 transition-all duration-200",
+        visible ? "scale-100 opacity-100" : "scale-0 opacity-0"
+      )}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path
+        d="M5 12l5 5L20 7"
+        style={{
+          strokeDasharray: 24,
+          strokeDashoffset: visible ? 0 : 24,
+          transition: "stroke-dashoffset 0.3s ease-in-out 0.1s"
+        }}
+      />
+    </svg>
+  );
+}
 
 interface Task {
   id: number;
@@ -138,9 +167,29 @@ function formatDueDate(dueDate: string | null, dueTime: string | null): string {
   return dateStr;
 }
 
+// Helper to determine if a color is light (needs dark text)
+function isLightColor(hexColor: string): boolean {
+  const hex = hexColor.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.6;
+}
+
 export default function TasksPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
+
+  // Get brand color from profile
+  const { data: profile } = useQuery({
+    queryKey: ["/api/profile"],
+    enabled: !!user,
+  });
+  const brandColor = (profile as any)?.pdfPrimaryColor || (profile as any)?.brandColors?.[0];
+  const needsDarkText = brandColor ? isLightColor(brandColor) : false;
 
   const {
     filters,
@@ -160,7 +209,24 @@ export default function TasksPage() {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [selectedTasks, setSelectedTasks] = useState<Set<number>>(new Set());
 
-  // Fetch tasks
+  // Fetch ALL tasks (for stats calculation - only filtered by assignedTo)
+  const statsQueryParams = useMemo(() => {
+    const params = new URLSearchParams();
+    if (filters.assignedTo === "my") {
+      params.append("myTasks", "true");
+    }
+    return params.toString();
+  }, [filters.assignedTo]);
+
+  const { data: allTasks = [] } = useQuery<Task[]>({
+    queryKey: ["/api/crm/tasks", "stats", statsQueryParams],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/crm/tasks?${statsQueryParams}`);
+      return res.json();
+    },
+  });
+
+  // Fetch filtered tasks (for display)
   const { data: tasks = [], isLoading } = useQuery<Task[]>({
     queryKey: ["/api/crm/tasks", buildQueryParams()],
     queryFn: async () => {
@@ -267,21 +333,21 @@ export default function TasksPage() {
     return result;
   }, [tasks, filters, sorting, isTaskOverdue]);
 
-  // Calculate stats
+  // Calculate stats from ALL tasks (not filtered by status)
   const stats = useMemo(() => ({
-    total: tasks.length,
-    pending: tasks.filter((t) => t.status === "pending").length,
-    inProgress: tasks.filter((t) => t.status === "in_progress").length,
-    completed: tasks.filter((t) => t.status === "completed").length,
-    overdue: tasks.filter(isTaskOverdue).length,
-  }), [tasks, isTaskOverdue]);
+    total: allTasks.length,
+    pending: allTasks.filter((t) => t.status === "pending").length,
+    inProgress: allTasks.filter((t) => t.status === "in_progress").length,
+    completed: allTasks.filter((t) => t.status === "completed").length,
+    overdue: allTasks.filter(isTaskOverdue).length,
+  }), [allTasks, isTaskOverdue]);
 
   // Mutations
   const completeTaskMutation = useMutation({
     mutationFn: (taskId: number) =>
       apiRequest("PATCH", `/api/crm/tasks/${taskId}/complete`).then((res) => res.json()),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/tasks"], refetchType: 'all' });
       toast({ title: "Task completed" });
     },
     onError: (error: any) => {
@@ -293,7 +359,7 @@ export default function TasksPage() {
     mutationFn: (taskId: number) =>
       apiRequest("PATCH", `/api/crm/tasks/${taskId}/uncomplete`).then((res) => res.json()),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/tasks"], refetchType: 'all' });
       toast({ title: "Task reopened" });
     },
     onError: (error: any) => {
@@ -305,7 +371,7 @@ export default function TasksPage() {
     mutationFn: ({ taskId, data }: { taskId: number; data: Record<string, any> }) =>
       apiRequest("PATCH", `/api/crm/tasks/${taskId}`, { body: data }).then((res) => res.json()),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/tasks"], refetchType: 'all' });
     },
     onError: (error: any) => {
       toast({ title: "Error", description: error.message || "Failed to update task", variant: "destructive" });
@@ -316,7 +382,7 @@ export default function TasksPage() {
     mutationFn: (taskId: number) =>
       apiRequest("DELETE", `/api/crm/tasks/${taskId}`).then((res) => res.json()),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/tasks"], refetchType: 'all' });
       toast({ title: "Task deleted" });
     },
     onError: (error: any) => {
@@ -433,7 +499,7 @@ export default function TasksPage() {
     switch (columnId) {
       case 'title':
         return (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button
               type="button"
               disabled={completeTaskMutation.isPending || uncompleteTaskMutation.isPending}
@@ -446,19 +512,19 @@ export default function TasksPage() {
                 }
               }}
               className={cn(
-                "flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                "flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200",
                 isComplete
                   ? "bg-green-500 border-green-500 text-white hover:bg-green-600"
                   : "border-gray-300 hover:border-green-500 hover:bg-green-50"
               )}
               title={isComplete ? "Mark as incomplete" : "Mark as complete"}
             >
-              {isComplete && <CheckCircle2 className="h-3 w-3" />}
+              <AnimatedCheckmark visible={isComplete} />
             </button>
             <span
               className={cn(
-                "font-medium text-gray-900 cursor-pointer hover:text-blue-600",
-                isComplete && "line-through text-gray-500"
+                "font-medium cursor-pointer hover:text-blue-600 transition-all duration-200",
+                isComplete ? "line-through text-gray-400" : "text-gray-900"
               )}
               onClick={() => setEditingTask(task)}
             >
@@ -622,11 +688,23 @@ export default function TasksPage() {
     <div className="p-4 md:p-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-xl md:text-2xl font-semibold text-gray-900">Tasks</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Manage your tasks and follow-ups
-          </p>
+        <div className="flex items-center gap-3">
+          <div
+            className="flex-shrink-0 p-2 md:p-2.5 rounded-lg md:rounded-xl shadow-md"
+            style={{
+              background: brandColor
+                ? `linear-gradient(to bottom right, ${brandColor}, ${brandColor}dd)`
+                : 'linear-gradient(to bottom right, #334155, #1e293b)'
+            }}
+          >
+            <CheckCircle2 className={`h-5 w-5 ${needsDarkText ? 'text-slate-800' : 'text-white'}`} />
+          </div>
+          <div>
+            <h1 className="text-xl md:text-2xl font-semibold text-gray-900">Tasks</h1>
+            <p className="text-sm text-gray-500">
+              Manage your tasks and follow-ups
+            </p>
+          </div>
         </div>
         <Button variant="outline" onClick={() => setIsCreateDialogOpen(true)} className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
@@ -850,7 +928,7 @@ export default function TasksPage() {
                         checked={selectedTasks.has(task.id)}
                         onCheckedChange={() => toggleTaskSelection(task.id)}
                         onClick={(e) => e.stopPropagation()}
-                        className="mt-1"
+                        className="mt-1 border-gray-300 data-[state=checked]:bg-gray-400 data-[state=checked]:border-gray-400"
                       />
                       <button
                         type="button"
@@ -863,16 +941,21 @@ export default function TasksPage() {
                           }
                         }}
                         className={cn(
-                          "mt-0.5 flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center",
+                          "mt-0.5 flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200",
                           isComplete
                             ? "bg-green-500 border-green-500 text-white"
-                            : "border-gray-300"
+                            : "border-gray-300 hover:border-green-500 hover:bg-green-50"
                         )}
                       >
-                        {isComplete && <CheckCircle2 className="h-3 w-3" />}
+                        <AnimatedCheckmark visible={isComplete} />
                       </button>
                       <div className="flex-1 min-w-0">
-                        <h4 className={cn("font-medium text-gray-900", isComplete && "line-through text-gray-500")}>
+                        <h4
+                          className={cn(
+                            "font-medium transition-all duration-200",
+                            isComplete ? "line-through text-gray-400" : "text-gray-900"
+                          )}
+                        >
                           {task.title}
                         </h4>
                         <div className="flex flex-wrap items-center gap-2 mt-2 text-xs">
@@ -901,20 +984,29 @@ export default function TasksPage() {
 
             {/* Desktop Table View */}
             <div className="hidden md:block overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full table-fixed">
                 <thead className="bg-gray-50 border-b">
                   <tr>
                     <th className="w-10 py-3 px-4">
                       <Checkbox
                         checked={isAllSelected}
                         onCheckedChange={toggleAllSelection}
-                        className={isSomeSelected ? "data-[state=checked]:bg-blue-300" : ""}
+                        className={`border-gray-300 data-[state=checked]:bg-gray-400 data-[state=checked]:border-gray-400 ${isSomeSelected ? "data-[state=checked]:bg-gray-300" : ""}`}
                       />
                     </th>
                     {visibleColumns.map((column) => (
                       <th
                         key={column.id}
                         className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 transition-colors"
+                        style={{
+                          width: column.id === 'title' ? '30%' :
+                                 column.id === 'dueDate' ? '15%' :
+                                 column.id === 'assignedTo' ? '15%' :
+                                 column.id === 'status' ? '12%' :
+                                 column.id === 'priority' ? '10%' :
+                                 column.id === 'linkedTo' ? '15%' :
+                                 '10%'
+                        }}
                         onClick={() => toggleSort(column.id)}
                       >
                         <div className="flex items-center gap-1">
@@ -942,6 +1034,7 @@ export default function TasksPage() {
                           <Checkbox
                             checked={selectedTasks.has(task.id)}
                             onCheckedChange={() => toggleTaskSelection(task.id)}
+                            className="border-gray-300 data-[state=checked]:bg-gray-400 data-[state=checked]:border-gray-400"
                           />
                         </td>
                         {visibleColumns.map((column) => (
@@ -1003,6 +1096,17 @@ export default function TasksPage() {
         onOpenChange={(open) => !open && setEditingTask(null)}
         task={editingTask}
       />
+
+      {/* Mobile FAB (Floating Action Button) */}
+      {isMobile && (
+        <Button
+          size="lg"
+          onClick={() => setIsCreateDialogOpen(true)}
+          className="fixed bottom-24 right-4 z-40 h-14 w-14 rounded-full shadow-lg hover:shadow-xl p-0"
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
+      )}
     </div>
   );
 }

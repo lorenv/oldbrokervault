@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -12,28 +12,28 @@ export const subscriptionPlans = {
   },
   starter: {
     name: "Starter Plan",
-    limit: 3,
+    limit: Infinity,
     regenerationLimit: Infinity,
     price: 599,
     billing: "annual"
   },
   starter_monthly: {
     name: "Starter Plan",
-    limit: 3,
+    limit: Infinity,
     regenerationLimit: Infinity,
     price: 59,
     billing: "monthly"
   },
   pro: {
     name: "Pro Plan",
-    limit: 10,
+    limit: Infinity,
     regenerationLimit: Infinity,
     price: 999,
     billing: "annual"
   },
   pro_monthly: {
     name: "Pro Plan",
-    limit: 10,
+    limit: Infinity,
     regenerationLimit: Infinity,
     price: 99,
     billing: "monthly"
@@ -41,7 +41,7 @@ export const subscriptionPlans = {
   // Legacy name kept for backward compatibility
   standard: {
     name: "Pro Plan",
-    limit: 10,
+    limit: Infinity,
     regenerationLimit: Infinity,
     price: 999,
     billing: "annual"
@@ -142,6 +142,19 @@ export const users = pgTable("users", {
   listingsLayout: text("listings_layout").default('grid'),
   // User timezone for task reminders and date displays (IANA timezone, e.g., "America/New_York")
   timezone: text("timezone").default("America/New_York"),
+  // OAuth provider IDs for social login
+  googleId: text("google_id").unique(),
+  microsoftId: text("microsoft_id").unique(),
+  // Auth provider tracking (local, google, microsoft)
+  authProvider: text("auth_provider").default("local"),
+  // Marketing attribution fields (captured at signup)
+  utmSource: text("utm_source"),
+  utmMedium: text("utm_medium"),
+  utmCampaign: text("utm_campaign"),
+  utmTerm: text("utm_term"),
+  utmContent: text("utm_content"),
+  referrerUrl: text("referrer_url"),
+  landingPage: text("landing_page"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -217,7 +230,9 @@ export const cimDocuments = pgTable("cim_documents", {
     sectionStyle: 'cards' | 'flat' | 'minimal';
     contactPosition: 'sidebar' | 'bottom';
   }>()
-});
+}, (table) => ({
+  userDeletedAtIdx: index("cim_documents_user_deleted_at_idx").on(table.userId, table.deletedAt),
+}));
 
 export const uploadedFiles = pgTable("uploaded_files", {
   id: serial("id").primaryKey(),
@@ -290,7 +305,9 @@ export const ndaSigningSessions = pgTable("nda_signing_sessions", {
   completedAt: timestamp("completed_at"),
   expiresAt: timestamp("expires_at"),
   settings: jsonb("settings").default({}).notNull(), // Signing preferences, reminders, etc.
-});
+}, (table) => ({
+  documentStatusIdx: index("nda_signing_sessions_document_status_idx").on(table.cimDocumentId, table.status),
+}));
 
 // E-Signature Recipients - Multi-party signing support
 export const ndaRecipients = pgTable("nda_recipients", {
@@ -358,7 +375,9 @@ export const ndaSignatures = pgTable("nda_signatures", {
   fieldValues: jsonb("field_values").default({}).notNull(), // Field ID to value mapping
   signingSessionId: integer("signing_session_id"), // Link to new signing session
   stage: text("stage"), // Kanban stage for organizing signers
-});
+}, (table) => ({
+  documentApprovedIdx: index("nda_signatures_document_approved_idx").on(table.cimDocumentId, table.approved),
+}));
 
 // NDA Access Tokens - unique tokens for users who signed NDAs
 export const ndaAccessTokens = pgTable("nda_access_tokens", {
@@ -385,6 +404,22 @@ export const ndaRedirectLinks = pgTable("nda_redirect_links", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Extension Tokens - Chrome extension authentication
+export const extensionTokens = pgTable("extension_tokens", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  organizationId: integer("organization_id"), // Optional - for org-scoped tokens
+  token: text("token").notNull().unique(), // Format: ext_<48 hex chars>
+  deviceInfo: text("device_info"), // Browser/OS info from extension
+  lastUsedAt: timestamp("last_used_at"),
+  expiresAt: timestamp("expires_at").notNull(), // 30 days from creation
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  revokedAt: timestamp("revoked_at"), // Set when token is explicitly revoked
+}, (table) => ({
+  userIdIdx: index("extension_tokens_user_id_idx").on(table.userId),
+  tokenIdx: index("extension_tokens_token_idx").on(table.token),
+}));
+
 // View tracking for granular analytics based on NDA protection
 export const documentViews = pgTable("document_views", {
   id: serial("id").primaryKey(),
@@ -398,7 +433,9 @@ export const documentViews = pgTable("document_views", {
   sessionId: text("session_id"), // Unique session identifier for tracking time spent
   timeSpentSeconds: integer("time_spent_seconds").default(0), // Total time spent viewing
   lastHeartbeat: timestamp("last_heartbeat"), // Last heartbeat timestamp for session tracking
-});
+}, (table) => ({
+  documentViewedAtIdx: index("document_views_document_viewed_at_idx").on(table.cimDocumentId, table.viewedAt),
+}));
 
 // Download tracking for analytics
 export const documentDownloads = pgTable("document_downloads", {
@@ -603,7 +640,15 @@ export const insertUserSchema = createInsertSchema(users).pick({
   businessName: z.string().optional(),
   phoneNumber: z.string().optional(),
   businessLogo: z.string().optional(),
-  adminCode: z.string().optional()
+  adminCode: z.string().optional(),
+  // Marketing attribution fields
+  utmSource: z.string().optional(),
+  utmMedium: z.string().optional(),
+  utmCampaign: z.string().optional(),
+  utmTerm: z.string().optional(),
+  utmContent: z.string().optional(),
+  referrerUrl: z.string().optional(),
+  landingPage: z.string().optional(),
 });
 
 // Default section directions
@@ -803,6 +848,15 @@ export const insertNdaRedirectLinkSchema = createInsertSchema(ndaRedirectLinks).
   signerEmail: true
 });
 
+export const insertExtensionTokenSchema = createInsertSchema(extensionTokens).pick({
+  userId: true,
+  token: true,
+  expiresAt: true
+}).extend({
+  organizationId: z.number().optional(),
+  deviceInfo: z.string().optional()
+});
+
 export const insertDocumentViewSchema = createInsertSchema(documentViews).pick({
   cimDocumentId: true,
   viewerType: true,
@@ -894,6 +948,8 @@ export type NdaAccessToken = typeof ndaAccessTokens.$inferSelect;
 export type InsertNdaAccessToken = z.infer<typeof insertNdaAccessTokenSchema>;
 export type NdaRedirectLink = typeof ndaRedirectLinks.$inferSelect;
 export type InsertNdaRedirectLink = z.infer<typeof insertNdaRedirectLinkSchema>;
+export type ExtensionToken = typeof extensionTokens.$inferSelect;
+export type InsertExtensionToken = z.infer<typeof insertExtensionTokenSchema>;
 export type CustomSection = typeof customSections.$inferSelect;
 export type FinancialFile = typeof financialFiles.$inferSelect;
 export type InvestorContact = typeof investorContacts.$inferSelect;
@@ -1222,6 +1278,12 @@ export const esignTemplates = pgTable("esign_templates", {
   totalPages: integer("total_pages").default(1).notNull(),
   placeholderRecipients: jsonb("placeholder_recipients").default([]).notNull(), // Array of { id, label, role, color, order }
   fields: jsonb("fields").default([]).notNull(), // Array of field definitions with assignedTo = placeholder ID
+  // PowerForm settings - allow self-service signing via shareable link
+  powerFormEnabled: boolean("power_form_enabled").default(false).notNull(),
+  powerFormSlug: text("power_form_slug").unique(), // URL slug for public access (e.g., "company-nda")
+  powerFormSettings: jsonb("power_form_settings").default({}).notNull(), // { maxCompletions, expiresAt, multiSignerMode, redirectUrl, customMessage, allowLinkSharing }
+  powerFormCompletions: integer("power_form_completions").default(0).notNull(),
+  powerFormCreatedAt: timestamp("power_form_created_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
@@ -1239,6 +1301,7 @@ export const esignEnvelopes = pgTable("esign_envelopes", {
   pageImages: jsonb("page_images").default([]).notNull(), // Page image URLs
   totalPages: integer("total_pages").default(1).notNull(),
   templateId: integer("template_id"), // If created from template
+  powerFormTemplateId: integer("power_form_template_id"), // If created via PowerForm (tracks which PowerForm was used)
   // Document integrity fields for E-SIGN Act / UETA compliance
   documentHash: text("document_hash"), // SHA-256 hash of original document for tamper detection
   signedDocumentHash: text("signed_document_hash"), // SHA-256 hash of final signed document
@@ -1278,7 +1341,10 @@ export const esignRecipients = pgTable("esign_recipients", {
   location: text("location"),
   userAgent: text("user_agent"),
   reminderCount: integer("reminder_count").default(0).notNull(),
-  lastReminderAt: timestamp("last_reminder_at")
+  lastReminderAt: timestamp("last_reminder_at"),
+  // PowerForm tracking - how this recipient was added
+  invitedVia: text("invited_via"), // 'email', 'powerform_link', 'link_share' - how they received the signing link
+  invitedByRecipientId: integer("invited_by_recipient_id") // For sequential handoff, FK to the recipient who invited them
 });
 
 // E-signature envelope fields
@@ -1347,6 +1413,18 @@ export const esignTemplateFieldSchema = z.object({
   required: z.boolean().default(true)
 });
 
+// PowerForm settings schema
+export const powerFormSettingsSchema = z.object({
+  maxCompletions: z.number().nullable().optional(), // null = unlimited
+  expiresAt: z.string().nullable().optional(), // ISO date string, null = never
+  multiSignerMode: z.enum(['upfront', 'sequential', 'choice']).default('choice'), // How to handle multiple signers
+  redirectUrl: z.string().nullable().optional(), // Where to redirect after completion (URL validated separately if provided)
+  customMessage: z.string().nullable().optional(), // Welcome message on PowerForm entry page
+  allowLinkSharing: z.boolean().default(true), // Can signers copy link for next signer (in sequential mode)
+}).passthrough(); // Allow extra fields to be passed through
+
+export type PowerFormSettings = z.infer<typeof powerFormSettingsSchema>;
+
 export const insertUserBrandingSchema = createInsertSchema(userBranding).pick({
   logoUrl: true,
   primaryColor: true,
@@ -1378,6 +1456,17 @@ export const insertEsignTemplateSchema = createInsertSchema(esignTemplates).pick
   placeholderRecipients: z.array(esignPlaceholderRecipientSchema).optional(),
   fields: z.array(esignTemplateFieldSchema).optional()
 });
+
+// Schema for enabling/configuring PowerForm on a template
+export const updatePowerFormSchema = z.object({
+  enabled: z.boolean(),
+  slug: z.string().min(3, "Slug must be at least 3 characters").max(50, "Slug must be at most 50 characters")
+    .regex(/^[a-z0-9-]+$/, "Slug can only contain lowercase letters, numbers, and hyphens")
+    .optional(),
+  settings: powerFormSettingsSchema.optional(),
+});
+
+export type UpdatePowerForm = z.infer<typeof updatePowerFormSchema>;
 
 export const insertEsignEnvelopeSchema = createInsertSchema(esignEnvelopes).pick({
   title: true,
@@ -1582,6 +1671,102 @@ export type WebhookDelivery = typeof webhookDeliveries.$inferSelect;
 export type InsertWebhookDelivery = z.infer<typeof insertWebhookDeliverySchema>;
 
 // ============================================================================
+// INCOMING WEBHOOKS - Receive data from external services to create CRM entities
+// ============================================================================
+
+// Incoming Webhook Actions - what to do when data is received
+export const INCOMING_WEBHOOK_ACTIONS = [
+  'create_contact',
+  'create_deal',
+  'create_task',
+  'add_note',
+  'create_company',
+] as const;
+
+export type IncomingWebhookAction = typeof INCOMING_WEBHOOK_ACTIONS[number];
+
+// Incoming Webhooks - endpoints that receive data from external services
+export const incomingWebhooks = pgTable("incoming_webhooks", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  organizationId: integer("organization_id").notNull(),
+  name: text("name").notNull(),
+  token: text("token").notNull().unique(), // URL token like iwh_abc123...
+  actionType: text("action_type").notNull(), // INCOMING_WEBHOOK_ACTIONS
+  fieldMappings: jsonb("field_mappings").default([]).notNull(), // Array of field mappings
+  actionConfig: jsonb("action_config").default({}).notNull(), // Additional config for action
+  secret: text("secret"), // Optional HMAC verification secret
+  isActive: boolean("is_active").default(true).notNull(),
+  // Stats
+  totalReceived: integer("total_received").default(0).notNull(),
+  successCount: integer("success_count").default(0).notNull(),
+  errorCount: integer("error_count").default(0).notNull(),
+  // Timestamps
+  lastReceivedAt: timestamp("last_received_at"),
+  lastSuccessAt: timestamp("last_success_at"),
+  lastErrorAt: timestamp("last_error_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+// Incoming Webhook Logs - tracks all received payloads and processing results
+export const incomingWebhookLogs = pgTable("incoming_webhook_logs", {
+  id: serial("id").primaryKey(),
+  webhookId: integer("webhook_id").notNull(),
+  requestId: text("request_id").notNull(), // Unique ID for this request
+  sourceIp: text("source_ip"),
+  rawPayload: jsonb("raw_payload").notNull(), // The original payload received
+  status: text("status").notNull().default("pending"), // pending, success, failed
+  mappedData: jsonb("mapped_data"), // Data after field mapping applied
+  createdEntityType: text("created_entity_type"), // contact, deal, task, note, company
+  createdEntityId: integer("created_entity_id"),
+  errorMessage: text("error_message"),
+  processingTimeMs: integer("processing_time_ms"),
+  receivedAt: timestamp("received_at").defaultNow().notNull(),
+  processedAt: timestamp("processed_at")
+});
+
+// Zod schemas for incoming webhooks
+export const insertIncomingWebhookSchema = createInsertSchema(incomingWebhooks).pick({
+  name: true,
+  actionType: true,
+  fieldMappings: true,
+  actionConfig: true,
+  secret: true,
+}).extend({
+  name: z.string().min(1, "Webhook name is required").max(100),
+  actionType: z.enum(INCOMING_WEBHOOK_ACTIONS as unknown as [string, ...string[]]),
+  fieldMappings: z.array(z.object({
+    destField: z.string(),
+    type: z.enum(['field', 'constant', 'template']),
+    sourceField: z.string().optional(),
+    value: z.string().optional(),
+    template: z.string().optional(),
+  })).default([]),
+  actionConfig: z.record(z.any()).default({}),
+  secret: z.string().optional(),
+});
+
+export const updateIncomingWebhookSchema = insertIncomingWebhookSchema.partial().extend({
+  isActive: z.boolean().optional(),
+});
+
+// Type exports for incoming webhooks
+export type IncomingWebhook = typeof incomingWebhooks.$inferSelect;
+export type InsertIncomingWebhook = z.infer<typeof insertIncomingWebhookSchema>;
+export type UpdateIncomingWebhook = z.infer<typeof updateIncomingWebhookSchema>;
+export type IncomingWebhookLog = typeof incomingWebhookLogs.$inferSelect;
+
+// Field mapping type (shared with automation engine)
+export interface IncomingWebhookFieldMapping {
+  destField: string;
+  type: 'field' | 'constant' | 'template';
+  sourceField?: string;
+  value?: string;
+  template?: string;
+}
+
+// ============================================================================
 // INTEGRATIONS SYSTEM - Connections to external apps and automation workflows
 // ============================================================================
 
@@ -1594,6 +1779,7 @@ export const INTEGRATION_PROVIDERS = [
   'webhook',
   'gmail',
   'microsoft',
+  'internal',
 ] as const;
 
 export type IntegrationProvider = typeof INTEGRATION_PROVIDERS[number];
@@ -1641,6 +1827,22 @@ export const DESTINATION_TYPES = [
   'zapier_webhook',
   'make_webhook',
   'custom_webhook',
+  // Internal Actions - Phase 1
+  'internal_update_stage',
+  'internal_create_task',
+  'internal_assign_owner',
+  'internal_add_tag',
+  'internal_remove_tag',
+  'internal_update_field',
+  'internal_send_notification',
+  'internal_add_note',
+  'internal_send_email',
+  'internal_create_contact',
+  'internal_create_deal',
+  'internal_move_deal_stage',
+  'internal_log_activity',
+  'internal_grant_dataroom_access',
+  'internal_send_nda',
 ] as const;
 
 export type DestinationType = typeof DESTINATION_TYPES[number];
@@ -2101,7 +2303,7 @@ export const organizations = pgTable("organizations", {
 export const organizationMembers = pgTable("organization_members", {
   id: serial("id").primaryKey(),
   organizationId: integer("organization_id").notNull(),
-  userId: integer("user_id").notNull(),
+  userId: integer("user_id"), // Nullable for pending invitations to non-existing users
 
   // Role and permissions
   role: text("role").notNull().default("member"), // owner, admin, member, viewer
@@ -2110,12 +2312,71 @@ export const organizationMembers = pgTable("organization_members", {
   invitedBy: integer("invited_by"),
   invitedAt: timestamp("invited_at"),
   joinedAt: timestamp("joined_at"),
+  inviteeEmail: text("invitee_email"), // Email for pending invitations (when user doesn't exist yet)
+  inviteToken: text("invite_token").unique(), // Token for signup link
 
   // Status
   status: text("status").notNull().default("active"), // pending, active, deactivated
 
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
+}, (table) => ({
+  orgStatusIdx: index("organization_members_org_status_idx").on(table.organizationId, table.status),
+}));
+
+// CRM Visibility Settings Types
+export const CRM_VISIBILITY_OPTIONS = ['owner_only', 'team', 'organization'] as const;
+export type CrmVisibility = typeof CRM_VISIBILITY_OPTIONS[number];
+
+export interface CrmVisibilitySettings {
+  deals: CrmVisibility;
+  contacts: CrmVisibility;
+  companies: CrmVisibility;
+}
+
+// Teams - Custom visibility teams within an organization
+export const teams = pgTable("teams", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdBy: integer("created_by").notNull(), // FK to organization_members
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Team Members - Users can belong to multiple teams
+export const teamMembers = pgTable("team_members", {
+  id: serial("id").primaryKey(),
+  teamId: integer("team_id").notNull(),
+  organizationMemberId: integer("organization_member_id").notNull(),
+  addedBy: integer("added_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Deal Collaborators - Specific access to individual deals
+export const dealCollaborators = pgTable("deal_collaborators", {
+  id: serial("id").primaryKey(),
+  dealId: integer("deal_id").notNull(),
+  organizationMemberId: integer("organization_member_id").notNull(),
+  permission: text("permission").notNull().default("view"), // 'view' or 'edit'
+  invitedBy: integer("invited_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Role Permissions - Customizable permissions for organization roles
+export const rolePermissions = pgTable("role_permissions", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
+  permissionKey: text("permission_key").notNull(), // e.g., "crm.deals.delete"
+  role: text("role").notNull(), // "admin" or "member" only (owner/viewer permissions are locked)
+  granted: boolean("granted").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertRolePermissionSchema = createInsertSchema(rolePermissions).omit({
+  id: true,
+  updatedAt: true,
 });
 
 // Companies - First-class company object
@@ -2127,6 +2388,10 @@ export const companies = pgTable("companies", {
   name: text("name").notNull(),
   domain: text("domain"), // e.g., "acme.com"
   website: text("website"),
+  logoUrl: text("logo_url"), // Company logo/image
+  logoSource: text("logo_source"), // 'auto' | 'manual' - tracks how logo was set
+  logoFetchAttempts: integer("logo_fetch_attempts").default(0).notNull(), // Number of auto-fetch attempts
+  logoLastFetchAt: timestamp("logo_last_fetch_at"), // When logo fetch was last attempted
 
   // Industry and size
   industry: text("industry"),
@@ -2388,6 +2653,37 @@ export const crmAttachments = pgTable("crm_attachments", {
   uploadedAt: timestamp("uploaded_at").defaultNow().notNull()
 });
 
+// Email Templates - Reusable email templates for CRM
+export const emailTemplates = pgTable("email_templates", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
+
+  // Template info
+  name: text("name").notNull(),
+  subject: text("subject").notNull(),
+  body: text("body").notNull(), // HTML content
+
+  // Categorization
+  category: text("category"), // e.g., 'follow-up', 'introduction', 'proposal', etc.
+
+  // Tracking
+  createdBy: integer("created_by").notNull(), // FK to users
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+
+  // Usage tracking
+  usageCount: integer("usage_count").default(0).notNull(),
+  lastUsedAt: timestamp("last_used_at"),
+});
+
+export const insertEmailTemplateSchema = createInsertSchema(emailTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  usageCount: true,
+  lastUsedAt: true,
+});
+
 // Task Constants
 export const TASK_REMINDER_OPTIONS = [
   'none',           // No reminder
@@ -2422,6 +2718,7 @@ export const crmTasks = pgTable("crm_tasks", {
   // Reminder
   reminder: text("reminder").default("none"), // TASK_REMINDER_OPTIONS
   reminderSentAt: timestamp("reminder_sent_at"),
+  overdueNotifiedAt: timestamp("overdue_notified_at"),
 
   // Assignment
   assignedTo: integer("assigned_to"), // FK to users
@@ -2554,6 +2851,46 @@ export const dealViews = pgTable("deal_views", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// CRM Imports - Track import history and status
+export const CRM_IMPORT_ENTITY_TYPES = ['contact', 'company', 'deal'] as const;
+export const CRM_IMPORT_STATUSES = ['pending', 'processing', 'completed', 'failed'] as const;
+
+export const crmImports = pgTable("crm_imports", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
+
+  // What type of entity was imported
+  entityType: text("entity_type").notNull(), // 'contact', 'company', 'deal'
+
+  // File info
+  fileName: text("file_name").notNull(),
+  fileSize: integer("file_size"), // bytes
+
+  // Import stats
+  totalRows: integer("total_rows").default(0).notNull(),
+  importedCount: integer("imported_count").default(0).notNull(),
+  skippedCount: integer("skipped_count").default(0).notNull(),
+  duplicateCount: integer("duplicate_count").default(0).notNull(),
+  errorCount: integer("error_count").default(0).notNull(),
+
+  // Status tracking
+  status: text("status").default("pending").notNull(), // 'pending', 'processing', 'completed', 'failed'
+
+  // Column mapping used for this import (for reference/debugging)
+  columnMapping: jsonb("column_mapping").default({}).notNull(),
+  // Structure: { csvColumn: schemaField, ... }
+
+  // Error details for failed rows
+  errors: jsonb("errors").default([]).notNull(),
+  // Structure: [{ row: number, field: string, message: string }, ...]
+
+  // Who initiated the import
+  createdBy: integer("created_by").notNull(), // FK to users
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+});
+
 // Dashboard AI Briefings - Cached daily AI summaries for each user
 export const dashboardBriefings = pgTable("dashboard_briefings", {
   id: serial("id").primaryKey(),
@@ -2582,6 +2919,187 @@ export const dashboardBriefings = pgTable("dashboard_briefings", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Notifications for in-app alerts
+export const NOTIFICATION_TYPES = ['mention', 'task_assigned', 'deal_update', 'comment', 'reminder'] as const;
+
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
+  userId: integer("user_id").notNull(), // The user who receives the notification
+
+  type: text("type").notNull(), // 'mention', 'task_assigned', 'deal_update', etc.
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+
+  // Link to the related entity
+  entityType: text("entity_type"), // 'deal', 'contact', 'company', 'task', 'note'
+  entityId: integer("entity_id"),
+
+  // Who triggered the notification
+  actorId: integer("actor_id"), // The user who caused the notification
+
+  isRead: boolean("is_read").default(false).notNull(),
+  readAt: timestamp("read_at"),
+
+  // For email notifications
+  emailSent: boolean("email_sent").default(false).notNull(),
+  emailSentAt: timestamp("email_sent_at"),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// User notification preferences - controls which notifications users receive
+export const userNotificationPreferences = pgTable("user_notification_preferences", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().unique(),
+
+  // Email Notification Toggles (per category)
+  emailMentions: boolean("email_mentions").default(true).notNull(),           // @mentions in notes
+  emailTaskAssigned: boolean("email_task_assigned").default(true).notNull(),  // Task assigned to you
+  emailTaskReminder: boolean("email_task_reminder").default(true).notNull(),  // Task due date reminders
+  emailDealUpdates: boolean("email_deal_updates").default(false).notNull(),   // Deal stage changes (you own)
+  emailTeamInvites: boolean("email_team_invites").default(true).notNull(),    // Team invitation
+  emailEsignRequests: boolean("email_esign_requests").default(true).notNull(), // Signature requested
+  emailEsignCompleted: boolean("email_esign_completed").default(true).notNull(), // Document signed
+  emailWeeklyDigest: boolean("email_weekly_digest").default(false).notNull(), // Weekly summary email
+
+  // In-App Notification Toggles
+  inappMentions: boolean("inapp_mentions").default(true).notNull(),
+  inappTaskAssigned: boolean("inapp_task_assigned").default(true).notNull(),
+  inappTaskReminder: boolean("inapp_task_reminder").default(true).notNull(),
+  inappDealUpdates: boolean("inapp_deal_updates").default(true).notNull(),
+  inappEsignRequests: boolean("inapp_esign_requests").default(true).notNull(),
+  inappEsignCompleted: boolean("inapp_esign_completed").default(true).notNull(),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Mentions tracking - stores @mentions in notes and comments
+export const mentions = pgTable("mentions", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
+
+  // Who was mentioned
+  mentionedUserId: integer("mentioned_user_id").notNull(),
+
+  // Who made the mention
+  mentionedByUserId: integer("mentioned_by_user_id").notNull(),
+
+  // Where the mention occurred
+  entityType: text("entity_type").notNull(), // 'deal', 'contact', 'company', 'task'
+  entityId: integer("entity_id").notNull(),
+
+  // The note/comment containing the mention
+  noteId: integer("note_id"), // References crmNotes.id
+
+  // The mention text as it appears (e.g., "@John Smith")
+  mentionText: text("mention_text").notNull(),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Scheduled task execution logs - prevents duplicate executions in autoscaled environments
+export const scheduledTaskLogs = pgTable("scheduled_task_logs", {
+  id: serial("id").primaryKey(),
+
+  // Task identifier (e.g., "daily_signup_summary", "monitoring_alert_database")
+  taskName: text("task_name").notNull(),
+
+  // Date key for daily tasks (YYYY-MM-DD format) - enables "once per day" checks
+  executionDate: text("execution_date").notNull(),
+
+  // Optional metadata about the execution
+  metadata: jsonb("metadata"),
+
+  // Timestamp of execution
+  executedAt: timestamp("executed_at").defaultNow().notNull(),
+});
+
+// Support Tickets - User submitted bug reports and feedback
+export const SUPPORT_TICKET_STATUSES = ['open', 'in_progress', 'resolved', 'closed'] as const;
+export const SUPPORT_TICKET_TYPES = ['bug', 'feature_request', 'question', 'feedback', 'other'] as const;
+
+export const supportTickets = pgTable("support_tickets", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id"),
+  userId: integer("user_id").notNull(), // User who submitted the ticket
+
+  // Ticket content
+  type: text("type").notNull().default("bug"), // bug, feature_request, question, feedback, other
+  subject: text("subject").notNull(),
+  description: text("description").notNull(),
+
+  // Attachments (URLs to uploaded files)
+  attachments: jsonb("attachments").default([]).notNull(), // Array of { url, filename, mimeType, size }
+
+  // Status
+  status: text("status").notNull().default("open"), // open, in_progress, resolved, closed
+
+  // Context information
+  browserInfo: text("browser_info"), // User agent string
+  pageUrl: text("page_url"), // URL where ticket was submitted
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertSupportTicketSchema = createInsertSchema(supportTickets).pick({
+  type: true,
+  subject: true,
+  description: true
+}).extend({
+  type: z.enum(SUPPORT_TICKET_TYPES).default("bug"),
+  subject: z.string().min(1, "Subject is required").max(200),
+  description: z.string().min(1, "Description is required").max(5000),
+  attachments: z.array(z.object({
+    url: z.string(),
+    filename: z.string(),
+    mimeType: z.string(),
+    size: z.number()
+  })).optional().default([]),
+  browserInfo: z.string().optional(),
+  pageUrl: z.string().optional()
+});
+
+// AI Assistant - Token usage tracking and chat history
+export const aiTokenUsage = pgTable("ai_token_usage", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
+  userId: integer("user_id").notNull(),
+
+  // Token counts
+  promptTokens: integer("prompt_tokens").notNull(),
+  completionTokens: integer("completion_tokens").notNull(),
+  totalTokens: integer("total_tokens").notNull(),
+
+  // Model info
+  model: text("model").notNull(),
+
+  // Period tracking (for monthly caps)
+  periodStart: text("period_start").notNull(), // Format: YYYY-MM (e.g., "2024-01")
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const aiChatMessages = pgTable("ai_chat_messages", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
+  userId: integer("user_id").notNull(),
+
+  // Message content
+  role: text("role").notNull(), // 'user' or 'assistant'
+  content: text("content").notNull(),
+
+  // Token usage for this message
+  tokensUsed: integer("tokens_used"),
+
+  // Feedback
+  feedback: text("feedback"), // 'positive', 'negative', or null
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Insert schema for deal views
 export const insertDealViewSchema = createInsertSchema(dealViews).pick({
   organizationId: true,
@@ -2604,6 +3122,22 @@ export const insertDealViewSchema = createInsertSchema(dealViews).pick({
     direction: z.enum(['asc', 'desc'])
   }).optional(),
   viewMode: z.enum(['list', 'kanban']).optional()
+});
+
+// Insert schema for CRM imports
+export const insertCrmImportSchema = createInsertSchema(crmImports).pick({
+  organizationId: true,
+  entityType: true,
+  fileName: true,
+  createdBy: true
+}).extend({
+  organizationId: z.number().min(1),
+  entityType: z.enum(CRM_IMPORT_ENTITY_TYPES as unknown as [string, ...string[]]),
+  fileName: z.string().min(1),
+  fileSize: z.number().optional(),
+  totalRows: z.number().optional(),
+  columnMapping: z.record(z.any()).optional(),
+  createdBy: z.number().min(1)
 });
 
 // Zod schemas for CRM system
@@ -2631,9 +3165,59 @@ export const insertOrganizationMemberSchema = createInsertSchema(organizationMem
   status: z.enum(ORGANIZATION_MEMBER_STATUSES as unknown as [string, ...string[]]).default('active')
 });
 
-// Helper for optional URL fields that converts empty strings to null
+// Insert schemas for Teams
+export const insertTeamSchema = createInsertSchema(teams).pick({
+  organizationId: true,
+  name: true,
+  createdBy: true
+}).extend({
+  organizationId: z.number().min(1),
+  name: z.string().min(1, "Team name is required").max(100),
+  description: z.string().max(500).nullable().optional(),
+  createdBy: z.number().min(1)
+});
+
+export const insertTeamMemberSchema = createInsertSchema(teamMembers).pick({
+  teamId: true,
+  organizationMemberId: true,
+  addedBy: true
+}).extend({
+  teamId: z.number().min(1),
+  organizationMemberId: z.number().min(1),
+  addedBy: z.number().min(1)
+});
+
+export const DEAL_COLLABORATOR_PERMISSIONS = ['view', 'edit'] as const;
+
+export const insertDealCollaboratorSchema = createInsertSchema(dealCollaborators).pick({
+  dealId: true,
+  organizationMemberId: true,
+  invitedBy: true
+}).extend({
+  dealId: z.number().min(1),
+  organizationMemberId: z.number().min(1),
+  permission: z.enum(DEAL_COLLABORATOR_PERMISSIONS).default('view'),
+  invitedBy: z.number().min(1)
+});
+
+// Helper to normalize URLs - automatically adds https:// if no protocol is present
+const normalizeUrlValue = (val: unknown): string | null => {
+  if (val === '' || val === undefined || val === null) return null;
+  if (typeof val !== 'string') return null;
+
+  let url = val.trim();
+  if (!url) return null;
+
+  // Add https:// if no protocol is present
+  if (!url.match(/^https?:\/\//i)) {
+    url = 'https://' + url;
+  }
+
+  return url;
+};
+
 const optionalUrl = z.preprocess(
-  (val) => (val === '' || val === undefined ? null : val),
+  normalizeUrlValue,
   z.string().url().nullable().optional()
 );
 
@@ -2891,6 +3475,18 @@ export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
 export type OrganizationMember = typeof organizationMembers.$inferSelect;
 export type InsertOrganizationMember = z.infer<typeof insertOrganizationMemberSchema>;
 
+export type RolePermission = typeof rolePermissions.$inferSelect;
+export type InsertRolePermission = z.infer<typeof insertRolePermissionSchema>;
+
+export type Team = typeof teams.$inferSelect;
+export type InsertTeam = z.infer<typeof insertTeamSchema>;
+
+export type TeamMember = typeof teamMembers.$inferSelect;
+export type InsertTeamMember = z.infer<typeof insertTeamMemberSchema>;
+
+export type DealCollaborator = typeof dealCollaborators.$inferSelect;
+export type InsertDealCollaborator = z.infer<typeof insertDealCollaboratorSchema>;
+
 export type Company = typeof companies.$inferSelect;
 export type InsertCompany = z.infer<typeof insertCompanySchema>;
 
@@ -2934,4 +3530,13 @@ export type InsertDealBuyer = z.infer<typeof insertDealBuyerSchema>;
 export type CustomFieldDefinition = typeof customFieldDefinitions.$inferSelect;
 export type InsertCustomFieldDefinition = z.infer<typeof insertCustomFieldDefinitionSchema>;
 
+export type CrmImport = typeof crmImports.$inferSelect;
+export type InsertCrmImport = z.infer<typeof insertCrmImportSchema>;
+
 export type DashboardBriefing = typeof dashboardBriefings.$inferSelect;
+
+export type SupportTicket = typeof supportTickets.$inferSelect;
+export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
+
+export type UserNotificationPreferences = typeof userNotificationPreferences.$inferSelect;
+export type InsertUserNotificationPreferences = typeof userNotificationPreferences.$inferInsert;

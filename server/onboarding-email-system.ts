@@ -25,7 +25,7 @@ export class OnboardingEmailSystem {
             templateId: email.templateId,
             dynamicTemplateData: {
               user_name: email.userName || 'there',
-              app_name: 'CIM Share'
+              app_name: 'Broker Vault'
             }
           });
 

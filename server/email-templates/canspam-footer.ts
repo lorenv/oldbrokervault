@@ -4,7 +4,7 @@
 
 export const getCanSpamFooterHtml = (unsubscribeLink?: string, emailType: 'onboarding' | 'marketing' | 'transactional' = 'onboarding') => `
   <div style="font-size: 13px; color: #94a3b8; margin-top: 16px; line-height: 1.6;">
-    <strong>CIM Share</strong><br>
+    <strong>Broker Vault</strong><br>
     AI-Powered CIM Creation Platform<br>
     606 Venice Blvd<br>
     Venice, CA 90291<br>
@@ -12,7 +12,7 @@ export const getCanSpamFooterHtml = (unsubscribeLink?: string, emailType: 'onboa
 
     ${emailType === 'transactional' ?
       'This is a transactional email related to your account.' :
-      'You received this email because you signed up for CIM Share.'
+      'You received this email because you signed up for Broker Vault.'
     }<br>
     ${unsubscribeLink && emailType !== 'transactional' ?
       `<a href="${unsubscribeLink}" style="color: #3b82f6; text-decoration: none;">Unsubscribe from ${emailType} emails</a> | ` :
@@ -20,13 +20,13 @@ export const getCanSpamFooterHtml = (unsubscribeLink?: string, emailType: 'onboa
     }
     <a href="https://cimshare.com/account" style="color: #3b82f6; text-decoration: none;">Manage email preferences</a><br><br>
 
-    © 2024 CIM Share. All rights reserved.
+    © 2024 Broker Vault. All rights reserved.
   </div>
 `;
 
 export const getCanSpamFooterText = (unsubscribeLink?: string, emailType: 'onboarding' | 'marketing' | 'transactional' = 'onboarding') => `
 ---
-CIM Share
+Broker Vault
 AI-Powered CIM Creation Platform
 606 Venice Blvd
 Venice, CA 90291
@@ -34,7 +34,7 @@ United States
 
 ${emailType === 'transactional' ?
   'This is a transactional email related to your account.' :
-  'You received this email because you signed up for CIM Share.'
+  'You received this email because you signed up for Broker Vault.'
 }
 ${unsubscribeLink && emailType !== 'transactional' ?
   `Unsubscribe: ${unsubscribeLink}` :
@@ -42,5 +42,5 @@ ${unsubscribeLink && emailType !== 'transactional' ?
 }
 Manage preferences: https://cimshare.com/account
 
-© 2024 CIM Share. All rights reserved.
+© 2024 Broker Vault. All rights reserved.
 `;

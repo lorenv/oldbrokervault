@@ -1,8 +1,10 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { API_TIMEOUTS } from '../utils/fetch-with-timeout';
 
-// Initialize Anthropic client with the secondary API key
+// Initialize Anthropic client with the secondary API key and timeout (PERF-013)
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY2,
+  timeout: API_TIMEOUTS.AI_API, // 60 second timeout for AI API calls
 });
 
 // Primary and fallback models for vision tasks

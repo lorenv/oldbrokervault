@@ -10,9 +10,6 @@ import {
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
   SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
@@ -24,11 +21,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import {
   FileText,
   Users,
   Signature,
@@ -37,23 +29,19 @@ import {
   LayoutList,
   WandSparkles,
   User,
-  FileCheck,
-  Workflow,
   LogOut,
   HelpCircle,
   Shield,
   ChevronUp,
-  ChevronRight,
   PanelLeftClose,
   PanelLeft,
   Kanban,
   Building2,
   Contact,
   Settings,
-  Palette,
-  Sliders,
   CheckSquare,
   LayoutDashboard,
+  FolderLock,
 } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -79,55 +67,20 @@ const mainNavItems: NavItem[] = [
 
 // Secondary navigation items (after gap - tools & documents)
 const secondaryNavItems: NavItem[] = [
-  { label: "CIM Library", icon: FileText, href: "/documents", matchPaths: ["/documents"] },
+  { label: "AI CIMs", icon: FileText, href: "/documents", matchPaths: ["/documents"] },
   { label: "E-Signatures", icon: Signature, href: "/esign", matchPaths: ["/esign"] },
+  { label: "Data Room", icon: FolderLock, href: "/data-room", matchPaths: ["/data-room"] },
   { label: "Analytics", icon: BarChart3, href: "/analytics", matchPaths: ["/analytics"] },
   { label: "Messages", icon: MessageCircle, href: "/messages", matchPaths: ["/messages"] },
   { label: "Listings Page", icon: LayoutList, href: "/listings-settings", matchPaths: ["/listings-settings"] },
   { label: "SDE Analyzer", icon: WandSparkles, href: "/sde-analyzer", badge: "Beta", matchPaths: ["/sde-analyzer"] },
 ];
 
-// Settings navigation items (simplified)
-const settingsNavItems: NavItem[] = [
-  { label: "Account", icon: User, href: "/settings/account", matchPaths: ["/settings/account", "/settings/billing", "/settings/email"] },
-  { label: "Team", icon: Users, href: "/settings/team", matchPaths: ["/settings/team"] },
-  { label: "Customization", icon: Sliders, href: "/settings/customization", matchPaths: ["/settings/customization", "/settings/pipelines"] },
-  { label: "Branding", icon: Palette, href: "/settings/branding", matchPaths: ["/settings/branding", "/settings/pdf-branding", "/settings/online-branding"] },
-  { label: "NDA Templates", icon: FileCheck, href: "/nda-templates", matchPaths: ["/nda-templates", "/template-editor"] },
-  { label: "Integrations", icon: Workflow, href: "/integrations", matchPaths: ["/integrations"] },
-];
-
-// Convert hex color to a very light tint (pastel version)
-// This ensures the background is always light regardless of the original color
-function hexToLightTint(hex: string, lightness: number = 0.92): string {
-  // Remove # if present
-  const cleanHex = hex.replace('#', '');
-
-  // Parse RGB values
-  const r = parseInt(cleanHex.substring(0, 2), 16);
-  const g = parseInt(cleanHex.substring(2, 4), 16);
-  const b = parseInt(cleanHex.substring(4, 6), 16);
-
-  // Mix with white to create light tint
-  // lightness of 0.92 means 92% white, 8% original color
-  const newR = Math.round(r + (255 - r) * lightness);
-  const newG = Math.round(g + (255 - g) * lightness);
-  const newB = Math.round(b + (255 - b) * lightness);
-
-  return `rgb(${newR}, ${newG}, ${newB})`;
-}
 
 export function AppSidebar() {
   const { user, logoutMutation } = useAuth();
   const [location] = useLocation();
   const [isSupportOpen, setIsSupportOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(() => {
-    // Auto-expand if we're on a settings page
-    return location.startsWith('/settings') ||
-           location.startsWith('/nda-templates') ||
-           location.startsWith('/template-editor') ||
-           location.startsWith('/integrations');
-  });
 
   // Fetch profile data for profile picture
   const { data: profile } = useQuery({
@@ -163,8 +116,8 @@ export function AppSidebar() {
     return location === item.href || location.startsWith(item.href + "/");
   };
 
-  // Check if any settings item is active
-  const isSettingsActive = settingsNavItems.some(item => isActive(item));
+  // Check if we're on a settings page
+  const isSettingsActive = location.startsWith('/settings');
 
   // Get sidebar context
   const { state, toggleSidebar, isMobile, setOpenMobile } = useSidebar();
@@ -178,10 +131,7 @@ export function AppSidebar() {
   };
 
   // Get brand color from profile
-  const brandColor = (profile as any)?.brandColors?.[0];
-
-  // Create light tint of the brand color for logo background (always light)
-  const lightTintBg = brandColor ? hexToLightTint(brandColor, 0.92) : '#ffffff';
+  const brandColor = (profile as any)?.pdfPrimaryColor || (profile as any)?.brandColors?.[0];
 
   // Render a navigation item
   const renderNavItem = (item: NavItem) => {
@@ -251,57 +201,15 @@ export function AppSidebar() {
     );
   };
 
-  // Render settings sub-item
-  const renderSettingsSubItem = (item: NavItem) => {
-    const active = isActive(item);
-    const Icon = item.icon;
-
-    return (
-      <SidebarMenuSubItem key={item.href}>
-        <SidebarMenuSubButton
-          asChild
-          isActive={active}
-          className={active && brandColor ? "!bg-opacity-20" : ""}
-          style={active && brandColor ? {
-            backgroundColor: `${brandColor}20`,
-          } : undefined}
-        >
-          <Link href={item.href} onClick={handleNavClick}>
-            <Icon className="h-4 w-4" style={active && brandColor ? { color: brandColor } : undefined} />
-            <span>{item.label}</span>
-          </Link>
-        </SidebarMenuSubButton>
-      </SidebarMenuSubItem>
-    );
-  };
-
   return (
     <>
-      <Sidebar collapsible="icon">
-        {/* Logo Header - aligned with page header */}
-        <Link href="/dashboard" className="block">
-          <div
-            className={`transition-all flex items-center justify-center ${
-              isCollapsed ? 'p-2 min-h-[52px]' : 'py-[22px] px-4'
-            }`}
-            style={{
-              // Apply light tint of brand color as background (always light)
-              backgroundColor: lightTintBg,
-              borderBottom: `2px solid ${brandColor || '#e2e8f0'}`,
-              boxShadow: `inset 0 -6px 12px -8px ${brandColor || '#94a3b8'}40`
-            }}
-          >
-            {/* Logo sits directly on the tinted background - transparent areas show the tint */}
-            <img
-              src={(profile as any)?.businessLogo || "/cim-share-logo.png"}
-              alt={(profile as any)?.businessName || "CIM Share"}
-              className={`object-contain transition-all ${
-                isCollapsed ? 'h-6 max-w-[40px]' : 'h-12 max-w-[180px]'
-              }`}
-            />
-          </div>
-        </Link>
-
+      <Sidebar
+        collapsible="icon"
+        style={{
+          top: '4rem',
+          height: 'calc(100vh - 4rem)',
+        }}
+      >
         <SidebarContent>
           {/* Main Navigation - Deal-centric */}
           <SidebarGroup>
@@ -324,40 +232,29 @@ export function AppSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
 
-          {/* Settings Section - Collapsible */}
+          {/* Settings Link */}
           <SidebarGroup className="mt-auto">
             <SidebarGroupContent>
               <SidebarMenu>
-                <Collapsible
-                  open={isSettingsOpen}
-                  onOpenChange={setIsSettingsOpen}
-                  className="group/collapsible"
-                >
-                  <SidebarMenuItem>
-                    <CollapsibleTrigger asChild>
-                      <SidebarMenuButton
-                        tooltip="Settings"
-                        isActive={isSettingsActive && !isSettingsOpen}
-                        className={isSettingsActive && brandColor && !isSettingsOpen ? "!bg-opacity-20" : ""}
-                        style={isSettingsActive && brandColor && !isSettingsOpen ? {
-                          backgroundColor: `${brandColor}25`,
-                          borderLeft: `3px solid ${brandColor}`,
-                          marginLeft: '-3px',
-                          paddingLeft: 'calc(0.5rem + 3px)',
-                        } : undefined}
-                      >
-                        <Settings className="h-4 w-4" style={isSettingsActive && brandColor ? { color: brandColor } : undefined} />
-                        <span>Settings</span>
-                        <ChevronRight className={`ml-auto h-4 w-4 transition-transform duration-200 ${isSettingsOpen ? 'rotate-90' : ''}`} />
-                      </SidebarMenuButton>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
-                      <SidebarMenuSub>
-                        {settingsNavItems.map(renderSettingsSubItem)}
-                      </SidebarMenuSub>
-                    </CollapsibleContent>
-                  </SidebarMenuItem>
-                </Collapsible>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip="Settings"
+                    isActive={isSettingsActive}
+                    className={isSettingsActive && brandColor ? "!bg-opacity-20" : ""}
+                    style={isSettingsActive && brandColor ? {
+                      backgroundColor: `${brandColor}25`,
+                      borderLeft: `3px solid ${brandColor}`,
+                      marginLeft: '-3px',
+                      paddingLeft: 'calc(0.5rem + 3px)',
+                    } : undefined}
+                  >
+                    <Link href="/settings" onClick={handleNavClick}>
+                      <Settings className="h-4 w-4" style={isSettingsActive && brandColor ? { color: brandColor } : undefined} />
+                      <span>Settings</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

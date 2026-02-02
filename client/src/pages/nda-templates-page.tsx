@@ -8,7 +8,7 @@ import { FileText, Plus, Edit, Trash2, Calendar, Grid3X3, List, Eye, MoreVertica
 import { useLocation } from 'wouter';
 import { apiRequest } from '@/lib/queryClient';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { PageHeader } from '@/components/layout/page-header';
+import { SettingsLayout } from '@/components/layout/settings-layout';
 
 interface NdaTemplate {
   id: number;
@@ -88,7 +88,7 @@ export default function NdaTemplatesPage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 md:px-6 py-4 md:py-6">
+      <div className="px-4 md:px-6 py-4 md:py-6">
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
@@ -97,45 +97,42 @@ export default function NdaTemplatesPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 md:px-6 py-4 md:py-6 overflow-x-hidden">
-      <PageHeader
-        title="NDA Templates"
-        description="Create and manage your NDA templates with signature fields"
-        icon={<FileCheck className="h-5 w-5" />}
-        actions={
-          <div className="flex items-center gap-2">
-            {/* View Toggle - hidden on very small screens */}
-            <div className="hidden sm:flex items-center border border-gray-200 rounded-lg p-1 bg-gray-50">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setViewMode('grid')}
-                className={`h-8 w-8 p-0 ${viewMode === 'grid' ? 'bg-white shadow-sm text-gray-700' : 'text-gray-500 hover:text-gray-700'}`}
-              >
-                <Grid3X3 className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setViewMode('list')}
-                className={`h-8 w-8 p-0 ${viewMode === 'list' ? 'bg-white shadow-sm text-gray-700' : 'text-gray-500 hover:text-gray-700'}`}
-              >
-                <List className="w-4 h-4" />
-              </Button>
-            </div>
+    <SettingsLayout
+      title="NDA Templates"
+      description="Create and manage your NDA templates with signature fields"
+    >
+      <div className="flex items-center justify-end gap-2 mb-6">
+        {/* View Toggle - hidden on very small screens */}
+        <div className="hidden sm:flex items-center border border-gray-200 rounded-lg p-1 bg-gray-50">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setViewMode('grid')}
+            className={`h-8 w-8 p-0 ${viewMode === 'grid' ? 'bg-white shadow-sm text-gray-700' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            <Grid3X3 className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setViewMode('list')}
+            className={`h-8 w-8 p-0 ${viewMode === 'list' ? 'bg-white shadow-sm text-gray-700' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            <List className="w-4 h-4" />
+          </Button>
+        </div>
 
-            <Button
-              onClick={() => setLocation('/nda-templates/create')}
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Add New Template</span>
-              <span className="sm:hidden">New</span>
-            </Button>
-          </div>
-        }
-      />
+        <Button
+          onClick={() => setLocation('/nda-templates/create')}
+          size="sm"
+          variant="outline"
+          className="flex items-center gap-2"
+        >
+          <Plus className="w-4 h-4" />
+          <span className="hidden sm:inline">Add New Template</span>
+          <span className="sm:hidden">New</span>
+        </Button>
+      </div>
 
       {/* Templates Display */}
       {templates.length === 0 ? (
@@ -313,6 +310,6 @@ export default function NdaTemplatesPage() {
           ))}
         </div>
       )}
-    </div>
+    </SettingsLayout>
   );
 }

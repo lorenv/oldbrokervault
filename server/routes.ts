@@ -1,5 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import crypto from "crypto";
+import bcrypt from "bcryptjs";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { analyzeCimTranscript, generateFlexibleCimDocument, generateCimWithWebsiteAnalysis, startWebsiteAnalysis, type FlexibleCimDocument } from "./perplexity";
@@ -13,7 +15,7 @@ import { searchService, versionService, analyticsService } from "./premium-servi
 import { db } from "./db";
 import { eq, and, sql, inArray, desc } from "drizzle-orm";
 import { withRetry } from './db-utils';
-import { createSubscriptionSession, createSubscriptionSessionDirect, handleStripeWebhook, verifyCheckoutSession, createCustomerPortalSession, getPricing } from "./stripe";
+import { createSubscriptionSession, createSubscriptionSessionDirect, handleStripeWebhook, verifyCheckoutSession, createCustomerPortalSession, getPricing, addSubscriptionSeats, getSubscriptionQuantity } from "./stripe";
 import Stripe from "stripe";
 import * as express from 'express';
 import multer from 'multer';
@@ -31,12 +33,16 @@ import archiver from 'archiver';
 import { addCertificateToNda } from "./pdf-utils";
 import { sendNdaSignedEmail, sendEmail, sendApprovalEmail, sendOwnerApprovalNotification, sendRejectionEmail, sendCollaborationInvitationEmail, sendCollaboratorRemovedEmail, sendEditLockTakenOverEmail } from "./email";
 import { generateSecureToken, generateRedirectId } from "./token-utils";
+import { escapeHtml } from "./utils/sanitize-filename";
 import { sanitizeUser, sanitizeUserForSharing, sanitizeForLogging, validateResponseSafety } from "./data-sanitizer";
 import { responseSanitizationMiddleware, securityHeadersMiddleware, sensitiveEndpointLimiter } from "./security-middleware";
+import { isUrlSafeForFetch } from "./security";
 import { invalidateUserCache } from "./auth";
 import { logger } from "./logger";
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import os from 'os';
+import rateLimit from 'express-rate-limit';
 
 const execAsync = promisify(exec);
 import { registerNdaTemplateRoutes } from "./routes/nda-template-routes";
@@ -56,11 +62,15 @@ import { registerSDEAnalyzerRoutes } from "./routes/sde-analyzer-routes";
 import { sdeProcessor } from "./sde-processor";
 import { simpleParser } from 'mailparser';
 import webhookRoutes from "./routes/webhook-routes";
+import incomingWebhookRoutes from "./routes/incoming-webhook-routes";
 import integrationRoutes from "./routes/integration-routes";
 import teaserRoutes from "./routes/teaser-routes";
 import listingsRoutes from "./routes/listings-routes";
 import crmRoutes from "./routes/crm-routes";
 import dashboardRoutes from "./routes/dashboard-routes";
+import aiAssistantRoutes from "./routes/ai-assistant-routes";
+import extensionAuthRoutes from "./routes/extension-auth-routes";
+import extensionRoutes from "./routes/extension-routes";
 import { dispatchWebhookEvent } from "./webhook-dispatcher";
 import { dispatchIntegrationEvent } from "./integrations";
 
@@ -93,6 +103,30 @@ createDirectoriesAsync().catch(error => {
 
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+
+// Constants for bcrypt password hashing
+const BCRYPT_ROUNDS = 10;
+
+// Helper function to hash a share password
+async function hashSharePassword(password: string): Promise<string> {
+  return bcrypt.hash(password, BCRYPT_ROUNDS);
+}
+
+// Helper function to verify a share password
+// Handles both bcrypt hashed passwords and legacy plaintext passwords
+async function verifySharePassword(providedPassword: string, storedPassword: string): Promise<boolean> {
+  // Check if the stored password is a bcrypt hash (starts with $2a$ or $2b$)
+  if (storedPassword.startsWith('$2a$') || storedPassword.startsWith('$2b$')) {
+    return bcrypt.compare(providedPassword, storedPassword);
+  }
+  // Legacy plaintext password - use timing-safe comparison
+  const providedBuffer = Buffer.from(providedPassword);
+  const storedBuffer = Buffer.from(storedPassword);
+  if (providedBuffer.length !== storedBuffer.length) {
+    return false;
+  }
+  return crypto.timingSafeEqual(providedBuffer, storedBuffer);
+}
 
 // Helper function to check if user is an authorized admin using database field
 function isAuthorizedAdmin(user: any): boolean {
@@ -187,23 +221,162 @@ async function addRoundedCorners(imageBuffer: Buffer, radius: number = 30): Prom
   }
 }
 
-// Configure multer for memory storage with REDUCED limits for memory efficiency
+// SendGrid Inbound Parse Webhook URL secret verification
+// Since Inbound Parse doesn't support signature verification, we use a secret in the URL
+function verifySendGridInboundSecret(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const urlSecret = req.query.secret as string;
+  const configuredSecret = process.env.SENDGRID_INBOUND_WEBHOOK_SECRET;
+
+  // Skip verification in development if no secret configured
+  if (!configuredSecret) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('SENDGRID_INBOUND_WEBHOOK_SECRET not configured in production');
+      // In production without a secret, still allow (for backward compatibility) but log warning
+      console.warn('WARNING: SendGrid inbound webhook running without secret verification');
+    }
+    return next();
+  }
+
+  // Verify the secret matches
+  if (!urlSecret) {
+    console.error('SendGrid inbound webhook: Missing secret in URL');
+    return res.status(401).json({ error: 'Unauthorized: Missing webhook secret' });
+  }
+
+  // Use timing-safe comparison to prevent timing attacks
+  const secretBuffer = Buffer.from(configuredSecret);
+  const providedBuffer = Buffer.from(urlSecret);
+
+  if (secretBuffer.length !== providedBuffer.length || !crypto.timingSafeEqual(secretBuffer, providedBuffer)) {
+    console.error('SendGrid inbound webhook: Invalid secret provided');
+    return res.status(401).json({ error: 'Unauthorized: Invalid webhook secret' });
+  }
+
+  next();
+}
+
+// SendGrid Event Webhook signature verification (ECDSA)
+function verifySendGridEventSignature(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const signature = req.headers['x-twilio-email-event-webhook-signature'] as string;
+  const timestamp = req.headers['x-twilio-email-event-webhook-timestamp'] as string;
+
+  // Get the verification key from environment
+  const webhookKey = process.env.SENDGRID_WEBHOOK_VERIFICATION_KEY;
+
+  // Skip verification in development if no key configured
+  if (!webhookKey) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('SENDGRID_WEBHOOK_VERIFICATION_KEY not configured in production');
+      // In production without a key, still allow (for backward compatibility) but log warning
+      console.warn('WARNING: SendGrid event webhook running without signature verification');
+    }
+    return next();
+  }
+
+  // Check for required headers
+  if (!signature || !timestamp) {
+    console.error('SendGrid event webhook: Missing signature or timestamp headers');
+    return res.status(401).json({ error: 'Unauthorized: Missing webhook signature' });
+  }
+
+  // Verify timestamp is recent (within 5 minutes) to prevent replay attacks
+  const timestampDate = new Date(parseInt(timestamp) * 1000);
+  const now = new Date();
+  const fiveMinutes = 5 * 60 * 1000;
+  if (Math.abs(now.getTime() - timestampDate.getTime()) > fiveMinutes) {
+    console.error('SendGrid event webhook: Timestamp too old or in future');
+    return res.status(401).json({ error: 'Unauthorized: Webhook timestamp expired' });
+  }
+
+  // Verify ECDSA signature
+  try {
+    // SendGrid signs: timestamp + payload
+    const payload = timestamp + JSON.stringify(req.body);
+    const verifier = crypto.createVerify('sha256');
+    verifier.update(payload);
+
+    // The webhook key should be the public key in PEM format
+    const isValid = verifier.verify(webhookKey, signature, 'base64');
+
+    if (!isValid) {
+      console.error('SendGrid event webhook: Invalid signature');
+      return res.status(401).json({ error: 'Unauthorized: Invalid webhook signature' });
+    }
+
+    next();
+  } catch (error) {
+    console.error('SendGrid event webhook verification error:', error);
+    return res.status(401).json({ error: 'Unauthorized: Webhook verification failed' });
+  }
+}
+
+// Configure temporary uploads directory for disk storage
+const tmpUploadsDir = path.join(os.tmpdir(), 'brokervault-uploads');
+if (!fsSync.existsSync(tmpUploadsDir)) {
+  fsSync.mkdirSync(tmpUploadsDir, { recursive: true });
+}
+
+// Configure multer to use disk storage for large files (prevents OOM on concurrent uploads)
+const diskStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, tmpUploadsDir);
+  },
+  filename: (req, file, cb) => {
+    // Generate unique filename to prevent collisions
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, `upload-${uniqueSuffix}-${file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`);
+  }
+});
+
+// Main upload handler - uses disk storage to prevent memory issues
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage: diskStorage,
   limits: {
-    fileSize: 50 * 1024 * 1024, // REDUCED: 50MB limit for large files (was 100MB)
-    fieldSize: 10 * 1024 * 1024, // REDUCED: 10MB limit for field data (was 100MB)
-    fields: 30, // REDUCED: field count limit (was 50)
-    files: 10 // REDUCED: file count limit (was 20)
+    fileSize: 50 * 1024 * 1024, // 50MB limit
+    fieldSize: 10 * 1024 * 1024, // 10MB limit for field data
+    fields: 30,
+    files: 10
   },
   fileFilter: (req, file, cb) => {
     // Log large file uploads for monitoring
-    if (file.size > 10 * 1024 * 1024) {
-      console.log(`⚠️ Large file upload: ${file.originalname} - ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`📁 File upload: ${file.originalname}`);
     }
     cb(null, true);
   }
 });
+
+// Helper to clean up temporary files after request processing
+export async function cleanupTempFile(filePath: string | undefined): Promise<void> {
+  if (filePath && filePath.startsWith(tmpUploadsDir)) {
+    try {
+      await fs.unlink(filePath);
+    } catch (err) {
+      // File may already be deleted or moved, ignore
+    }
+  }
+}
+
+// Clean up old temp files on startup and periodically
+async function cleanupOldTempFiles() {
+  try {
+    const files = await fs.readdir(tmpUploadsDir);
+    const oneHourAgo = Date.now() - (60 * 60 * 1000);
+
+    for (const file of files) {
+      const filePath = path.join(tmpUploadsDir, file);
+      const stats = await fs.stat(filePath);
+      if (stats.mtimeMs < oneHourAgo) {
+        await fs.unlink(filePath);
+      }
+    }
+  } catch (err) {
+    // Ignore cleanup errors
+  }
+}
+// Run cleanup on startup and every hour
+cleanupOldTempFiles();
+setInterval(cleanupOldTempFiles, 60 * 60 * 1000);
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Import message service for webhook processing
@@ -228,7 +401,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // SendGrid Inbound Email Webhook - Raw body capture approach
   // Captures raw body BEFORE any middleware to avoid multipart parsing corruption
-  app.post('/api/webhook/sendgrid/inbound', async (req, res) => {
+  // SEC-017: Added secret verification via URL query parameter
+  app.post('/api/webhook/sendgrid/inbound', verifySendGridInboundSecret, async (req, res) => {
 
     console.log('\n' + '='.repeat(80));
     console.log('📨 SENDGRID INBOUND WEBHOOK HIT!');
@@ -381,7 +555,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // SendGrid Event Webhook (for delivery tracking)
-  app.post('/api/webhook/sendgrid/events', express.json(), async (req, res) => {
+  // SEC-017: Added ECDSA signature verification
+  app.post('/api/webhook/sendgrid/events', express.json(), verifySendGridEventSignature, async (req, res) => {
     console.log("📊 SendGrid event webhook received");
     
     try {
@@ -438,21 +613,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // GET endpoint to check webhook configuration
   app.get('/api/webhook/sendgrid/info', (req, res) => {
-    const baseUrl = process.env.REPLIT_DOMAINS 
+    const baseUrl = process.env.REPLIT_DOMAINS
       ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}`
       : 'https://cimshare.com';
-    
+
+    // Check if webhook security is configured
+    const inboundSecretConfigured = !!process.env.SENDGRID_INBOUND_WEBHOOK_SECRET;
+    const eventSignatureConfigured = !!process.env.SENDGRID_WEBHOOK_VERIFICATION_KEY;
+
     res.json({
       status: "ready",
-      inboundWebhookUrl: `${baseUrl}/api/webhook/sendgrid/inbound`,
+      security: {
+        inboundWebhookSecretConfigured: inboundSecretConfigured,
+        eventWebhookSignatureConfigured: eventSignatureConfigured,
+        note: "For production, set SENDGRID_INBOUND_WEBHOOK_SECRET and SENDGRID_WEBHOOK_VERIFICATION_KEY environment variables"
+      },
+      inboundWebhookUrl: `${baseUrl}/api/webhook/sendgrid/inbound${inboundSecretConfigured ? '?secret=YOUR_SECRET' : ''}`,
       eventWebhookUrl: `${baseUrl}/api/webhook/sendgrid/events`,
       testEndpoint: `${baseUrl}/api/webhook/sendgrid/test`,
       instructions: {
         sendgrid: {
           step1: "Configure SendGrid Inbound Parse at https://app.sendgrid.com/settings/parse",
           step2: "Set host: reply.cimshare.com",
-          step3: `Set URL: ${baseUrl}/api/webhook/sendgrid/inbound`,
-          step4: "Ensure MX records point to mx.sendgrid.net for reply.cimshare.com"
+          step3: `Set URL: ${baseUrl}/api/webhook/sendgrid/inbound?secret=YOUR_SECRET (add the secret from SENDGRID_INBOUND_WEBHOOK_SECRET env var)`,
+          step4: "Ensure MX records point to mx.sendgrid.net for reply.cimshare.com",
+          step5: "For event webhooks, enable signature verification in SendGrid and add the public key to SENDGRID_WEBHOOK_VERIFICATION_KEY"
         },
         testing: {
           step1: "Send email to thread-XX@reply.cimshare.com (replace XX with actual thread ID)",
@@ -538,6 +723,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register unsubscribe routes
   app.use('/api/unsubscribe', unsubscribeRoutes);
 
+  // ========== Public Incoming Webhook Receiver Endpoint ==========
+  // This endpoint receives data from external services (Typeform, Calendly, etc.)
+  // No authentication required - uses token-based access
+  app.post('/api/webhooks/incoming/:token', express.json({ limit: '1mb' }), async (req, res) => {
+    const { token } = req.params;
+    const startTime = Date.now();
+
+    try {
+      // Import dependencies
+      const { incomingWebhooks } = await import('@shared/schema');
+      const { processIncomingWebhook, generateRequestId, verifySignature } = await import('./services/incoming-webhook-processor');
+
+      // Find webhook by token
+      const [webhook] = await db
+        .select()
+        .from(incomingWebhooks)
+        .where(eq(incomingWebhooks.token, token));
+
+      if (!webhook) {
+        return res.status(404).json({ error: 'Webhook not found' });
+      }
+
+      if (!webhook.isActive) {
+        return res.status(403).json({ error: 'Webhook is disabled' });
+      }
+
+      // Verify signature if secret is configured
+      if (webhook.secret) {
+        const signature = req.get('X-Webhook-Signature') || req.get('X-Hub-Signature-256');
+        const rawBody = JSON.stringify(req.body);
+
+        if (!verifySignature(rawBody, signature, webhook.secret)) {
+          return res.status(401).json({ error: 'Invalid signature' });
+        }
+      }
+
+      // Generate request ID
+      const requestId = generateRequestId();
+
+      // Return 200 immediately for reliability
+      res.status(200).json({
+        success: true,
+        requestId,
+        message: 'Webhook received and queued for processing'
+      });
+
+      // Process asynchronously
+      const sourceIp = req.ip || req.get('x-forwarded-for') || 'unknown';
+      processIncomingWebhook(webhook, req.body, requestId, sourceIp)
+        .then(result => {
+          if (result.success) {
+            console.log(`[Incoming Webhook] Processed ${requestId}: Created ${result.entityType} #${result.entityId}`);
+          } else {
+            console.error(`[Incoming Webhook] Failed ${requestId}: ${result.error}`);
+          }
+        })
+        .catch(err => {
+          console.error(`[Incoming Webhook] Error processing ${requestId}:`, err);
+        });
+
+    } catch (error: any) {
+      console.error('[Incoming Webhook] Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   // Register text extraction routes
   app.use('/api/text-extraction', textExtractionRouter);
 
@@ -611,6 +862,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.clearCookie('connect.sid');
       res.json({ success: true, message: 'Session cleared successfully' });
     });
+  });
+
+  // Support ticket submission endpoint
+  app.post("/api/support/ticket", express.json(), async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const { type, subject, description, attachments, browserInfo, pageUrl } = req.body;
+
+      if (!subject || !description) {
+        return res.status(400).json({ error: 'Subject and description are required' });
+      }
+
+      // Get user's organization if they have one
+      let organizationId: number | null = null;
+      try {
+        const { organizationMembers } = await import("@shared/schema");
+        const { db } = await import("./db");
+        const { eq } = await import("drizzle-orm");
+        const [membership] = await db.select().from(organizationMembers).where(eq(organizationMembers.userId, req.user.id));
+        organizationId = membership?.organizationId || null;
+      } catch (e) {
+        // Organization lookup failed, continue without it
+      }
+
+      const ticket = await storage.createSupportTicket({
+        userId: req.user.id,
+        organizationId,
+        type: type || 'bug',
+        subject,
+        description,
+        attachments: attachments || [],
+        browserInfo,
+        pageUrl,
+      });
+
+      res.json({ success: true, ticketId: ticket.id });
+    } catch (err) {
+      logger.error('Error creating support ticket:', err);
+      res.status(500).json({ error: 'Failed to submit support ticket' });
+    }
   });
 
   // Image serving endpoints - serve user images and logos statically
@@ -712,8 +1006,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Rate limiter for share endpoints to prevent brute-force slug discovery
+  const shareLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 30, // 30 requests per minute per IP
+    message: { error: "Too many requests, please try again later" },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
   // Serve uploaded file content for sharing
-  app.get("/api/share/:shareSlug/file", async (req, res) => {
+  app.get("/api/share/:shareSlug/file", shareLimiter, async (req, res) => {
     try {
       const { shareSlug } = req.params;
       console.log("Serving uploaded file for slug:", shareSlug);
@@ -894,7 +1197,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Public share endpoints (comprehensively optimized for performance)
-  app.get("/api/share/:shareSlug", async (req, res) => {
+  app.get("/api/share/:shareSlug", shareLimiter, async (req, res) => {
     const startTime = Date.now();
     try {
       const { shareSlug } = req.params;
@@ -971,17 +1274,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check password protection
       if (cimDoc.sharePassword) {
         const { password } = req.query;
+        const passwordsMatch = password ? await verifySharePassword(password as string, cimDoc.sharePassword) : false;
         console.log("Password protection check:", {
           hasPassword: !!cimDoc.sharePassword,
           providedPassword: !!password,
-          passwordsMatch: password === cimDoc.sharePassword
+          passwordsMatch
         });
-        
-        if (!password || password !== cimDoc.sharePassword) {
+
+        if (!password || !passwordsMatch) {
           console.log("ERROR: Invalid or missing password for protected document");
-          return res.status(401).json({ 
+          return res.status(401).json({
             error: "Password required",
-            requiresPassword: true 
+            requiresPassword: true
           });
         }
         console.log("Password authentication successful");
@@ -1304,17 +1608,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check password protection for PDF export
       if (cimDoc.sharePassword) {
         const { password } = req.body;
+        const passwordsMatch = password ? await verifySharePassword(password as string, cimDoc.sharePassword) : false;
         console.log("PDF export password protection check:", {
           hasPassword: !!cimDoc.sharePassword,
           providedPassword: !!password,
-          passwordsMatch: password === cimDoc.sharePassword
+          passwordsMatch
         });
-        
-        if (!password || password !== cimDoc.sharePassword) {
+
+        if (!password || !passwordsMatch) {
           console.log("ERROR: Invalid or missing password for protected document PDF export");
-          return res.status(401).json({ 
+          return res.status(401).json({
             error: "Password required for PDF export",
-            requiresPassword: true 
+            requiresPassword: true
           });
         }
         console.log("PDF export password authentication successful");
@@ -1495,6 +1800,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       fsDebug.appendFileSync('/tmp/pdf-debug.log', `brandColors: ${JSON.stringify(brandColors)}\n`);
       fsDebug.appendFileSync('/tmp/pdf-debug.log', `businessLogo: ${processedUserProfile.businessLogo}\n`);
 
+      // PERF-016: TODO - Move PDF generation to worker thread for better scalability
+      // PDF generation is CPU-intensive and blocks the main event loop, causing latency
+      // for other concurrent requests. To fix this:
+      //
+      // 1. Create server/workers/pdf-worker.ts:
+      //    import { parentPort, workerData } from 'worker_threads';
+      //    import { generatePDF } from '../document-export';
+      //    async function run() {
+      //      try {
+      //        const pdfBuffer = await generatePDF(...workerData.params);
+      //        parentPort?.postMessage({ success: true, buffer: pdfBuffer });
+      //      } catch (error) {
+      //        parentPort?.postMessage({ success: false, error: error.message });
+      //      }
+      //    }
+      //    run();
+      //
+      // 2. Create helper function in routes.ts:
+      //    import { Worker } from 'worker_threads';
+      //    function generatePDFInWorker(params: any[]): Promise<Buffer> {
+      //      return new Promise((resolve, reject) => {
+      //        const worker = new Worker('./workers/pdf-worker.js', { workerData: { params } });
+      //        worker.on('message', (result) => {
+      //          if (result.success) resolve(Buffer.from(result.buffer));
+      //          else reject(new Error(result.error));
+      //        });
+      //        worker.on('error', reject);
+      //      });
+      //    }
+      //
+      // 3. Replace this generatePDF call with generatePDFInWorker(params)
+      //
+      // Alternative: Use setImmediate() to yield to event loop during PDF generation,
+      // or implement a job queue (e.g., BullMQ) for background PDF processing.
       const pdfBuffer = await generatePDF(
         cimDoc.analysis, // Use cached analysis - no regeneration
         processedLogoUrl, // Use processed logo URL with proper base URL
@@ -1568,17 +1907,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check password protection for Word export
       if (cimDoc.sharePassword) {
         const { password } = req.body;
+        const passwordsMatch = password ? await verifySharePassword(password as string, cimDoc.sharePassword) : false;
         console.log("Word export password protection check:", {
           hasPassword: !!cimDoc.sharePassword,
           providedPassword: !!password,
-          passwordsMatch: password === cimDoc.sharePassword
+          passwordsMatch
         });
-        
-        if (!password || password !== cimDoc.sharePassword) {
+
+        if (!password || !passwordsMatch) {
           console.log("ERROR: Invalid or missing password for protected document Word export");
-          return res.status(401).json({ 
+          return res.status(401).json({
             error: "Password required for Word export",
-            requiresPassword: true 
+            requiresPassword: true
           });
         }
         console.log("Word export password authentication successful");
@@ -1714,7 +2054,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     const supportEmail = process.env.SUPPORT_EMAIL || 'contact@cimshare.com';
-    const companyName = process.env.COMPANY_NAME || 'CIM Share';
+    const companyName = process.env.COMPANY_NAME || 'Broker Vault';
     
     res.json({
       stripe: {
@@ -1772,8 +2112,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
 
+  // PERF-019: Rate limiter for expensive AI generation endpoints
+  // Prevents abuse of AI resources with per-user rate limiting
+  const aiGenerationLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour window
+    max: 10, // 10 requests per hour per user
+    keyGenerator: (req) => {
+      // Use user ID for authenticated requests, fall back to IP
+      return req.user?.id?.toString() || req.ip || 'unknown';
+    },
+    message: { error: 'Too many AI generation requests. Please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+    // Skip rate limiting for users with unlimited plans (enterprise)
+    skip: async (req) => {
+      if (!req.user) return false;
+      try {
+        const user = await storage.getUser(req.user.id);
+        return user?.subscriptionTier === 'enterprise';
+      } catch {
+        return false;
+      }
+    }
+  });
+
   // CIM Document Routes with file upload support
-  app.post("/api/cim/generate", async (req, res) => {
+  app.post("/api/cim/generate", aiGenerationLimiter, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
@@ -1873,6 +2237,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let logoExtractionPromise: Promise<string | null> = Promise.resolve(null);
 
         if (data.websiteUrl) {
+          // Validate URL before processing to prevent SSRF attacks
+          if (!isUrlSafeForFetch(data.websiteUrl.startsWith('http') ? data.websiteUrl : `https://${data.websiteUrl}`)) {
+            console.error("Blocked unsafe website URL:", data.websiteUrl);
+            return res.status(400).json({ error: "Invalid or blocked website URL" });
+          }
           try {
             normalizedUrl = normalizeUrl(data.websiteUrl);
             console.log("🚀 Starting parallel website processing for regeneration...");
@@ -1952,6 +2321,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let imageExtractionPromise: Promise<string[]> = Promise.resolve([]);
 
       if (data.websiteUrl) {
+        // Validate URL before processing to prevent SSRF attacks
+        if (!isUrlSafeForFetch(data.websiteUrl.startsWith('http') ? data.websiteUrl : `https://${data.websiteUrl}`)) {
+          console.error("Blocked unsafe website URL:", data.websiteUrl);
+          return res.status(400).json({ error: "Invalid or blocked website URL" });
+        }
         try {
           normalizedUrl = normalizeUrl(data.websiteUrl);
           console.log("🚀 Starting ALL website operations in parallel at the beginning...");
@@ -2438,9 +2812,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create specialized upload configuration for large financial files
+  // PERF-006: Create specialized upload configuration for large financial files using disk storage
+  // This prevents large files (up to 200MB) from being stored entirely in memory, reducing memory pressure
   const largeFileUpload = multer({
-    storage: multer.memoryStorage(),
+    storage: multer.diskStorage({
+      destination: (req, file, cb) => {
+        cb(null, os.tmpdir());
+      },
+      filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+      }
+    }),
     limits: {
       fileSize: 200 * 1024 * 1024, // 200MB limit for financial files
       fieldSize: 200 * 1024 * 1024, // 200MB limit for field data
@@ -2449,25 +2832,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Helper function to read file from disk and return buffer (for disk-based uploads)
+  async function readFileFromDisk(file: Express.Multer.File): Promise<Buffer> {
+    if (file.buffer) {
+      // File is already in memory (for backwards compatibility)
+      return file.buffer;
+    }
+    // Read from disk path
+    return await fs.readFile(file.path);
+  }
+
+  // Helper function to clean up temp files after processing
+  async function cleanupTempFile(file: Express.Multer.File): Promise<void> {
+    if (file.path) {
+      try {
+        await fs.unlink(file.path);
+      } catch (err) {
+        console.warn(`Failed to cleanup temp file ${file.path}:`, err);
+      }
+    }
+  }
+
   // File upload endpoint for large text and financial files
-  app.post("/api/cim/upload", (req, res, next) => {
+  // PERF-019: Apply AI generation rate limiter to this endpoint as well
+  app.post("/api/cim/upload", aiGenerationLimiter, (req, res, next) => {
     largeFileUpload.any()(req, res, (err) => {
       if (err) {
         console.error("Multer upload error:", err);
         if (err.code === 'LIMIT_FILE_SIZE') {
-          return res.status(413).json({ 
+          return res.status(413).json({
             error: `File too large. Maximum size allowed is 200MB. Please reduce your file size and try again.`,
             details: `File size limit exceeded: ${(err.limit / (1024 * 1024)).toFixed(0)}MB`
           });
         } else if (err.code === 'LIMIT_FIELD_SIZE') {
-          return res.status(413).json({ 
+          return res.status(413).json({
             error: "Form data too large. Please reduce the size of your submission.",
             details: "Field size limit exceeded"
           });
         } else {
-          return res.status(400).json({ 
-            error: "File upload failed", 
-            details: err.message 
+          return res.status(400).json({
+            error: "File upload failed",
+            details: err.message
           });
         }
       }
@@ -2506,7 +2911,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const files = uploadedFiles;
       const transcriptFile = files.find(file => file.fieldname === 'transcript');
-      const transcript = transcriptFile ? transcriptFile.buffer.toString('utf-8') : req.body.transcript;
+      // PERF-006: Read transcript from disk instead of memory buffer
+      const transcript = transcriptFile
+        ? (await readFileFromDisk(transcriptFile)).toString('utf-8')
+        : req.body.transcript;
       
       // Parse JSON fields from FormData strings before schema validation
       let parsedBody = { ...req.body };
@@ -2647,6 +3055,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let logoExtractionPromise: Promise<string | null> = Promise.resolve(null);
 
       if (data.websiteUrl) {
+        // Validate URL before processing to prevent SSRF attacks
+        if (!isUrlSafeForFetch(data.websiteUrl.startsWith('http') ? data.websiteUrl : `https://${data.websiteUrl}`)) {
+          console.error("Blocked unsafe website URL:", data.websiteUrl);
+          return res.status(400).json({ error: "Invalid or blocked website URL" });
+        }
         try {
           normalizedUrl = normalizeUrl(data.websiteUrl);
           console.log("🚀 Starting website operations in parallel (upload route)...");
@@ -2742,8 +3155,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const coverImageFile = files.find(file => file.fieldname === 'coverImage' || file.fieldname === 'coverImageFile');
         if (coverImageFile) {
           try {
+            // PERF-006: Read from disk instead of memory buffer
+            const coverImageBuffer = await readFileFromDisk(coverImageFile);
             const coverImageMetadata = await imageManager.saveImageFromBuffer(
-              coverImageFile.buffer,
+              coverImageBuffer,
               coverImageFile.originalname,
               coverImageFile.mimetype,
               req.user!.id,
@@ -2751,6 +3166,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             );
             coverImageUrl = coverImageMetadata.publicPath;
             console.log('Cover image saved to persistent storage:', coverImageMetadata.publicPath);
+            // Clean up temp file after successful upload
+            await cleanupTempFile(coverImageFile);
           } catch (saveError) {
             console.error('Failed to save cover image to persistent storage:', saveError);
             // Keep original URL as fallback
@@ -2790,21 +3207,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Handle financial files upload using object storage
       let uploadedFinancialFiles = [];
       const financialFileFields = files.filter(file => file.fieldname.startsWith('financialFile_'));
-      
+
       console.log("Found financial files to upload:", financialFileFields.length);
-      
+
       if (financialFileFields.length > 0) {
         for (const file of financialFileFields) {
           try {
             console.log(`Uploading financial file: ${file.originalname} (${file.size} bytes)`);
+            // PERF-006: Read from disk instead of memory buffer
+            const fileBuffer = await readFileFromDisk(file);
             const fileMetadata = await fileStorageManager.saveFileFromBuffer(
-              file.buffer,
+              fileBuffer,
               file.originalname,
               file.mimetype,
               req.user!.id,
               'financial-files'
             );
-            
+
             uploadedFinancialFiles.push({
               fileName: fileMetadata.fileName,
               originalName: fileMetadata.originalName,
@@ -2813,8 +3232,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
               mimeType: fileMetadata.mimeType,
               publicPath: fileMetadata.publicPath
             });
-            
+
             console.log(`Financial file uploaded to object storage: ${fileMetadata.publicPath}`);
+            // Clean up temp file after successful upload
+            await cleanupTempFile(file);
           } catch (error) {
             console.error(`Failed to upload financial file ${file.originalname}:`, error);
             // Continue with other files even if one fails
@@ -3020,8 +3441,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const file of files) {
         try {
           console.log(`Uploading CIM file: ${file.originalname} (${file.size} bytes)`);
+          // PERF-006: Read from disk instead of memory buffer
+          const fileBuffer = await readFileFromDisk(file);
           const fileMetadata = await fileStorageManager.saveFileFromBuffer(
-            file.buffer,
+            fileBuffer,
             file.originalname,
             file.mimetype,
             req.user!.id,
@@ -3039,6 +3462,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           savedFiles.push(uploadedFile);
           console.log(`CIM file uploaded to object storage: ${fileMetadata.publicPath}`);
+          // Clean up temp file after successful upload
+          await cleanupTempFile(file);
         } catch (error) {
           console.error(`Failed to upload CIM file ${file.originalname}:`, error);
           // Continue with other files even if one fails
@@ -3689,7 +4114,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const websiteUrl = decodeURIComponent(req.params.websiteUrl);
       console.log(`Image extraction request for: ${websiteUrl}`);
-      
+
+      // Validate URL before processing to prevent SSRF attacks
+      if (!isUrlSafeForFetch(websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`)) {
+        console.error("Blocked unsafe website URL for image extraction:", websiteUrl);
+        return res.status(400).json({ error: "Invalid or blocked website URL" });
+      }
+
       const imageUrls = await extractWebsiteImages(websiteUrl);
       
       // Check if no images were extracted and provide helpful message
@@ -3714,15 +4145,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/download-images", async (req, res) => {
     try {
       const { imageUrls, websiteUrl } = req.body;
-      
+
       if (!imageUrls || !Array.isArray(imageUrls) || !websiteUrl) {
         return res.status(400).json({ error: "imageUrls array and websiteUrl are required" });
       }
-      
+
+      // Validate all image URLs before processing to prevent SSRF attacks
+      for (const imageUrl of imageUrls) {
+        if (!isUrlSafeForFetch(imageUrl)) {
+          console.error("Blocked unsafe image URL:", imageUrl);
+          return res.status(400).json({ error: "Invalid or blocked image URL" });
+        }
+      }
+
       console.log(`Downloading ${imageUrls.length} images for: ${websiteUrl}`);
-      
+
       const savedPaths = await downloadSelectedImages(imageUrls, websiteUrl);
-      
+
       res.json({ savedPaths });
     } catch (error) {
       console.error("Error downloading images:", error);
@@ -3791,7 +4230,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Document is not NDA protected" });
       }
 
-      const viewHistory = await storage.getNdaSignerViewHistory(docId, signerEmail);
+      const maxLimit = 100;
+      const limit = Math.min(parseInt(req.query.limit as string) || 50, maxLimit);
+      const offset = parseInt(req.query.offset as string) || 0;
+
+      const viewHistory = await storage.getNdaSignerViewHistory(docId, signerEmail, { limit, offset });
       res.json(viewHistory);
     } catch (error) {
       console.error("NDA signer view history error:", error);
@@ -4000,7 +4443,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Check if Stripe is properly initialized
     if (!stripe) {
       console.error("❌ Customer portal: Stripe not initialized");
-      return res.status(503).json({ 
+      return res.status(503).json({
         error: "Payment processing temporarily unavailable",
         code: "STRIPE_UNAVAILABLE"
       });
@@ -4011,9 +4454,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ url: session.url });
     } catch (error) {
       console.error('❌ Error creating customer portal session:', error);
-      
+
       const message = error instanceof Error ? error.message : "Failed to create portal session";
-      
+
       // Handle specific error cases
       if (message === "No Stripe customer ID found") {
         res.status(400).json({
@@ -4030,6 +4473,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
           error: "Failed to access subscription management",
           code: "PORTAL_ERROR",
           details: process.env.NODE_ENV === 'development' ? message : undefined
+        });
+      }
+    }
+  });
+
+  // Add additional licenses to existing subscription
+  app.post("/api/subscription/add-licenses", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    // Check if Stripe is properly initialized
+    if (!stripe) {
+      console.error("❌ Add licenses: Stripe not initialized");
+      return res.status(503).json({
+        error: "Payment processing temporarily unavailable",
+        code: "STRIPE_UNAVAILABLE"
+      });
+    }
+
+    try {
+      const { additionalSeats } = req.body;
+
+      if (!additionalSeats || typeof additionalSeats !== 'number' || additionalSeats < 1) {
+        return res.status(400).json({
+          error: "Invalid number of additional seats",
+          code: "INVALID_SEATS"
+        });
+      }
+
+      const userId = req.user!.id;
+
+      // Add seats to Stripe subscription
+      const result = await addSubscriptionSeats(userId, additionalSeats);
+
+      if (result.success) {
+        // Update organization seatCount in database
+        // First, get the user's organization
+        const { organizations, organizationMembers } = await import("@shared/schema");
+        const orgMembership = await db
+          .select()
+          .from(organizationMembers)
+          .where(
+            and(
+              eq(organizationMembers.userId, userId),
+              eq(organizationMembers.status, 'active')
+            )
+          )
+          .limit(1);
+
+        if (orgMembership.length > 0) {
+          // Update the organization's seat count
+          await db
+            .update(organizations)
+            .set({ seatCount: result.newQuantity })
+            .where(eq(organizations.id, orgMembership[0].organizationId));
+
+          console.log(`✅ Updated organization ${orgMembership[0].organizationId} seatCount to ${result.newQuantity}`);
+        }
+
+        // Invalidate user cache
+        invalidateUserCache(userId);
+
+        res.json({
+          success: true,
+          newQuantity: result.newQuantity,
+          message: `Successfully added ${additionalSeats} license(s). You now have ${result.newQuantity} total licenses.`
+        });
+      } else {
+        res.status(400).json({
+          error: result.error || "Failed to add licenses",
+          code: "ADD_LICENSES_FAILED"
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error adding licenses:', error);
+
+      const message = error instanceof Error ? error.message : "Failed to add licenses";
+
+      if (message.includes("No active subscription")) {
+        res.status(400).json({
+          error: "Please subscribe to a plan first before adding licenses",
+          code: "NO_SUBSCRIPTION"
+        });
+      } else {
+        res.status(500).json({
+          error: message,
+          code: "ADD_LICENSES_ERROR"
         });
       }
     }
@@ -4711,10 +5240,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "No access to this document" });
       }
 
-      const limit = parseInt(req.query.limit as string) || 50;
+      const maxLimit = 100;
+      const limit = Math.min(parseInt(req.query.limit as string) || 50, maxLimit);
       const offset = parseInt(req.query.offset as string) || 0;
 
-      const activities = await storage.getActivityLog(docId, limit, offset);
+      const activities = await storage.getActivityLog(docId, { limit, offset });
 
       res.json(activities);
     } catch (error) {
@@ -5780,12 +6310,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated() || !isAuthorizedAdmin(req.user)) {
       return res.sendStatus(401);
     }
-    
+
     try {
-      const users = await storage.getAllUsers();
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = Math.min(parseInt(req.query.limit as string) || 100, 500);
+      const offset = (page - 1) * limit;
+
+      const [users, totalCount] = await Promise.all([
+        storage.getAllUsers({ limit, offset }),
+        storage.getUsersCount()
+      ]);
       // SECURITY: Sanitize user data for admin view - exclude passwords, tokens, and sensitive fields
       const sanitizedUsers = users.map(user => sanitizeUser(user));
-      res.json(sanitizedUsers);
+      res.json({
+        users: sanitizedUsers,
+        pagination: {
+          page,
+          limit,
+          total: totalCount,
+          totalPages: Math.ceil(totalCount / limit),
+          hasMore: offset + users.length < totalCount
+        }
+      });
     } catch (error) {
       console.error("Error fetching users:", error);
       res.status(500).json({ error: "Failed to fetch users" });
@@ -6177,7 +6723,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const testEmailSent = await sendEmail({
         to: to,
         from: 'system@cimshare.com',
-        subject: 'Test Message from CIM Share',
+        subject: 'Test Message from Broker Vault',
         text: 'Hello! This is a simple test message to verify email delivery is working correctly. Please reply if you receive this.',
         html: '<p>Hello!</p><p>This is a simple test message to verify email delivery is working correctly.</p><p>Please reply if you receive this.</p>',
         replyTo: user.email
@@ -6913,11 +7459,19 @@ ${finalQuestion}
         }
       }
 
+      // Hash the password before storing if provided
+      let hashedPassword: string | null | undefined = password;
+      if (password && password.trim()) {
+        hashedPassword = await hashSharePassword(password);
+      } else if (password === '' || password === null) {
+        hashedPassword = null;
+      }
+
       const updatedDoc = await storage.updateCimShareSettings(docId, {
         shareEnabled: isPublic,
         shareSlug: shareSlug || undefined,
         customSlug: validatedCustomSlug,
-        sharePassword: password,
+        sharePassword: hashedPassword,
         shareExpiresAt: expiresAt,
         ndaProtected: ndaProtected !== undefined ? ndaProtected : requireNda,
         ndaTemplateId: ndaTemplateId !== undefined ? ndaTemplateId : doc.ndaTemplateId,
@@ -7058,11 +7612,19 @@ ${finalQuestion}
         validatedCustomSlug = null;
       }
 
+      // Hash the password before storing if provided
+      let hashedPassword: string | null | undefined = sharePassword;
+      if (sharePassword && sharePassword.trim()) {
+        hashedPassword = await hashSharePassword(sharePassword);
+      } else if (sharePassword === '' || sharePassword === null) {
+        hashedPassword = null;
+      }
+
       const updatedDoc = await storage.updateCimShareSettings(docId, {
         shareEnabled,
         shareSlug,
         customSlug: validatedCustomSlug,
-        sharePassword,
+        sharePassword: hashedPassword,
         shareExpiresAt,
         ndaProtected,
         ndaTemplateId
@@ -7274,6 +7836,8 @@ ${finalQuestion}
         profilePhoto: user.profilePhoto,
         email: user.email,
         brandColors: user.brandColors,
+        pdfPrimaryColor: user.pdfPrimaryColor,
+        pdfSecondaryColor: user.pdfSecondaryColor,
         brandedPdfTemplate: user.brandedPdfTemplate,
         customSubdomain: user.customSubdomain,
         timezone: user.timezone
@@ -7361,9 +7925,31 @@ ${finalQuestion}
       // Process images with size limits and better error handling
       let processedBusinessLogo = businessLogo;
       let processedProfilePhoto = profilePhoto;
-      
+
       // Track if we need to extract brand colors from a new logo upload
       let extractedBrandColors: string[] | null = null;
+
+      // Handle logo removal - sync to eSignature branding
+      if (businessLogo === "" || businessLogo === null) {
+        try {
+          const [existingBranding] = await db
+            .select()
+            .from(userBranding)
+            .where(eq(userBranding.userId, req.user!.id))
+            .limit(1);
+
+          if (existingBranding) {
+            await db
+              .update(userBranding)
+              .set({ logoUrl: null, updatedAt: new Date() })
+              .where(eq(userBranding.userId, req.user!.id));
+            console.log('Synced logo removal to e-signature settings');
+          }
+        } catch (syncError) {
+          console.warn('E-signature branding logo removal sync failed:', syncError);
+        }
+        processedBusinessLogo = null;
+      }
 
       // Process business logo if it's a new upload - save as file instead of base64
       if (businessLogo && businessLogo.startsWith('data:image/')) {
@@ -7963,30 +8549,42 @@ ${finalQuestion}
     }
   });
 
+  // Password reset rate limiter - strict limits to prevent abuse and email enumeration
+  const forgotPasswordLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 3, // 3 requests per 15 minutes per IP
+    keyGenerator: (req) => req.ip || 'unknown',
+    message: { error: 'Too many password reset requests. Please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
   // Password reset routes
-  app.post("/api/forgot-password", async (req, res) => {
+  app.post("/api/forgot-password", forgotPasswordLimiter, async (req, res) => {
     try {
       const { email } = req.body;
-      const resetToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      const resetToken = crypto.randomBytes(32).toString('hex');
       const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
-      
+
       const success = await storage.createPasswordResetToken(email, resetToken, expiry);
-      
+
       if (success) {
         // Send password reset email using SendGrid
         const { sendPasswordResetEmail } = await import("./email");
         const emailSent = await sendPasswordResetEmail(email, resetToken);
-        
+
         // Security: Don't log sensitive password reset tokens
         console.log(`Password reset email sent to ${email}: ${emailSent}`);
-        
-        res.json({ message: "If an account with that email exists, a reset link has been sent." });
-      } else {
-        // Don't reveal if email exists or not for security
-        res.json({ message: "If an account with that email exists, a reset link has been sent." });
       }
+
+      // Security: Always return success message, even if email doesn't exist
+      // Use a small delay to normalize response time and prevent timing attacks
+      await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 100));
+      return res.json({ message: "If an account with that email exists, a reset link has been sent." });
     } catch (error) {
       console.error("Password reset error:", error);
+      // Still normalize timing on error to prevent information leakage
+      await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 100));
       res.status(500).json({ error: "Failed to process password reset request" });
     }
   });
@@ -8103,26 +8701,6 @@ ${finalQuestion}
     }
   });
 
-  app.post("/api/reset-password", async (req, res) => {
-    try {
-      const { token, password } = req.body;
-      const user = await storage.getUserByResetToken(token);
-      
-      if (!user) {
-        return res.status(400).json({ error: "Invalid or expired reset token" });
-      }
-      
-      const { hashPassword } = await import("./auth");
-      const hashedPassword = await hashPassword(password);
-      await storage.updateUserPassword(user.id, hashedPassword);
-      await storage.clearPasswordResetToken(user.id);
-      
-      res.json({ message: "Password has been reset successfully" });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to reset password" });
-    }
-  });
-
   // Support contact form
   app.post("/api/support", upload.fields([
     { name: 'attachment_0', maxCount: 1 },
@@ -8138,21 +8716,26 @@ ${finalQuestion}
         return res.status(400).json({ error: "Missing required fields" });
       }
 
-      // Prepare email content
+      // Sanitize user inputs to prevent HTML injection
+      const safeEmail = escapeHtml(email);
+      const safeSubject = escapeHtml(subject);
+      const safeMessage = escapeHtml(message);
+
+      // Prepare email content with sanitized inputs
       let emailHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>Support Request from CIM Share</h2>
+          <h2>Support Request from Broker Vault</h2>
           <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
-            <p><strong>From:</strong> ${email}</p>
-            <p><strong>Subject:</strong> ${subject}</p>
+            <p><strong>From:</strong> ${safeEmail}</p>
+            <p><strong>Subject:</strong> ${safeSubject}</p>
           </div>
           <div style="background-color: white; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
             <h3>Message:</h3>
-            <p style="white-space: pre-wrap;">${message}</p>
+            <p style="white-space: pre-wrap;">${safeMessage}</p>
           </div>
           <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
           <p style="color: #666; font-size: 12px;">
-            This message was sent through the CIM Share support form.
+            This message was sent through the Broker Vault support form.
           </p>
         </div>
       `;
@@ -9615,7 +10198,8 @@ ${finalQuestion}
             redirectUrl,
             signedNdaContent,
             signerName.trim(),
-            ownerProfileData
+            ownerProfileData,
+            cimDoc.userId
           );
 
           if (!finalEmailSent) {
@@ -11205,10 +11789,10 @@ ${finalQuestion}
 
     try {
       console.log("Starting cover image migration...");
-      
-      // Get all CIM documents with external cover images
-      const allDocs = await storage.getAllCimDocuments();
-      const docsToMigrate = allDocs.filter(doc => 
+
+      // Get all CIM documents with external cover images (admin operation - explicit high limit)
+      const allDocs = await storage.getAllCimDocuments({ limit: 10000, offset: 0 });
+      const docsToMigrate = allDocs.filter(doc =>
         doc.coverImageUrl && coverImageService.isExternalImageUrl(doc.coverImageUrl)
       );
 
@@ -11347,6 +11931,7 @@ ${finalQuestion}
 
   // Register webhook routes
   app.use('/api/webhooks', webhookRoutes);
+  app.use('/api/incoming-webhooks', incomingWebhookRoutes);
 
   // Register integration routes
   console.log('📦 Registering integration routes at /api/integrations');
@@ -11366,6 +11951,92 @@ ${finalQuestion}
 
   // Register Dashboard routes (AI briefing, stats)
   app.use('/api/dashboard', dashboardRoutes);
+
+  // Register AI Assistant routes
+  app.use('/api/ai-assistant', aiAssistantRoutes);
+
+  // Register Extension routes (Chrome extension authentication and CIM generation)
+  app.use('/api/extension', extensionAuthRoutes);
+  app.use('/api/extension', extensionRoutes);
+  console.log('✅ Extension routes registered');
+
+  // ========== Notification Preferences Routes ==========
+
+  // Get current user's notification preferences
+  app.get("/api/user/notification-preferences", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const userId = (req.user as any).id;
+      let preferences = await storage.getNotificationPreferences(userId);
+
+      // If no preferences exist, return defaults
+      if (!preferences) {
+        preferences = {
+          id: 0,
+          userId,
+          // Email defaults
+          emailMentions: true,
+          emailTaskAssigned: true,
+          emailTaskReminder: true,
+          emailDealUpdates: false,
+          emailTeamInvites: true,
+          emailEsignRequests: true,
+          emailEsignCompleted: true,
+          emailWeeklyDigest: false,
+          // In-app defaults
+          inappMentions: true,
+          inappTaskAssigned: true,
+          inappTaskReminder: true,
+          inappDealUpdates: true,
+          inappEsignRequests: true,
+          inappEsignCompleted: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+      }
+
+      res.json(preferences);
+    } catch (error) {
+      console.error("Error fetching notification preferences:", error);
+      res.status(500).json({ error: "Failed to fetch notification preferences" });
+    }
+  });
+
+  // Update user's notification preferences
+  app.put("/api/user/notification-preferences", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const userId = (req.user as any).id;
+      const updates = req.body;
+
+      // Validate the fields - only allow known preference fields
+      const allowedFields = [
+        'emailMentions', 'emailTaskAssigned', 'emailTaskReminder', 'emailDealUpdates',
+        'emailTeamInvites', 'emailEsignRequests', 'emailEsignCompleted', 'emailWeeklyDigest',
+        'inappMentions', 'inappTaskAssigned', 'inappTaskReminder', 'inappDealUpdates',
+        'inappEsignRequests', 'inappEsignCompleted'
+      ];
+
+      const filteredUpdates: Record<string, boolean> = {};
+      for (const key of allowedFields) {
+        if (key in updates && typeof updates[key] === 'boolean') {
+          filteredUpdates[key] = updates[key];
+        }
+      }
+
+      const preferences = await storage.upsertNotificationPreferences(userId, filteredUpdates);
+      res.json(preferences);
+    } catch (error) {
+      console.error("Error updating notification preferences:", error);
+      res.status(500).json({ error: "Failed to update notification preferences" });
+    }
+  });
 
   // Background job: Clean up stale document locks (15+ minutes old)
   async function cleanupStaleLocks() {

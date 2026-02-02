@@ -5,6 +5,10 @@ export const PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions";
 // Anthropic client for Claude-based CIM generation
 import Anthropic from '@anthropic-ai/sdk';
 
+// Import timeout utilities for external API calls (PERF-013)
+import { fetchWithTimeout, API_TIMEOUTS } from './utils/fetch-with-timeout';
+import { isUrlSafeForFetch } from './security';
+
 // Standardized anti-hallucination rules for all AI-generated content
 const ANTI_HALLUCINATION_RULES = `
 ⚠️ CRITICAL ANTI-HALLUCINATION RULES - STRICT COMPLIANCE REQUIRED:
@@ -171,9 +175,16 @@ async function analyzeWebsiteContent(websiteUrl: string): Promise<string | null>
       cleanUrl = `https://${cleanUrl}`;
     }
 
+    // Validate URL before passing to external API to prevent SSRF-like attacks
+    if (!isUrlSafeForFetch(cleanUrl)) {
+      console.error('❌ Blocked unsafe URL in analyzeWebsiteContent:', websiteUrl);
+      return null;
+    }
+
     console.log('🌐 Making OpenAI web search request to analyze:', cleanUrl);
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Use timeout for external API call (PERF-013)
+    const response = await fetchWithTimeout('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
@@ -200,7 +211,7 @@ Provide detailed, factual information found on the website. Include specific num
           search_context_size: "high"
         }
       })
-    });
+    }, API_TIMEOUTS.AI_API);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -484,8 +495,10 @@ CRITICAL: Never reference "the transcript" or "business owner's notes" in the ou
 
   if (useAnthropic) {
     // Use Claude Sonnet for high-quality CIM writing
+    // Initialize with timeout to prevent hanging requests (PERF-013)
     const anthropic = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY2,
+      timeout: API_TIMEOUTS.LONG, // 3 minute timeout for CIM generation
     });
 
     console.log(`Using Anthropic Claude for CIM generation (primary: ${PRIMARY_MODEL})`);
@@ -530,7 +543,8 @@ CRITICAL: Never reference "the transcript" or "business owner's notes" in the ou
 
     console.log(`Using ${useOpenAI ? 'OpenAI' : 'Perplexity'} for CIM generation with model: ${model}`);
 
-    const response = await fetch(apiUrl, {
+    // Use timeout for external API call (PERF-013) - AI generation can take longer
+    const response = await fetchWithTimeout(apiUrl, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
@@ -546,7 +560,7 @@ CRITICAL: Never reference "the transcript" or "business owner's notes" in the ou
         temperature: FACTUAL_TEMPERATURE,
         response_format: useOpenAI ? { type: "json_object" } : undefined
       })
-    });
+    }, API_TIMEOUTS.LONG);
 
     if (!response.ok) {
       const text = await response.text();
@@ -752,7 +766,8 @@ type CimAnalysis = LegacyCimAnalysis;
 
 // Legacy CIM analysis function for backwards compatibility
 async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
-  const response = await fetch(PERPLEXITY_API_URL, {
+  // Use timeout for external API call (PERF-013)
+  const response = await fetchWithTimeout(PERPLEXITY_API_URL, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${process.env.PERPLEXITY_API_KEY}`,
@@ -768,7 +783,7 @@ async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
       return_related_questions: false,
       stream: false
     })
-  });
+  }, API_TIMEOUTS.LONG);
 
   if (!response.ok) {
     const text = await response.text();

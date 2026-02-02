@@ -237,6 +237,7 @@ function DocumentPageCanvas({
   onTapToPlace,
 }: DocumentPageCanvasProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
+  const isResizingRef = useRef(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
 
@@ -300,9 +301,13 @@ function DocumentPageCanvas({
       const fieldConfig = FIELD_TYPES.find(f => f.type === item.type);
       const dimensions = fieldConfig?.defaultSize || { width: 20, height: 4 };
 
+      // Center the field on the drop point for smooth placement
+      const centeredX = percentCoords.x - dimensions.width / 2;
+      const centeredY = percentCoords.y - dimensions.height / 2;
+
       // Clamp coordinates to keep field within bounds
-      const clampedX = Math.max(0, Math.min(100 - dimensions.width, percentCoords.x));
-      const clampedY = Math.max(0, Math.min(100 - dimensions.height, percentCoords.y));
+      const clampedX = Math.max(0, Math.min(100 - dimensions.width, centeredX));
+      const clampedY = Math.max(0, Math.min(100 - dimensions.height, centeredY));
 
       // Create new field
       const newField: SignatureField = {
@@ -330,6 +335,8 @@ function DocumentPageCanvas({
     e.preventDefault();
     e.stopPropagation();
 
+    // Don't start drag if resize is in progress
+    if (isResizingRef.current) return;
     if (!canvasRef.current) return;
 
     const rect = canvasRef.current.getBoundingClientRect();
@@ -383,6 +390,9 @@ function DocumentPageCanvas({
     e.preventDefault();
     e.stopPropagation();
 
+    // Mark resize as in progress
+    isResizingRef.current = true;
+
     if (!canvasRef.current) return;
 
     const startX = e.clientX;
@@ -395,8 +405,14 @@ function DocumentPageCanvas({
     const handleMouseMove = (e: MouseEvent) => {
       if (!canvasRef.current) return;
 
-      const deltaX = ((e.clientX - startX) / displayWidth) * 100;
-      const deltaY = ((e.clientY - startY) / displayHeight) * 100;
+      // Use clientWidth/clientHeight for content area
+      const canvasWidth = canvasRef.current.clientWidth;
+      const canvasHeight = canvasRef.current.clientHeight;
+      if (!canvasWidth || !canvasHeight) return;
+
+      // Convert mouse movement to percentage
+      const deltaX = ((e.clientX - startX) / canvasWidth) * 100;
+      const deltaY = ((e.clientY - startY) / canvasHeight) * 100;
 
       let newWidth = startWidth;
       let newHeight = startHeight;
@@ -435,6 +451,7 @@ function DocumentPageCanvas({
     };
 
     const handleMouseUp = () => {
+      isResizingRef.current = false;
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
@@ -721,8 +738,8 @@ export default function EsignSend() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Step state
-  const [currentStep, setCurrentStep] = useState(1);
+  // Step state - start at step 2 if template is pre-selected from URL
+  const [currentStep, setCurrentStep] = useState(templateIdFromUrl ? 2 : 1);
 
   // Form state
   const [title, setTitle] = useState("");
@@ -1081,15 +1098,21 @@ export default function EsignSend() {
       // Build the fields array based on template or direct upload fields
       let fields: any[] = [];
       if (selectedTemplate) {
-        // For templates, use the pre-defined fields
+        // For templates, use the pre-defined fields and map placeholder IDs to recipient indices
         fields = selectedTemplate.fields.map(field => {
-          // Find the recipient that maps to this field's placeholder
-          const recipient = recipients.find(
+          // Find the recipient index that maps to this field's placeholder
+          const recipientIndex = recipients.findIndex(
             r => r.placeholderRecipientId === field.assignedTo
           );
           return {
-            ...field,
-            recipientId: recipient?.id || null,
+            recipientIndex: recipientIndex >= 0 ? recipientIndex : 0,
+            type: field.type,
+            x: field.x,
+            y: field.y,
+            width: field.width,
+            height: field.height,
+            page: field.page,
+            required: field.required ?? true,
           };
         });
       } else {
@@ -1202,7 +1225,7 @@ export default function EsignSend() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
       {/* Header */}
       <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 border-b border-slate-200 shadow-lg">
-        <div className="container mx-auto px-4 py-6 md:py-8">
+        <div className="px-4 md:px-6 py-4 md:py-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1 md:mb-2 flex items-center gap-2 md:gap-3">
@@ -1228,7 +1251,7 @@ export default function EsignSend() {
         </div>
       </div>
 
-      <main className="container mx-auto px-4 py-6 md:py-8">
+      <main className="px-4 md:px-6 py-4 md:py-6">
         {/* Progress Steps */}
         <div className="flex items-center justify-center mb-6 md:mb-8 overflow-x-auto pb-2">
           <div className="flex items-center gap-2 md:gap-4">

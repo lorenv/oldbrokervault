@@ -133,12 +133,12 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b">
-        <div className="container mx-auto px-4 py-4">
+        <div className="px-4 md:px-6 py-4">
           <h1 className="text-2xl font-bold">Admin Dashboard</h1>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="px-4 md:px-6 py-4 md:py-6">
         <Tabs defaultValue="users" className="space-y-6">
           <TabsList>
             <TabsTrigger value="users" className="flex items-center gap-2">

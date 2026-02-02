@@ -11,6 +11,9 @@ import {
   SystemHealthReport,
   HealthCheckResult,
 } from './health-checks';
+import { db } from '../db';
+import { scheduledTaskLogs } from '../../shared/schema';
+import { and, eq, gte } from 'drizzle-orm';
 
 // Alert configuration
 interface AlertConfig {
@@ -26,7 +29,50 @@ let quickCheckInterval: NodeJS.Timeout | null = null;
 let fullCheckInterval: NodeJS.Timeout | null = null;
 let lastFullReport: SystemHealthReport | null = null;
 let lastQuickReport: SystemHealthReport | null = null;
-let alertsSentToday: Map<string, number> = new Map();
+
+// Helper to get today's date key
+function getTodayDateKey(): string {
+  return new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+}
+
+// Helper to get alert count for a specific check type from database
+async function getAlertCountForCheck(checkName: string): Promise<number> {
+  try {
+    const taskName = `monitoring_alert_${checkName}`;
+    const todayKey = getTodayDateKey();
+
+    const results = await db
+      .select({ id: scheduledTaskLogs.id })
+      .from(scheduledTaskLogs)
+      .where(
+        and(
+          eq(scheduledTaskLogs.taskName, taskName),
+          eq(scheduledTaskLogs.executionDate, todayKey)
+        )
+      );
+
+    return results.length;
+  } catch (error) {
+    console.error('Error checking alert count:', error);
+    return 0;
+  }
+}
+
+// Helper to record an alert in the database
+async function recordAlert(checkName: string, metadata?: object): Promise<void> {
+  try {
+    const taskName = `monitoring_alert_${checkName}`;
+    const todayKey = getTodayDateKey();
+
+    await db.insert(scheduledTaskLogs).values({
+      taskName,
+      executionDate: todayKey,
+      metadata: metadata || {},
+    });
+  } catch (error) {
+    console.error('Error recording alert:', error);
+  }
+}
 
 // Default intervals
 const QUICK_CHECK_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes (quick check for critical services)
@@ -86,6 +132,10 @@ async function sendEmailAlert(subject: string, body: string, recipients: string[
 
     const fromEmail = process.env.SUPPORT_EMAIL || 'monitoring@app.com';
 
+    // Use timeout for external SendGrid API call (PERF-013)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
     const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
       method: 'POST',
       headers: {
@@ -98,7 +148,10 @@ async function sendEmailAlert(subject: string, body: string, recipients: string[
         subject,
         content: [{ type: 'text/plain', value: body }],
       }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (response.ok || response.status === 202) {
       console.log(`📧 Alert email sent to ${recipients.join(', ')}`);
@@ -118,6 +171,10 @@ async function sendEmailAlert(subject: string, body: string, recipients: string[
  */
 async function sendWebhookAlert(webhookUrl: string, report: SystemHealthReport): Promise<boolean> {
   try {
+    // Use timeout for external webhook call (PERF-013)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
     const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -133,7 +190,10 @@ async function sendWebhookAlert(webhookUrl: string, report: SystemHealthReport):
           latencyMs: c.latencyMs,
         })),
       }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (response.ok) {
       console.log('🔔 Webhook alert sent successfully');
@@ -196,11 +256,18 @@ async function sendSlackAlert(webhookUrl: string, report: SystemHealthReport): P
       });
     }
 
+    // Use timeout for external Slack webhook call (PERF-013)
+    const slackController = new AbortController();
+    const slackTimeoutId = setTimeout(() => slackController.abort(), 30000); // 30 second timeout
+
     const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ blocks }),
+      signal: slackController.signal,
     });
+
+    clearTimeout(slackTimeoutId);
 
     if (response.ok) {
       console.log('💬 Slack alert sent successfully');
@@ -224,11 +291,6 @@ async function processReport(report: SystemHealthReport, alertConfig: AlertConfi
 
   // Only alert on degraded or unhealthy status
   if (report.overall === 'healthy') {
-    // Reset alert counters at midnight
-    const now = new Date();
-    if (now.getHours() === 0 && now.getMinutes() < 10) {
-      alertsSentToday.clear();
-    }
     return;
   }
 
@@ -236,23 +298,31 @@ async function processReport(report: SystemHealthReport, alertConfig: AlertConfi
     return;
   }
 
-  // Check alert rate limiting
+  // Check alert rate limiting using database (shared across all instances)
   const unhealthyChecks = report.checks.filter(c => c.status === 'unhealthy');
-  const shouldAlert = unhealthyChecks.some(check => {
-    const alertCount = alertsSentToday.get(check.name) || 0;
-    return alertCount < MAX_ALERTS_PER_CHECK_TYPE;
-  });
 
-  if (!shouldAlert) {
-    console.log('⏸️ Alert rate limit reached for all failing checks');
+  // Find checks that haven't exceeded their daily alert limit
+  const checksToAlert: typeof unhealthyChecks = [];
+  for (const check of unhealthyChecks) {
+    const alertCount = await getAlertCountForCheck(check.name);
+    if (alertCount < MAX_ALERTS_PER_CHECK_TYPE) {
+      checksToAlert.push(check);
+    }
+  }
+
+  if (checksToAlert.length === 0) {
+    console.log('⏸️ Alert rate limit reached for all failing checks (checked across all instances)');
     return;
   }
 
-  // Update alert counters
-  unhealthyChecks.forEach(check => {
-    const count = alertsSentToday.get(check.name) || 0;
-    alertsSentToday.set(check.name, count + 1);
-  });
+  // Record alerts in database BEFORE sending (to prevent race conditions)
+  for (const check of checksToAlert) {
+    await recordAlert(check.name, {
+      status: check.status,
+      message: check.message,
+      latencyMs: check.latencyMs,
+    });
+  }
 
   // Send alerts
   const subject = `🚨 System Health Alert: ${report.overall.toUpperCase()}`;

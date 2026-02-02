@@ -144,7 +144,7 @@ export async function sendErrorReport(report: ErrorReport): Promise<boolean> {
 
         <hr style="margin-top: 30px; border: none; border-top: 1px solid #e5e7eb;">
         <p style="color: #6b7280; font-size: 12px; text-align: center;">
-          CIMShare Error Monitoring System
+          Broker Vault Error Monitoring System
         </p>
       </div>
     `;
@@ -152,7 +152,7 @@ export async function sendErrorReport(report: ErrorReport): Promise<boolean> {
     await mailService.send({
       to: ALERT_EMAIL,
       from: FROM_EMAIL,
-      subject: `[CIMShare Error] ${report.error.substring(0, 50)}${report.error.length > 50 ? '...' : ''} - ${report.page}`,
+      subject: `[Broker Vault Error] ${report.error.substring(0, 50)}${report.error.length > 50 ? '...' : ''} - ${report.page}`,
       html,
     });
 

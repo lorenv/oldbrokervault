@@ -198,6 +198,11 @@ app.use('/api/*', (req, res, next) => {
 // Setup all middleware BEFORE server starts to prevent race conditions
 async function setupMiddleware() {
   try {
+    // Initialize PostHog server-side analytics
+    console.log('📊 Initializing PostHog server analytics...');
+    const { initPostHogServer } = await import('./posthog');
+    initPostHogServer();
+
     // PRIORITY #1: Register routes immediately for API availability
     console.log('🔧 Registering API routes before server start...');
     const { registerRoutes } = await import('./routes');

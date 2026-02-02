@@ -51,7 +51,8 @@ export async function migrateImagesToFiles() {
   try {
     // Phase 1: Migrate CIM document images
     console.log('\n=== Phase 1: Migrating CIM Document Images ===');
-    const documents = await storage.getAllCimDocuments();
+    // One-time migration script - explicit high limit to get all documents
+    const documents = await storage.getAllCimDocuments({ limit: 10000, offset: 0 });
     
     for (const doc of documents) {
       console.log(`\nProcessing CIM document ${doc.id} (User: ${doc.userId})...`);
@@ -128,7 +129,8 @@ export async function migrateImagesToFiles() {
 
     // Phase 2: Migrate user profile images
     console.log('\n=== Phase 2: Migrating User Profile Images ===');
-    const users = await storage.getAllUsers();
+    // One-time migration script - explicit high limit to get all users
+    const users = await storage.getAllUsers({ limit: 10000, offset: 0 });
     
     for (const user of users) {
       console.log(`\nProcessing User ${user.id}...`);

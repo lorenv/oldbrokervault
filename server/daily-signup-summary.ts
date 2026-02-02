@@ -1,7 +1,9 @@
 import { db } from './db';
-import { users } from '../shared/schema';
-import { gte } from 'drizzle-orm';
+import { users, scheduledTaskLogs } from '../shared/schema';
+import { gte, and, eq } from 'drizzle-orm';
 import { MailService } from '@sendgrid/mail';
+
+const TASK_NAME = 'daily_signup_summary';
 
 if (!process.env.SENDGRID_API_KEY) {
   throw new Error("SENDGRID_API_KEY environment variable must be set");
@@ -14,6 +16,44 @@ export class DailySignupSummaryService {
   async sendDailySummary(): Promise<void> {
     try {
       console.log('📊 Starting daily signup summary check...');
+
+      // Get today's date key for idempotency check
+      const today = new Date();
+      const dateKey = today.toISOString().split('T')[0]; // YYYY-MM-DD format
+
+      // Check if we've already sent today's summary (prevents duplicates in autoscale)
+      const existingExecution = await db
+        .select({ id: scheduledTaskLogs.id })
+        .from(scheduledTaskLogs)
+        .where(
+          and(
+            eq(scheduledTaskLogs.taskName, TASK_NAME),
+            eq(scheduledTaskLogs.executionDate, dateKey)
+          )
+        )
+        .limit(1);
+
+      if (existingExecution.length > 0) {
+        console.log('✅ Daily signup summary already sent today by another instance. Skipping.');
+        return;
+      }
+
+      // Record this execution BEFORE sending to prevent race conditions
+      // If another instance tries to insert at the same time, one will fail
+      try {
+        await db.insert(scheduledTaskLogs).values({
+          taskName: TASK_NAME,
+          executionDate: dateKey,
+          metadata: { instanceStartTime: new Date().toISOString() },
+        });
+      } catch (insertError: any) {
+        // If insert fails (likely duplicate), another instance beat us to it
+        if (insertError.code === '23505' || insertError.message?.includes('duplicate')) {
+          console.log('✅ Another instance is already sending the daily summary. Skipping.');
+          return;
+        }
+        throw insertError;
+      }
 
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);

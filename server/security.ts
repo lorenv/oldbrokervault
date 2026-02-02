@@ -4,6 +4,73 @@ import slowDown from "express-slow-down";
 import { body, validationResult } from "express-validator";
 import hpp from "hpp";
 import { Express, Request, Response, NextFunction } from "express";
+import { URL } from 'url';
+
+/**
+ * Validates if a URL is safe to fetch from the server.
+ * Prevents SSRF attacks by blocking internal network addresses, localhost, and private IP ranges.
+ * @param urlString The URL string to validate
+ * @returns true if the URL is safe to fetch, false otherwise
+ */
+export function isUrlSafeForFetch(urlString: string): boolean {
+  try {
+    const url = new URL(urlString);
+
+    // Only allow http and https protocols
+    if (!['http:', 'https:'].includes(url.protocol)) {
+      return false;
+    }
+
+    const hostname = url.hostname.toLowerCase();
+
+    // Block localhost variants
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') {
+      return false;
+    }
+
+    // Block IPv6 localhost
+    if (hostname === '[::1]') {
+      return false;
+    }
+
+    // Block private IP ranges (IPv4)
+    const ipv4Parts = hostname.split('.').map(Number);
+    if (ipv4Parts.length === 4 && ipv4Parts.every(p => !isNaN(p) && p >= 0 && p <= 255)) {
+      // 10.0.0.0/8 - Private network
+      if (ipv4Parts[0] === 10) return false;
+      // 172.16.0.0/12 - Private network
+      if (ipv4Parts[0] === 172 && ipv4Parts[1] >= 16 && ipv4Parts[1] <= 31) return false;
+      // 192.168.0.0/16 - Private network
+      if (ipv4Parts[0] === 192 && ipv4Parts[1] === 168) return false;
+      // 169.254.0.0/16 - Link-local
+      if (ipv4Parts[0] === 169 && ipv4Parts[1] === 254) return false;
+      // 127.0.0.0/8 - Loopback
+      if (ipv4Parts[0] === 127) return false;
+      // 0.0.0.0
+      if (ipv4Parts.every(p => p === 0)) return false;
+    }
+
+    // Block common internal hostnames and cloud metadata endpoints
+    if (hostname.endsWith('.local') ||
+        hostname.endsWith('.internal') ||
+        hostname.endsWith('.localhost') ||
+        hostname.includes('metadata') ||
+        hostname.includes('169.254.169.254') ||
+        hostname === 'metadata.google.internal' ||
+        hostname === 'instance-data') {
+      return false;
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Validate SESSION_SECRET at module load time
+if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 32) {
+  throw new Error('SESSION_SECRET must be set and at least 32 characters');
+}
 
 // Rate limiting configurations
 const authLimiter = rateLimit({
@@ -424,22 +491,48 @@ export function setupSecurity(app: Express) {
   app.use('/api/upload', auditLogger('FILE_UPLOAD'));
 }
 
+/**
+ * Helper to detect if we're running in a secure (HTTPS) environment.
+ * Goes beyond just NODE_ENV to handle misconfigured or edge-case deployments.
+ */
+export function isSecureEnvironment(): boolean {
+  // Explicit production mode
+  if (process.env.NODE_ENV === 'production') return true;
+
+  // Check for explicit HTTPS indicators
+  if (process.env.HTTPS === 'true') return true;
+  if (process.env.SSL === 'true') return true;
+
+  // Force secure cookies via environment variable (for load-balanced/proxied environments)
+  if (process.env.FORCE_SECURE_COOKIES === 'true') return true;
+
+  // Check if running behind a reverse proxy that terminates SSL
+  if (process.env.TRUST_PROXY === 'true') return true;
+
+  return false;
+}
+
 // Enhanced session security - Dynamic configuration based on route
-export const getSessionConfig = (isPublicRoute: boolean = false) => ({
-  name: 'sessionId', // Don't use default session name
-  secret: process.env.SESSION_SECRET!,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-    httpOnly: true, // Prevent XSS access to cookies
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    // Use 'lax' for better browser compatibility in production
-    sameSite: process.env.NODE_ENV === 'production' ? 'lax' as const : 
-              (isPublicRoute ? 'lax' as const : 'strict' as const),
-  },
-  rolling: false, // Disable session rolling to prevent excessive deserializations
-});
+export const getSessionConfig = (isPublicRoute: boolean = false) => {
+  const isSecure = isSecureEnvironment();
+
+  return {
+    name: 'sessionId', // Don't use default session name
+    secret: process.env.SESSION_SECRET!,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: isSecure, // HTTPS only in secure environments
+      httpOnly: true, // Prevent XSS access to cookies
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      path: '/', // Explicit path for cookie scope
+      // Use 'lax' for better browser compatibility in secure environments
+      sameSite: isSecure ? 'lax' as const :
+                (isPublicRoute ? 'lax' as const : 'strict' as const),
+    },
+    rolling: false, // Disable session rolling to prevent excessive deserializations
+  };
+};
 
 // Legacy export for backwards compatibility
 export const secureSessionConfig = getSessionConfig(false);

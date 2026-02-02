@@ -7,27 +7,34 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
-import { InlineEdit } from "@/components/ui/inline-edit";
+import { InlineEdit, InlineEditEmail } from "@/components/ui/inline-edit";
+import { TablePagination } from "@/components/ui/pagination";
 import { useContactFilters } from "@/hooks/use-contact-filters";
 import { ContactsColumnConfig } from "@/components/crm/contacts-column-config";
-import { ContactsAdvancedFilters } from "@/components/crm/contacts-advanced-filters";
+import { ContactsFilterBuilderIntegration } from "@/components/crm/contacts-filter-builder-integration";
 import {
   Plus,
   Search,
   User,
+  Users,
   Mail,
   Building2,
   Phone,
   RefreshCw,
   Download,
+  Upload,
   Filter,
   X,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
   Clock,
+  Trash2,
+  Pencil,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -36,10 +43,29 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+// Helper to determine if a color is light (needs dark text)
+function isLightColor(hexColor: string): boolean {
+  const hex = hexColor.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.6;
+}
+
 export default function ContactsPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const searchString = useSearch();
+
+  // Get brand color from profile
+  const { data: profile } = useQuery({
+    queryKey: ["/api/profile"],
+    enabled: !!user,
+  });
+  const brandColor = (profile as any)?.pdfPrimaryColor || (profile as any)?.brandColors?.[0];
+  const needsDarkText = brandColor ? isLightColor(brandColor) : false;
 
   // Use the contact filters hook
   const {
@@ -65,6 +91,15 @@ export default function ContactsPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newContact, setNewContact] = useState({ email: "", firstName: "", lastName: "", phone: "", companyId: "" });
   const [hasMigrated, setHasMigrated] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [selectedContacts, setSelectedContacts] = useState<Set<number>>(new Set());
+  const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
+  const [bulkEditProperty, setBulkEditProperty] = useState<string>("");
+  const [bulkEditValue, setBulkEditValue] = useState<string>("");
+  const [bulkEditTagMode, setBulkEditTagMode] = useState<"add" | "remove">("add");
+  const [bulkEditTags, setBulkEditTags] = useState<string[]>([]);
+  const [newBulkTag, setNewBulkTag] = useState("");
 
   // Update filter when URL param changes
   useEffect(() => {
@@ -99,7 +134,8 @@ export default function ContactsPage() {
     mutationFn: (data: any) =>
       apiRequest("POST", "/api/crm/contacts", { body: data }).then(res => res.json()),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"] });
+      // Invalidate all contact-related queries to ensure dropdowns and lists are fresh
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"], refetchType: 'all' });
       setIsCreateDialogOpen(false);
       setNewContact({ email: "", firstName: "", lastName: "", phone: "", companyId: "" });
       toast({ title: "Contact created" });
@@ -117,8 +153,8 @@ export default function ContactsPage() {
     mutationFn: () =>
       apiRequest("POST", "/api/crm/migrate-contacts", {}).then(res => res.json()),
     onSuccess: (result: any) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"], refetchType: 'all' });
       setHasMigrated(true);
       if (result.contactsMigrated > 0) {
         toast({
@@ -144,7 +180,7 @@ export default function ContactsPage() {
     mutationFn: ({ contactId, data }: { contactId: number; data: Record<string, any> }) =>
       apiRequest("PATCH", `/api/crm/contacts/${contactId}`, { body: data }).then(res => res.json()),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"], refetchType: 'all' });
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to update contact.", variant: "destructive" });
@@ -166,10 +202,23 @@ export default function ContactsPage() {
     }
   }, [data, investorData, isLoading, hasMigrated]);
 
-  const contacts = (data as any)?.contacts || [];
+  const allContacts = (data as any)?.contacts || [];
   const investorContacts = (investorData as any)?.contacts || [];
   const hasInvestorContacts = investorContacts.length > 0;
-  const showMigrateButton = hasInvestorContacts && contacts.length === 0 && !migrateMutation.isPending;
+  const showMigrateButton = hasInvestorContacts && allContacts.length === 0 && !migrateMutation.isPending;
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters.search, filters.contactType, filters.leadStatus, filters.companies]);
+
+  // Pagination calculations
+  const totalItems = allContacts.length;
+  const totalPages = Math.ceil(totalItems / pageSize);
+  const contacts = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return allContacts.slice(start, start + pageSize);
+  }, [allContacts, currentPage, pageSize]);
 
   // Get contact type badge color
   const getContactTypeColor = (type: string) => {
@@ -191,13 +240,13 @@ export default function ContactsPage() {
 
   // Export contacts to CSV
   const handleExport = () => {
-    if (contacts.length === 0) {
+    if (allContacts.length === 0) {
       toast({ title: "No contacts to export", variant: "destructive" });
       return;
     }
 
     const headers = ["First Name", "Last Name", "Email", "Phone", "Company", "Title", "Type", "Status", "Source", "Last Activity", "Created"];
-    const rows = contacts.map((c: any) => [
+    const rows = allContacts.map((c: any) => [
       c.firstName || "",
       c.lastName || "",
       c.email || "",
@@ -223,7 +272,140 @@ export default function ContactsPage() {
     link.click();
     URL.revokeObjectURL(link.href);
 
-    toast({ title: `Exported ${contacts.length} contacts` });
+    toast({ title: `Exported ${allContacts.length} contacts` });
+  };
+
+  // Selection handlers
+  const toggleSelectContact = (contactId: number) => {
+    setSelectedContacts(prev => {
+      const next = new Set(prev);
+      if (next.has(contactId)) {
+        next.delete(contactId);
+      } else {
+        next.add(contactId);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedContacts.size === contacts.length) {
+      setSelectedContacts(new Set());
+    } else {
+      setSelectedContacts(new Set(contacts.map((c: any) => c.id)));
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedContacts(new Set());
+  };
+
+  // Bulk actions
+  const handleBulkDelete = async () => {
+    if (selectedContacts.size === 0) return;
+    const promises = Array.from(selectedContacts).map(id =>
+      apiRequest("DELETE", `/api/crm/contacts/${id}`)
+    );
+    try {
+      await Promise.all(promises);
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"], refetchType: 'all' });
+      toast({ title: `${selectedContacts.size} contact(s) deleted` });
+      clearSelection();
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to delete some contacts", variant: "destructive" });
+    }
+  };
+
+  const handleBulkEdit = async () => {
+    if (selectedContacts.size === 0 || !bulkEditProperty) return;
+
+    // For tags, check that there are tags selected
+    if (bulkEditProperty === 'tags' && bulkEditTags.length === 0) return;
+    // For other properties, check that a value is selected
+    if (bulkEditProperty !== 'tags' && !bulkEditValue) return;
+
+    try {
+      if (bulkEditProperty === 'tags') {
+        // Handle tags specially - need to get current tags and add/remove
+        const selectedContactsList = allContacts.filter((c: any) => selectedContacts.has(c.id));
+
+        const promises = selectedContactsList.map((contact: any) => {
+          const currentTags = contact.tags || [];
+          let newTags: string[];
+
+          if (bulkEditTagMode === 'add') {
+            // Add tags that aren't already present
+            newTags = [...new Set([...currentTags, ...bulkEditTags])];
+          } else {
+            // Remove specified tags
+            newTags = currentTags.filter((tag: string) => !bulkEditTags.includes(tag));
+          }
+
+          return apiRequest("PATCH", `/api/crm/contacts/${contact.id}`, { body: { tags: newTags } });
+        });
+
+        await Promise.all(promises);
+      } else {
+        const updateData: Record<string, any> = {};
+        if (bulkEditProperty === 'leadStatus') {
+          updateData.leadStatus = bulkEditValue;
+        } else if (bulkEditProperty === 'contactType') {
+          updateData.contactType = bulkEditValue;
+        } else if (bulkEditProperty === 'source') {
+          updateData.source = bulkEditValue;
+        }
+
+        const promises = Array.from(selectedContacts).map(id =>
+          apiRequest("PATCH", `/api/crm/contacts/${id}`, { body: updateData })
+        );
+
+        await Promise.all(promises);
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"], refetchType: 'all' });
+      toast({ title: `${selectedContacts.size} contact(s) updated` });
+      clearSelection();
+      setIsBulkEditOpen(false);
+      setBulkEditProperty("");
+      setBulkEditValue("");
+      setBulkEditTags([]);
+      setNewBulkTag("");
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to update some contacts", variant: "destructive" });
+    }
+  };
+
+  const handleBulkExport = () => {
+    const selectedContactsList = allContacts.filter((c: any) => selectedContacts.has(c.id));
+    if (selectedContactsList.length === 0) return;
+
+    const headers = ["First Name", "Last Name", "Email", "Phone", "Company", "Title", "Type", "Status", "Source", "Created"];
+    const rows = selectedContactsList.map((c: any) => [
+      c.firstName || "",
+      c.lastName || "",
+      c.email || "",
+      c.phone || "",
+      c.company?.name || "",
+      c.title || "",
+      c.contactType || "",
+      c.leadStatus || "",
+      c.source || "",
+      c.createdAt ? new Date(c.createdAt).toLocaleDateString() : "",
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row: any) => row.map((cell: any) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `contacts-export-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+
+    toast({ title: `Exported ${selectedContactsList.length} contact(s)` });
   };
 
   // Render cell content based on column
@@ -231,39 +413,30 @@ export default function ContactsPage() {
     switch (columnId) {
       case 'name':
         return (
-          <Link href={`/contacts/${contact.id}`} className="flex items-center gap-2">
+          <Link href={`/contacts/${contact.id}`} className="flex items-center gap-2 group">
             {contact.avatarUrl ? (
               <img
                 src={contact.avatarUrl}
                 alt={`${contact.firstName} ${contact.lastName}`}
-                className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                className="w-7 h-7 rounded-full object-cover flex-shrink-0"
               />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
+              <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 text-xs font-medium flex-shrink-0">
                 {(contact.firstName?.[0] || '').toUpperCase()}{(contact.lastName?.[0] || '').toUpperCase()}
               </div>
             )}
-            <span className="font-medium text-blue-600 hover:underline truncate">
+            <span className="text-sm font-medium text-gray-900 group-hover:text-blue-600 truncate">
               {contact.firstName} {contact.lastName}
             </span>
           </Link>
         );
       case 'email':
         return (
-          <div className="flex items-center gap-1">
-            <InlineEdit
-              value={contact.email}
-              onSave={(val) => handleContactUpdate(contact.id, 'email', val || null)}
-              type="email"
-              emptyText="Add email"
-              displayClassName="text-gray-600 truncate"
-            />
-            {contact.email && (
-              <a href={`mailto:${contact.email}`} className="text-gray-400 hover:text-blue-600 ml-1 flex-shrink-0">
-                <Mail className="h-3.5 w-3.5" />
-              </a>
-            )}
-          </div>
+          <InlineEditEmail
+            value={contact.email}
+            onSave={(val) => handleContactUpdate(contact.id, 'email', val || null)}
+            emptyText="Add email"
+          />
         );
       case 'phone':
         return (
@@ -273,7 +446,7 @@ export default function ContactsPage() {
               onSave={(val) => handleContactUpdate(contact.id, 'phone', val || null)}
               type="phone"
               emptyText="Add phone"
-              displayClassName="text-gray-600"
+              displayClassName="text-sm text-gray-600"
             />
             {contact.phone && (
               <a href={`tel:${contact.phone}`} className="text-gray-400 hover:text-green-600 ml-1 flex-shrink-0">
@@ -316,7 +489,7 @@ export default function ContactsPage() {
             {contact.contactType.charAt(0).toUpperCase() + contact.contactType.slice(1)}
           </Badge>
         ) : (
-          <span className="text-gray-400 text-sm">-</span>
+          <span className="text-sm text-gray-500">-</span>
         );
       case 'leadStatus':
         return contact.leadStatus ? (
@@ -324,7 +497,7 @@ export default function ContactsPage() {
             {contact.leadStatus.charAt(0).toUpperCase() + contact.leadStatus.slice(1)}
           </Badge>
         ) : (
-          <span className="text-gray-400 text-sm">-</span>
+          <span className="text-sm text-gray-500">-</span>
         );
       case 'title':
         return (
@@ -339,11 +512,11 @@ export default function ContactsPage() {
         return contact.source ? (
           <span className="text-sm text-gray-600">{contact.source.replace(/_/g, ' ')}</span>
         ) : (
-          <span className="text-gray-400 text-sm">-</span>
+          <span className="text-sm text-gray-500">-</span>
         );
       case 'lastActivity':
         if (!contact.lastActivityDate) {
-          return <span className="text-gray-400 text-sm">Never</span>;
+          return <span className="text-sm text-gray-500">Never</span>;
         }
         const activityDate = new Date(contact.lastActivityDate);
         const now = new Date();
@@ -389,9 +562,18 @@ export default function ContactsPage() {
     <div className="p-4 md:p-6">
       {/* Header - stacks on mobile */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div>
+        <div className="flex items-center gap-3">
+          <div
+            className="flex-shrink-0 p-2 md:p-2.5 rounded-lg md:rounded-xl shadow-md"
+            style={{
+              background: brandColor
+                ? `linear-gradient(to bottom right, ${brandColor}, ${brandColor}dd)`
+                : 'linear-gradient(to bottom right, #334155, #1e293b)'
+            }}
+          >
+            <Users className={`h-5 w-5 ${needsDarkText ? 'text-slate-800' : 'text-white'}`} />
+          </div>
           <h1 className="text-xl md:text-2xl font-semibold text-gray-900">Contacts</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage your contact relationships</p>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <div className="relative flex-1 sm:flex-none">
@@ -420,7 +602,7 @@ export default function ContactsPage() {
                 <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
-            <ContactsAdvancedFilters
+            <ContactsFilterBuilderIntegration
               filters={filters}
               updateFilter={updateFilter}
               clearFilters={clearFilters}
@@ -431,6 +613,15 @@ export default function ContactsPage() {
               onToggleVisibility={toggleColumnVisibility}
               onReorder={reorderColumns}
             />
+            <Link href="/settings/data-management">
+              <Button
+                variant="outline"
+                size="sm"
+                title="Import contacts"
+              >
+                <Upload className="h-4 w-4" />
+              </Button>
+            </Link>
             <Button
               variant="outline"
               size="sm"
@@ -551,22 +742,73 @@ export default function ContactsPage() {
             ))}
           </div>
 
+          {/* Bulk Actions Bar */}
+          {selectedContacts.size > 0 && (
+            <div className="hidden md:flex bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 items-center justify-between">
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-medium text-blue-900">
+                  {selectedContacts.size} contact{selectedContacts.size !== 1 ? 's' : ''} selected
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8"
+                    onClick={() => setIsBulkEditOpen(true)}
+                  >
+                    <Pencil className="h-3.5 w-3.5 mr-1" />
+                    Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8"
+                    onClick={handleBulkExport}
+                  >
+                    <Download className="h-3.5 w-3.5 mr-1" />
+                    Export
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={handleBulkDelete}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />
+                    Delete
+                  </Button>
+                </div>
+              </div>
+              <Button variant="ghost" size="sm" onClick={clearSelection} className="h-8">
+                <X className="h-3.5 w-3.5 mr-1" />
+                Clear
+              </Button>
+            </div>
+          )}
+
           {/* Desktop Table View */}
           <div className="hidden md:block bg-white rounded-lg border overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full table-fixed">
                 <thead className="bg-gray-50 border-b">
                   <tr>
+                    <th className="py-2 px-3 w-10">
+                      <Checkbox
+                        checked={contacts.length > 0 && selectedContacts.size === contacts.length}
+                        onCheckedChange={toggleSelectAll}
+                        className="border-gray-300 data-[state=checked]:bg-gray-400 data-[state=checked]:border-gray-400"
+                      />
+                    </th>
                     {visibleColumns.map((column) => (
                       <th
                         key={column.id}
-                        className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 transition-colors"
+                        className="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 transition-colors"
                         style={{
-                          width: column.id === 'name' ? '25%' :
-                                 column.id === 'email' ? '25%' :
-                                 column.id === 'phone' ? '15%' :
-                                 column.id === 'company' ? '20%' :
-                                 '15%'
+                          width: column.id === 'name' ? '22%' :
+                                 column.id === 'email' ? '22%' :
+                                 column.id === 'phone' ? '14%' :
+                                 column.id === 'company' ? '18%' :
+                                 '12%'
                         }}
                         onClick={() => toggleSort(column.id)}
                       >
@@ -580,9 +822,16 @@ export default function ContactsPage() {
                 </thead>
                 <tbody>
                   {contacts.map((contact: any) => (
-                    <tr key={contact.id} className="border-b hover:bg-gray-50">
+                    <tr key={contact.id} className={`border-b hover:bg-gray-50/50 ${selectedContacts.has(contact.id) ? 'bg-blue-50/50' : ''}`}>
+                      <td className="py-2 px-3 w-10">
+                        <Checkbox
+                          checked={selectedContacts.has(contact.id)}
+                          onCheckedChange={() => toggleSelectContact(contact.id)}
+                          className="border-gray-300 data-[state=checked]:bg-gray-400 data-[state=checked]:border-gray-400"
+                        />
+                      </td>
                       {visibleColumns.map((column) => (
-                        <td key={column.id} className="py-3 px-4">
+                        <td key={column.id} className="py-2 px-3">
                           {renderCell(contact, column.id)}
                         </td>
                       ))}
@@ -591,6 +840,14 @@ export default function ContactsPage() {
                 </tbody>
               </table>
             </div>
+            <TablePagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={setPageSize}
+            />
           </div>
         </>
       ) : (
@@ -665,6 +922,167 @@ export default function ContactsPage() {
               disabled={!newContact.email.trim() || createContactMutation.isPending}
             >
               {createContactMutation.isPending ? "Creating..." : "Create Contact"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Edit Dialog */}
+      <Dialog open={isBulkEditOpen} onOpenChange={(open) => {
+        setIsBulkEditOpen(open);
+        if (!open) {
+          setBulkEditProperty("");
+          setBulkEditValue("");
+          setBulkEditTags([]);
+          setNewBulkTag("");
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit {selectedContacts.size} Contact{selectedContacts.size !== 1 ? 's' : ''}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Property to Edit</Label>
+              <Select value={bulkEditProperty} onValueChange={(val) => {
+                setBulkEditProperty(val);
+                setBulkEditValue("");
+                setBulkEditTags([]);
+                setNewBulkTag("");
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select property" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="leadStatus">Lead Status</SelectItem>
+                  <SelectItem value="contactType">Contact Type</SelectItem>
+                  <SelectItem value="source">Source</SelectItem>
+                  <SelectItem value="tags">Tags</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {bulkEditProperty && bulkEditProperty !== 'tags' && (
+              <div className="space-y-2">
+                <Label>New Value</Label>
+                {bulkEditProperty === 'leadStatus' && (
+                  <Select value={bulkEditValue} onValueChange={setBulkEditValue}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="new">New</SelectItem>
+                      <SelectItem value="contacted">Contacted</SelectItem>
+                      <SelectItem value="qualified">Qualified</SelectItem>
+                      <SelectItem value="unqualified">Unqualified</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+                {bulkEditProperty === 'contactType' && (
+                  <Select value={bulkEditValue} onValueChange={setBulkEditValue}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="buyer">Buyer</SelectItem>
+                      <SelectItem value="seller">Seller</SelectItem>
+                      <SelectItem value="advisor">Advisor</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+                {bulkEditProperty === 'source' && (
+                  <Select value={bulkEditValue} onValueChange={setBulkEditValue}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select source" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="website">Website</SelectItem>
+                      <SelectItem value="referral">Referral</SelectItem>
+                      <SelectItem value="linkedin">LinkedIn</SelectItem>
+                      <SelectItem value="cold_outreach">Cold Outreach</SelectItem>
+                      <SelectItem value="event">Event</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            )}
+
+            {bulkEditProperty === 'tags' && (
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label>Action</Label>
+                  <Select value={bulkEditTagMode} onValueChange={(val: "add" | "remove") => setBulkEditTagMode(val)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="add">Add Tags</SelectItem>
+                      <SelectItem value="remove">Remove Tags</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Tags to {bulkEditTagMode === 'add' ? 'Add' : 'Remove'}</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Enter tag name..."
+                      value={newBulkTag}
+                      onChange={(e) => setNewBulkTag(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && newBulkTag.trim()) {
+                          e.preventDefault();
+                          if (!bulkEditTags.includes(newBulkTag.trim())) {
+                            setBulkEditTags([...bulkEditTags, newBulkTag.trim()]);
+                          }
+                          setNewBulkTag("");
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        if (newBulkTag.trim() && !bulkEditTags.includes(newBulkTag.trim())) {
+                          setBulkEditTags([...bulkEditTags, newBulkTag.trim()]);
+                          setNewBulkTag("");
+                        }
+                      }}
+                      disabled={!newBulkTag.trim()}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                  {bulkEditTags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {bulkEditTags.map((tag, index) => (
+                        <Badge key={index} variant="outline" className="pr-1 flex items-center gap-1 text-sm">
+                          {tag}
+                          <button
+                            onClick={() => setBulkEditTags(bulkEditTags.filter((_, i) => i !== index))}
+                            className="ml-0.5 hover:bg-gray-200 rounded p-0.5 transition-colors"
+                          >
+                            <X className="h-3 w-3 text-gray-500 hover:text-gray-700" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsBulkEditOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleBulkEdit}
+              disabled={!bulkEditProperty || (bulkEditProperty === 'tags' ? bulkEditTags.length === 0 : !bulkEditValue)}
+            >
+              Update {selectedContacts.size} Contact{selectedContacts.size !== 1 ? 's' : ''}
             </Button>
           </DialogFooter>
         </DialogContent>

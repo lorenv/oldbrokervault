@@ -10,7 +10,7 @@ export function useBrandColor() {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  const brandColor = (profile as any)?.brandColors?.[0] || null;
+  const brandColor = (profile as any)?.pdfPrimaryColor || (profile as any)?.brandColors?.[0] || null;
 
   // Helper to determine if brand color is light (needs dark text)
   const isLightColor = (hexColor: string): boolean => {

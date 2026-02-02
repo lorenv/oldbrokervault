@@ -81,7 +81,56 @@ export class MicrosoftProvider extends BaseProvider {
   }
 
   /**
+   * Handle OAuth callback - exchange code for tokens
+   * Returns unencrypted tokens (encryption handled by route)
+   */
+  async handleCallback(code: string, userId: number): Promise<OAuthResult> {
+    if (!this.isConfigured()) {
+      throw new Error('Microsoft OAuth is not configured');
+    }
+
+    const response = await fetch(getTokenUrl(), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        client_id: MICROSOFT_CLIENT_ID,
+        client_secret: MICROSOFT_CLIENT_SECRET,
+        code: code,
+        grant_type: 'authorization_code',
+        redirect_uri: MICROSOFT_REDIRECT_URI,
+        scope: MICROSOFT_SCOPES.join(' '),
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error_description || 'Failed to exchange code for tokens');
+    }
+
+    const tokenData = await response.json();
+
+    // Get user info
+    const userInfo = await this.getUserInfo(tokenData.access_token);
+
+    return {
+      tokens: {
+        accessToken: tokenData.access_token,
+        refreshToken: tokenData.refresh_token,
+        expiresAt: tokenData.expires_in
+          ? new Date(Date.now() + tokenData.expires_in * 1000)
+          : undefined,
+        scopes: MICROSOFT_SCOPES,
+      },
+      accountId: userInfo.email,
+      accountName: userInfo.name || userInfo.email,
+    };
+  }
+
+  /**
    * Exchange authorization code for tokens
+   * @deprecated Use handleCallback instead
    */
   async exchangeCodeForTokens(code: string): Promise<OAuthResult> {
     if (!this.isConfigured()) {
@@ -109,7 +158,6 @@ export class MicrosoftProvider extends BaseProvider {
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('[Microsoft] Token exchange failed:', errorData);
         return {
           success: false,
           error: errorData.error_description || 'Failed to exchange code for tokens',
@@ -138,7 +186,6 @@ export class MicrosoftProvider extends BaseProvider {
         accountName: userInfo.name || userInfo.email,
       };
     } catch (error) {
-      console.error('[Microsoft] Error exchanging code:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to exchange code',
@@ -172,7 +219,6 @@ export class MicrosoftProvider extends BaseProvider {
    */
   async refreshAccessToken(connection: IntegrationConnection): Promise<OAuthTokens | null> {
     if (!connection.refreshToken) {
-      console.error('[Microsoft] No refresh token available');
       return null;
     }
 
@@ -194,8 +240,6 @@ export class MicrosoftProvider extends BaseProvider {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('[Microsoft] Token refresh failed:', errorData);
         return null;
       }
 
@@ -212,7 +256,6 @@ export class MicrosoftProvider extends BaseProvider {
         scope: tokenData.scope,
       };
     } catch (error) {
-      console.error('[Microsoft] Error refreshing token:', error);
       return null;
     }
   }
@@ -226,7 +269,6 @@ export class MicrosoftProvider extends BaseProvider {
 
     // Check if token is expired or will expire in next 5 minutes
     if (expiresAt && expiresAt.getTime() - now.getTime() < 5 * 60 * 1000) {
-      console.log('[Microsoft] Token expired or expiring soon, refreshing...');
       const newTokens = await this.refreshAccessToken(connection);
       if (newTokens) {
         return decrypt(newTokens.accessToken);
@@ -286,6 +328,7 @@ export class MicrosoftProvider extends BaseProvider {
     options: {
       maxResults?: number;
       filter?: string;
+      query?: string; // Search query (email address to search for)
       after?: Date;
     } = {}
   ): Promise<any[]> {
@@ -294,21 +337,29 @@ export class MicrosoftProvider extends BaseProvider {
       throw new Error('Failed to get valid access token');
     }
 
-    const { maxResults = 20, filter = '', after } = options;
+    const { maxResults = 20, filter = '', query = '', after } = options;
 
     // Build OData query parameters
     const params = new URLSearchParams({
       $top: maxResults.toString(),
       $select: 'id,subject,from,toRecipients,receivedDateTime,bodyPreview,isRead',
-      $orderby: 'receivedDateTime desc',
     });
 
-    // Add filter for date if provided
-    if (after) {
-      const afterFilter = `receivedDateTime ge ${after.toISOString()}`;
-      params.append('$filter', filter ? `${filter} and ${afterFilter}` : afterFilter);
-    } else if (filter) {
-      params.append('$filter', filter);
+    // Use $search for email address queries (more reliable than $filter for recipients)
+    // Note: $orderby is not supported with $search, so we'll sort results in code
+    if (query) {
+      // Microsoft Graph $search uses KQL syntax
+      params.append('$search', `"participants:${query}"`);
+    } else {
+      // Only add $orderby when not using $search
+      params.append('$orderby', 'receivedDateTime desc');
+
+      if (after) {
+        const afterFilter = `receivedDateTime ge ${after.toISOString()}`;
+        params.append('$filter', filter ? `${filter} and ${afterFilter}` : afterFilter);
+      } else if (filter) {
+        params.append('$filter', filter);
+      }
     }
 
     const response = await fetch(
@@ -321,7 +372,9 @@ export class MicrosoftProvider extends BaseProvider {
     );
 
     if (!response.ok) {
-      throw new Error('Failed to fetch emails');
+      const errorText = await response.text();
+      console.error('[Microsoft] Email fetch failed:', response.status, errorText);
+      throw new Error(`Failed to fetch emails: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();

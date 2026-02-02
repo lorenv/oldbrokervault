@@ -52,7 +52,7 @@ export default function DocumentsPage() {
   }>({ open: false });
   const [exportingDocId, setExportingDocId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<'card' | 'list'>(() => {
-    return (localStorage.getItem('documentsViewMode') as 'card' | 'list') || 'card';
+    return (localStorage.getItem('documentsViewMode') as 'card' | 'list') || 'list';
   });
 
   // Filter and sort state
@@ -183,12 +183,12 @@ export default function DocumentsPage() {
 
   // Filter options
   const filterOptions = [
-    { id: 'has-published-teaser', label: 'Published Teaser', icon: Globe, color: 'emerald' },
-    { id: 'nda-protected', label: 'NDA Protected', icon: Shield, color: 'purple' },
-    { id: 'has-signatures', label: 'Has Signatures', icon: Users, color: 'blue' },
-    { id: 'created-this-week', label: 'Created This Week', icon: Calendar, color: 'green' },
-    { id: 'has-views', label: 'Has Views', icon: Eye, color: 'orange' },
-    { id: 'orphan', label: 'No Deal', icon: FileQuestion, color: 'slate' },
+    { id: 'has-published-teaser', label: 'Published Teaser', icon: Globe },
+    { id: 'nda-protected', label: 'NDA Protected', icon: Shield },
+    { id: 'has-signatures', label: 'Has Signatures', icon: Users },
+    { id: 'created-this-week', label: 'Created This Week', icon: Calendar },
+    { id: 'has-views', label: 'Has Views', icon: Eye },
+    { id: 'orphan', label: 'No Deal', icon: FileQuestion },
   ];
 
   const toggleFilter = (filterId: string) => {
@@ -320,16 +320,16 @@ export default function DocumentsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 overflow-x-hidden">
-      <main className="container mx-auto px-4 md:px-6 py-4 md:py-6">
+      <main className="px-4 md:px-6 py-4 md:py-6">
         <PageHeader
           title="My CIMs"
           description="Manage and share your CIM documents"
           icon={<FolderOpen className="h-5 w-5" />}
           actions={
             <Link href="/dashboard?mode=cim">
-              <Button variant="outline" className="flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                <span className="hidden sm:inline">Create New CIM</span>
+              <Button variant="outline" className="flex items-center gap-2 border-blue-300 hover:border-blue-400 hover:bg-blue-50">
+                <Plus className="h-4 w-4 text-blue-600" />
+                <span className="hidden sm:inline text-blue-700">Create New CIM with AI</span>
               </Button>
             </Link>
           }
@@ -380,20 +380,16 @@ export default function DocumentsPage() {
               {filterOptions.map((filter) => {
                 const Icon = filter.icon;
                 const isActive = activeFilters.includes(filter.id);
-                const colorClasses = {
-                  emerald: isActive ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : 'bg-white text-emerald-600 border-emerald-200 hover:bg-emerald-50',
-                  purple: isActive ? 'bg-purple-100 text-purple-700 border-purple-300' : 'bg-white text-purple-600 border-purple-200 hover:bg-purple-50',
-                  blue: isActive ? 'bg-blue-100 text-blue-700 border-blue-300' : 'bg-white text-blue-600 border-blue-200 hover:bg-blue-50',
-                  green: isActive ? 'bg-green-100 text-green-700 border-green-300' : 'bg-white text-green-600 border-green-200 hover:bg-green-50',
-                  orange: isActive ? 'bg-orange-100 text-orange-700 border-orange-300' : 'bg-white text-orange-600 border-orange-200 hover:bg-orange-50',
-                  slate: isActive ? 'bg-slate-100 text-slate-700 border-slate-300' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50',
-                };
 
                 return (
                   <button
                     key={filter.id}
                     onClick={() => toggleFilter(filter.id)}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-200 ${colorClasses[filter.color as keyof typeof colorClasses]} ${isActive ? 'shadow-sm' : ''}`}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-200 ${
+                      isActive
+                        ? 'bg-gray-100 text-gray-700 border-gray-300 shadow-sm'
+                        : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                    }`}
                   >
                     <Icon className="h-3 w-3" />
                     <span>{filter.label}</span>
@@ -408,8 +404,8 @@ export default function DocumentsPage() {
                     <button
                       className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-200 ${
                         selectedDealId
-                          ? 'bg-indigo-100 text-indigo-700 border-indigo-300 shadow-sm'
-                          : 'bg-white text-indigo-600 border-indigo-200 hover:bg-indigo-50'
+                          ? 'bg-gray-100 text-gray-700 border-gray-300 shadow-sm'
+                          : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                       }`}
                     >
                       <Kanban className="h-3 w-3" />
@@ -422,7 +418,7 @@ export default function DocumentsPage() {
                       <DropdownMenuItem
                         key={deal.id}
                         onClick={() => setSelectedDealId(deal.id)}
-                        className={selectedDealId === deal.id ? 'bg-indigo-50' : ''}
+                        className={selectedDealId === deal.id ? 'bg-gray-50' : ''}
                       >
                         <Kanban className="mr-2 h-4 w-4" />
                         {deal.name}

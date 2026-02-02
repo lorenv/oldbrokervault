@@ -1,3 +1,5 @@
+import { sanitizeHtml } from '@/lib/sanitize';
+
 interface CoverImageDisplayProps {
   coverImageUrl?: string | null;
   coverImagePosition?: string | null;
@@ -43,9 +45,9 @@ export function CoverImageDisplay({
       
       {/* Attribution */}
       {coverImageAttribution && (
-        <div 
+        <div
           className="mt-2 text-xs text-gray-500 text-right px-6"
-          dangerouslySetInnerHTML={{ __html: coverImageAttribution }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(coverImageAttribution) }}
         />
       )}
     </div>

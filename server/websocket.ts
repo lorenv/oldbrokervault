@@ -190,14 +190,30 @@ class CollaborationManager {
 }
 
 export function setupWebSocket(server: Server): CollaborationManager {
-  const wss = new WebSocketServer({ 
+  const wss = new WebSocketServer({
     server,
-    path: '/ws'
+    path: '/ws',
+    maxPayload: 1024 * 1024, // 1MB max message size
   });
 
   const collaborationManager = new CollaborationManager();
 
+  // Connection tracking and limits
+  const connectionsByIp = new Map<string, number>();
+  const MAX_CONNECTIONS_PER_IP = 10;
+
   wss.on('connection', (ws, request) => {
+    // Check connection limits per IP
+    const ip = request.socket.remoteAddress || 'unknown';
+    const currentCount = connectionsByIp.get(ip) || 0;
+
+    if (currentCount >= MAX_CONNECTIONS_PER_IP) {
+      ws.close(1008, 'Too many connections');
+      return;
+    }
+
+    connectionsByIp.set(ip, currentCount + 1);
+
     // Extract user info from session/auth
     // For now, we'll handle auth via message after connection
     let isAuthenticated = false;
@@ -218,6 +234,14 @@ export function setupWebSocket(server: Server): CollaborationManager {
     });
 
     ws.on('close', () => {
+      // Decrement connection count for this IP
+      const count = connectionsByIp.get(ip) || 1;
+      if (count <= 1) {
+        connectionsByIp.delete(ip);
+      } else {
+        connectionsByIp.set(ip, count - 1);
+      }
+
       if (isAuthenticated) {
         collaborationManager.removeClient(ws);
       }

@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 
 // Custom field filter value types
 export type CustomFieldFilterValue =
@@ -43,9 +43,9 @@ export const DEFAULT_COLUMNS: ColumnConfig[] = [
   { id: 'name', label: 'Deal Name', visible: true, order: 0 },
   { id: 'company', label: 'Company', visible: true, order: 1 },
   { id: 'stage', label: 'Stage', visible: true, order: 2 },
-  { id: 'amount', label: 'Amount', visible: true, order: 3 },
+  { id: 'amount', label: 'Value', visible: true, order: 3 },
   { id: 'closeDate', label: 'Close Date', visible: true, order: 4 },
-  { id: 'owner', label: 'Owner', visible: false, order: 5 },
+  { id: 'owner', label: 'Owner', visible: true, order: 5 },
   { id: 'priority', label: 'Priority', visible: false, order: 6 },
   { id: 'source', label: 'Source', visible: false, order: 7 },
   { id: 'createdAt', label: 'Created', visible: false, order: 8 },
@@ -78,7 +78,18 @@ export function useDealFilters() {
   const [filters, setFilters] = useState<DealFilters>(DEFAULT_FILTERS);
   const [sorting, setSorting] = useState<DealSorting>(DEFAULT_SORTING);
   const [columns, setColumns] = useState<ColumnConfig[]>(DEFAULT_COLUMNS);
-  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('deals-view-mode');
+      if (saved === 'kanban' || saved === 'list') return saved;
+    }
+    return 'list';
+  });
+
+  // Persist view mode to localStorage
+  useEffect(() => {
+    localStorage.setItem('deals-view-mode', viewMode);
+  }, [viewMode]);
 
   // Count active filters
   const activeFilterCount = useMemo(() => {
@@ -250,7 +261,21 @@ export function useDealFilters() {
       setFilters({ ...DEFAULT_FILTERS, ...view.filters });
     }
     if (view.columns) {
-      setColumns(view.columns);
+      // Merge saved columns with defaults to ensure labels are always present
+      const mergedColumns = view.columns.map(savedCol => {
+        const defaultCol = DEFAULT_COLUMNS.find(d => d.id === savedCol.id);
+        return {
+          ...defaultCol, // Get label from defaults
+          ...savedCol,   // Override with saved settings (visible, order, width)
+        } as ColumnConfig;
+      });
+      // Add any default columns not in the saved view
+      DEFAULT_COLUMNS.forEach(defaultCol => {
+        if (!mergedColumns.find(c => c.id === defaultCol.id)) {
+          mergedColumns.push({ ...defaultCol, visible: false });
+        }
+      });
+      setColumns(mergedColumns);
     }
     if (view.sorting) {
       setSorting(view.sorting);

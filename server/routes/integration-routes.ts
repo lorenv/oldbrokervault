@@ -44,10 +44,8 @@ function requireAuth(req: Request, res: Response, next: Function) {
 
 // Apply auth middleware to all routes EXCEPT OAuth callbacks
 router.use((req, res, next) => {
-  console.log('Integration route middleware - path:', req.path);
   // Skip auth for OAuth callback routes - they use state parameter for verification
   if (req.path.startsWith('/oauth/callback')) {
-    console.log('Skipping auth for OAuth callback');
     return next();
   }
   return requireAuth(req, res, next);
@@ -164,9 +162,6 @@ router.get('/connections', async (req: Request, res: Response) => {
  */
 router.get('/auth/:provider', async (req: Request, res: Response) => {
   try {
-    console.log('OAuth init - Session ID:', req.sessionID);
-    console.log('OAuth init - User:', req.user);
-
     const userId = (req.user as any).id;
     const { provider } = req.params;
 
@@ -194,22 +189,18 @@ router.get('/auth/:provider', async (req: Request, res: Response) => {
     (req.session as any).oauthUserId = userId;
 
     const authUrl = providerInstance.getAuthUrl(userId, state);
-    console.log('OAuth init - Auth URL:', authUrl);
 
     // Force session save before redirect - MUST wait for completion
     await new Promise<void>((resolve, reject) => {
       req.session.save((err) => {
         if (err) {
-          console.error('Session save error:', err);
           reject(err);
         } else {
-          console.log('OAuth init - Session saved successfully, state:', state);
           resolve();
         }
       });
     });
 
-    console.log('OAuth init - Redirecting to HubSpot');
     return res.redirect(authUrl);
   } catch (error: any) {
     console.error('Error initiating OAuth:', error);
@@ -411,15 +402,6 @@ router.get('/oauth/callback/:provider', async (req: Request, res: Response) => {
     const { provider } = req.params;
     const { code, state, error } = req.query;
 
-    console.log('OAuth callback received:', { provider, hasCode: !!code, state, error });
-    console.log('Session data:', {
-      oauthState: (req.session as any)?.oauthState,
-      oauthProvider: (req.session as any)?.oauthProvider,
-      oauthUserId: (req.session as any)?.oauthUserId,
-      sessionId: req.sessionID,
-    });
-    console.log('Request cookies:', req.headers.cookie ? 'present' : 'none');
-
     if (error) {
       return res.redirect(`/integrations?error=${encodeURIComponent(error as string)}`);
     }
@@ -436,23 +418,19 @@ router.get('/oauth/callback/:provider', async (req: Request, res: Response) => {
     if (expectedState && state === expectedState && provider === expectedProvider) {
       // Session is valid - use session userId
       userId = (req.session as any).oauthUserId;
-      console.log('OAuth callback - Using session-based verification, userId:', userId);
     } else {
       // Session lost (cross-origin cookie issue) - extract from state parameter
       // State format: randomPart:userId:provider
-      console.log('OAuth callback - Session verification failed, trying state extraction');
       const stateParts = (state as string).split(':');
       if (stateParts.length === 3) {
         const [, extractedUserId, extractedProvider] = stateParts;
         if (extractedProvider === provider && extractedUserId) {
           userId = parseInt(extractedUserId, 10);
-          console.log('OAuth callback - Extracted userId from state:', userId);
         }
       }
     }
 
     if (!userId || isNaN(userId)) {
-      console.error('OAuth callback - Could not determine userId');
       return res.redirect('/integrations?error=session_expired');
     }
 
@@ -499,7 +477,11 @@ router.get('/oauth/callback/:provider', async (req: Request, res: Response) => {
         })
         .where(eq(integrationConnections.id, existing.id));
 
-      return res.redirect(`/integrations?connected=${provider}&reconnected=true`);
+      // Redirect to appropriate page based on provider type
+      const redirectPath = (provider === 'gmail' || provider === 'microsoft')
+        ? '/settings/email'
+        : '/integrations';
+      return res.redirect(`${redirectPath}?connected=${provider}&reconnected=true`);
     }
 
     // Create new connection
@@ -519,10 +501,19 @@ router.get('/oauth/callback/:provider', async (req: Request, res: Response) => {
         updatedAt: new Date(),
       });
 
-    res.redirect(`/integrations?connected=${provider}`);
+    // Redirect to appropriate page based on provider type
+    const redirectPath = (provider === 'gmail' || provider === 'microsoft')
+      ? '/settings/email'
+      : '/integrations';
+    res.redirect(`${redirectPath}?connected=${provider}`);
   } catch (error: any) {
     console.error('OAuth callback error:', error);
-    res.redirect(`/integrations?error=${encodeURIComponent(error.message || 'oauth_failed')}`);
+    // Redirect errors to appropriate page based on provider type
+    const providerName = req.params.provider;
+    const redirectPath = (providerName === 'gmail' || providerName === 'microsoft')
+      ? '/settings/email'
+      : '/integrations';
+    res.redirect(`${redirectPath}?error=${encodeURIComponent(error.message || 'oauth_failed')}`);
   }
 });
 

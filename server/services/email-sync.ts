@@ -6,7 +6,7 @@
  */
 
 import { db } from '../db';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import { integrationConnections } from '@shared/schema';
 import { gmailProvider } from '../integrations/providers/gmail';
 import { microsoftProvider } from '../integrations/providers/microsoft';
@@ -53,6 +53,19 @@ export interface SendEmailOptions {
 }
 
 /**
+ * Map database connection fields to provider expected field names
+ * Database uses: accessTokenEncrypted, refreshTokenEncrypted
+ * Providers expect: accessToken, refreshToken
+ */
+function mapConnectionForProvider(connection: any) {
+  return {
+    ...connection,
+    accessToken: connection.accessTokenEncrypted,
+    refreshToken: connection.refreshTokenEncrypted,
+  };
+}
+
+/**
  * Get the user's connected email provider and connection
  */
 export async function getEmailConnection(userId: number) {
@@ -64,7 +77,7 @@ export async function getEmailConnection(userId: number) {
       and(
         eq(integrationConnections.userId, userId),
         eq(integrationConnections.provider, 'gmail'),
-        eq(integrationConnections.status, 'connected')
+        eq(integrationConnections.status, 'active')
       )
     )
     .limit(1);
@@ -81,7 +94,7 @@ export async function getEmailConnection(userId: number) {
       and(
         eq(integrationConnections.userId, userId),
         eq(integrationConnections.provider, 'microsoft'),
-        eq(integrationConnections.status, 'connected')
+        eq(integrationConnections.status, 'active')
       )
     )
     .limit(1);
@@ -103,21 +116,25 @@ export async function getEmailsForContact(
 ): Promise<EmailMessage[]> {
   const emailConn = await getEmailConnection(userId);
   if (!emailConn) {
-    return [];
+    throw new Error('No email account connected');
   }
 
   const { provider, connection } = emailConn;
   const { maxResults = 20 } = options;
+  const mappedConnection = mapConnectionForProvider(connection);
 
   try {
     if (provider === 'gmail') {
-      return await getGmailEmailsForContact(connection, contactEmail, maxResults);
+      return await getGmailEmailsForContact(mappedConnection, contactEmail, maxResults);
     } else {
-      return await getMicrosoftEmailsForContact(connection, contactEmail, maxResults);
+      return await getMicrosoftEmailsForContact(mappedConnection, contactEmail, maxResults);
     }
-  } catch (error) {
-    console.error(`[EmailSync] Error fetching emails for ${contactEmail}:`, error);
-    return [];
+  } catch (error: any) {
+    // Re-throw with more context
+    if (error.message?.includes('token') || error.message?.includes('unauthorized') || error.message?.includes('401')) {
+      throw new Error('Email connection expired. Please reconnect in Settings.');
+    }
+    throw new Error(`Failed to fetch emails: ${error.message || 'Unknown error'}`);
   }
 }
 
@@ -134,8 +151,9 @@ async function getGmailEmailsForContact(
     throw new Error('Failed to get valid access token');
   }
 
-  // Search for emails to/from this contact
+  // Search for emails to/from this contact (Gmail search is case-insensitive)
   const query = `from:${contactEmail} OR to:${contactEmail}`;
+
   const params = new URLSearchParams({
     maxResults: maxResults.toString(),
     q: query,
@@ -196,6 +214,7 @@ async function getGmailEmailsForContact(
 
 /**
  * Fetch emails from Microsoft for a specific contact
+ * Searches both Inbox and Sent Items folders
  */
 async function getMicrosoftEmailsForContact(
   connection: any,
@@ -207,48 +226,67 @@ async function getMicrosoftEmailsForContact(
     throw new Error('Failed to get valid access token');
   }
 
-  // Search for emails to/from this contact
-  const filter = `(from/emailAddress/address eq '${contactEmail}') or (toRecipients/any(r: r/emailAddress/address eq '${contactEmail}'))`;
-  const params = new URLSearchParams({
-    $top: maxResults.toString(),
-    $select: 'id,subject,from,toRecipients,ccRecipients,receivedDateTime,bodyPreview,isRead,hasAttachments',
-    $orderby: 'receivedDateTime desc',
-    $filter: filter,
-  });
+  const normalizedEmail = contactEmail.toLowerCase();
 
-  const response = await fetch(
-    `${GRAPH_API_BASE}/me/messages?${params.toString()}`,
-    {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    }
-  );
+  // Fetch from both Inbox and Sent Items in parallel for better results
+  const selectFields = 'id,subject,from,toRecipients,ccRecipients,receivedDateTime,bodyPreview,isRead,hasAttachments';
 
-  if (!response.ok) {
-    // If filter fails, try search instead
-    const searchParams = new URLSearchParams({
-      $top: maxResults.toString(),
-      $select: 'id,subject,from,toRecipients,ccRecipients,receivedDateTime,bodyPreview,isRead,hasAttachments',
-      $orderby: 'receivedDateTime desc',
-      $search: `"${contactEmail}"`,
-    });
-
-    const searchResponse = await fetch(
-      `${GRAPH_API_BASE}/me/messages?${searchParams.toString()}`,
+  const [inboxResponse, sentResponse] = await Promise.all([
+    // Search Inbox folder
+    fetch(
+      `${GRAPH_API_BASE}/me/mailFolders/Inbox/messages?$top=${maxResults}&$select=${selectFields}&$orderby=receivedDateTime desc`,
       {
         headers: { Authorization: `Bearer ${accessToken}` },
       }
-    );
+    ),
+    // Search Sent Items folder
+    fetch(
+      `${GRAPH_API_BASE}/me/mailFolders/SentItems/messages?$top=${maxResults}&$select=${selectFields}&$orderby=receivedDateTime desc`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }
+    ),
+  ]);
 
-    if (!searchResponse.ok) {
-      throw new Error('Failed to fetch emails from Microsoft');
-    }
+  let allMessages: any[] = [];
 
-    const searchData = await searchResponse.json();
-    return mapMicrosoftEmails(searchData.value || []);
+  if (inboxResponse.ok) {
+    const inboxData = await inboxResponse.json();
+    allMessages = [...allMessages, ...(inboxData.value || [])];
   }
 
-  const data = await response.json();
-  return mapMicrosoftEmails(data.value || []);
+  if (sentResponse.ok) {
+    const sentData = await sentResponse.json();
+    allMessages = [...allMessages, ...(sentData.value || [])];
+  }
+
+  if (allMessages.length === 0 && !inboxResponse.ok && !sentResponse.ok) {
+    throw new Error('Failed to fetch emails from Microsoft');
+  }
+
+  // Filter to only emails involving this contact
+  const filteredMessages = allMessages.filter((email: any) => {
+    const fromEmail = email.from?.emailAddress?.address?.toLowerCase() || '';
+    const toEmails = email.toRecipients?.map((r: any) => r.emailAddress?.address?.toLowerCase()) || [];
+    const ccEmails = email.ccRecipients?.map((r: any) => r.emailAddress?.address?.toLowerCase()) || [];
+
+    return fromEmail === normalizedEmail ||
+           toEmails.includes(normalizedEmail) ||
+           ccEmails.includes(normalizedEmail);
+  });
+
+  // Sort by date descending and deduplicate by ID
+  const seen = new Set<string>();
+  const uniqueMessages = filteredMessages
+    .sort((a: any, b: any) => new Date(b.receivedDateTime).getTime() - new Date(a.receivedDateTime).getTime())
+    .filter((email: any) => {
+      if (seen.has(email.id)) return false;
+      seen.add(email.id);
+      return true;
+    })
+    .slice(0, maxResults);
+
+  return mapMicrosoftEmails(uniqueMessages);
 }
 
 function mapMicrosoftEmails(messages: any[]): EmailMessage[] {
@@ -281,15 +319,15 @@ export async function getEmailById(
   }
 
   const { connection } = emailConn;
+  const mappedConnection = mapConnectionForProvider(connection);
 
   try {
     if (provider === 'gmail') {
-      return await getGmailEmailById(connection, emailId);
+      return await getGmailEmailById(mappedConnection, emailId);
     } else {
-      return await getMicrosoftEmailById(connection, emailId);
+      return await getMicrosoftEmailById(mappedConnection, emailId);
     }
   } catch (error) {
-    console.error(`[EmailSync] Error fetching email ${emailId}:`, error);
     return null;
   }
 }
@@ -452,15 +490,15 @@ export async function sendEmail(
   }
 
   const { provider, connection } = emailConn;
+  const mappedConnection = mapConnectionForProvider(connection);
 
   try {
     if (provider === 'gmail') {
-      return await gmailProvider.sendEmail(connection, options);
+      return await gmailProvider.sendEmail(mappedConnection as any, options);
     } else {
-      return await microsoftProvider.sendEmail(connection, options);
+      return await microsoftProvider.sendEmail(mappedConnection as any, options);
     }
   } catch (error) {
-    console.error('[EmailSync] Error sending email:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to send email',
@@ -517,5 +555,5 @@ export async function getConnectedEmailAddress(userId: number): Promise<string |
     return null;
   }
 
-  return emailConn.connection.accountId || null;
+  return emailConn.connection.providerAccountId || null;
 }

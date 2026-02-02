@@ -172,7 +172,7 @@ export function TeaserPage() {
       document.title = teaser.headline;
     }
     return () => {
-      document.title = 'CIM Share';
+      document.title = 'Broker Vault';
     };
   }, [teaser?.headline]);
 

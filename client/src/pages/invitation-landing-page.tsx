@@ -201,9 +201,9 @@ export function InvitationLandingPage() {
           {/* Info Box */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-xs text-gray-600">
-              <strong className="text-gray-900">What is CIMShare?</strong>
+              <strong className="text-gray-900">What is Broker Vault?</strong>
               <br />
-              CIMShare is a platform for creating, sharing, and collaborating on Confidential Information Memorandums (CIMs) and business documents.
+              Broker Vault is a platform for creating, sharing, and collaborating on Confidential Information Memorandums (CIMs) and business documents.
               Your collaborator has invited you to work together on their document.
             </p>
           </div>

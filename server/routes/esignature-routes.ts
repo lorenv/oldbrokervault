@@ -6,6 +6,7 @@ import { z } from 'zod';
 import multer from 'multer';
 import { processPDFToImages } from '../services/pdf-processor';
 import { ObjectStorageService } from '../object-storage';
+import { sanitizeFilename } from '../utils/sanitize-filename';
 
 const router = Router();
 
@@ -35,7 +36,10 @@ router.post('/templates/upload', upload.single('pdf'), async (req, res) => {
       return res.status(400).json({ error: 'PDF file is required' });
     }
 
-    console.log(`[TEMPLATE_UPLOAD] Processing PDF: ${req.file.originalname}, size: ${req.file.size}`);
+    // Sanitize filename to prevent path traversal attacks
+    const safeOriginalName = sanitizeFilename(req.file.originalname);
+
+    console.log(`[TEMPLATE_UPLOAD] Processing PDF: ${safeOriginalName}, size: ${req.file.size}`);
 
     // Generate a unique template ID (you might want to save this to database)
     const templateId = Date.now();
@@ -43,12 +47,12 @@ router.post('/templates/upload', upload.single('pdf'), async (req, res) => {
     // Process PDF to images using the proven method
     const processedDocument = await processPDFToImages({
       buffer: req.file.buffer,
-      originalname: req.file.originalname,
+      originalname: safeOriginalName,
     }, templateId, true);
 
     // Store original PDF file in object storage
     const objectStorageService = new ObjectStorageService();
-    const pdfStorageKey = `private/templates/${templateId}/${req.file.originalname}`;
+    const pdfStorageKey = `private/templates/${templateId}/${safeOriginalName}`;
     const pdfUploadResult = await objectStorageService.uploadBuffer(pdfStorageKey, req.file.buffer, 'application/pdf');
 
     console.log(`[TEMPLATE_UPLOAD] Successfully processed ${processedDocument.pageCount} pages`);
@@ -59,7 +63,7 @@ router.post('/templates/upload', upload.single('pdf'), async (req, res) => {
       pageCount: processedDocument.pageCount,
       imageUrls: processedDocument.imageUrls,
       originalFileUrl: pdfUploadResult.url,
-      originalFileName: req.file.originalname,
+      originalFileName: safeOriginalName,
     });
 
   } catch (error: any) {

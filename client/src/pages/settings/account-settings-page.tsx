@@ -53,7 +53,7 @@ import {
   Clock,
 } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { PageHeader } from "@/components/layout/page-header";
+import { SettingsLayout } from "@/components/layout/settings-layout";
 import { processLogoForDarkBackground } from "@/lib/image-utils";
 import {
   AlertDialog,
@@ -423,13 +423,10 @@ export default function AccountSettingsPage() {
   const microsoftConfigured = emailProviders.find(p => p.name === 'Microsoft 365')?.configured;
 
   return (
-    <div className="px-4 md:px-6 py-4 md:py-6 overflow-x-hidden">
-      <PageHeader
-        title="Account Settings"
-        description="Manage your profile, billing, and connected accounts"
-        icon={<Settings className="h-5 w-5" />}
-      />
-
+    <SettingsLayout
+      title="Account Settings"
+      description="Manage your profile, billing, and connected accounts"
+    >
       <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); window.history.replaceState({}, '', `/settings/account#${v}`); }} className="max-w-4xl">
         <TabsList className="mb-6">
           <TabsTrigger value="profile" className="gap-2"><User className="h-4 w-4" />Profile</TabsTrigger>
@@ -731,6 +728,6 @@ export default function AccountSettingsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </SettingsLayout>
   );
 }

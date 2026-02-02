@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import { invalidateUserCache } from "./auth";
+import { trackSubscriptionStarted, trackSubscriptionCancelled, trackPaymentFailed } from "./posthog";
 
 // Validate required environment variables
 function validateStripeConfig() {
@@ -366,14 +367,96 @@ export async function createCustomerPortalSession(userId: number) {
   }
 
   // Use production domain or development domain based on environment
-  const baseUrl = process.env.NODE_ENV === 'production' 
-    ? 'https://cimshare.com' 
+  const baseUrl = process.env.NODE_ENV === 'production'
+    ? 'https://cimshare.com'
     : `https://${process.env.REPL_SLUG}.replit.dev`;
 
   return stripe.billingPortal.sessions.create({
     customer: user.stripeCustomerId,
     return_url: `${baseUrl}/account?tab=billing`,
   });
+}
+
+// Add additional licenses to an existing subscription
+export async function addSubscriptionSeats(userId: number, additionalSeats: number): Promise<{
+  success: boolean;
+  newQuantity: number;
+  error?: string;
+}> {
+  if (!stripe) {
+    throw new Error('Stripe is not initialized - cannot update subscription');
+  }
+
+  console.log(`=== ADDING SUBSCRIPTION SEATS ===`);
+  console.log(`User ID: ${userId}, Additional seats: ${additionalSeats}`);
+
+  const user = await storage.getUser(userId);
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  if (!user.subscriptionId) {
+    throw new Error("No active subscription found. Please subscribe to a plan first.");
+  }
+
+  try {
+    // Retrieve the current subscription
+    const subscription = await stripe.subscriptions.retrieve(user.subscriptionId);
+
+    if (subscription.status !== 'active' && subscription.status !== 'trialing') {
+      throw new Error(`Subscription is not active (status: ${subscription.status})`);
+    }
+
+    // Get the current subscription item
+    const subscriptionItem = subscription.items.data[0];
+    if (!subscriptionItem) {
+      throw new Error("No subscription items found");
+    }
+
+    const currentQuantity = subscriptionItem.quantity || 1;
+    const newQuantity = currentQuantity + additionalSeats;
+
+    console.log(`Current quantity: ${currentQuantity}, New quantity: ${newQuantity}`);
+
+    // Update the subscription with the new quantity
+    await stripe.subscriptions.update(user.subscriptionId, {
+      items: [{
+        id: subscriptionItem.id,
+        quantity: newQuantity,
+      }],
+      proration_behavior: 'create_prorations', // Charge prorated amount immediately
+    });
+
+    console.log(`✅ Subscription updated successfully. New quantity: ${newQuantity}`);
+
+    return {
+      success: true,
+      newQuantity,
+    };
+  } catch (error) {
+    console.error('❌ Error updating subscription seats:', error);
+    throw error;
+  }
+}
+
+// Get current subscription quantity
+export async function getSubscriptionQuantity(userId: number): Promise<number> {
+  if (!stripe) {
+    throw new Error('Stripe is not initialized');
+  }
+
+  const user = await storage.getUser(userId);
+  if (!user?.subscriptionId) {
+    return 1;
+  }
+
+  try {
+    const subscription = await stripe.subscriptions.retrieve(user.subscriptionId);
+    return subscription.items.data[0]?.quantity || 1;
+  } catch (error) {
+    console.error('Error getting subscription quantity:', error);
+    return 1;
+  }
 }
 
 export async function verifyCheckoutSession(sessionId: string) {
@@ -607,7 +690,51 @@ async function processStripeWebhookEvent(event: Stripe.Event) {
             subscriptionStatus: updatedUser.subscriptionStatus,
             subscriptionEndsAt: updatedUser.subscriptionEndsAt
           });
-          
+
+          // Track subscription started in PostHog
+          trackSubscriptionStarted(updatedUser.id, {
+            plan: status,
+            priceId,
+            billingCycle: status.includes('monthly') ? 'monthly' : 'annual',
+            stripeCustomerId: subscription.customer as string,
+            subscriptionId: subscription.id,
+          });
+
+          // Auto-allocate seats to organization based on subscription quantity
+          const subscriptionQuantity = subscription.items.data[0]?.quantity || 1;
+          try {
+            const { organizations, organizationMembers } = await import("@shared/schema");
+            // Find the user's organization membership
+            const orgMembership = await db
+              .select()
+              .from(organizationMembers)
+              .where(eq(organizationMembers.userId, updatedUser.id))
+              .limit(1);
+
+            if (orgMembership.length > 0) {
+              // Get the current organization
+              const [org] = await db
+                .select()
+                .from(organizations)
+                .where(eq(organizations.id, orgMembership[0].organizationId))
+                .limit(1);
+
+              // Only update seatCount if the new quantity is greater than current
+              // This prevents downgrade scenarios from reducing seats unexpectedly
+              const currentSeatCount = org?.seatCount || 1;
+              if (subscriptionQuantity >= currentSeatCount) {
+                await db
+                  .update(organizations)
+                  .set({ seatCount: subscriptionQuantity })
+                  .where(eq(organizations.id, orgMembership[0].organizationId));
+                console.log(`✅ Updated organization ${orgMembership[0].organizationId} seatCount to ${subscriptionQuantity}`);
+              }
+            }
+          } catch (orgError) {
+            console.error('⚠️ Failed to update organization seatCount (non-fatal):', orgError);
+            // Non-fatal - continue with webhook processing
+          }
+
           // Invalidate user cache to ensure fresh data on next request
           invalidateUserCache(updatedUser.id);
           console.log('✅ User cache invalidated for user:', updatedUser.id);
@@ -654,6 +781,13 @@ async function processStripeWebhookEvent(event: Stripe.Event) {
               subscriptionStatus: updatedUser.subscriptionStatus,
               subscriptionEndsAt: updatedUser.subscriptionEndsAt
             });
+
+            // Track cancellation in PostHog
+            trackSubscriptionCancelled(updatedUser.id, {
+              plan: updatedUser.subscriptionStatus,
+              reason: 'user_requested',
+            });
+
             invalidateUserCache(userId);
             return { userId, status: 'canceled', endsAt: new Date(subscription.current_period_end * 1000), subscriptionId: subscription.id };
           } else {
@@ -744,7 +878,28 @@ async function processStripeWebhookEvent(event: Stripe.Event) {
             subscriptionStatus: updatedUser.subscriptionStatus,
             subscriptionEndsAt: updatedUser.subscriptionEndsAt
           });
-          
+
+          // Sync organization seatCount with subscription quantity
+          const subscriptionQuantity = subscription.items.data[0]?.quantity || 1;
+          try {
+            const { organizations, organizationMembers } = await import("@shared/schema");
+            const orgMembership = await db
+              .select()
+              .from(organizationMembers)
+              .where(eq(organizationMembers.userId, userId))
+              .limit(1);
+
+            if (orgMembership.length > 0) {
+              await db
+                .update(organizations)
+                .set({ seatCount: subscriptionQuantity })
+                .where(eq(organizations.id, orgMembership[0].organizationId));
+              console.log(`✅ Synced organization seatCount to ${subscriptionQuantity}`);
+            }
+          } catch (orgError) {
+            console.error('⚠️ Failed to sync organization seatCount (non-fatal):', orgError);
+          }
+
           // Invalidate user cache to ensure fresh data on next request
           invalidateUserCache(updatedUser.id);
           console.log('✅ User cache invalidated for user:', updatedUser.id);
@@ -783,14 +938,20 @@ async function processStripeWebhookEvent(event: Stripe.Event) {
             email: updatedUser.email,
             subscriptionStatus: updatedUser.subscriptionStatus
           });
-          
+
+          // Track subscription ended in PostHog
+          trackSubscriptionCancelled(updatedUser.id, {
+            plan: 'free',
+            reason: 'subscription_ended',
+          });
+
           // Invalidate user cache to ensure fresh data on next request
           invalidateUserCache(updatedUser.id);
           console.log('✅ User cache invalidated for user:', updatedUser.id);
         } else {
           console.error('❌ Failed to revert user to free plan - user not found');
         }
-        
+
         return { userId, status: 'free', endsAt: new Date() };
       }
 

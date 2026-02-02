@@ -79,7 +79,56 @@ export class GmailProvider extends BaseProvider {
   }
 
   /**
+   * Handle OAuth callback - exchange code for tokens
+   * Returns unencrypted tokens (encryption handled by route)
+   */
+  async handleCallback(code: string, userId: number): Promise<OAuthResult> {
+    if (!this.isConfigured()) {
+      throw new Error('Gmail OAuth is not configured');
+    }
+
+    const response = await fetch(GOOGLE_TOKEN_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        client_id: GMAIL_CLIENT_ID,
+        client_secret: GMAIL_CLIENT_SECRET,
+        code: code,
+        grant_type: 'authorization_code',
+        redirect_uri: GMAIL_REDIRECT_URI,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('[Gmail] Token exchange failed:', errorData);
+      throw new Error(errorData.error_description || 'Failed to exchange code for tokens');
+    }
+
+    const tokenData = await response.json();
+
+    // Get user info
+    const userInfo = await this.getUserInfo(tokenData.access_token);
+
+    return {
+      tokens: {
+        accessToken: tokenData.access_token,
+        refreshToken: tokenData.refresh_token,
+        expiresAt: tokenData.expires_in
+          ? new Date(Date.now() + tokenData.expires_in * 1000)
+          : undefined,
+        scopes: GMAIL_SCOPES,
+      },
+      accountId: userInfo.email,
+      accountName: userInfo.name || userInfo.email,
+    };
+  }
+
+  /**
    * Exchange authorization code for tokens
+   * @deprecated Use handleCallback instead
    */
   async exchangeCodeForTokens(code: string): Promise<OAuthResult> {
     if (!this.isConfigured()) {

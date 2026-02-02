@@ -27,6 +27,7 @@ interface Company {
 interface Owner {
   id: number;
   name: string;
+  profilePhoto?: string | null;
 }
 
 interface CustomField {
@@ -106,9 +107,9 @@ export function DealsAdvancedFilters({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-visible">
-            {/* Amount Range */}
+            {/* Value Range */}
             <div className="space-y-2">
-              <Label className="text-xs font-medium text-muted-foreground">Amount Range</Label>
+              <Label className="text-xs font-medium text-muted-foreground">Value Range</Label>
               <div className="flex items-center gap-2">
                 <Input
                   type="number"
@@ -215,7 +216,22 @@ export function DealsAdvancedFilters({
                   <SelectItem value="all">All Owners</SelectItem>
                   {owners.map((owner) => (
                     <SelectItem key={owner.id} value={owner.id.toString()}>
-                      {owner.name}
+                      <span className="flex items-center gap-2">
+                        {owner.profilePhoto ? (
+                          <img
+                            src={owner.profilePhoto}
+                            alt={owner.name}
+                            className="w-5 h-5 rounded-full object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                            <span className="text-xs font-medium text-blue-600">
+                              {owner.name.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                        <span className="text-gray-900">{owner.name}</span>
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>

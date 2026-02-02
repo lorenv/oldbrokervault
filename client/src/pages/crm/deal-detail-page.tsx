@@ -1,10 +1,11 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useLocation, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { MentionInput, highlightMentions } from "@/components/ui/mention-input";
 import {
   Select,
   SelectContent,
@@ -54,6 +55,14 @@ import {
   Video,
   MessageSquarePlus,
   Settings2,
+  BriefcaseBusiness,
+  ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  Maximize2,
+  Minimize2,
+  PanelRightClose,
+  PanelRightOpen,
 } from "lucide-react";
 
 // Helper function to get activity icon based on type
@@ -120,12 +129,14 @@ function formatActivityTitle(activity: Activity): string {
   }
 }
 import { BuyerPipeline } from "@/components/crm/buyer-pipeline";
-import { InlineEdit, InlineEditCurrency, InlineEditDate } from "@/components/ui/inline-edit";
+import { DealCollaborators } from "@/components/crm/deal-collaborators";
+import { InlineEdit, InlineEditEmail, InlineEditCurrency, InlineEditDate } from "@/components/ui/inline-edit";
 import { EmailList } from "@/components/crm/email-list";
 import { TaskDialog } from "@/components/crm/task-dialog";
 import { TaskList } from "@/components/crm/task-list";
 import { DetailPageCustomizer } from "@/components/crm/detail-page-customizer";
 import { useDetailPageLayout } from "@/hooks/use-detail-page-layout";
+import { useBrandColor } from "@/hooks/use-brand-color";
 import {
   Dialog,
   DialogContent,
@@ -147,7 +158,8 @@ interface Deal {
   description: string | null;
   companyId: number | null;
   ownerId?: number | null;
-  owner?: { id: number; email: string; firstName: string; lastName: string } | null;
+  lostReason?: string | null;
+  owner?: { id: number; email: string; name?: string; firstName: string; lastName: string; profilePhoto?: string } | null;
   company?: { id: number; name: string } | null;
   stage?: { id: number; name: string; color: string; probability: number };
   pipeline?: { id: number; name: string };
@@ -157,6 +169,19 @@ interface Deal {
   createdAt: string;
   updatedAt: string;
 }
+
+// Common lost reasons
+const LOST_REASONS = [
+  "Price too high",
+  "Went with competitor",
+  "No budget",
+  "Timing not right",
+  "No decision made",
+  "Project cancelled",
+  "Unresponsive",
+  "Not a good fit",
+  "Other",
+];
 
 interface Note {
   id: number;
@@ -223,6 +248,7 @@ export default function DealDetailPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [newNote, setNewNote] = useState("");
+  const [mentionedUserIds, setMentionedUserIds] = useState<number[]>([]);
   const [isAddContactDialogOpen, setIsAddContactDialogOpen] = useState(false);
   const [selectedContactId, setSelectedContactId] = useState<string>("");
   const [contactRole, setContactRole] = useState("other");
@@ -232,6 +258,33 @@ export default function DealDetailPage() {
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<any>(null);
   const [isCustomizerOpen, setIsCustomizerOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("activity");
+  const [expandedEmails, setExpandedEmails] = useState<Set<number>>(new Set());
+  const [isLostReasonDialogOpen, setIsLostReasonDialogOpen] = useState(false);
+  const [pendingLostStageId, setPendingLostStageId] = useState<number | null>(null);
+  const [selectedLostReason, setSelectedLostReason] = useState("");
+  const [customLostReason, setCustomLostReason] = useState("");
+
+  // Company link dialog state
+  const [isLinkCompanyOpen, setIsLinkCompanyOpen] = useState(false);
+  const [companySearch, setCompanySearch] = useState("");
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
+
+  // Sidebar collapse state - persisted to localStorage
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('deal-detail-sidebar-collapsed') === 'true';
+    }
+    return false;
+  });
+
+  // Buyers fullscreen state
+  const [isBuyersFullscreen, setIsBuyersFullscreen] = useState(false);
+
+  // Persist sidebar state to localStorage
+  useEffect(() => {
+    localStorage.setItem('deal-detail-sidebar-collapsed', String(isSidebarCollapsed));
+  }, [isSidebarCollapsed]);
 
   // Use detail page layout hook
   const {
@@ -240,6 +293,9 @@ export default function DealDetailPage() {
     getSectionOrder,
     getVisibleCustomFields,
   } = useDetailPageLayout("deal");
+
+  // Get brand color for theming
+  const { brandColor, needsDarkText } = useBrandColor();
 
   // Fetch deal details
   const { data: deal, isLoading } = useQuery<Deal>({
@@ -259,6 +315,23 @@ export default function DealDetailPage() {
     queryFn: () => apiRequest("GET", "/api/crm/contacts").then(res => res.json()),
   });
   const allContacts = contactsData?.contacts;
+
+  // Fetch all companies for linking
+  const { data: companiesData } = useQuery<{ companies: any[] }>({
+    queryKey: ["/api/crm/companies"],
+    queryFn: () => apiRequest("GET", "/api/crm/companies").then(res => res.json()),
+  });
+  const allCompanies = companiesData?.companies || [];
+
+  // Filter available companies (exclude current company)
+  const availableCompanies = allCompanies.filter(
+    (company) => company.id !== deal?.company?.id
+  );
+
+  // Filtered companies based on search
+  const filteredCompanies = availableCompanies.filter((company) =>
+    company.name?.toLowerCase().includes(companySearch.toLowerCase())
+  );
 
   // Fetch notes
   const { data: notes } = useQuery<Note[]>({
@@ -306,6 +379,13 @@ export default function DealDetailPage() {
     enabled: !!id,
     retry: 1,
   });
+
+  // Fetch organization members for owner assignment
+  const { data: membersData } = useQuery<{ id: number; userId: number; email: string; firstName: string | null; lastName: string | null }[]>({
+    queryKey: ["/api/crm/organization/members"],
+    queryFn: () => apiRequest("GET", "/api/crm/organization/members").then(res => res.json()),
+  });
+  const members = membersData || [];
 
   // Upload file mutation
   const uploadFileMutation = useMutation({
@@ -360,40 +440,92 @@ export default function DealDetailPage() {
       }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/deals", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"], refetchType: 'all' }); // Refresh all deals queries including filtered
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals/kanban"], refetchType: 'all' }); // Refresh kanban view
       toast({ title: "Deal updated", description: "Changes saved successfully." });
     },
   });
 
   // Create note mutation
   const createNoteMutation = useMutation({
-    mutationFn: (content: string) =>
+    mutationFn: (data: { content: string; mentionedUserIds: number[] }) =>
       apiRequest("POST", "/api/crm/notes", {
         body: {
           objectType: "deal",
           objectId: parseInt(id!),
-          content,
+          content: data.content,
+          mentionedUserIds: data.mentionedUserIds,
         },
       }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/notes/deal", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/crm/activities/deal", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
       setNewNote("");
+      setMentionedUserIds([]);
       toast({ title: "Note added" });
+    },
+  });
+
+  // Delete note mutation
+  const deleteNoteMutation = useMutation({
+    mutationFn: (noteId: number) =>
+      apiRequest("DELETE", `/api/crm/notes/${noteId}`).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/notes/deal", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/activity-feed/deal", id] });
+      toast({ title: "Note deleted" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to delete note", variant: "destructive" });
     },
   });
 
   // Move to stage mutation
   const moveToStageMutation = useMutation({
-    mutationFn: (stageId: number) =>
+    mutationFn: ({ stageId, lostReason }: { stageId: number; lostReason?: string }) =>
       apiRequest("POST", `/api/crm/deals/${id}/move`, {
-        body: { stageId },
+        body: { stageId, lostReason },
       }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/deals", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals/kanban"], refetchType: 'all' });
       queryClient.invalidateQueries({ queryKey: ["/api/crm/activities/deal", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/activity-feed/deal", id] });
       toast({ title: "Deal moved", description: "Stage updated successfully." });
+      // Reset lost reason state
+      setIsLostReasonDialogOpen(false);
+      setPendingLostStageId(null);
+      setSelectedLostReason("");
+      setCustomLostReason("");
     },
   });
+
+  // Helper to check if a stage is a "lost" stage
+  const isLostStage = (stage: any) => {
+    const name = stage.name?.toLowerCase() || '';
+    return name.includes('lost') || name.includes('closed lost') || stage.probability === 0;
+  };
+
+  // Handle stage click - show lost reason dialog if moving to lost stage
+  const handleStageClick = (stage: any) => {
+    if (stage.id === deal?.stageId) return; // Already on this stage
+
+    if (isLostStage(stage)) {
+      setPendingLostStageId(stage.id);
+      setIsLostReasonDialogOpen(true);
+    } else {
+      moveToStageMutation.mutate({ stageId: stage.id });
+    }
+  };
+
+  // Confirm lost reason and move
+  const confirmLostReason = () => {
+    if (!pendingLostStageId) return;
+    const reason = selectedLostReason === "Other" ? customLostReason : selectedLostReason;
+    moveToStageMutation.mutate({ stageId: pendingLostStageId, lostReason: reason || undefined });
+  };
 
   // Add contact to deal mutation
   const addContactMutation = useMutation({
@@ -413,13 +545,31 @@ export default function DealDetailPage() {
     },
   });
 
+  // Link company to deal mutation
+  const linkCompanyMutation = useMutation({
+    mutationFn: (companyId: number) =>
+      apiRequest("PATCH", `/api/crm/deals/${id}`, { body: { companyId } }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"], refetchType: 'all' });
+      setIsLinkCompanyOpen(false);
+      setSelectedCompanyId("");
+      setCompanySearch("");
+      toast({ title: "Company linked", description: "Company has been associated with this deal." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to link company.", variant: "destructive" });
+    },
+  });
+
   // Update contact mutation (for inline editing)
   const updateContactMutation = useMutation({
     mutationFn: ({ contactId, data }: { contactId: number; data: Record<string, any> }) =>
       apiRequest("PATCH", `/api/crm/contacts/${contactId}`, { body: data }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/deals", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"], refetchType: 'all' });
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to update contact.", variant: "destructive" });
@@ -471,34 +621,47 @@ export default function DealDetailPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto">
+    <div className="p-4 md:p-6">
       {/* Header - stacks on mobile */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
           <Button variant="ghost" size="sm" asChild className="w-fit">
             <Link href="/deals">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
+              Deals
             </Link>
           </Button>
-          <div>
-            <h1 className="text-xl md:text-2xl font-semibold text-gray-900">{deal.name}</h1>
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-1">
-              {deal.company && (
-                <Link
-                  href={`/companies/${deal.company.id}`}
-                  className="text-sm text-gray-500 hover:text-blue-600 flex items-center gap-1"
-                >
-                  <Building2 className="h-3 w-3" />
-                  {deal.company.name}
-                </Link>
-              )}
-              {deal.owner && (
-                <span className="text-sm text-gray-500 flex items-center gap-1">
-                  <User className="h-3 w-3" />
-                  Owner: {deal.owner.firstName || deal.owner.email}
-                </span>
-              )}
+          <div className="flex items-center gap-3">
+            <div
+              className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center shadow-sm ${!brandColor ? 'bg-gradient-to-br from-emerald-500 to-teal-600' : ''}`}
+              style={brandColor ? { backgroundColor: brandColor } : undefined}
+            >
+              <BriefcaseBusiness className={`h-5 w-5 sm:h-6 sm:w-6 ${brandColor && needsDarkText ? 'text-gray-900' : 'text-white'}`} />
+            </div>
+            <div>
+              <InlineEdit
+                value={deal.name}
+                onSave={(val) => handleDealUpdate('name', val)}
+                emptyText="Deal Name"
+                displayClassName="text-xl md:text-2xl font-semibold text-gray-900"
+              />
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-1">
+                {deal.company && (
+                  <Link
+                    href={`/companies/${deal.company.id}`}
+                    className="text-sm text-gray-500 hover:text-blue-600 flex items-center gap-1"
+                  >
+                    <Building2 className="h-3 w-3" />
+                    {deal.company.name}
+                  </Link>
+                )}
+                {deal.owner && (
+                  <span className="text-sm text-gray-500 flex items-center gap-1">
+                    <User className="h-3 w-3" />
+                    Owner: {deal.owner.firstName || deal.owner.email}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -513,9 +676,9 @@ export default function DealDetailPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr,auto] gap-6">
         {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6 min-w-0">
           {/* Pipeline Stages - Pipedrive Arrow Style */}
           <Card>
             <CardHeader className="pb-3">
@@ -529,7 +692,7 @@ export default function DealDetailPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="flex items-stretch">
+              <div className="flex items-stretch" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.08))' }}>
                 {stages.map((stage: any, index: number) => {
                   const isActive = stage.id === deal.stageId;
                   const isPast = index < currentStageIndex;
@@ -541,16 +704,17 @@ export default function DealDetailPage() {
                   return (
                     <button
                       key={stage.id}
-                      onClick={() => moveToStageMutation.mutate(stage.id)}
+                      onClick={() => handleStageClick(stage)}
                       className={`
                         relative h-11 flex-1 min-w-0 flex items-center justify-center
-                        text-xs font-medium transition-all duration-200
-                        ${isActive ? 'z-10' : 'hover:brightness-110'}
-                        ${isFuture ? 'opacity-50' : ''}
+                        text-xs transition-all duration-200
+                        ${isPast ? 'font-semibold' : 'font-medium'}
+                        ${isActive ? 'z-10 font-semibold' : 'hover:brightness-105'}
+                        ${isFuture ? 'opacity-60' : ''}
                       `}
                       style={{
-                        backgroundColor: stage.color,
-                        color: getContrastColor(stage.color),
+                        backgroundColor: isPast || isActive ? toPastelColorSaturated(stage.color) : toPastelColor(stage.color),
+                        color: getPastelTextColor(stage.color),
                         // Left indent for non-first items (arrow from previous)
                         marginLeft: isFirst ? 0 : -arrowWidth,
                         // Right side clips to arrow shape
@@ -560,11 +724,21 @@ export default function DealDetailPage() {
                       }}
                       title={`Move to ${stage.name}`}
                     >
+                      {/* Checkmark for completed stages */}
+                      {isPast && (
+                        <Check
+                          className="h-3.5 w-3.5 flex-shrink-0"
+                          style={{
+                            marginLeft: isFirst ? '8px' : '12px',
+                            marginRight: '2px'
+                          }}
+                        />
+                      )}
                       <span
-                        className="truncate px-3"
+                        className="truncate"
                         style={{
                           // Offset text to account for arrow shapes
-                          paddingLeft: isFirst ? '12px' : '16px',
+                          paddingLeft: isPast ? '2px' : (isFirst ? '12px' : '16px'),
                           paddingRight: isLast ? '12px' : '16px',
                         }}
                       >
@@ -575,7 +749,7 @@ export default function DealDetailPage() {
                         <div
                           className="absolute inset-0 pointer-events-none"
                           style={{
-                            boxShadow: `inset 0 0 0 2px rgba(255,255,255,0.4)`,
+                            boxShadow: `inset 0 0 0 2px rgba(255,255,255,0.5)`,
                             clipPath: isLast
                               ? `polygon(0 0, 100% 0, 100% 100%, 0 100%, ${arrowWidth}px 50%)`
                               : `polygon(0 0, calc(100% - ${arrowWidth}px) 0, 100% 50%, calc(100% - ${arrowWidth}px) 100%, 0 100%, ${isFirst ? '0' : `${arrowWidth}px`} 50%)`,
@@ -590,41 +764,39 @@ export default function DealDetailPage() {
           </Card>
 
           {/* Tabs */}
-          <Tabs defaultValue="activity">
-            <TabsList className="flex-wrap h-auto gap-1">
-              <TabsTrigger value="activity">
-                <Clock className="h-4 w-4 mr-1" />
-                Activity
-              </TabsTrigger>
-              <TabsTrigger value="emails">
-                <Mail className="h-4 w-4 mr-1" />
-                Emails
-              </TabsTrigger>
-              <TabsTrigger value="buyers">
-                <Users className="h-4 w-4 mr-1" />
-                Buyers
-              </TabsTrigger>
-              <TabsTrigger value="cims">
-                <FileText className="h-4 w-4 mr-1" />
-                CIMs
-              </TabsTrigger>
-              <TabsTrigger value="files">
-                <FolderOpen className="h-4 w-4 mr-1" />
-                Files
-              </TabsTrigger>
-              <TabsTrigger value="contacts">
-                <User className="h-4 w-4 mr-1" />
-                Contacts
-              </TabsTrigger>
-              <TabsTrigger value="notes">
-                <MessageSquare className="h-4 w-4 mr-1" />
-                Notes
-              </TabsTrigger>
-              <TabsTrigger value="tasks">
-                <CheckSquare className="h-4 w-4 mr-1" />
-                Tasks
-              </TabsTrigger>
-            </TabsList>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <div className="overflow-x-auto scrollbar-hide -mx-1 px-1">
+              <TabsList variant="underline" className="w-max min-w-full justify-start border-b">
+                <TabsTrigger variant="underline" value="activity">
+                  <Clock className="h-4 w-4 mr-1" />
+                  Activity
+                </TabsTrigger>
+                <TabsTrigger variant="underline" value="notes">
+                  <MessageSquare className="h-4 w-4 mr-1" />
+                  Notes
+                </TabsTrigger>
+                <TabsTrigger variant="underline" value="tasks">
+                  <CheckSquare className="h-4 w-4 mr-1" />
+                  Tasks
+                </TabsTrigger>
+                <TabsTrigger variant="underline" value="emails">
+                  <Mail className="h-4 w-4 mr-1" />
+                  Emails
+                </TabsTrigger>
+                <TabsTrigger variant="underline" value="buyers">
+                  <Users className="h-4 w-4 mr-1" />
+                  Buyers
+                </TabsTrigger>
+                <TabsTrigger variant="underline" value="cims">
+                  <FileText className="h-4 w-4 mr-1" />
+                  CIMs
+                </TabsTrigger>
+                <TabsTrigger variant="underline" value="files">
+                  <FolderOpen className="h-4 w-4 mr-1" />
+                  Files
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value="activity" className="mt-4">
               <Card>
@@ -715,18 +887,62 @@ export default function DealDetailPage() {
                                 </div>
                               )}
 
+                              {/* Embedded Email Content */}
+                              {embedded?.type === 'email' && (
+                                <div className="mt-1.5 border border-gray-200 rounded-md">
+                                  <button
+                                    onClick={() => {
+                                      setExpandedEmails(prev => {
+                                        const next = new Set(prev);
+                                        if (next.has(activity.id)) {
+                                          next.delete(activity.id);
+                                        } else {
+                                          next.add(activity.id);
+                                        }
+                                        return next;
+                                      });
+                                    }}
+                                    className="w-full text-left px-3 py-2"
+                                  >
+                                    <div className="flex items-center justify-between gap-2">
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm text-gray-900 truncate">
+                                          <span className="font-medium">{embedded.subject || '(No subject)'}</span>
+                                          <span className="text-gray-400 mx-1.5">·</span>
+                                          <span className="text-gray-500 text-xs">{embedded.fromName || embedded.from} → {embedded.to}</span>
+                                        </p>
+                                        {!expandedEmails.has(activity.id) && embedded.snippet && (
+                                          <p className="text-xs text-gray-500 truncate mt-0.5">
+                                            {embedded.snippet}
+                                          </p>
+                                        )}
+                                      </div>
+                                      {expandedEmails.has(activity.id) ? (
+                                        <ChevronUp className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                                      ) : (
+                                        <ChevronDown className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                                      )}
+                                    </div>
+                                  </button>
+                                  {expandedEmails.has(activity.id) && (
+                                    <div className="px-3 pb-2 border-t border-gray-100">
+                                      <p className="text-sm text-gray-700 whitespace-pre-wrap pt-2">
+                                        {embedded.body || embedded.snippet || '(No content)'}
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
                               {/* Stage Change Details */}
                               {activity.activityType === 'stage_change' && activity.metadata && (
-                                <div className="mt-2 p-3 bg-slate-50 rounded-lg border border-slate-200">
-                                  <p className="text-sm text-gray-700 flex items-center gap-2">
-                                    <span className="text-gray-500">Stage changed:</span>
-                                    <Badge variant="outline">{(activity.metadata as any).fromStage || 'None'}</Badge>
-                                    <ArrowRight className="h-3 w-3 text-gray-400" />
-                                    <Badge variant="outline" className="bg-slate-100 border-slate-300">
-                                      {(activity.metadata as any).toStage}
-                                    </Badge>
-                                  </p>
-                                </div>
+                                <p className="text-sm text-gray-600 mt-1 flex items-center gap-2 flex-wrap">
+                                  <Badge variant="outline">{(activity.metadata as any).fromStage || 'None'}</Badge>
+                                  <ArrowRight className="h-3 w-3 text-gray-400" />
+                                  <Badge variant="outline">
+                                    {(activity.metadata as any).toStage}
+                                  </Badge>
+                                </p>
                               )}
 
                               {/* Fallback description for other activity types */}
@@ -742,9 +958,9 @@ export default function DealDetailPage() {
                     </div>
                   ) : (
                     <div className="text-center py-8">
-                      <Clock className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                      <p className="text-gray-500 font-medium">No activity yet</p>
-                      <p className="text-sm text-gray-400 mt-1">
+                      <Clock className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-700 font-medium">No activity yet</p>
+                      <p className="text-sm text-gray-500 mt-1">
                         Activity will appear here as you work on this deal
                       </p>
                     </div>
@@ -769,11 +985,24 @@ export default function DealDetailPage() {
 
             <TabsContent value="buyers" className="mt-4">
               {buyerStages && buyerStages.length > 0 ? (
-                <BuyerPipeline
-                  dealId={parseInt(id!)}
-                  buyers={buyers || []}
-                  stages={buyerStages}
-                />
+                <div className="space-y-4">
+                  <div className="flex items-center justify-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsBuyersFullscreen(true)}
+                      className="flex items-center gap-2"
+                    >
+                      <Maximize2 className="h-4 w-4" />
+                      <span className="hidden sm:inline">Expand View</span>
+                    </Button>
+                  </div>
+                  <BuyerPipeline
+                    dealId={parseInt(id!)}
+                    buyers={buyers || []}
+                    stages={buyerStages}
+                  />
+                </div>
               ) : (
                 <Card>
                   <CardContent className="py-8">
@@ -788,16 +1017,19 @@ export default function DealDetailPage() {
                 <CardContent className="pt-6">
                   {/* Add Note Form */}
                   <div className="mb-6">
-                    <Textarea
+                    <MentionInput
                       value={newNote}
-                      onChange={(e) => setNewNote(e.target.value)}
-                      placeholder="Add a note..."
+                      onChange={(value, mentions) => {
+                        setNewNote(value);
+                        setMentionedUserIds(mentions.map(m => m.userId));
+                      }}
+                      placeholder="Add a note... Use @ to mention teammates"
                       rows={3}
                     />
                     <Button
                       className="mt-2"
                       size="sm"
-                      onClick={() => createNoteMutation.mutate(newNote)}
+                      onClick={() => createNoteMutation.mutate({ content: newNote, mentionedUserIds })}
                       disabled={!newNote.trim() || createNoteMutation.isPending}
                     >
                       <Plus className="h-4 w-4 mr-2" />
@@ -811,11 +1043,23 @@ export default function DealDetailPage() {
                       {notes.map((note) => (
                         <div
                           key={note.id}
-                          className="p-4 bg-gray-50 rounded-lg"
+                          className="p-4 bg-gray-50 rounded-lg group"
                         >
-                          <p className="text-sm whitespace-pre-wrap">
-                            {note.content}
-                          </p>
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-sm whitespace-pre-wrap flex-1 text-gray-700">
+                              {highlightMentions(note.content)}
+                            </p>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-600 hover:bg-red-50"
+                              onClick={() => deleteNoteMutation.mutate(note.id)}
+                              disabled={deleteNoteMutation.isPending}
+                              title="Delete note"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                           <div className="flex items-center justify-between mt-2">
                             <span className="text-xs text-gray-500">
                               {note.author?.firstName || note.author?.email}
@@ -829,7 +1073,7 @@ export default function DealDetailPage() {
                     </div>
                   ) : (
                     <div className="text-center py-4">
-                      <MessageSquare className="h-10 w-10 text-gray-300 mx-auto mb-2" />
+                      <MessageSquare className="h-10 w-10 text-gray-400 mx-auto mb-2" />
                       <p className="text-gray-500 text-sm">No notes yet</p>
                     </div>
                   )}
@@ -857,110 +1101,6 @@ export default function DealDetailPage() {
                     objectId={parseInt(id!)}
                     onEditTask={(task) => setEditingTask(task)}
                   />
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="contacts" className="mt-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-lg">Contacts</CardTitle>
-                  <Button size="sm" variant="outline" onClick={() => setIsAddContactDialogOpen(true)}>
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Add Contact
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  {deal.contacts && deal.contacts.length > 0 ? (
-                    <div className="space-y-3">
-                      {deal.contacts.map((contact: any) => (
-                        <div
-                          key={contact.id}
-                          className="p-3 rounded-lg border hover:bg-gray-50/50 transition-colors"
-                        >
-                          <div className="flex items-start gap-3">
-                            <Link href={`/contacts/${contact.id}`}>
-                              {contact.avatarUrl ? (
-                                <img
-                                  src={contact.avatarUrl}
-                                  alt={`${contact.firstName} ${contact.lastName}`}
-                                  className="w-10 h-10 rounded-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-medium">
-                                  {(contact.firstName?.[0] || '').toUpperCase()}{(contact.lastName?.[0] || '').toUpperCase()}
-                                </div>
-                              )}
-                            </Link>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between gap-2">
-                                <Link href={`/contacts/${contact.id}`} className="font-medium text-gray-900 hover:text-blue-600 truncate">
-                                  {contact.firstName} {contact.lastName}
-                                </Link>
-                                <Badge variant="secondary" className="flex-shrink-0">
-                                  {contact.role}
-                                </Badge>
-                              </div>
-                              <div className="mt-1.5 space-y-1">
-                                <div className="flex items-center gap-1.5">
-                                  <Mail className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-                                  <InlineEdit
-                                    value={contact.email}
-                                    onSave={(val) => handleContactUpdate(contact.id, 'email', val)}
-                                    type="email"
-                                    emptyText="Add email"
-                                    displayClassName="text-gray-600"
-                                  />
-                                  {contact.email && (
-                                    <a
-                                      href={`mailto:${contact.email}`}
-                                      className="text-blue-500 hover:text-blue-600 ml-1"
-                                      title="Send email"
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      <Mail className="h-3.5 w-3.5" />
-                                    </a>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                  <Phone className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-                                  <InlineEdit
-                                    value={contact.phone}
-                                    onSave={(val) => handleContactUpdate(contact.id, 'phone', val)}
-                                    type="phone"
-                                    emptyText="Add phone"
-                                    displayClassName="text-gray-600"
-                                  />
-                                  {contact.phone && (
-                                    <a
-                                      href={`tel:${contact.phone}`}
-                                      className="text-green-500 hover:text-green-600 ml-1"
-                                      title="Call"
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      <Phone className="h-3.5 w-3.5" />
-                                    </a>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <Users className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                      <p className="text-gray-500 font-medium">No contacts yet</p>
-                      <p className="text-sm text-gray-400 mt-1 mb-4">
-                        Link contacts to track who's involved in this deal
-                      </p>
-                      <Button variant="outline" size="sm" onClick={() => setIsAddContactDialogOpen(true)}>
-                        <UserPlus className="h-4 w-4 mr-2" />
-                        Add First Contact
-                      </Button>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -999,9 +1139,9 @@ export default function DealDetailPage() {
                     </div>
                   ) : (
                     <div className="text-center py-8">
-                      <WandSparkles className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                      <p className="text-gray-500 font-medium">No CIMs yet</p>
-                      <p className="text-sm text-gray-400 mt-1 mb-4">
+                      <WandSparkles className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-700 font-medium">No CIMs yet</p>
+                      <p className="text-sm text-gray-500 mt-1 mb-4">
                         Create a CIM to showcase this deal to potential buyers
                       </p>
                       <Button asChild size="sm">
@@ -1121,9 +1261,9 @@ export default function DealDetailPage() {
                     </div>
                   ) : (
                     <div className="text-center py-8">
-                      <FolderOpen className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                      <p className="text-gray-500 font-medium">No files yet</p>
-                      <p className="text-sm text-gray-400 mt-1 mb-4">
+                      <FolderOpen className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-700 font-medium">No files yet</p>
+                      <p className="text-sm text-gray-500 mt-1 mb-4">
                         Upload contracts, NDAs, and other supporting documents
                       </p>
                       <Button
@@ -1144,117 +1284,131 @@ export default function DealDetailPage() {
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Key People Card */}
+        <div className={`hidden lg:flex ${isSidebarCollapsed ? 'w-6' : 'w-80'} transition-all duration-200`}>
+          {/* Edge toggle button */}
+          <button
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            className="flex-shrink-0 w-6 flex items-start justify-center pt-2 text-gray-400 hover:text-gray-600 transition-colors"
+            title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {isSidebarCollapsed ? (
+              <PanelRightOpen className="h-5 w-5" />
+            ) : (
+              <PanelRightClose className="h-5 w-5" />
+            )}
+          </button>
+
+          {!isSidebarCollapsed && (
+          <div className="flex-1 space-y-6">
+          {/* Associations Card */}
           {isSectionVisible("key-people") && (
           <Card>
-            <CardHeader className="pb-3 flex flex-row items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Key People
-              </CardTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsAddContactDialogOpen(true)}
-                title="Link a contact"
-              >
-                <UserPlus className="h-4 w-4" />
-              </Button>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Associations</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {/* Deal Owner */}
-              {deal.owner && (
-                <div className="flex items-center gap-3 p-2 rounded-lg bg-blue-50/50">
-                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                    <User className="h-4 w-4 text-blue-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate text-gray-900">
-                      {deal.owner.firstName} {deal.owner.lastName}
-                    </p>
-                    <p className="text-xs text-blue-600">Deal Owner</p>
-                  </div>
-                </div>
-              )}
-
+            <CardContent className="space-y-4">
               {/* Company */}
-              {deal.company && (
-                <Link
-                  href={`/companies/${deal.company.id}`}
-                  className="flex items-center gap-3 hover:bg-gray-50 rounded-lg p-2 -mx-2 transition-colors"
-                >
-                  <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
-                    <Building2 className="h-4 w-4 text-purple-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate text-gray-900">{deal.company.name}</p>
-                    <p className="text-xs text-gray-500">Company</p>
-                  </div>
-                </Link>
-              )}
-
-              {/* Primary Contact */}
-              {deal.contacts && deal.contacts.length > 0 && (
-                <div className="rounded-lg p-2 -mx-2">
-                  <div className="flex items-start gap-3">
-                    <Link href={`/contacts/${deal.contacts[0].id}`}>
-                      {(deal.contacts[0] as any).avatarUrl ? (
-                        <img
-                          src={(deal.contacts[0] as any).avatarUrl}
-                          alt={`${deal.contacts[0].firstName} ${deal.contacts[0].lastName}`}
-                          className="w-8 h-8 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-medium">
-                          {(deal.contacts[0].firstName?.[0] || '').toUpperCase()}{(deal.contacts[0].lastName?.[0] || '').toUpperCase()}
-                        </div>
-                      )}
-                    </Link>
-                    <div className="flex-1 min-w-0">
-                      <Link href={`/contacts/${deal.contacts[0].id}`} className="text-sm font-medium truncate text-gray-900 hover:text-blue-600 block">
-                        {deal.contacts[0].firstName} {deal.contacts[0].lastName}
-                      </Link>
-                      <p className="text-xs text-gray-500 mb-1">{deal.contacts[0].role || "Primary Contact"}</p>
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-1">
-                          <Mail className="h-3 w-3 text-gray-400 flex-shrink-0" />
-                          <InlineEdit
-                            value={deal.contacts[0].email}
-                            onSave={(val) => handleContactUpdate(deal.contacts![0].id, 'email', val)}
-                            type="email"
-                            emptyText="Add email"
-                            displayClassName="text-xs text-gray-600"
-                            inputClassName="h-6 text-xs"
-                          />
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Phone className="h-3 w-3 text-gray-400 flex-shrink-0" />
-                          <InlineEdit
-                            value={(deal.contacts[0] as any).phone}
-                            onSave={(val) => handleContactUpdate(deal.contacts![0].id, 'phone', val)}
-                            type="phone"
-                            emptyText="Add phone"
-                            displayClassName="text-xs text-gray-600"
-                            inputClassName="h-6 text-xs"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Company</h4>
+                  {!deal.company && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsLinkCompanyOpen(true)}
+                      className="h-6 px-2 text-gray-500 hover:text-gray-700"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Add
+                    </Button>
+                  )}
                 </div>
-              )}
+                {deal.company ? (
+                  <Link
+                    href={`/companies/${deal.company.id}`}
+                    className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition-colors"
+                  >
+                    {(deal.company as any).logoUrl ? (
+                      <img
+                        src={(deal.company as any).logoUrl}
+                        alt={deal.company.name}
+                        className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                        <Building2 className="h-4 w-4 text-purple-600" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900 truncate">{deal.company.name}</p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                  </Link>
+                ) : (
+                  <p className="text-sm text-gray-500 py-2">No company linked</p>
+                )}
+              </div>
 
-              {/* Additional contacts count */}
-              {deal.contacts && deal.contacts.length > 1 && (
-                <p className="text-xs text-gray-500 text-center pt-1">
-                  +{deal.contacts.length - 1} more contact{deal.contacts.length > 2 ? 's' : ''} in Contacts tab
-                </p>
-              )}
+              {/* Contacts */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Contacts</h4>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsAddContactDialogOpen(true)}
+                    className="h-6 px-2 text-gray-500 hover:text-gray-700"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Add
+                  </Button>
+                </div>
+                {deal.contacts && deal.contacts.length > 0 ? (
+                  <div className="space-y-2">
+                    {deal.contacts.map((contact: any) => (
+                      <Link
+                        key={contact.id}
+                        href={`/contacts/${contact.id}`}
+                        className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition-colors"
+                      >
+                        {contact.avatarUrl ? (
+                          <img
+                            src={contact.avatarUrl}
+                            alt={`${contact.firstName} ${contact.lastName}`}
+                            className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
+                            {(contact.firstName?.[0] || '').toUpperCase()}{(contact.lastName?.[0] || '').toUpperCase()}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-gray-900 truncate">
+                              {contact.firstName} {contact.lastName}
+                            </p>
+                            {contact.role && (
+                              <Badge variant="secondary" className="text-xs flex-shrink-0">
+                                {contact.role}
+                              </Badge>
+                            )}
+                          </div>
+                          {contact.email && (
+                            <p className="text-sm text-gray-500 truncate">{contact.email}</p>
+                          )}
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 py-2">No contacts linked</p>
+                )}
+              </div>
 
-              {!deal.owner && !deal.company && (!deal.contacts || deal.contacts.length === 0) && (
+              {!deal.company && (!deal.contacts || deal.contacts.length === 0) && (
                 <div className="text-center py-3">
-                  <p className="text-sm text-gray-500 mb-2">No people linked yet</p>
+                  <p className="text-sm text-gray-500 mb-2">No company or contacts linked yet</p>
                   <Button
                     variant="outline"
                     size="sm"
@@ -1276,6 +1430,83 @@ export default function DealDetailPage() {
               <CardTitle className="text-lg">Deal Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Deal Owner */}
+              <div className="space-y-1.5">
+                <Label className="text-xs text-gray-500">Deal Owner</Label>
+                <Select
+                  value={deal.ownerId?.toString() || ""}
+                  onValueChange={(value) => {
+                    updateDealMutation.mutate({
+                      ownerId: value ? parseInt(value) : null,
+                    });
+                  }}
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Select owner">
+                      {deal.owner ? (
+                        <span className="flex items-center gap-2">
+                          {deal.owner.profilePhoto ? (
+                            <img
+                              src={deal.owner.profilePhoto}
+                              alt={deal.owner.name || deal.owner.email}
+                              className="w-6 h-6 rounded-full object-cover flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                              <span className="text-xs font-medium text-blue-600">
+                                {(deal.owner.name || deal.owner.email || '?').charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                          <span className="truncate text-gray-900">
+                            {deal.owner.name ||
+                             (deal.owner.firstName && deal.owner.lastName
+                              ? `${deal.owner.firstName} ${deal.owner.lastName}`
+                              : deal.owner.email)}
+                          </span>
+                        </span>
+                      ) : null}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {members.filter(m => m.userId != null).map((member) => {
+                      const displayName = member.firstName && member.lastName
+                        ? `${member.firstName} ${member.lastName}`
+                        : member.email;
+                      return (
+                        <SelectItem key={member.userId} value={member.userId.toString()}>
+                          <span className="flex items-center gap-2">
+                            {member.profilePhoto ? (
+                              <img
+                                src={member.profilePhoto}
+                                alt={displayName}
+                                className="w-5 h-5 rounded-full object-cover flex-shrink-0"
+                              />
+                            ) : (
+                              <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                <span className="text-xs font-medium text-blue-600">
+                                  {displayName.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                            )}
+                            <span className="text-gray-900">{displayName}</span>
+                          </span>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Deal Collaborators */}
+              <div className="pt-2 border-t">
+                <DealCollaborators
+                  dealId={parseInt(id!)}
+                  dealOwnerId={deal.ownerId || undefined}
+                  canManage={true}
+                />
+              </div>
+
               <div>
                 <Label className="text-xs text-gray-500">Value</Label>
                 <div className="mt-0.5">
@@ -1317,43 +1548,59 @@ export default function DealDetailPage() {
                   {new Date(deal.updatedAt).toLocaleDateString()}
                 </p>
               </div>
+
+              {/* Lost Reason - only show if deal is lost */}
+              {deal.lostReason && (
+                <div className="pt-2 border-t">
+                  <Label className="text-xs text-red-500 flex items-center gap-1">
+                    <X className="h-3 w-3" />
+                    Lost Reason
+                  </Label>
+                  <p className="text-sm text-red-600 font-medium mt-0.5">{deal.lostReason}</p>
+                </div>
+              )}
             </CardContent>
           </Card>
           )}
-
-          {/* Quick Actions */}
-          {isSectionVisible("quick-actions") && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Button variant="outline" asChild className="w-full justify-start">
-                <Link href={`/dashboard?mode=cim&dealId=${deal.id}`}>
-                  <FileText className="h-4 w-4 mr-2" />
-                  Create CIM
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => {
-                  setNewNote("📞 Call note: ");
-                  toast({ title: "Log your call", description: "Add details in the Notes tab" });
-                }}
-              >
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Log a Call
-              </Button>
-              <Button variant="outline" className="w-full justify-start" onClick={() => fileInputRef.current?.click()}>
-                <Paperclip className="h-4 w-4 mr-2" />
-                Attach File
-              </Button>
-            </CardContent>
-          </Card>
+          </div>
           )}
         </div>
       </div>
+
+      {/* Buyers Fullscreen Dialog */}
+      {isBuyersFullscreen && buyerStages && buyerStages.length > 0 && (
+        <div className="fixed inset-0 z-50 bg-white">
+          <div className="h-full flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b bg-gray-50">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center ${!brandColor ? 'bg-gradient-to-br from-emerald-500 to-teal-600' : ''}`}
+                  style={brandColor ? { backgroundColor: brandColor } : undefined}
+                >
+                  <BriefcaseBusiness className={`h-4 w-4 ${brandColor && needsDarkText ? 'text-gray-900' : 'text-white'}`} />
+                </div>
+                <h2 className="text-lg font-semibold text-gray-900">Buyer Pipeline - {deal?.name}</h2>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsBuyersFullscreen(false)}
+                className="flex items-center gap-2"
+              >
+                <Minimize2 className="h-4 w-4" />
+                Exit Fullscreen
+              </Button>
+            </div>
+            <div className="flex-1 overflow-auto p-6">
+              <BuyerPipeline
+                dealId={parseInt(id!)}
+                buyers={buyers || []}
+                stages={buyerStages}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Task Dialogs */}
       <TaskDialog
@@ -1480,7 +1727,7 @@ export default function DealDetailPage() {
             </div>
           ) : (
             <div className="py-4 text-center">
-              <UserPlus className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+              <UserPlus className="h-12 w-12 text-gray-400 mx-auto mb-3" />
               <p className="text-gray-600 mb-4">Create a new contact in your CRM</p>
               <Button asChild>
                 <Link href={`/contacts/new?dealId=${id}`}>
@@ -1514,14 +1761,238 @@ export default function DealDetailPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Lost Reason Dialog */}
+      <Dialog open={isLostReasonDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          setIsLostReasonDialogOpen(false);
+          setPendingLostStageId(null);
+          setSelectedLostReason("");
+          setCustomLostReason("");
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Why was this deal lost?</DialogTitle>
+            <DialogDescription>
+              Select a reason to help track and analyze lost deals.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Lost Reason</Label>
+              <Select value={selectedLostReason} onValueChange={setSelectedLostReason}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a reason..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {LOST_REASONS.map((reason) => (
+                    <SelectItem key={reason} value={reason}>
+                      {reason}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {selectedLostReason === "Other" && (
+              <div className="space-y-2">
+                <Label>Custom reason</Label>
+                <Input
+                  value={customLostReason}
+                  onChange={(e) => setCustomLostReason(e.target.value)}
+                  placeholder="Enter a custom reason..."
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter className="flex-row gap-2 sm:justify-between">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                // Move without reason
+                if (pendingLostStageId) {
+                  moveToStageMutation.mutate({ stageId: pendingLostStageId });
+                }
+              }}
+            >
+              Skip
+            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setIsLostReasonDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={confirmLostReason}
+                disabled={!selectedLostReason || (selectedLostReason === "Other" && !customLostReason.trim())}
+              >
+                Mark as Lost
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Detail Page Customizer */}
       <DetailPageCustomizer
         objectType="deal"
         open={isCustomizerOpen}
         onOpenChange={setIsCustomizerOpen}
       />
+
+      {/* Link Company Dialog */}
+      <Dialog open={isLinkCompanyOpen} onOpenChange={setIsLinkCompanyOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Link Company</DialogTitle>
+            <DialogDescription>
+              Associate a company with this deal.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search companies..."
+                value={companySearch}
+                onChange={(e) => setCompanySearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+
+            {/* Company List */}
+            <div className="max-h-64 overflow-y-auto border rounded-lg">
+              {filteredCompanies.length > 0 ? (
+                filteredCompanies.map((company) => (
+                  <button
+                    key={company.id}
+                    onClick={() => setSelectedCompanyId(company.id.toString())}
+                    className={`w-full flex items-center gap-3 p-3 hover:bg-gray-50 border-b last:border-b-0 text-left transition-colors ${
+                      selectedCompanyId === company.id.toString() ? "bg-blue-50 border-blue-200" : ""
+                    }`}
+                  >
+                    <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                      <Building2 className="h-4 w-4 text-purple-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm text-gray-900 truncate">{company.name}</p>
+                      {company.industry && (
+                        <p className="text-xs text-gray-500 truncate">{company.industry}</p>
+                      )}
+                    </div>
+                    {selectedCompanyId === company.id.toString() && (
+                      <Check className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                    )}
+                  </button>
+                ))
+              ) : (
+                <div className="p-4 text-center text-gray-500 text-sm">
+                  {companySearch ? "No companies match your search" : "No available companies"}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsLinkCompanyOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => linkCompanyMutation.mutate(parseInt(selectedCompanyId))}
+              disabled={!selectedCompanyId || linkCompanyMutation.isPending}
+            >
+              {linkCompanyMutation.isPending ? "Linking..." : "Link Company"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
+}
+
+// Helper function to convert a color to a softer pastel version
+function toPastelColor(hexColor: string | undefined | null): string {
+  if (!hexColor) return '#e5e7eb'; // gray-200 as fallback
+
+  try {
+    let hex = hexColor.replace('#', '');
+    if (hex.length === 3) {
+      hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+    }
+    if (hex.length !== 6) return '#e5e7eb';
+
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+
+    if (isNaN(r) || isNaN(g) || isNaN(b)) return '#e5e7eb';
+
+    // Mix with white to create pastel (70% original, 30% white gives nice pastel)
+    // Then boost saturation slightly for vibrancy
+    const pastelR = Math.round(r * 0.6 + 255 * 0.4);
+    const pastelG = Math.round(g * 0.6 + 255 * 0.4);
+    const pastelB = Math.round(b * 0.6 + 255 * 0.4);
+
+    return `#${pastelR.toString(16).padStart(2, '0')}${pastelG.toString(16).padStart(2, '0')}${pastelB.toString(16).padStart(2, '0')}`;
+  } catch {
+    return '#e5e7eb';
+  }
+}
+
+// Helper function to convert a color to a more saturated pastel (for completed stages)
+function toPastelColorSaturated(hexColor: string | undefined | null): string {
+  if (!hexColor) return '#d1d5db'; // gray-300 as fallback
+
+  try {
+    let hex = hexColor.replace('#', '');
+    if (hex.length === 3) {
+      hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+    }
+    if (hex.length !== 6) return '#d1d5db';
+
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+
+    if (isNaN(r) || isNaN(g) || isNaN(b)) return '#d1d5db';
+
+    // Less white mixing for more saturated look (75% original, 25% white)
+    const pastelR = Math.round(r * 0.75 + 255 * 0.25);
+    const pastelG = Math.round(g * 0.75 + 255 * 0.25);
+    const pastelB = Math.round(b * 0.75 + 255 * 0.25);
+
+    return `#${pastelR.toString(16).padStart(2, '0')}${pastelG.toString(16).padStart(2, '0')}${pastelB.toString(16).padStart(2, '0')}`;
+  } catch {
+    return '#d1d5db';
+  }
+}
+
+// Helper function to get appropriate text color for pastel backgrounds
+function getPastelTextColor(hexColor: string | undefined | null): string {
+  if (!hexColor) return '#374151'; // gray-700 as fallback
+
+  try {
+    let hex = hexColor.replace('#', '');
+    if (hex.length === 3) {
+      hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+    }
+    if (hex.length !== 6) return '#374151';
+
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+
+    if (isNaN(r) || isNaN(g) || isNaN(b)) return '#374151';
+
+    // Create a darker version of the original color for text (40% brightness)
+    const darkR = Math.round(r * 0.4);
+    const darkG = Math.round(g * 0.4);
+    const darkB = Math.round(b * 0.4);
+
+    return `#${darkR.toString(16).padStart(2, '0')}${darkG.toString(16).padStart(2, '0')}${darkB.toString(16).padStart(2, '0')}`;
+  } catch {
+    return '#374151';
+  }
 }
 
 // Helper function to determine if text should be dark or light based on background color

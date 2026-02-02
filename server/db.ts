@@ -20,13 +20,13 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Production-scale connection pool configuration for 100+ concurrent users
+// Production-scale connection pool configuration for 1000+ concurrent users
 const poolConfig = {
   connectionString: process.env.DATABASE_URL,
-  max: isProduction ? 30 : (isReplit ? 20 : 10), // Production: 30, Replit dev: 20, local: 10
-  min: isProduction ? 5 : 0, // Keep 5 connections warm in production
+  max: isProduction ? 50 : (isReplit ? 30 : 10), // Production: 50, Replit dev: 30, local: 10
+  min: isProduction ? 10 : 2, // Keep 10 connections warm in production, 2 in dev
   idleTimeoutMillis: isReplit ? 60000 : 30000, // Longer idle timeout for Replit
-  connectionTimeoutMillis: isReplit ? 12000 : 8000, // More generous timeout for Replit
+  connectionTimeoutMillis: 10000, // Explicit connection timeout for all environments
   allowExitOnIdle: !isProduction, // Keep connections in production, allow exit in dev
   statement_timeout: isReplit ? 20000 : 15000, // Longer statement timeout for Replit
   query_timeout: isReplit ? 20000 : 15000, // Longer query timeout for Replit

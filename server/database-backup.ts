@@ -1,7 +1,10 @@
 import { db } from "./db";
 import fs from "fs";
 import path from "path";
-import { execSync } from "child_process";
+import { execFile } from "child_process";
+import { promisify } from "util";
+
+const execFileAsync = promisify(execFile);
 
 interface BackupMetadata {
   timestamp: string;
@@ -47,7 +50,8 @@ export class DatabaseBackupManager {
         throw new Error('DATABASE_URL not found');
       }
       
-      execSync(`pg_dump "${databaseUrl}" > "${filePath}"`, { stdio: 'inherit' });
+      // Use execFile to prevent command injection - output directly to file
+      await execFileAsync('pg_dump', ['-f', filePath, databaseUrl]);
       
       // Get file size
       const stats = fs.statSync(filePath);
@@ -110,7 +114,8 @@ export class DatabaseBackupManager {
       }
 
       // Drop all tables and recreate from backup
-      execSync(`psql "${databaseUrl}" < "${resolvedPath}"`, { stdio: 'inherit' });
+      // Use execFile to prevent command injection
+      await execFileAsync('psql', ['-d', databaseUrl, '-f', resolvedPath]);
 
       console.log('✅ Database restored successfully');
     } catch (error) {

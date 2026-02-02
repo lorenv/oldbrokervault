@@ -19,6 +19,31 @@ import * as crypto from 'crypto';
 import PDFDocument from 'pdfkit';
 import fetch from 'node-fetch';
 import QRCode from 'qrcode';
+import bcrypt from 'bcryptjs';
+
+// Constants for bcrypt password hashing
+const BCRYPT_ROUNDS = 10;
+
+// Helper function to hash a share password
+async function hashSharePassword(password: string): Promise<string> {
+  return bcrypt.hash(password, BCRYPT_ROUNDS);
+}
+
+// Helper function to verify a share password
+// Handles both bcrypt hashed passwords and legacy plaintext passwords
+async function verifySharePassword(providedPassword: string, storedPassword: string): Promise<boolean> {
+  // Check if the stored password is a bcrypt hash (starts with $2a$ or $2b$)
+  if (storedPassword.startsWith('$2a$') || storedPassword.startsWith('$2b$')) {
+    return bcrypt.compare(providedPassword, storedPassword);
+  }
+  // Legacy plaintext password - use timing-safe comparison
+  const providedBuffer = Buffer.from(providedPassword);
+  const storedBuffer = Buffer.from(storedPassword);
+  if (providedBuffer.length !== storedBuffer.length) {
+    return false;
+  }
+  return crypto.timingSafeEqual(providedBuffer, storedBuffer);
+}
 
 const router = Router();
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -253,11 +278,22 @@ router.put('/cim/:documentId', async (req, res) => {
       }
     }
 
+    // Hash the sharePassword if provided
+    let hashedPassword: string | null | undefined = updateData.sharePassword;
+    if (updateData.sharePassword !== undefined) {
+      if (updateData.sharePassword && updateData.sharePassword.trim()) {
+        hashedPassword = await hashSharePassword(updateData.sharePassword);
+      } else {
+        hashedPassword = null;
+      }
+    }
+
     // Update the teaser
     const [updatedTeaser] = await db
       .update(teasers)
       .set({
         ...updateData,
+        sharePassword: hashedPassword !== undefined ? hashedPassword : updateData.sharePassword,
         updatedAt: new Date(),
       })
       .where(eq(teasers.documentId, documentId))
@@ -626,7 +662,8 @@ router.get('/public/:slug', async (req, res) => {
     // Check password if required
     if (teaser.sharePassword) {
       console.log(`[TEASER] Password protected teaser, checking password`);
-      if (!password || password !== teaser.sharePassword) {
+      const passwordsMatch = password ? await verifySharePassword(password as string, teaser.sharePassword) : false;
+      if (!password || !passwordsMatch) {
         return res.status(401).json({ error: 'Password required', requiresPassword: true });
       }
     }
@@ -786,7 +823,8 @@ router.get('/public/:slug/export/pdf', async (req, res) => {
 
     // Check password if required
     if (teaser.sharePassword) {
-      if (!password || password !== teaser.sharePassword) {
+      const passwordsMatch = password ? await verifySharePassword(password as string, teaser.sharePassword) : false;
+      if (!password || !passwordsMatch) {
         return res.status(401).json({ error: 'Password required' });
       }
     }
