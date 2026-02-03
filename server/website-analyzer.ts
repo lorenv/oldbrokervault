@@ -377,43 +377,17 @@ async function downloadAndSaveLogo(logoUrl: string, websiteUrl: string, userId: 
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     
-    // If it's an SVG, convert to PNG for better document compatibility
+    // If it's an SVG, convert to PNG for better document compatibility using sharp
     if (logoUrl.includes('.svg') || logoUrl.includes('svg')) {
       try {
         console.log('Converting SVG logo to PNG for document compatibility...');
-        const puppeteer = await import('puppeteer');
-        
-        const browser = await puppeteer.launch({
-          headless: true,
-          executablePath: '/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium-browser',
-          args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-audio-output',
-            '--mute-audio',
-            '--no-audio',
-            '--disable-background-networking'
-          ]
-        });
-        
-        const page = await browser.newPage();
-        await page.setViewport({ width: 400, height: 400 });
-        
-        // Create SVG data URL
-        const svgContent = buffer.toString('utf8');
-        const dataUrl = `data:image/svg+xml;base64,${Buffer.from(svgContent).toString('base64')}`;
-        
-        await page.goto(dataUrl);
-        
-        // Take screenshot as PNG with transparent background
-        const pngBuffer = await page.screenshot({
-          type: 'png',
-          omitBackground: true,
-          clip: { x: 0, y: 0, width: 400, height: 400 }
-        });
-        
-        await browser.close();
+        const sharp = (await import('sharp')).default;
+
+        // Convert SVG to PNG using sharp
+        const pngBuffer = await sharp(buffer)
+          .resize(400, 400, { fit: 'inside', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+          .png()
+          .toBuffer();
 
         // Save the converted PNG to object storage
         await objectStorage.putObject(

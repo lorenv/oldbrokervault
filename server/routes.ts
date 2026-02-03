@@ -9842,14 +9842,13 @@ ${finalQuestion}
                              req.connection.remoteAddress || 
                              'unknown';
 
-      // Get location information from IP address  
+      // Get location information from IP address
       let signerLocation = 'Unknown Location';
       let geo = null;
-      
+
       try {
-        const geoipModule = await import('geoip-lite');
-        const geoipLib = geoipModule.default || geoipModule;
-        geo = geoipLib.lookup(signerIpAddress);
+        const { lookupIp } = await import('./services/geo-ip-service');
+        geo = await lookupIp(signerIpAddress);
         if (geo && geo.city && geo.region && geo.country) {
           signerLocation = `${geo.city}, ${geo.region}, ${geo.country}`;
         } else if (geo && geo.country) {

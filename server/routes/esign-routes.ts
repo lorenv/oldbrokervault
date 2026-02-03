@@ -122,14 +122,11 @@ function getClientIP(req: Request): string {
   return req.ip || req.socket.remoteAddress || '';
 }
 
-// Helper to get location from IP (simplified)
+// Helper to get location from IP (using cloud-based geo-ip service)
 async function getLocationFromIP(ip: string): Promise<string> {
   try {
-    // Dynamic import to avoid type issues
-    // @ts-ignore - geoip-lite has no type definitions
-    const geoipModule = await import('geoip-lite') as any;
-    const geoip = geoipModule.default || geoipModule;
-    const geo = geoip.lookup(ip);
+    const { lookupIp } = await import('../services/geo-ip-service');
+    const geo = await lookupIp(ip);
     if (geo) {
       const parts = [geo.city, geo.region, geo.country].filter(Boolean);
       return parts.join(', ') || 'Unknown';
