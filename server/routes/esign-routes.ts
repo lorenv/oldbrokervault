@@ -45,11 +45,9 @@ import {
 } from '../services/esign-pdf-generator';
 import { summarizeDocumentForSigner } from '../openai';
 import { summarizeDocumentWithVision } from '../services/anthropic-vision';
-import * as pdfParseModule from 'pdf-parse';
 import { dispatchIntegrationEvent } from '../integrations';
 import { sanitizeFilename, sanitizeExtension } from '../utils/sanitize-filename';
 import { dispatchWebhookEvent } from '../webhook-dispatcher';
-const pdfParse = (pdfParseModule as any).default || pdfParseModule;
 
 const router = Router();
 

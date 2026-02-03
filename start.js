@@ -5,7 +5,8 @@ process.env.DEPLOYMENT_TARGET = 'autoscale';
 process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = 'true';
 
 // Auto-scale deployment port configuration
-const PORT = process.env.PORT || 3000;
+// .replit maps port 5000 -> external 80
+const PORT = process.env.PORT || 5000;
 process.env.PORT = PORT;
 
 console.log('🚀 CIM Share - Auto-scale Deployment');
