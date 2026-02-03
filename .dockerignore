@@ -107,3 +107,25 @@ deployment-env-check.js
 
 # Puppeteer browser cache (300MB+)
 .cache/puppeteer/
+.cache/
+
+# Local data directories (Chromium, etc - 1.7GB+)
+.local/
+
+# Source directories (compiled into dist/)
+server/
+shared/
+
+# Public source (copied to dist/public with optimizations)
+public/
+
+# Private/test data
+private/
+
+# Python virtual env
+venv/
+__pycache__/
+*.pyc
+
+# TypeScript build info
+tsconfig.tsbuildinfo
