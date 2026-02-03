@@ -91,6 +91,12 @@ chrome-extension/
 attached_assets/
 financial-files/
 
+# Root node_modules (1.1GB) - dist/ has its own production dependencies
+node_modules/
+
+# Source client code (compiled into dist/public)
+client/
+
 # Development config files
 deployment.json
 deployment-static.json

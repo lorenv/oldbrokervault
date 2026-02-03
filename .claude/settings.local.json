@@ -73,7 +73,14 @@
       "WebFetch(domain:support.docusign.com)",
       "Bash(git -C /home/runner/workspace log --oneline --all)",
       "Bash(git -C /home/runner/workspace show:*)",
-      "Bash(du:*)"
+      "Bash(du:*)",
+      "Bash(./build-autoscale.sh:*)",
+      "Bash(head -20 echo \"\" echo \"=== What requires @opentelemetry? ===\" grep -l \"@opentelemetry\" */package.json)",
+      "Bash(npm why:*)",
+      "Bash(head -20 echo \"\" echo \"=== public \\(168MB\\) - What''s in here? ===\")",
+      "Bash(file:*)",
+      "Bash(head -5 du -sh attached_assets/*.mp4 attached_assets/*.xlsx)",
+      "Bash(sort:*)"
     ],
     "deny": [],
     "ask": [],

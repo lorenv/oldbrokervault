@@ -40,9 +40,9 @@ mkdir -p dist/storage/sde-files
 # === SAFE SIZE OPTIMIZATION SECTION ===
 echo "📉 Applying safe size optimizations..."
 
-# Install production dependencies in dist (with scripts for native deps)
+# Install production dependencies in dist (dev deps excluded)
 echo "🔧 Installing production dependencies..."
-cd dist && npm install --omit=dev 2>/dev/null || true && cd ..
+cd dist && npm install --omit=dev --legacy-peer-deps 2>&1 | tail -20 && cd ..
 
 # Clean Puppeteer's embedded Chromium from dist/node_modules (300MB+)
 echo "🌐 Cleaning Puppeteer browser cache from build..."

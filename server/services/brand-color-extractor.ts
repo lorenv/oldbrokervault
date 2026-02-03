@@ -3,7 +3,7 @@
  * Extracts dominant colors from uploaded logos for branding consistency
  */
 
-import { getColor, getPalette } from 'colorthief';
+import colorthief from 'colorthief';
 
 interface ExtractedColors {
   primary: string;
@@ -77,10 +77,10 @@ export async function extractBrandColors(imageBuffer: Buffer, colorCount: number
     // ColorThief exports getColor and getPalette as functions that accept buffers directly
 
     // Get dominant color
-    const dominantRgb = await getColor(imageBuffer) as [number, number, number];
+    const dominantRgb = await colorthief.getColor(imageBuffer) as [number, number, number];
 
     // Get color palette
-    const paletteRgb = await getPalette(imageBuffer, colorCount + 2) as [number, number, number][]; // Get extra colors for filtering
+    const paletteRgb = await colorthief.getPalette(imageBuffer, colorCount + 2) as [number, number, number][]; // Get extra colors for filtering
 
     // Filter to get distinct, valid brand colors
     const filteredPalette = filterDistinctColors(paletteRgb).slice(0, colorCount);

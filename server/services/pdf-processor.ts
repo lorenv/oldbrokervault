@@ -1,11 +1,11 @@
 import { Buffer } from 'buffer';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { fromBuffer } from 'pdf2pic';
 import sharp from 'sharp';
 import { ObjectStorageService } from '../object-storage';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { fromBuffer } from 'pdf2pic';
 
 const execAsync = promisify(exec);
 
@@ -28,13 +28,13 @@ interface FileUpload {
 
 export async function processPDFToImages(file: FileUpload, id: number, isTemplate: boolean = false): Promise<ProcessedDocument> {
   const tempDir = path.join(process.cwd(), 'temp', `${isTemplate ? 'template' : 'doc'}-${id}`);
-  
+
   try {
     console.log(`[PDF_PROC] Starting PDF processing for ${file.originalname}`);
-    
+
     // Create temporary directory
     await fs.mkdir(tempDir, { recursive: true });
-    
+
     // Convert PDF to images using pdf2pic with optimized settings - preserve original proportions
     const convert = fromBuffer(file.buffer, {
       density: 150,           // DPI for conversion quality

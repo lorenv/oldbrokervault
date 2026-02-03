@@ -18,7 +18,7 @@ import {
 import { eq, and, desc, isNotNull } from 'drizzle-orm';
 import { generateSecureToken } from '../token-utils';
 import { sendEmail, sendNdaConfirmationEmail } from '../email';
-import geoip from 'geoip-lite';
+import { lookupIp } from './geo-ip-service';
 import { processPDFToImages, overlaySignatureFields } from './pdf-processor';
 import { ObjectStorageService } from '../object-storage';
 
@@ -229,15 +229,15 @@ export class ESignatureService {
 
       // Log access
       if (recipient[0].status === 'sent' && ipAddress) {
-        const location = geoip.lookup(ipAddress);
-        
+        const location = await lookupIp(ipAddress);
+
         await db.update(ndaRecipients)
           .set({ 
             status: 'viewed',
             viewedAt: new Date(),
             ipAddress,
             userAgent,
-            location: location ? `${location.city}, ${location.region}, ${location.country}` : undefined,
+            location: location ? [location.city, location.region, location.country].filter(Boolean).join(', ') || undefined : undefined,
           })
           .where(eq(ndaRecipients.id, recipient[0].id));
 
