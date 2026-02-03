@@ -326,13 +326,6 @@ export default function LoginPage() {
 
           <Card className="shadow-2xl border-0">
             <CardHeader className="space-y-1 pb-6">
-              <div className="flex justify-center mb-4">
-                <img
-                  src="/brokervaultlogo.svg"
-                  alt="Broker Vault"
-                  className="h-12 w-auto"
-                />
-              </div>
               <CardTitle className="text-2xl font-bold text-center">
                 Welcome Back
               </CardTitle>
