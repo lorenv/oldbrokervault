@@ -80,7 +80,10 @@
       "Bash(head -20 echo \"\" echo \"=== public \\(168MB\\) - What''s in here? ===\")",
       "Bash(file:*)",
       "Bash(head -5 du -sh attached_assets/*.mp4 attached_assets/*.xlsx)",
-      "Bash(sort:*)"
+      "Bash(sort:*)",
+      "Bash(while read hex)",
+      "Bash(do printf \"%d\\\\n\" \"0x$hex\")",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": [],
