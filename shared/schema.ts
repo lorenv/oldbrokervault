@@ -158,6 +158,23 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Session table for connect-pg-simple (express-session storage)
+export const session = pgTable("session", {
+  sid: text("sid").primaryKey(),
+  sess: jsonb("sess").notNull(),
+  expire: timestamp("expire").notNull(),
+});
+
+// Email verification codes for signup flow
+export const emailVerificationCodes = pgTable("email_verification_codes", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull(),
+  code: text("code").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  verified: boolean("verified").default(false).notNull(),
+});
+
 export const cimDocuments = pgTable("cim_documents", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
@@ -3540,3 +3557,6 @@ export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
 
 export type UserNotificationPreferences = typeof userNotificationPreferences.$inferSelect;
 export type InsertUserNotificationPreferences = typeof userNotificationPreferences.$inferInsert;
+
+export type Session = typeof session.$inferSelect;
+export type EmailVerificationCode = typeof emailVerificationCodes.$inferSelect;
