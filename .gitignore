@@ -7,6 +7,12 @@ dist
 # Database backups
 backup.sql
 *.sql
+
+# Backup files
+*.backup
+
+# Test artifacts
+test-*.pdf
 server/public
 vite.config.ts.*
 *.tar.gz

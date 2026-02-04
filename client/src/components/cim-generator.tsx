@@ -643,55 +643,25 @@ export function CimGenerator({ onModeChange, dealId }: CimGeneratorProps = {}) {
         }));
       }
 
-      // Clear all pending stage timers since API is done
+      // Clear all pending stage timers
       stageTimersRef.current.forEach(timer => clearTimeout(timer));
       stageTimersRef.current = [];
 
-      // API has completed - smoothly walk through remaining stages in sequence
-      // This ensures the checklist flows naturally without jumping
-      const stageOrder: CimGenerationStage[] = [
-        "initializing",
-        "processing_transcript",
-        "analyzing_website",
-        "analyzing_content",
-        "generating_document",
-        "processing_financials",
-        "finalizing",
-        "complete"
-      ];
-
-      // Find current stage index
-      const currentStageIndex = stageOrder.indexOf(generationStage || "initializing");
-
-      // Walk through each remaining stage with a brief delay for smooth UX
-      for (let i = currentStageIndex + 1; i < stageOrder.length; i++) {
-        const stage = stageOrder[i];
-
-        // Skip to generating_document quickly if we're on early stages
-        // This ensures we show progress without excessive waiting
-        if (i < stageOrder.indexOf("generating_document")) {
-          setGenerationStage(stage);
-          await new Promise(resolve => setTimeout(resolve, 150)); // Quick transition
-        } else {
-          // For final stages, give a bit more time for visual feedback
-          setGenerationStage(stage);
-          if (stage !== "complete") {
-            await new Promise(resolve => setTimeout(resolve, 400));
-          }
-        }
-      }
-
+      // Background generation is now in progress on the server
+      // Show brief "redirecting" stage, then navigate to document page
+      // The document page will show the generating state and poll for completion
+      setGenerationStage("generating_document");
       setWebsiteAnalysisStage(null);
 
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/recent"] });
-      queryClient.invalidateQueries({ queryKey: [`/api/cim/${result.id}`] });
 
-      // Wait for celebration animation to show (600ms to reach, then 2s to display), then redirect
+      // Brief delay to show the stage transition, then redirect
+      // Document page will handle the "generating" state with polling
       setTimeout(() => {
         setGenerationStage(null);
         setProgressStartTime(null);
         window.location.assign(`/documents/${result.id}?tab=edit`);
-      }, 2600); // 600ms to show progress at 100% + 2000ms to display celebration
+      }, 800); // Quick transition to document page
     },
     onError: (error) => {
       // Clear all pending stage timers

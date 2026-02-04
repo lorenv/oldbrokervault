@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useParams, Link } from "wouter";
+import { useParams, Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -139,6 +139,7 @@ const ensureProtocol = (url: string): string => {
 
 export default function CompanyDetailPage() {
   const { id } = useParams();
+  const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
@@ -156,6 +157,7 @@ export default function CompanyDetailPage() {
   const [dealSearch, setDealSearch] = useState("");
   const [selectedContactId, setSelectedContactId] = useState<string>("");
   const [selectedDealId, setSelectedDealId] = useState<string>("");
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   // Sidebar collapse state - persisted to localStorage
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
@@ -330,6 +332,19 @@ export default function CompanyDetailPage() {
     },
   });
 
+  // Delete company mutation
+  const deleteCompanyMutation = useMutation({
+    mutationFn: () => apiRequest("DELETE", `/api/crm/companies/${id}`).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"], refetchType: 'all' });
+      toast({ title: "Company deleted", description: "The company has been permanently deleted." });
+      navigate("/companies");
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to delete company.", variant: "destructive" });
+    },
+  });
+
   // Helper for inline company updates
   const handleCompanyUpdate = useCallback(async (field: string, value: string) => {
     await updateCompanyMutation.mutateAsync({ [field]: value || null });
@@ -392,15 +407,26 @@ export default function CompanyDetailPage() {
             {(company as any).industry && <p className="text-gray-600 text-sm">{(company as any).industry}</p>}
           </div>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setIsCustomizerOpen(true)}
-          className="gap-2"
-        >
-          <Settings2 className="h-4 w-4" />
-          Customize
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsCustomizerOpen(true)}
+            className="gap-2"
+          >
+            <Settings2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Customize</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsDeleteDialogOpen(true)}
+            className="flex items-center gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50"
+          >
+            <Trash2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Delete</span>
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr,auto] gap-6">
@@ -477,8 +503,8 @@ export default function CompanyDetailPage() {
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="pt-2">
-            <div className="overflow-x-auto scrollbar-hide -mx-1 px-1">
-              <TabsList variant="underline" className="w-max min-w-full justify-start border-b">
+            <div className="overflow-x-auto scrollbar-hide -mx-1 px-1" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <TabsList variant="underline" className="w-max min-w-full justify-start border-b flex-nowrap">
                 <TabsTrigger variant="underline" value="activity">
                   <Clock className="h-4 w-4 mr-1" />
                   Activity
@@ -1051,6 +1077,30 @@ export default function CompanyDetailPage() {
               disabled={!selectedDealId || linkDealMutation.isPending}
             >
               {linkDealMutation.isPending ? "Linking..." : "Link Deal"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Company</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{(company as any).name}"? This action cannot be undone and will permanently remove the company and all associated data.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteCompanyMutation.mutate()}
+              disabled={deleteCompanyMutation.isPending}
+            >
+              {deleteCompanyMutation.isPending ? "Deleting..." : "Delete Company"}
             </Button>
           </DialogFooter>
         </DialogContent>

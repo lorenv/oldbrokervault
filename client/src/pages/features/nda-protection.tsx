@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { SEOHead } from "@/components/seo-head";
+import { LazyVideo } from "@/components/ui/lazy-video";
 
 export default function NdaProtectionPage() {
   const [visibleElements, setVisibleElements] = useState<Set<string>>(new Set());
@@ -100,16 +101,14 @@ export default function NdaProtectionPage() {
             <p className="text-lg text-slate-600">Watch how NDA protection keeps your documents secure</p>
           </div>
           <div className="rounded-2xl overflow-hidden shadow-2xl border border-slate-200">
-            <video
+            <LazyVideo
+              src="/ndamanagement.mp4"
               className="w-full"
               autoPlay
               muted
               loop
               playsInline
-            >
-              <source src="/ndamanagement.mp4" type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
+            />
           </div>
         </div>
       </section>

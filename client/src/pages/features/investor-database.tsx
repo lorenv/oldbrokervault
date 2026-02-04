@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { SEOHead } from "@/components/seo-head";
+import { LazyVideo } from "@/components/ui/lazy-video";
 
 export default function InvestorDatabasePage() {
   const [visibleElements, setVisibleElements] = useState<Set<string>>(new Set());
@@ -103,16 +104,14 @@ export default function InvestorDatabasePage() {
             <p className="text-lg text-slate-600">Watch how the Investor CRM helps you manage contacts and track engagement</p>
           </div>
           <div className="rounded-2xl overflow-hidden shadow-2xl border border-slate-200">
-            <video
+            <LazyVideo
+              src="/crm.mp4"
               className="w-full"
               autoPlay
               muted
               loop
               playsInline
-            >
-              <source src="/crm.mp4" type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
+            />
           </div>
         </div>
       </section>

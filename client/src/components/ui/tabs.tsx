@@ -91,6 +91,7 @@ const TabsList = React.forwardRef<
             "relative flex h-11 items-center gap-1 border-b border-border/50 bg-transparent p-0 text-muted-foreground overflow-x-auto scrollbar-hide flex-nowrap",
             className
           )}
+          style={{ WebkitOverflowScrolling: 'touch' }}
           {...props}
         >
           {children}

@@ -6,24 +6,55 @@ import { eq } from "drizzle-orm";
 
 const router = Router();
 
+// Debug/test endpoint
+router.get("/test", async (req, res) => {
+  console.log("[AI Assistant Route] GET /test called");
+  try {
+    // Test database connectivity
+    const testQuery = await db.select({ id: organizationMembers.id }).from(organizationMembers).limit(1);
+    console.log("[AI Assistant Route] Database test passed");
+
+    res.json({
+      status: "ok",
+      dbConnected: true,
+      openaiConfigured: !!process.env.OPENAI_API_KEY,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error("[AI Assistant Route] Test failed:", error);
+    res.json({
+      status: "error",
+      error: error.message,
+      openaiConfigured: !!process.env.OPENAI_API_KEY
+    });
+  }
+});
+
 // Middleware to get user's organization
 async function getOrganizationId(userId: number): Promise<number | null> {
+  console.log(`[AI Assistant Route] Looking up organization for user ${userId}`);
   const [membership] = await db
     .select({ organizationId: organizationMembers.organizationId })
     .from(organizationMembers)
     .where(eq(organizationMembers.userId, userId));
+  console.log(`[AI Assistant Route] Found membership:`, membership);
   return membership?.organizationId || null;
 }
 
 // Send a message to the AI assistant
 router.post("/chat", async (req, res) => {
+  console.log("[AI Assistant Route] POST /chat received");
   try {
     if (!req.isAuthenticated() || !req.user) {
+      console.log("[AI Assistant Route] User not authenticated");
       return res.status(401).json({ error: "Authentication required" });
     }
 
     const { message } = req.body;
+    console.log(`[AI Assistant Route] Message from user ${req.user.id}: "${message?.substring(0, 50)}..."`);
+
     if (!message || typeof message !== "string" || message.trim().length === 0) {
+      console.log("[AI Assistant Route] Invalid message");
       return res.status(400).json({ error: "Message is required" });
     }
 
@@ -32,11 +63,13 @@ router.post("/chat", async (req, res) => {
     }
 
     const organizationId = await getOrganizationId(req.user.id);
+    console.log(`[AI Assistant Route] Organization ID: ${organizationId}`);
     if (!organizationId) {
       return res.status(400).json({ error: "No organization found for user" });
     }
 
     const result = await chat(organizationId, req.user.id, message.trim());
+    console.log(`[AI Assistant Route] Chat result - error: ${result.error}, tokens: ${result.tokensUsed}`);
 
     res.json({
       response: result.response,
@@ -45,6 +78,7 @@ router.post("/chat", async (req, res) => {
     });
   } catch (error: any) {
     console.error("[AI Assistant Route] Error:", error);
+    console.error("[AI Assistant Route] Error stack:", error.stack);
     res.status(500).json({ error: "Failed to process message" });
   }
 });

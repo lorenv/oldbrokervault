@@ -246,7 +246,11 @@ export const cimDocuments = pgTable("cim_documents", {
     theme: 'corporate-blue' | 'forest-green' | 'charcoal' | 'burgundy' | 'brand';
     sectionStyle: 'cards' | 'flat' | 'minimal';
     contactPosition: 'sidebar' | 'bottom';
-  }>()
+  }>(),
+  // Background generation status fields
+  generationStatus: text("generation_status").default("ready"), // 'generating', 'ready', 'failed'
+  generationError: text("generation_error"),
+  generationStartedAt: timestamp("generation_started_at"),
 }, (table) => ({
   userDeletedAtIdx: index("cim_documents_user_deleted_at_idx").on(table.userId, table.deletedAt),
 }));

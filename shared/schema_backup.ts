@@ -1,1 +1,0 @@
-// This is a backup of the old schema before updating to the new flexible system
