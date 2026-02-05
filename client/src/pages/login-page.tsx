@@ -126,9 +126,17 @@ export default function LoginPage() {
     }
   }, [location]);
 
-  // Redirect authenticated users to dashboard
+  // Redirect authenticated users after login
   useEffect(() => {
     if (user) {
+      // Check for redirect query parameter (e.g., from extension auth flow)
+      const urlParams = new URLSearchParams(window.location.search);
+      const redirect = urlParams.get('redirect');
+      if (redirect && redirect.startsWith('/') && !redirect.startsWith('//')) {
+        // Full page navigation for server-side routes (e.g., extension auth callback)
+        window.location.href = redirect;
+        return;
+      }
       setLocation("/dashboard");
     }
   }, [user, setLocation]);

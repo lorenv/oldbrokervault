@@ -58,11 +58,12 @@ async function signIn() {
       interactive: true
     });
 
-    // Extract token from the response URL
+    // Extract token from the response URL fragment (server sends via hash for security)
     const url = new URL(responseUrl);
-    const token = url.searchParams.get('token');
-    const userId = url.searchParams.get('user_id');
-    const email = url.searchParams.get('email');
+    const hashParams = new URLSearchParams(url.hash.substring(1));
+    const token = hashParams.get('token');
+    const userId = hashParams.get('user_id');
+    const email = hashParams.get('email');
 
     if (token) {
       authToken = token;
