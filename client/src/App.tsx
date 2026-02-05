@@ -8,6 +8,7 @@ import { useEffect, lazy, Suspense } from "react";
 import { initializeTracking, useTracking } from "./hooks/use-tracking";
 import { useAuth } from "@/hooks/use-auth";
 import { AppLayout } from "@/components/layout/app-layout";
+import { CimGenerationProvider } from "@/contexts/cim-generation-context";
 
 // Core pages (loaded immediately for fast initial render)
 import LoginPage from "@/pages/login-page";
@@ -42,6 +43,7 @@ const SDEAnalyzerPage = lazy(() => import("@/pages/sde-analyzer-page"));
 const IntegrationsPage = lazy(() => import("@/pages/integrations-page"));
 const WebhooksPage = lazy(() => import("@/pages/webhooks-page"));
 const DataRoomPage = lazy(() => import("@/pages/data-room-page"));
+const CimGeneratingPage = lazy(() => import("@/pages/cim-generating-page").then(m => ({ default: m.CimGeneratingPage })));
 
 // Lazy-loaded settings pages
 const ListingsSettingsPage = lazy(() => import("@/pages/listings-settings-page"));
@@ -138,6 +140,7 @@ function AuthenticatedRouter() {
       <Switch>
         <ProtectedRoute path="/dashboard" component={DashboardPage} />
         <ProtectedRoute path="/documents" component={DocumentsPage} />
+        <ProtectedRoute path="/documents/:id/generating" component={CimGeneratingPage} />
         <ProtectedRoute path="/documents/:id" component={DocumentDetailPage} />
         <ProtectedRoute path="/analytics" component={AnalyticsPage} />
         <ProtectedRoute path="/premium" component={PremiumDashboard} />
@@ -302,8 +305,10 @@ function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <Router />
-          <Toaster />
+          <CimGenerationProvider>
+            <Router />
+            <Toaster />
+          </CimGenerationProvider>
         </AuthProvider>
       </QueryClientProvider>
     </ErrorBoundary>

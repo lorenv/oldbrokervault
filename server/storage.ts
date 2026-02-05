@@ -628,6 +628,9 @@ export class DatabaseStorage implements IStorage {
       formattingProfile: doc.formattingProfile || null,
       // Deal association
       dealId: doc.dealId || null,
+      // Generation status tracking
+      generationStatus: doc.generationStatus || 'ready',
+      generationStartedAt: doc.generationStartedAt || null,
     };
 
     console.log("Data being inserted into database:", insertData);
@@ -994,7 +997,9 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
         collaboratorPermission: sql<string>`MAX(CASE WHEN ${collaborators.userId} = ${userId} THEN ${collaborators.permission} ELSE NULL END)`,
         // Deal info
         dealId: cimDocuments.dealId,
-        dealName: deals.name
+        dealName: deals.name,
+        // Generation status for background CIM generation
+        generationStatus: cimDocuments.generationStatus
       })
       .from(cimDocuments)
       .leftJoin(collaborators, eq(cimDocuments.id, collaborators.cimDocumentId))
@@ -1019,7 +1024,8 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
         cimDocuments.formattingProfile,
         cimDocuments.ndaApprovalRequired,
         cimDocuments.dealId,
-        deals.name
+        deals.name,
+        cimDocuments.generationStatus
       );
 
     // Add HAVING clause for 'has-signatures' filter

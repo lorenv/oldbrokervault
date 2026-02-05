@@ -127,12 +127,14 @@ const TabsTrigger = React.forwardRef<
   const context = React.useContext(AnimatedTabsContext);
   const triggerRef = React.useRef<HTMLButtonElement>(null);
 
+  const registerTab = context?.registerTab;
+
   React.useEffect(() => {
-    if (context && value) {
-      context.registerTab(value, triggerRef.current);
-      return () => context.registerTab(value, null);
+    if (registerTab && value) {
+      registerTab(value, triggerRef.current);
+      return () => registerTab(value, null);
     }
-  }, [context, value]);
+  }, [registerTab, value]);
 
   const combinedRef = React.useCallback(
     (node: HTMLButtonElement) => {

@@ -21,8 +21,9 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { z } from "zod";
-import { Loader2, PenTool, Database, Users, Workflow, Link2, CheckCircle, ArrowRight } from "lucide-react";
+import { Loader2, PenTool, Database, Users, Workflow, Link2, CheckCircle, ArrowRight, Zap } from "lucide-react";
 import { useState, useEffect } from "react";
+import { extractPlanIntent, storePlanIntent, getPlanIntent, PlanIntent } from "@/lib/plan-intent";
 
 const registerSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -48,6 +49,28 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 export default function RegisterPage() {
   const { user, registerMutation } = useAuth();
   const [, setLocation] = useLocation();
+  const [planIntent, setPlanIntent] = useState<PlanIntent | null>(null);
+
+  // Capture plan intent from URL parameters on mount
+  useEffect(() => {
+    // First check URL for plan intent
+    const urlIntent = extractPlanIntent();
+    if (urlIntent) {
+      storePlanIntent(urlIntent);
+      setPlanIntent(urlIntent);
+      // Clean URL by removing plan parameters
+      const url = new URL(window.location.href);
+      url.searchParams.delete('plan');
+      url.searchParams.delete('billing');
+      window.history.replaceState({}, '', url.toString());
+    } else {
+      // Check for existing stored intent
+      const storedIntent = getPlanIntent();
+      if (storedIntent) {
+        setPlanIntent(storedIntent);
+      }
+    }
+  }, []);
 
   // Redirect authenticated users to dashboard
   useEffect(() => {
@@ -171,20 +194,31 @@ export default function RegisterPage() {
             <p className="text-slate-600">The All-in-One Platform for Business Brokers</p>
           </div>
 
+          {planIntent && (
+            <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                  <Zap className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900">You selected the Pro plan</p>
+                  <p className="text-sm text-gray-600">
+                    ${planIntent.billing === 'annual' ? '49' : '59'}/mo
+                    {planIntent.billing === 'annual' ? ' billed annually' : ' billed monthly'}.
+                    Create your account to continue.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <Card className="shadow-2xl border-0">
             <CardHeader className="space-y-1 pb-6">
-              <div className="flex justify-center mb-4">
-                <img
-                  src="/brokervaultlogo.svg"
-                  alt="Broker Vault"
-                  className="h-12 w-auto"
-                />
-              </div>
               <CardTitle className="text-2xl font-bold text-center">
                 Create an Account
               </CardTitle>
               <CardDescription className="text-center">
-                Get started with your free account
+                {planIntent ? 'Sign up to activate your Pro plan' : 'Get started with your free account'}
               </CardDescription>
             </CardHeader>
             <CardContent>

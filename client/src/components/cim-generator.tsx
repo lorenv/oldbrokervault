@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertCimDocumentSchema, DEFAULT_CIM_DIRECTIONS, DEFAULT_ANALYSIS_TEMPLATES, subscriptionPlans } from "@shared/schema";
@@ -10,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Loader2, Settings, Upload, X, FileText, Download, Copy, File, Save, FolderOpen, NotebookPen, DollarSign, Settings2, Shield, UserCheck, ExternalLink, Paperclip, Check, Zap, Sparkles, Plus, Briefcase } from "lucide-react";
+import { useCimGenerationOptional } from "@/contexts/cim-generation-context";
 import {
   Dialog,
   DialogContent,
@@ -77,7 +79,9 @@ export function CimGenerator({ onModeChange, dealId }: CimGeneratorProps = {}) {
   const { user } = useAuth();
   const { toast } = useToast();
   const { brandColor, needsDarkText } = useBrandColor();
+  const [, setLocation] = useLocation();
   const [cimMode, setCimMode] = useState<'choice' | 'generate' | 'upload'>('choice');
+  const cimGeneration = useCimGenerationOptional();
 
   // Debug: Log dealId prop
   console.log('[CimGenerator] Received dealId prop:', dealId, 'type:', typeof dealId);
@@ -148,6 +152,24 @@ export function CimGenerator({ onModeChange, dealId }: CimGeneratorProps = {}) {
   const [generationStage, setGenerationStage] = useState<CimGenerationStage | null>(null);
   const stageTimersRef = useRef<NodeJS.Timeout[]>([]);
   const [progressStartTime, setProgressStartTime] = useState<number | null>(null);
+  const [generatingDocId, setGeneratingDocId] = useState<number | null>(null);
+
+  // Watch for generation completion from context
+  // When context's activeGeneration becomes null (completed), update local progress
+  useEffect(() => {
+    if (!cimGeneration) return;
+
+    // If we were tracking a generation and it's now complete
+    if (generatingDocId && !cimGeneration.activeGeneration) {
+      // Generation completed - show complete stage briefly, then reset
+      setGenerationStage("complete");
+      setTimeout(() => {
+        setGenerationStage(null);
+        setProgressStartTime(null);
+        setGeneratingDocId(null);
+      }, 2000); // Show complete animation for 2 seconds
+    }
+  }, [cimGeneration?.activeGeneration, generatingDocId]);
   const [financialData, setFinancialData] = useState({
     askingPrice: '',
     revenue: '',
@@ -443,6 +465,15 @@ export function CimGenerator({ onModeChange, dealId }: CimGeneratorProps = {}) {
   };
 
   const handleGenerate = async (data: FormValues) => {
+    // Prevent duplicate generations
+    if (cimGeneration?.isGenerating) {
+      toast({
+        title: "Generation in Progress",
+        description: "Please wait for the current CIM to finish generating.",
+        variant: "destructive"
+      });
+      return;
+    }
     generateMutation.mutate(data);
   };
 
@@ -647,21 +678,30 @@ export function CimGenerator({ onModeChange, dealId }: CimGeneratorProps = {}) {
       stageTimersRef.current.forEach(timer => clearTimeout(timer));
       stageTimersRef.current = [];
 
-      // Background generation is now in progress on the server
-      // Show brief "redirecting" stage, then navigate to document page
-      // The document page will show the generating state and poll for completion
-      setGenerationStage("generating_document");
+      // Clear website analysis stage
       setWebsiteAnalysisStage(null);
 
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/recent"] });
+      // Register with CIM generation context for background tracking
+      const docTitle = form.getValues('title') || 'New CIM';
+      if (cimGeneration) {
+        cimGeneration.startGeneration(result.id, docTitle);
+      }
 
-      // Brief delay to show the stage transition, then redirect
-      // Document page will handle the "generating" state with polling
-      setTimeout(() => {
-        setGenerationStage(null);
-        setProgressStartTime(null);
-        window.location.assign(`/documents/${result.id}?tab=edit`);
-      }, 800); // Quick transition to document page
+      // Navigate to the dedicated generation page
+      setGenerationStage(null);
+      setProgressStartTime(null);
+      setLocation(`/documents/${result.id}/generating`);
+
+      // Reset form for potential future use (but keep showing progress)
+      form.reset();
+      setFinancialData({ askingPrice: '', revenue: '', ebitda: '' });
+      setFinancialFiles([]);
+      setSelectedCoverImage(null);
+      setCoverImageFile(null);
+      setCoverImageAttribution('');
+      setCoverImagePosition({ x: 50, y: 50 });
+      setSelectedImages([]);
+      setExtractedImages([]);
     },
     onError: (error) => {
       // Clear all pending stage timers
@@ -672,6 +712,7 @@ export function CimGenerator({ onModeChange, dealId }: CimGeneratorProps = {}) {
       setGenerationStage(null);
       setProgressStartTime(null);
       setWebsiteAnalysisStage(null);
+      setGeneratingDocId(null);
 
       toast({
         title: "Error Generating CIM",

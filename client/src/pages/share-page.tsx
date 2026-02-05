@@ -1004,7 +1004,7 @@ export function SharePage() {
 
           {/* Sticky Sidebar - only show when contact position is sidebar */}
           {showSidebar && (
-            <div className="lg:w-[28rem] flex-shrink-0 animate-slide-right delay-300">
+            <div className="lg:w-[28rem] flex-shrink-0 animate-fade-in delay-300">
               <ShareStickySidebar
                 shareSlug={shareSlug!}
                 cimTitle={shareData.cim.title}
