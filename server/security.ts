@@ -214,6 +214,8 @@ export const cspDirectives = {
     // Payment & Analytics
     "https://js.stripe.com",
     "https://api.stripe.com",
+    "https://us.i.posthog.com",
+    "https://*.posthog.com",
     "https://www.googletagmanager.com",
     "https://www.google-analytics.com",
     "https://analytics.google.com",
@@ -312,6 +314,8 @@ export const cspDirectives = {
 
     // Payment & Analytics
     "https://api.stripe.com",
+    "https://us.i.posthog.com",
+    "https://*.posthog.com",
     "https://www.google-analytics.com",
     "https://www.googletagmanager.com",
     "https://analytics.google.com",
