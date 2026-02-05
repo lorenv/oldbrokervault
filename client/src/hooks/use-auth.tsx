@@ -154,7 +154,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Welcome back!",
         description: "You have successfully logged in.",
       });
-      // Redirect to dashboard after successful login
+
+      // Check for redirect query parameter (e.g., from extension auth flow)
+      const urlParams = new URLSearchParams(window.location.search);
+      const redirect = urlParams.get('redirect');
+      if (redirect && redirect.startsWith('/') && !redirect.startsWith('//')) {
+        // Full page navigation for server-side routes (e.g., extension auth callback)
+        window.location.href = redirect;
+        return;
+      }
+
+      // Default: redirect to dashboard
       setLocation("/dashboard");
     },
     onError: (error: Error) => {
