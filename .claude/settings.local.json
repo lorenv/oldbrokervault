@@ -83,7 +83,9 @@
       "Bash(sort:*)",
       "Bash(while read hex)",
       "Bash(do printf \"%d\\\\n\" \"0x$hex\")",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(npm run optimize-images:dry:*)",
+      "Bash(journalctl:*)"
     ],
     "deny": [],
     "ask": [],

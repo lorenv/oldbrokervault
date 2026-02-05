@@ -4,7 +4,7 @@
  */
 
 // Configuration
-const BASE_URL = 'https://brokervault.ai';
+const BASE_URL = 'https://app.brokervault.ai';
 
 // Handle notification button clicks
 chrome.notifications.onButtonClicked.addListener((notificationId, buttonIndex) => {

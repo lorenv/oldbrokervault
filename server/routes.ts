@@ -60,7 +60,6 @@ import { setupSEORoutes } from "./seo-routes";
 import { textExtractionRouter } from "./routes/text-extraction";
 import { registerSDEAnalyzerRoutes } from "./routes/sde-analyzer-routes";
 import { sdeProcessor } from "./sde-processor";
-import { simpleParser } from 'mailparser';
 import webhookRoutes from "./routes/webhook-routes";
 import incomingWebhookRoutes from "./routes/incoming-webhook-routes";
 import integrationRoutes from "./routes/integration-routes";
@@ -73,6 +72,7 @@ import extensionAuthRoutes from "./routes/extension-auth-routes";
 import extensionRoutes from "./routes/extension-routes";
 import { dispatchWebhookEvent } from "./webhook-dispatcher";
 import { dispatchIntegrationEvent } from "./integrations";
+import { registerExternalWebhooks } from "./routes/external-webhooks";
 
 
 // Directory paths
@@ -221,95 +221,6 @@ async function addRoundedCorners(imageBuffer: Buffer, radius: number = 30): Prom
   }
 }
 
-// SendGrid Inbound Parse Webhook URL secret verification
-// Since Inbound Parse doesn't support signature verification, we use a secret in the URL
-function verifySendGridInboundSecret(req: express.Request, res: express.Response, next: express.NextFunction) {
-  const urlSecret = req.query.secret as string;
-  const configuredSecret = process.env.SENDGRID_INBOUND_WEBHOOK_SECRET;
-
-  // Skip verification in development if no secret configured
-  if (!configuredSecret) {
-    if (process.env.NODE_ENV === 'production') {
-      console.error('SENDGRID_INBOUND_WEBHOOK_SECRET not configured in production');
-      // In production without a secret, still allow (for backward compatibility) but log warning
-      console.warn('WARNING: SendGrid inbound webhook running without secret verification');
-    }
-    return next();
-  }
-
-  // Verify the secret matches
-  if (!urlSecret) {
-    console.error('SendGrid inbound webhook: Missing secret in URL');
-    return res.status(401).json({ error: 'Unauthorized: Missing webhook secret' });
-  }
-
-  // Use timing-safe comparison to prevent timing attacks
-  const secretBuffer = Buffer.from(configuredSecret);
-  const providedBuffer = Buffer.from(urlSecret);
-
-  if (secretBuffer.length !== providedBuffer.length || !crypto.timingSafeEqual(secretBuffer, providedBuffer)) {
-    console.error('SendGrid inbound webhook: Invalid secret provided');
-    return res.status(401).json({ error: 'Unauthorized: Invalid webhook secret' });
-  }
-
-  next();
-}
-
-// SendGrid Event Webhook signature verification (ECDSA)
-function verifySendGridEventSignature(req: express.Request, res: express.Response, next: express.NextFunction) {
-  const signature = req.headers['x-twilio-email-event-webhook-signature'] as string;
-  const timestamp = req.headers['x-twilio-email-event-webhook-timestamp'] as string;
-
-  // Get the verification key from environment
-  const webhookKey = process.env.SENDGRID_WEBHOOK_VERIFICATION_KEY;
-
-  // Skip verification in development if no key configured
-  if (!webhookKey) {
-    if (process.env.NODE_ENV === 'production') {
-      console.error('SENDGRID_WEBHOOK_VERIFICATION_KEY not configured in production');
-      // In production without a key, still allow (for backward compatibility) but log warning
-      console.warn('WARNING: SendGrid event webhook running without signature verification');
-    }
-    return next();
-  }
-
-  // Check for required headers
-  if (!signature || !timestamp) {
-    console.error('SendGrid event webhook: Missing signature or timestamp headers');
-    return res.status(401).json({ error: 'Unauthorized: Missing webhook signature' });
-  }
-
-  // Verify timestamp is recent (within 5 minutes) to prevent replay attacks
-  const timestampDate = new Date(parseInt(timestamp) * 1000);
-  const now = new Date();
-  const fiveMinutes = 5 * 60 * 1000;
-  if (Math.abs(now.getTime() - timestampDate.getTime()) > fiveMinutes) {
-    console.error('SendGrid event webhook: Timestamp too old or in future');
-    return res.status(401).json({ error: 'Unauthorized: Webhook timestamp expired' });
-  }
-
-  // Verify ECDSA signature
-  try {
-    // SendGrid signs: timestamp + payload
-    const payload = timestamp + JSON.stringify(req.body);
-    const verifier = crypto.createVerify('sha256');
-    verifier.update(payload);
-
-    // The webhook key should be the public key in PEM format
-    const isValid = verifier.verify(webhookKey, signature, 'base64');
-
-    if (!isValid) {
-      console.error('SendGrid event webhook: Invalid signature');
-      return res.status(401).json({ error: 'Unauthorized: Invalid webhook signature' });
-    }
-
-    next();
-  } catch (error) {
-    console.error('SendGrid event webhook verification error:', error);
-    return res.status(401).json({ error: 'Unauthorized: Webhook verification failed' });
-  }
-}
-
 // Configure temporary uploads directory for disk storage
 const tmpUploadsDir = path.join(os.tmpdir(), 'brokervault-uploads');
 if (!fsSync.existsSync(tmpUploadsDir)) {
@@ -390,296 +301,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/user-images', express.static(path.join(process.cwd(), 'public', 'user-images')));
   app.use('/logos', express.static(path.join(process.cwd(), 'public', 'logos')));
   
-  // IMPORTANT: Register webhook endpoints BEFORE authentication middleware
+  // IMPORTANT: Register external webhook endpoints BEFORE authentication middleware
   // These endpoints need to be accessible by external services without authentication
+  await registerExternalWebhooks(app);
 
-  // Configure multer for SendGrid inbound email webhook (multipart/form-data)
-  const sendgridInboundUpload = multer({
-    storage: multer.memoryStorage(),
-    limits: { fileSize: 25 * 1024 * 1024 } // 25MB limit for email attachments
-  });
-
-  // SendGrid Inbound Email Webhook - Raw body capture approach
-  // Captures raw body BEFORE any middleware to avoid multipart parsing corruption
-  // SEC-017: Added secret verification via URL query parameter
-  app.post('/api/webhook/sendgrid/inbound', verifySendGridInboundSecret, async (req, res) => {
-
-    console.log('\n' + '='.repeat(80));
-    console.log('📨 SENDGRID INBOUND WEBHOOK HIT!');
-    console.log('Timestamp:', new Date().toISOString());
-    console.log('='.repeat(80));
-
-    // Log request details
-    console.log('\n📋 REQUEST DETAILS:');
-    console.log('  Method:', req.method);
-    console.log('  URL:', req.url);
-    console.log('  IP:', req.ip);
-    console.log('  Content-Type:', req.headers['content-type']);
-
-    try {
-      // Capture raw body manually to avoid multer corruption
-      const chunks: Buffer[] = [];
-      for await (const chunk of req) {
-        chunks.push(chunk);
-      }
-      const rawBody = Buffer.concat(chunks);
-      console.log('\n📦 Raw body size:', rawBody.length, 'bytes');
-
-      // Parse multipart form data manually
-      const contentType = req.headers['content-type'] || '';
-      const boundaryMatch = contentType.match(/boundary=(?:"([^"]+)"|([^\s;]+))/);
-      const boundary = boundaryMatch ? (boundaryMatch[1] || boundaryMatch[2]) : null;
-
-      console.log('  Boundary:', boundary);
-
-      let webhookData: any = {};
-
-      if (boundary) {
-        // Parse multipart manually
-        const bodyStr = rawBody.toString('utf-8');
-        console.log('  🔍 Parsing multipart with boundary:', boundary);
-
-        // Split by boundary
-        const parts = bodyStr.split('--' + boundary);
-        console.log('  🔍 Found', parts.length, 'parts');
-
-        for (let i = 0; i < parts.length; i++) {
-          const part = parts[i];
-          if (part.trim() === '' || part.trim() === '--') continue;
-
-          // Find the header/body separator (handle both CRLF and LF)
-          let separatorIndex = part.indexOf('\r\n\r\n');
-          let separatorLen = 4;
-
-          // Try LF-only if CRLF not found
-          if (separatorIndex === -1) {
-            separatorIndex = part.indexOf('\n\n');
-            separatorLen = 2;
-          }
-
-          if (separatorIndex === -1) {
-            console.log(`  ⚠️ Part ${i}: No header separator found`);
-            continue;
-          }
-
-          const headers = part.substring(0, separatorIndex);
-          let body = part.substring(separatorIndex + separatorLen);
-
-          // Remove trailing boundary markers and whitespace
-          body = body.replace(/\r?\n--$/, '').replace(/\r?\n$/, '').trim();
-
-          // Extract field name from Content-Disposition
-          const nameMatch = headers.match(/Content-Disposition:[^;]*;\s*name="([^"]+)"/i);
-          if (nameMatch) {
-            const fieldName = nameMatch[1];
-            webhookData[fieldName] = body;
-            console.log(`  📝 Parsed field: ${fieldName} (${body.length} chars)`);
-          } else {
-            console.log(`  ⚠️ Part ${i}: No field name found in headers`);
-          }
-        }
-      } else {
-        console.log('  ⚠️ No boundary found in Content-Type header');
-      }
-
-      console.log('\n🔍 PARSED FIELDS:', Object.keys(webhookData).join(', '));
-
-      // Check if we have the raw email field (when "Send Raw" is enabled in SendGrid)
-      if (webhookData.email) {
-        console.log('\n🔄 Parsing raw MIME email from "email" field...');
-        try {
-          const parsed = await simpleParser(webhookData.email);
-
-          // Extract the parsed fields
-          webhookData = {
-            to: parsed.to?.text || (parsed.to?.value ? parsed.to.value.map((a: any) => a.address).join(', ') : ''),
-            from: parsed.from?.text || (parsed.from?.value ? parsed.from.value[0]?.address : ''),
-            subject: parsed.subject || '',
-            text: parsed.text || '',
-            html: parsed.html || '',
-            envelope: webhookData.envelope, // Keep original envelope if present
-            messageId: parsed.messageId,
-            date: parsed.date?.toISOString(),
-            // Include original webhook data as fallback
-            ...(!webhookData.envelope && parsed.to && parsed.from ? {
-              envelope: JSON.stringify({
-                to: parsed.to.value?.map((a: any) => a.address) || [],
-                from: parsed.from.value?.[0]?.address || ''
-              })
-            } : {})
-          };
-
-          console.log('✅ Successfully parsed raw MIME email');
-          console.log('  Parsed To:', webhookData.to);
-          console.log('  Parsed From:', webhookData.from);
-          console.log('  Parsed Subject:', webhookData.subject);
-          console.log('  Text length:', webhookData.text?.length || 0);
-          console.log('  HTML length:', webhookData.html?.length || 0);
-        } catch (parseError) {
-          console.error('❌ Failed to parse raw MIME email:', parseError);
-        }
-      }
-
-      console.log('\n🔍 FINAL WEBHOOK DATA:');
-      console.log('  To:', webhookData.to);
-      console.log('  From:', webhookData.from);
-      console.log('  Subject:', webhookData.subject);
-      console.log('  Text present:', !!webhookData.text, webhookData.text ? `(${webhookData.text.length} chars)` : '');
-      console.log('  HTML present:', !!webhookData.html, webhookData.html ? `(${webhookData.html.length} chars)` : '');
-      console.log('  Envelope:', webhookData.envelope);
-
-      // Extract thread ID from email address
-      if (webhookData.to) {
-        const threadMatch = webhookData.to.match(/thread-([^@]+)@/);
-        if (threadMatch) {
-          console.log('\n🎯 THREAD INFO:');
-          console.log('  Thread ID extracted:', threadMatch[1]);
-        } else {
-          console.log('\n⚠️ No thread ID found in recipient address:', webhookData.to);
-        }
-      }
-
-      console.log('\n⏳ Processing webhook data...');
-      await messageService.processInboundEmailWebhook(webhookData);
-
-      console.log('✅ Webhook processed successfully');
-      console.log('='.repeat(80) + '\n');
-      res.status(200).send('OK');
-    } catch (error) {
-      console.error('\n❌ ERROR PROCESSING WEBHOOK:');
-      console.error('  Error message:', error.message);
-      console.error('  Stack trace:', error.stack);
-      console.log('='.repeat(80) + '\n');
-      res.status(500).send('Error processing webhook');
-    }
-  });
-
-  // SendGrid Event Webhook (for delivery tracking)
-  // SEC-017: Added ECDSA signature verification
-  app.post('/api/webhook/sendgrid/events', express.json(), verifySendGridEventSignature, async (req, res) => {
-    console.log("📊 SendGrid event webhook received");
-    
-    try {
-      const events = Array.isArray(req.body) ? req.body : [req.body];
-      
-      for (const event of events) {
-        await messageService.processEmailEvent(event);
-      }
-      
-      res.status(200).send('OK');
-    } catch (error) {
-      console.error("Failed to process email events:", error);
-      res.status(500).send('Error processing events');
-    }
-  });
-
-  // Test endpoint for debugging SendGrid webhook
-  app.post('/api/webhook/sendgrid/test', express.json(), async (req, res) => {
-    console.log("🧪 SendGrid webhook test endpoint");
-    console.log("Request body keys:", Object.keys(req.body || {}));
-    
-    try {
-      // Test with a sample webhook payload (using new alphanumeric format)
-      const testData = req.body || {
-        to: "thread-abc12@reply.cimshare.com",
-        from: "test@example.com",
-        subject: "Test reply",
-        text: "This is a test email reply",
-        envelope: JSON.stringify({
-          to: ["thread-abc12@reply.cimshare.com"],
-          from: "test@example.com"
-        })
-      };
-      
-      console.log("Testing with data:", testData);
-      
-      // Try processing the webhook
-      await messageService.processInboundEmailWebhook(testData);
-      
-      res.json({
-        success: true,
-        message: "Test webhook processed",
-        dataReceived: testData
-      });
-    } catch (error) {
-      console.error("Test webhook error:", error);
-      res.status(500).json({
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-        dataReceived: req.body
-      });
-    }
-  });
-
-  // GET endpoint to check webhook configuration
-  app.get('/api/webhook/sendgrid/info', (req, res) => {
-    const baseUrl = process.env.REPLIT_DOMAINS
-      ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}`
-      : 'https://cimshare.com';
-
-    // Check if webhook security is configured
-    const inboundSecretConfigured = !!process.env.SENDGRID_INBOUND_WEBHOOK_SECRET;
-    const eventSignatureConfigured = !!process.env.SENDGRID_WEBHOOK_VERIFICATION_KEY;
-
-    res.json({
-      status: "ready",
-      security: {
-        inboundWebhookSecretConfigured: inboundSecretConfigured,
-        eventWebhookSignatureConfigured: eventSignatureConfigured,
-        note: "For production, set SENDGRID_INBOUND_WEBHOOK_SECRET and SENDGRID_WEBHOOK_VERIFICATION_KEY environment variables"
-      },
-      inboundWebhookUrl: `${baseUrl}/api/webhook/sendgrid/inbound${inboundSecretConfigured ? '?secret=YOUR_SECRET' : ''}`,
-      eventWebhookUrl: `${baseUrl}/api/webhook/sendgrid/events`,
-      testEndpoint: `${baseUrl}/api/webhook/sendgrid/test`,
-      instructions: {
-        sendgrid: {
-          step1: "Configure SendGrid Inbound Parse at https://app.sendgrid.com/settings/parse",
-          step2: "Set host: reply.cimshare.com",
-          step3: `Set URL: ${baseUrl}/api/webhook/sendgrid/inbound?secret=YOUR_SECRET (add the secret from SENDGRID_INBOUND_WEBHOOK_SECRET env var)`,
-          step4: "Ensure MX records point to mx.sendgrid.net for reply.cimshare.com",
-          step5: "For event webhooks, enable signature verification in SendGrid and add the public key to SENDGRID_WEBHOOK_VERIFICATION_KEY"
-        },
-        testing: {
-          step1: "Send email to thread-XX@reply.cimshare.com (replace XX with actual thread ID)",
-          step2: "Check server logs for webhook processing",
-          step3: `Or test directly: curl -X POST ${baseUrl}/api/webhook/sendgrid/test -H "Content-Type: application/json" -d '{"to":"thread-abc12@reply.cimshare.com","from":"test@example.com","text":"Test reply"}'`
-        },
-        debugging: {
-          checkMX: "dig MX reply.cimshare.com",
-          checkWebhook: `curl ${baseUrl}/api/webhook/sendgrid/info`,
-          testWebhook: `curl -X POST ${baseUrl}/api/webhook/sendgrid/test -H "Content-Type: application/json" -d '{}'`
-        }
-      }
-    });
-  });
-
-  // Stripe webhook endpoint with proper raw body handling
-  app.post("/api/webhook/stripe", express.raw({ type: 'application/json' }), async (req, res) => {
-    console.log('🔔 Stripe webhook received');
-    
-    // Validate webhook signature
-    const sig = req.headers["stripe-signature"];
-    if (!sig) {
-      console.error("❌ Stripe webhook: No signature found");
-      return res.status(400).json({ error: "Missing Stripe signature" });
-    }
-
-    try {
-      await handleStripeWebhook(req, res, stripe);
-      // Response is handled inside handleStripeWebhook
-    } catch (error) {
-      // This catch should rarely be hit since handleStripeWebhook now handles its own errors
-      // But if it does, we still need to acknowledge the webhook to Stripe
-      console.error("❌ Unexpected Stripe webhook error:", error);
-
-      // CRITICAL: Always return 200 to acknowledge receipt to prevent Stripe from disabling the endpoint
-      return res.status(200).json({
-        received: true,
-        warning: "Webhook received but encountered unexpected error - logged for review"
-      });
-    }
-  });
-  
   // Setup authentication AFTER webhook endpoints
   setupAuth(app);
   
@@ -2137,6 +1762,163 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // CIM Document Routes with file upload support
+
+  // Background CIM generation helper function
+  async function generateCimInBackground(
+    docId: number,
+    userId: number,
+    data: any,
+    ndaSettings: any,
+    customStyleConfig: any
+  ) {
+    console.log(`[Background CIM] Starting generation for doc ${docId}`);
+
+    try {
+      const purpose = data.purpose || 'business_overview';
+      const tone = data.tone || 'professional';
+      const audience = data.audience || 'investors';
+
+      // Start ALL website-related operations in parallel
+      let normalizedUrl: string | null = null;
+      let websiteAnalysisPromise: Promise<string | null> = Promise.resolve(null);
+      let logoExtractionPromise: Promise<string | null> = Promise.resolve(null);
+      let imageExtractionPromise: Promise<string[]> = Promise.resolve([]);
+
+      if (data.websiteUrl) {
+        if (!isUrlSafeForFetch(data.websiteUrl.startsWith('http') ? data.websiteUrl : `https://${data.websiteUrl}`)) {
+          throw new Error("Invalid or blocked website URL");
+        }
+        try {
+          normalizedUrl = normalizeUrl(data.websiteUrl);
+          console.log(`[Background CIM] Starting parallel website operations for doc ${docId}`);
+
+          websiteAnalysisPromise = startWebsiteAnalysis(data.websiteUrl);
+          logoExtractionPromise = extractLogoFromWebsite(normalizedUrl, userId)
+            .catch(err => {
+              console.error("[Background CIM] Logo extraction error:", err);
+              return null;
+            });
+          imageExtractionPromise = extractWebsiteImages(normalizedUrl)
+            .catch(err => {
+              console.error("[Background CIM] Image extraction error:", err);
+              return [];
+            });
+        } catch (error) {
+          console.error("[Background CIM] Website URL normalization error:", error);
+        }
+      }
+
+      // Wait for website analysis first (needed for CIM generation)
+      const websiteData = await websiteAnalysisPromise;
+
+      // Generate CIM with pre-fetched website data
+      const analysis = await generateCimWithWebsiteAnalysis(
+        data.transcript,
+        data.directions,
+        purpose,
+        tone,
+        audience,
+        data.financials,
+        data.websiteUrl,
+        data.sectionDirections,
+        data.formattingProfile,
+        websiteData,
+        customStyleConfig
+      );
+
+      console.log(`[Background CIM] AI generation complete for doc ${docId}`);
+
+      // Collect results from parallel logo/image extraction
+      let logoUrl = null;
+      let extractedImages: string[] = [];
+
+      if (data.websiteUrl) {
+        try {
+          const [logoResult, imagesResult] = await Promise.allSettled([
+            logoExtractionPromise,
+            imageExtractionPromise
+          ]);
+
+          if (logoResult.status === 'fulfilled' && logoResult.value) {
+            logoUrl = logoResult.value;
+          }
+          if (imagesResult.status === 'fulfilled' && Array.isArray(imagesResult.value)) {
+            extractedImages = imagesResult.value;
+          }
+        } catch (error) {
+          console.error("[Background CIM] Website processing error:", error);
+        }
+      }
+
+      // Process selected images
+      let savedImagePaths: string[] = [];
+      if (data.selectedImages && Array.isArray(data.selectedImages) && data.selectedImages.length > 0) {
+        try {
+          const imagePromises = data.selectedImages.map(async (imageUrl: string) => {
+            try {
+              const metadata = await imageManager.saveImageFromUrl(imageUrl, userId, 'business-images');
+              return metadata.publicPath;
+            } catch {
+              return null;
+            }
+          });
+          const results = await Promise.allSettled(imagePromises);
+          savedImagePaths = results
+            .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled' && r.value !== null)
+            .map(r => r.value);
+        } catch (error) {
+          console.error("[Background CIM] Image processing error:", error);
+        }
+      }
+
+      // Update document with completed analysis
+      await storage.updateCimDocument(docId, {
+        analysis,
+        logoUrl,
+        selectedImages: savedImagePaths,
+        generationStatus: 'ready',
+        generationError: null,
+      });
+
+      console.log(`[Background CIM] Document ${docId} generation complete and saved`);
+
+      // Dispatch webhook events
+      const doc = await storage.getCimDocument(docId);
+      if (doc) {
+        const cimCreatedPayload = {
+          cim_id: doc.id,
+          title: doc.title,
+          share_url: doc.shareSlug ? `${process.env.BASE_URL || 'https://cimshare.com'}/share/${doc.shareSlug}` : null,
+          created_at: doc.createdAt,
+          document: { id: doc.id, title: doc.title },
+        };
+        dispatchWebhookEvent(userId, 'cim.created', cimCreatedPayload).catch(err => console.error('Webhook dispatch error:', err));
+        dispatchIntegrationEvent(userId, 'cim.created', cimCreatedPayload).catch(err => console.error('Integration dispatch error:', err));
+      }
+
+    } catch (error) {
+      console.error(`[Background CIM] Generation failed for doc ${docId}:`, error);
+
+      // Update document with error status
+      let errorMessage = "An unexpected error occurred during CIM generation";
+      if (error instanceof Error) {
+        const errorMsg = error.message.toLowerCase();
+        if (errorMsg.includes('json') || errorMsg.includes('unexpected token')) {
+          errorMessage = "The AI service returned an invalid response. Please try regenerating.";
+        } else if (errorMsg.includes('rate limit') || errorMsg.includes('quota')) {
+          errorMessage = "The AI service is at capacity. Please try again in a few minutes.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+
+      await storage.updateCimDocument(docId, {
+        generationStatus: 'failed',
+        generationError: errorMessage,
+      });
+    }
+  }
+
   app.post("/api/cim/generate", aiGenerationLimiter, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
@@ -2302,189 +2084,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(updatedDoc);
       }
 
-      // New document generation using flexible CIM system
-      const purpose = data.purpose || 'business_overview';
-      const tone = data.tone || 'professional';
-      const audience = data.audience || 'investors';
+      // NEW DOCUMENT GENERATION - Background processing approach
+      // Create placeholder document immediately, then generate in background
 
-      console.log("=== USING NEW FLEXIBLE CIM SYSTEM ===");
-      console.log("Purpose:", purpose);
-      console.log("Tone:", tone);
-      console.log("Audience:", audience);
-      console.log("Custom directions:", data.directions);
-
-      // OPTIMIZATION: Start ALL website-related operations in parallel at the very beginning
-      // This includes: website crawling/analysis, logo extraction, and image extraction
-      let normalizedUrl: string | null = null;
-      let websiteAnalysisPromise: Promise<string | null> = Promise.resolve(null);
-      let logoExtractionPromise: Promise<string | null> = Promise.resolve(null);
-      let imageExtractionPromise: Promise<string[]> = Promise.resolve([]);
-
+      // Validate website URL early if provided
       if (data.websiteUrl) {
-        // Validate URL before processing to prevent SSRF attacks
         if (!isUrlSafeForFetch(data.websiteUrl.startsWith('http') ? data.websiteUrl : `https://${data.websiteUrl}`)) {
           console.error("Blocked unsafe website URL:", data.websiteUrl);
           return res.status(400).json({ error: "Invalid or blocked website URL" });
         }
-        try {
-          normalizedUrl = normalizeUrl(data.websiteUrl);
-          console.log("🚀 Starting ALL website operations in parallel at the beginning...");
-
-          // Start all three operations immediately - none wait for the others
-          websiteAnalysisPromise = startWebsiteAnalysis(data.websiteUrl);
-          logoExtractionPromise = extractLogoFromWebsite(normalizedUrl, req.user!.id)
-            .catch(err => {
-              console.error("Logo extraction error:", err);
-              return null;
-            });
-          imageExtractionPromise = extractWebsiteImages(normalizedUrl)
-            .catch(err => {
-              console.error("Image extraction error:", err);
-              return [];
-            });
-        } catch (error) {
-          console.error("Website URL normalization error:", error);
-        }
       }
 
-      // Wait for website analysis first (needed for CIM generation)
-      const websiteData = await websiteAnalysisPromise;
-
-      // Generate CIM with pre-fetched website data
-      let analysis = await generateCimWithWebsiteAnalysis(
-        data.transcript,
-        data.directions,
-        purpose,
-        tone,
-        audience,
-        data.financials,
-        data.websiteUrl,
-        data.sectionDirections,
-        data.formattingProfile,
-        websiteData, // Pass pre-fetched data - no duplicate API call
-        customStyleConfig
-      );
-
-      console.log("=== FLEXIBLE CIM ANALYSIS RESULT ===");
-      console.log("Analysis type:", typeof analysis);
-      console.log("Has sections:", !!analysis.sections);
-      console.log("Number of sections:", analysis.sections?.length || 0);
-
-      // Handle selected images early in the process for regular route
-      let savedImagePaths: string[] = [];
-      console.log("Checking for selected images:", {
-        hasWebsiteUrl: !!data.websiteUrl,
-        hasSelectedImages: !!data.selectedImages,
-        selectedImagesType: typeof data.selectedImages,
-        selectedImagesLength: Array.isArray(data.selectedImages) ? data.selectedImages.length : 'not array'
-      });
-
-      // Store selectedImages URLs for processing after CIM creation
-      let selectedImageUrls: string[] = [];
-      if (data.selectedImages && Array.isArray(data.selectedImages) && data.selectedImages.length > 0) {
-        selectedImageUrls = data.selectedImages;
-        console.log(`Will process ${selectedImageUrls.length} selected images after CIM creation`);
-      }
-
-      // Now collect the results from parallel logo/image extraction (should already be done)
-      let logoUrl = null;
-      let extractedImages: string[] = [];
-
-      if (data.websiteUrl) {
-        try {
-          // These promises were started at the beginning and should be ready now
-          const [logoResult, imagesResult] = await Promise.allSettled([
-            logoExtractionPromise,
-            imageExtractionPromise
-          ]);
-
-          // Handle logo extraction result
-          if (logoResult.status === 'fulfilled' && logoResult.value) {
-            logoUrl = logoResult.value;
-            console.log("Logo extracted successfully:", logoUrl);
-          } else {
-            console.log("Logo extraction failed or no logo found");
-          }
-
-          // Handle image extraction result
-          if (imagesResult.status === 'fulfilled' && Array.isArray(imagesResult.value)) {
-            extractedImages = imagesResult.value;
-            console.log(`Extracted ${extractedImages.length} images from website`);
-          } else {
-            console.log("Image extraction failed or no images found");
-          }
-
-        } catch (error) {
-          console.error("Website processing error:", error);
-          // Continue with just the transcript analysis
-        }
-      }
-      
-      // Extract financial data from request
+      // Extract financial and cover image data for placeholder document
       const financials = data.financials;
-      console.log("=== FINANCIAL DATA DEBUG ===");
-      console.log("Financial data received:", {
-        hasFinancials: !!financials,
-        enabled: financials?.enabled,
-        askingPrice: financials?.askingPrice,
-        revenue: financials?.revenue,
-        ebitda: financials?.ebitda,
-        fullFinancials: financials
-      });
-      
-      // Extract cover image data from request (handling nested object structure)
       const coverImage = data.coverImage;
       const coverImageUrl = coverImage?.url || data.coverImageUrl || null;
       const coverImagePosition = coverImage?.position ? JSON.stringify(coverImage.position) : data.coverImagePosition || null;
       const coverImageAttribution = coverImage?.attribution || data.coverImageAttribution || null;
-      
-      console.log("=== REGULAR ROUTE COVER IMAGE DEBUG ===");
-      console.log("Cover image from nested object:", coverImage);
-      console.log("Cover image URL from data:", data.coverImageUrl);
-      console.log("Final cover image URL:", coverImageUrl);
-      console.log("Cover image position:", coverImagePosition);
-      
-      console.log("Creating CIM document with directions:", data.directions);
-      
-      // Debug: Check financial data before document creation (always enabled)
-      const financialDataToSave = {
-        financialsEnabled: true, // Always enabled
-        askingPrice: financials?.askingPrice || null,
-        askingPriceIncluded: true, // Always included
-        revenue: financials?.revenue || null,
-        revenueIncluded: true, // Always included
-        ebitda: financials?.ebitda || null,
-        ebitdaIncluded: true, // Always included
-      };
-      console.log("Financial data to be saved:", financialDataToSave);
-      
-      // NDA settings have already been extracted at the beginning of the route
-      
+
       // Generate automatic share link for new document
       const randomId = Math.random().toString(36).substring(2, 8);
       const shareSlug = `cim-${randomId}`;
-      
+
+      console.log("=== CREATING PLACEHOLDER DOCUMENT FOR BACKGROUND GENERATION ===");
+
+      // Create placeholder document with 'generating' status
       const doc = await storage.createCimDocument(req.user!.id, {
         ...data,
-        directions: data.directions, // Explicitly include custom directions
+        directions: data.directions,
         websiteUrl: data.websiteUrl,
-        logoUrl,
-        analysis,
-        selectedImages: savedImagePaths,
+        logoUrl: null, // Will be populated by background generation
+        analysis: { sections: [], title: data.title, generatingPlaceholder: true }, // Placeholder
+        selectedImages: [],
         regenerationCount: 0,
-        // Add cover image data
         coverImageUrl,
         coverImagePosition,
         coverImageAttribution,
-        // Add financial data directly to the document (always enabled)
-        financialsEnabled: true, // Always enabled
+        financialsEnabled: true,
         askingPrice: financials?.askingPrice || null,
-        askingPriceIncluded: true, // Always included
+        askingPriceIncluded: true,
         revenue: financials?.revenue || null,
-        revenueIncluded: true, // Always included
+        revenueIncluded: true,
         ebitda: financials?.ebitda || null,
-        ebitdaIncluded: true, // Always included
-        // Enable sharing by default with generated slug
+        ebitdaIncluded: true,
         shareEnabled: true,
         shareSlug: shareSlug,
         sharePassword: null,
@@ -2492,104 +2134,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ndaProtected: ndaSettings.ndaProtected || false,
         ndaTemplateId: ndaSettings.ndaTemplateId || null,
         ndaApprovalRequired: ndaSettings.ndaApprovalRequired || false,
-        // Deal association from request body
-        dealId: data.dealId || null
+        dealId: data.dealId || null,
+        // Background generation status fields
+        generationStatus: 'generating',
+        generationStartedAt: new Date(),
       });
 
-      console.log("=== DOCUMENT CREATED (GENERATE ROUTE) ===");
-      console.log("Doc ID:", doc.id, "Doc dealId:", doc.dealId);
+      console.log(`[Background CIM] Created placeholder document ${doc.id}, starting background generation`);
 
-      // If dealId was provided, create a deal-document link
-      console.log("=== JUNCTION TABLE CHECK (GENERATE ROUTE) ===");
-      console.log("data.dealId for junction table:", data.dealId, "type:", typeof data.dealId, "truthy:", !!data.dealId);
+      // If dealId was provided, create a deal-document link (sync, fast operation)
       if (data.dealId) {
         const { dealDocuments } = await import('@shared/schema');
         const { db } = await import('./db');
         try {
-          console.log("Inserting into deal_documents:", { dealId: data.dealId, cimDocumentId: doc.id });
           await db.insert(dealDocuments).values({
             dealId: data.dealId,
             cimDocumentId: doc.id,
           });
-          console.log(`✅ Successfully created deal-document link: deal ${data.dealId} -> CIM ${doc.id}`);
+          console.log(`✅ Created deal-document link: deal ${data.dealId} -> CIM ${doc.id}`);
         } catch (linkError) {
           console.error('❌ Error creating deal-document link:', linkError);
-          // Don't fail the whole request if the link fails
-        }
-      } else {
-        console.log("No dealId provided, skipping junction table insert");
-      }
-
-      // Process only the user-selected images (selectedImageUrls already contains the user's choices)
-      // Note: extractedImages are just for UI display, selectedImageUrls contains the actual user selections
-      const imagesToProcess = selectedImageUrls;
-      
-      // Process selected images after CIM creation with proper CIM ID
-      if (imagesToProcess.length > 0) {
-        try {
-          console.log(`Processing ${imagesToProcess.length} user-selected images for CIM ${doc.id}...`);
-          console.log(`Selected image URLs:`, imagesToProcess);
-          
-          const imagePromises = imagesToProcess.map(async (imageUrl: string, index: number) => {
-            try {
-              console.log(`Downloading image ${index + 1}/${imagesToProcess.length}: ${imageUrl}`);
-              const metadata = await imageManager.saveImageFromUrl(imageUrl, req.user!.id, 'business-images');
-              console.log(`Successfully downloaded image ${index + 1}: ${metadata.publicPath}`);
-              return metadata.publicPath;
-            } catch (error) {
-              console.error(`Failed to download image ${imageUrl}:`, error);
-              return null;
-            }
-          });
-          
-          const imageResults = await Promise.allSettled(imagePromises);
-          const downloadedImages = imageResults
-            .filter(result => result.status === 'fulfilled' && result.value !== null)
-            .map(result => (result as PromiseFulfilledResult<string>).value);
-          
-          console.log(`Download results: ${downloadedImages.length}/${imagesToProcess.length} images downloaded successfully`);
-          console.log(`Downloaded image paths:`, downloadedImages);
-          
-          // Update the CIM document with the downloaded image paths
-          if (downloadedImages.length > 0) {
-            await storage.updateCimImages(doc.id, downloadedImages);
-            doc.selectedImages = downloadedImages; // Update the response object
-            console.log(`Successfully updated CIM ${doc.id} with ${downloadedImages.length} images`);
-          } else {
-            console.log(`No images were successfully downloaded for CIM ${doc.id}`);
-          }
-        } catch (imageError) {
-          console.error("Error processing selected images:", imageError);
         }
       }
 
-      // Store financial data if provided (JSON only, no file uploads in this route)
-
-      console.log("=== DOCUMENT CREATED ===");
-      console.log("Document ID:", doc.id);
-      console.log("Document settings:", {
-        ndaProtected: doc.ndaProtected,
-        ndaTemplateId: doc.ndaTemplateId,
-        ndaApprovalRequired: doc.ndaApprovalRequired
+      // Return immediately with the document ID
+      res.json({
+        ...doc,
+        generationStatus: 'generating',
+        message: 'CIM generation started. You can safely navigate away while it completes.'
       });
 
-      // Dispatch webhook event for CIM creation (async, don't await)
-      const cimCreatedPayload = {
-        cim_id: doc.id,
-        title: doc.title,
-        share_url: doc.shareSlug ? `${process.env.BASE_URL || 'https://cimshare.com'}/share/${doc.shareSlug}` : null,
-        created_at: doc.createdAt,
-        document: {
-          id: doc.id,
-          title: doc.title,
-        },
-      };
-      dispatchWebhookEvent(req.user!.id, 'cim.created', cimCreatedPayload)
-        .catch(err => console.error('Webhook dispatch error:', err));
-      dispatchIntegrationEvent(req.user!.id, 'cim.created', cimCreatedPayload)
-        .catch(err => console.error('Integration dispatch error:', err));
-
-      res.json(doc);
+      // Fire off background generation (don't await - fire and forget)
+      generateCimInBackground(doc.id, req.user!.id, data, ndaSettings, customStyleConfig)
+        .catch(err => console.error(`[Background CIM] Unhandled error for doc ${doc.id}:`, err));
     } catch (error) {
       console.error("CIM generation error:", error instanceof Error ? error.message : String(error));
       
@@ -3044,96 +2621,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("Custom directions content:", data.directions);
       }
       
-      // Use flexible CIM system for upload route as well
-      const purpose = data.purpose || 'business_overview';
-      const tone = data.tone || 'professional';
-      const audience = data.audience || 'investors';
-
-      // OPTIMIZATION: Start ALL website-related operations in parallel at the very beginning
-      let normalizedUrl: string | null = null;
-      let websiteAnalysisPromise: Promise<string | null> = Promise.resolve(null);
-      let logoExtractionPromise: Promise<string | null> = Promise.resolve(null);
-
+      // Validate website URL early if provided
       if (data.websiteUrl) {
-        // Validate URL before processing to prevent SSRF attacks
         if (!isUrlSafeForFetch(data.websiteUrl.startsWith('http') ? data.websiteUrl : `https://${data.websiteUrl}`)) {
           console.error("Blocked unsafe website URL:", data.websiteUrl);
           return res.status(400).json({ error: "Invalid or blocked website URL" });
         }
-        try {
-          normalizedUrl = normalizeUrl(data.websiteUrl);
-          console.log("🚀 Starting website operations in parallel (upload route)...");
-
-          // Start both operations immediately
-          websiteAnalysisPromise = startWebsiteAnalysis(data.websiteUrl);
-          logoExtractionPromise = extractLogoFromWebsite(normalizedUrl, req.user!.id)
-            .catch(err => {
-              console.error("Logo extraction error:", err);
-              return null;
-            });
-        } catch (error) {
-          console.error("Website URL normalization error:", error);
-        }
       }
 
-      // Wait for website analysis first (needed for CIM generation)
-      const websiteData = await websiteAnalysisPromise;
-
-      // Generate CIM with pre-fetched website data
-      let analysis = await generateCimWithWebsiteAnalysis(
-        transcript,
-        data.directions,
-        purpose,
-        tone,
-        audience,
-        parsedFinancials,
-        data.websiteUrl,
-        data.sectionDirections,
-        data.formattingProfile,
-        websiteData, // Pass pre-fetched data
-        customStyleConfig
-      );
-
-      // Handle selected images early in the process - always download if provided
-      let savedImagePaths: string[] = [];
-      if (data.selectedImages && Array.isArray(data.selectedImages) && data.selectedImages.length > 0) {
-        try {
-          const imgNormalizedUrl = data.websiteUrl ? normalizeUrl(data.websiteUrl) : 'unknown-source';
-          console.log(`Processing ${data.selectedImages.length} selected images...`);
-          console.log("Selected image URLs to download:", data.selectedImages);
-          savedImagePaths = await downloadSelectedImages(data.selectedImages, imgNormalizedUrl, req.user!.id);
-          console.log(`Successfully downloaded ${savedImagePaths.length} selected images`);
-          console.log("Downloaded image paths:", savedImagePaths);
-
-          // Store selected images in analysis object
-          if (typeof analysis === 'object' && analysis !== null) {
-            (analysis as any).selectedImages = savedImagePaths;
-          }
-        } catch (imageError) {
-          console.error("Selected images processing error:", imageError);
-          console.error("Error details:", imageError);
-        }
-      } else {
-        console.log("No selected images to process:", {
-          hasSelectedImages: !!data.selectedImages,
-          isArray: Array.isArray(data.selectedImages),
-          length: data.selectedImages?.length || 0
-        });
-      }
-
-      // Now wait for logo extraction (should already be done or nearly done)
-      let logoUrl = null;
-      if (data.websiteUrl) {
-        try {
-          logoUrl = await logoExtractionPromise;
-          if (logoUrl) {
-            console.log("Logo extraction completed:", logoUrl);
-          }
-        } catch (error) {
-          console.error("Website processing error:", error);
-        }
-      }
-      
       // Extract financial data from request - use parsedFinancials from req.body.financials
       const financials = parsedFinancials;
       
@@ -3268,30 +2763,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate automatic share link for new document
       const randomId = Math.random().toString(36).substring(2, 8);
       const shareSlug = `cim-${randomId}`;
-      
+
+      console.log("=== CREATING PLACEHOLDER DOCUMENT FOR BACKGROUND GENERATION (UPLOAD ROUTE) ===");
+
+      // Create placeholder document with 'generating' status
       const doc = await storage.createCimDocument(req.user!.id, {
         ...data,
-        directions: data.directions, // Explicitly include custom directions
-        sectionDirections: data.sectionDirections, // Include section directions
-        formattingProfile: data.formattingProfile, // Include formatting profile
+        transcript: transcript, // Use the parsed transcript
+        directions: data.directions,
+        sectionDirections: data.sectionDirections,
+        formattingProfile: data.formattingProfile,
         websiteUrl: data.websiteUrl,
-        logoUrl,
-        analysis,
-        selectedImages: savedImagePaths,
+        logoUrl: null, // Will be populated by background generation
+        analysis: { sections: [], title: data.title, generatingPlaceholder: true }, // Placeholder
+        selectedImages: [],
         regenerationCount: 0,
-        // Add cover image data
         coverImageUrl,
         coverImagePosition,
         coverImageAttribution,
-        // Add financial data directly to the document (always enabled)
-        financialsEnabled: true, // Always enabled
+        financialsEnabled: true,
         askingPrice: parsedFinancials?.askingPrice || null,
-        askingPriceIncluded: true, // Always included
+        askingPriceIncluded: true,
         revenue: parsedFinancials?.revenue || null,
-        revenueIncluded: true, // Always included
+        revenueIncluded: true,
         ebitda: parsedFinancials?.ebitda || null,
-        ebitdaIncluded: true, // Always included
-        // Enable sharing by default with generated slug
+        ebitdaIncluded: true,
         shareEnabled: true,
         shareSlug: shareSlug,
         sharePassword: null,
@@ -3299,40 +2795,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ndaProtected: ndaSettings.ndaProtected || false,
         ndaTemplateId: ndaSettings.ndaTemplateId || null,
         ndaApprovalRequired: ndaSettings.ndaApprovalRequired || false,
-        // Deal association from request body
-        dealId: data.dealId || null
+        dealId: data.dealId || null,
+        // Background generation status fields
+        generationStatus: 'generating',
+        generationStartedAt: new Date(),
       });
 
-      console.log("=== DOCUMENT CREATED (UPLOAD ROUTE) ===");
-      console.log("Doc ID:", doc.id, "Doc dealId:", doc.dealId);
+      console.log(`[Background CIM] Created placeholder document ${doc.id} (upload route)`);
 
-      // If dealId was provided, create a deal-document link
-      console.log("=== JUNCTION TABLE CHECK ===");
-      console.log("data.dealId for junction table:", data.dealId, "type:", typeof data.dealId, "truthy:", !!data.dealId);
+      // If dealId was provided, create a deal-document link (sync, fast operation)
       if (data.dealId) {
         const { dealDocuments } = await import('@shared/schema');
         const { db: dbDealDocs } = await import('./db');
         try {
-          console.log("Inserting into deal_documents:", { dealId: data.dealId, cimDocumentId: doc.id });
           await dbDealDocs.insert(dealDocuments).values({
             dealId: data.dealId,
             cimDocumentId: doc.id,
           });
-          console.log(`✅ Successfully created deal-document link: deal ${data.dealId} -> CIM ${doc.id}`);
+          console.log(`✅ Created deal-document link: deal ${data.dealId} -> CIM ${doc.id}`);
         } catch (linkError) {
           console.error('❌ Error creating deal-document link:', linkError);
         }
-      } else {
-        console.log("No dealId provided, skipping junction table insert");
       }
 
-      // Save financial files to database after document creation
+      // Save financial files to database after document creation (sync, needs doc.id)
       if (uploadedFinancialFiles.length > 0) {
         console.log("Saving financial files to database for doc ID:", doc.id);
         for (const fileData of uploadedFinancialFiles) {
           await db.insert(financialFiles).values({
             cimDocumentId: doc.id,
-            filename: fileData.originalName || fileData.fileName, // Use original filename for display
+            filename: fileData.originalName || fileData.fileName,
             filePath: fileData.filePath,
             fileSize: fileData.fileSize
           });
@@ -3340,10 +2832,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("Financial files saved to database successfully");
       }
 
-      console.log("=== UPLOAD ROUTE - DOCUMENT CREATED ===");
-      console.log("Document ID:", doc.id);
-      
-      res.json(doc);
+      // Return immediately with the document ID
+      res.json({
+        ...doc,
+        generationStatus: 'generating',
+        message: 'CIM generation started. You can safely navigate away while it completes.'
+      });
+
+      // Fire off background generation (don't await - fire and forget)
+      // Pass the transcript since it was read from the file
+      const backgroundData = { ...data, transcript, financials: parsedFinancials };
+      generateCimInBackground(doc.id, req.user!.id, backgroundData, ndaSettings, customStyleConfig)
+        .catch(err => console.error(`[Background CIM] Unhandled error for doc ${doc.id}:`, err));
     } catch (error) {
       console.error("File upload error:", error);
       res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
@@ -3881,6 +3381,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error checking user limits:", error);
       res.status(500).json({ error: "Failed to check limits" });
+    }
+  });
+
+  // Get CIM generation status (for polling during background generation)
+  app.get("/api/cim/:id/status", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const docId = parseInt(req.params.id);
+      if (isNaN(docId)) {
+        return res.status(400).json({ error: "Invalid document ID" });
+      }
+
+      const doc = await storage.getCimDocument(docId);
+      if (!doc || doc.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      // Return status information
+      res.json({
+        id: doc.id,
+        title: doc.title,
+        generationStatus: doc.generationStatus || 'ready', // Default to 'ready' for old docs
+        generationError: doc.generationError || null,
+        generationStartedAt: doc.generationStartedAt || null,
+        // Include full document data if generation is complete
+        ...(doc.generationStatus === 'ready' || !doc.generationStatus ? {
+          analysis: doc.analysis,
+          logoUrl: doc.logoUrl,
+          selectedImages: doc.selectedImages,
+        } : {}),
+      });
+    } catch (error) {
+      console.error("Error fetching CIM status:", error);
+      res.status(500).json({ error: "Failed to fetch document status" });
     }
   });
 

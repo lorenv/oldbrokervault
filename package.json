@@ -10,7 +10,9 @@
     "build:analyze": "ANALYZE=true vite build && echo 'Bundle analysis available at dist/stats.html'",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "optimize-images": "node scripts/optimize-images.js",
+    "optimize-images:dry": "node scripts/optimize-images.js --dry-run"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",

@@ -130,8 +130,8 @@ export function AppSidebar() {
     }
   };
 
-  // Get brand color from profile
-  const brandColor = (profile as any)?.pdfPrimaryColor || (profile as any)?.brandColors?.[0];
+  // Get brand color from profile, fallback to primary blue if not set
+  const brandColor = (profile as any)?.pdfPrimaryColor || (profile as any)?.brandColors?.[0] || '#3b82f6';
 
   // Render a navigation item
   const renderNavItem = (item: NavItem) => {

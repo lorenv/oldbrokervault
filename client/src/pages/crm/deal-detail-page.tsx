@@ -264,6 +264,7 @@ export default function DealDetailPage() {
   const [pendingLostStageId, setPendingLostStageId] = useState<number | null>(null);
   const [selectedLostReason, setSelectedLostReason] = useState("");
   const [customLostReason, setCustomLostReason] = useState("");
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   // Company link dialog state
   const [isLinkCompanyOpen, setIsLinkCompanyOpen] = useState(false);
@@ -527,6 +528,20 @@ export default function DealDetailPage() {
     moveToStageMutation.mutate({ stageId: pendingLostStageId, lostReason: reason || undefined });
   };
 
+  // Delete deal mutation
+  const deleteDealMutation = useMutation({
+    mutationFn: () => apiRequest("DELETE", `/api/crm/deals/${id}`).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals/kanban"], refetchType: 'all' });
+      toast({ title: "Deal deleted", description: "The deal has been permanently deleted." });
+      navigate("/deals");
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to delete deal.", variant: "destructive" });
+    },
+  });
+
   // Add contact to deal mutation
   const addContactMutation = useMutation({
     mutationFn: ({ contactId, role }: { contactId: number; role: string }) =>
@@ -665,15 +680,26 @@ export default function DealDetailPage() {
             </div>
           </div>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setIsCustomizerOpen(true)}
-          className="flex items-center gap-1.5"
-        >
-          <Settings2 className="h-4 w-4" />
-          <span className="hidden sm:inline">Customize</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsCustomizerOpen(true)}
+            className="flex items-center gap-1.5"
+          >
+            <Settings2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Customize</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsDeleteDialogOpen(true)}
+            className="flex items-center gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50"
+          >
+            <Trash2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Delete</span>
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr,auto] gap-6">
@@ -765,8 +791,8 @@ export default function DealDetailPage() {
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <div className="overflow-x-auto scrollbar-hide -mx-1 px-1">
-              <TabsList variant="underline" className="w-max min-w-full justify-start border-b">
+            <div className="overflow-x-auto scrollbar-hide -mx-1 px-1" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <TabsList variant="underline" className="w-max min-w-full justify-start border-b flex-nowrap">
                 <TabsTrigger variant="underline" value="activity">
                   <Clock className="h-4 w-4 mr-1" />
                   Activity
@@ -1902,6 +1928,30 @@ export default function DealDetailPage() {
               disabled={!selectedCompanyId || linkCompanyMutation.isPending}
             >
               {linkCompanyMutation.isPending ? "Linking..." : "Link Company"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Deal</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{deal.name}"? This action cannot be undone and will permanently remove the deal and all associated data.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteDealMutation.mutate()}
+              disabled={deleteDealMutation.isPending}
+            >
+              {deleteDealMutation.isPending ? "Deleting..." : "Delete Deal"}
             </Button>
           </DialogFooter>
         </DialogContent>

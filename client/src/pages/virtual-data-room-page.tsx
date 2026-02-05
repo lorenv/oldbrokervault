@@ -18,6 +18,7 @@ import {
 import vvLogoBlue from "@/assets/vv-logo-blue_1758929244400.png";
 import heroVideo from "@/assets/hero-video_1758929337474.mp4";
 import { SEOHead } from "@/components/seo-head";
+import { LazyVideo } from "@/components/ui/lazy-video";
 
 export default function VirtualDataRoomPage() {
   const features = [
@@ -119,16 +120,14 @@ export default function VirtualDataRoomPage() {
           {/* Hero Video */}
           <div className="max-w-4xl mx-auto">
             <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-              <video
+              <LazyVideo
                 src={heroVideo}
                 autoPlay
                 muted
                 loop
                 playsInline
                 className="w-full h-auto"
-              >
-                Your browser does not support the video tag.
-              </video>
+              />
             </div>
           </div>
         </div>

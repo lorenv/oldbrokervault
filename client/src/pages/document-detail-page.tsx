@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, BarChart3, Edit, Edit2, FileSignature, Share2, Eye, Users, Calendar, TrendingUp, Check, X, Link as LinkIcon, Copy, Palette, FileText } from "lucide-react";
+import { ArrowLeft, BarChart3, Edit, Edit2, FileSignature, Share2, Eye, Users, Calendar, TrendingUp, Check, X, Link as LinkIcon, Copy, Palette, FileText, Loader2, AlertCircle, Sparkles } from "lucide-react";
 import { useCimDocument, useFinancialFiles, useCustomSections, useNdaSignatures } from "@/hooks/use-cim-document";
 import { DocumentSkeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
@@ -181,10 +181,20 @@ export function DocumentDetailPage() {
 
   
   // Fetch document data
-  const { data: cimDocument, isLoading: docLoading, error: docError } = useCimDocument(docId, !!docId);
+  const { data: cimDocument, isLoading: docLoading, error: docError, refetch } = useCimDocument(docId, !!docId);
   const { data: financialFiles } = useFinancialFiles(docId, !!docId);
   const { data: customSections } = useCustomSections(docId, !!docId);
   const { data: ndaSignatures } = useNdaSignatures(docId, !!docId);
+
+  // Poll for status updates while generation is in progress
+  useEffect(() => {
+    if (cimDocument?.generationStatus === 'generating') {
+      const interval = setInterval(() => {
+        refetch();
+      }, 3000); // Poll every 3 seconds
+      return () => clearInterval(interval);
+    }
+  }, [cimDocument?.generationStatus, refetch]);
 
   // Calculate pending NDA approvals
   const pendingNdaCount = ndaSignatures?.filter((sig: any) =>
@@ -332,6 +342,101 @@ export function DocumentDetailPage() {
                   Back to Documents
                 </Button>
               </Link>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
+  // Document is still being generated - show generating state
+  if (cimDocument.generationStatus === 'generating') {
+    return (
+      <div className="min-h-screen bg-background">
+        <main className="px-4 md:px-6 py-4 md:py-6">
+          <div className="flex items-center gap-4 mb-6">
+            <Link href="/documents">
+              <Button variant="ghost" size="sm">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Documents
+              </Button>
+            </Link>
+          </div>
+          <Card className="max-w-2xl mx-auto">
+            <CardContent className="p-8 text-center">
+              <div className="flex justify-center mb-6">
+                <div className="relative">
+                  <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center">
+                    <Sparkles className="h-10 w-10 text-blue-600 animate-pulse" />
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-white rounded-full flex items-center justify-center border-2 border-blue-200">
+                    <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
+                  </div>
+                </div>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Generating Your CIM</h2>
+              <p className="text-gray-600 mb-6">
+                Our AI is creating your professional Confidential Information Memorandum. This typically takes 30-60 seconds.
+              </p>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <p className="text-sm text-blue-700">
+                  <strong>You can navigate away!</strong> Feel free to explore other parts of the app. Your CIM will be ready when you return.
+                </p>
+              </div>
+              <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Checking status every few seconds...</span>
+              </div>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
+  // Document generation failed - show error state
+  if (cimDocument.generationStatus === 'failed') {
+    return (
+      <div className="min-h-screen bg-background">
+        <main className="px-4 md:px-6 py-4 md:py-6">
+          <div className="flex items-center gap-4 mb-6">
+            <Link href="/documents">
+              <Button variant="ghost" size="sm">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Documents
+              </Button>
+            </Link>
+          </div>
+          <Card className="max-w-2xl mx-auto border-red-200">
+            <CardContent className="p-8 text-center">
+              <div className="flex justify-center mb-6">
+                <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center">
+                  <AlertCircle className="h-10 w-10 text-red-600" />
+                </div>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Generation Failed</h2>
+              <p className="text-gray-600 mb-4">
+                Unfortunately, we couldn't generate your CIM document.
+              </p>
+              {cimDocument.generationError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                  <p className="text-sm text-red-700">{cimDocument.generationError}</p>
+                </div>
+              )}
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <Link href="/documents/new">
+                  <Button>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Try Again
+                  </Button>
+                </Link>
+                <Link href="/documents">
+                  <Button variant="outline">
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Documents
+                  </Button>
+                </Link>
+              </div>
             </CardContent>
           </Card>
         </main>

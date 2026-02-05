@@ -1,5 +1,5 @@
 // Configuration
-const BASE_URL = 'https://brokervault.ai';
+const BASE_URL = 'https://app.brokervault.ai';
 const API_URL = `${BASE_URL}/api/extension`;
 
 // State management

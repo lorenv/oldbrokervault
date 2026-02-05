@@ -47,6 +47,7 @@ import {
 import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { SEOHead } from "@/components/seo-head";
+import { LazyVideo } from "@/components/ui/lazy-video";
 
 export default function HomePage() {
   const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
@@ -516,7 +517,7 @@ export default function HomePage() {
                   setEnlargedImage("/investor-database-preview.png")
                 }
               >
-                <video
+                <LazyVideo
                   src="/investor-database-feature.mp4"
                   muted
                   autoPlay
@@ -593,7 +594,7 @@ export default function HomePage() {
                 style={{ transitionDelay: "200ms" }}
                 onClick={() => setEnlargedImage("/nda-signatures-preview.png")}
               >
-                <video
+                <LazyVideo
                   src="/nda-management-feature.mp4"
                   muted
                   autoPlay
@@ -614,7 +615,7 @@ export default function HomePage() {
                 }`}
                 data-animate-id="showcase-3"
               >
-                <video
+                <LazyVideo
                   src="/analytics optimized_1759637064475.mp4"
                   muted
                   autoPlay
@@ -697,7 +698,7 @@ export default function HomePage() {
                   setEnlargedImage("/e-signature-template-editor.png")
                 }
               >
-                <video
+                <LazyVideo
                   src="/esignature-feature.mp4"
                   muted
                   autoPlay

@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useParams, Link } from "wouter";
+import { useParams, Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -154,6 +154,7 @@ interface ContactCustomProperties {
 
 export default function ContactDetailPage() {
   const { id } = useParams();
+  const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
@@ -178,6 +179,7 @@ export default function ContactDetailPage() {
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
   const [selectedDealId, setSelectedDealId] = useState<string>("");
   const [dealRole, setDealRole] = useState("other");
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   // Sidebar collapse state - persisted to localStorage
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
@@ -361,6 +363,19 @@ export default function ContactDetailPage() {
     },
   });
 
+  // Delete contact mutation
+  const deleteContactMutation = useMutation({
+    mutationFn: () => apiRequest("DELETE", `/api/crm/contacts/${id}`).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts"], refetchType: 'all' });
+      toast({ title: "Contact deleted", description: "The contact has been permanently deleted." });
+      navigate("/contacts");
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to delete contact.", variant: "destructive" });
+    },
+  });
+
   // Helper for inline contact updates (uses optimistic updates, no await needed)
   const handleContactUpdate = useCallback((field: string, value: string) => {
     updateContactMutation.mutate({ [field]: value || null });
@@ -506,15 +521,26 @@ export default function ContactDetailPage() {
             </div>
           </div>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setIsCustomizerOpen(true)}
-          className="flex items-center gap-1.5"
-        >
-          <Settings2 className="h-4 w-4" />
-          <span className="hidden sm:inline">Customize</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsCustomizerOpen(true)}
+            className="flex items-center gap-1.5"
+          >
+            <Settings2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Customize</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsDeleteDialogOpen(true)}
+            className="flex items-center gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50"
+          >
+            <Trash2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Delete</span>
+          </Button>
+        </div>
       </div>
 
       {/* Mobile Quick Actions */}
@@ -801,8 +827,8 @@ export default function ContactDetailPage() {
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="pt-2">
-            <div className="overflow-x-auto scrollbar-hide -mx-1 px-1">
-              <TabsList variant="underline" className="w-max min-w-full justify-start border-b">
+            <div className="overflow-x-auto scrollbar-hide -mx-1 px-1" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <TabsList variant="underline" className="w-max min-w-full justify-start border-b flex-nowrap">
                 <TabsTrigger variant="underline" value="activity">
                   <Clock className="h-4 w-4 mr-1" />
                   Activity
@@ -1415,6 +1441,30 @@ export default function ContactDetailPage() {
               disabled={!selectedDealId || linkDealMutation.isPending}
             >
               {linkDealMutation.isPending ? "Linking..." : "Link Deal"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Contact</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete {(contact as any).firstName} {(contact as any).lastName}? This action cannot be undone and will permanently remove the contact and all associated data.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteContactMutation.mutate()}
+              disabled={deleteContactMutation.isPending}
+            >
+              {deleteContactMutation.isPending ? "Deleting..." : "Delete Contact"}
             </Button>
           </DialogFooter>
         </DialogContent>
