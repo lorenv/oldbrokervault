@@ -636,24 +636,24 @@ export default function DealDetailPage() {
   }
 
   return (
-    <div className="p-4 md:p-6">
+    <div className="p-4 md:p-6 pr-2 md:pr-4">
       {/* Header - stacks on mobile */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-          <Button variant="ghost" size="sm" asChild className="w-fit">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 flex-1 min-w-0">
+          <Button variant="ghost" size="sm" asChild className="w-fit flex-shrink-0">
             <Link href="/deals">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Deals
             </Link>
           </Button>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
             <div
-              className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center shadow-sm ${!brandColor ? 'bg-gradient-to-br from-emerald-500 to-teal-600' : ''}`}
+              className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0 ${!brandColor ? 'bg-gradient-to-br from-emerald-500 to-teal-600' : ''}`}
               style={brandColor ? { backgroundColor: brandColor } : undefined}
             >
               <BriefcaseBusiness className={`h-5 w-5 sm:h-6 sm:w-6 ${brandColor && needsDarkText ? 'text-gray-900' : 'text-white'}`} />
             </div>
-            <div>
+            <div className="min-w-0 flex-1">
               <InlineEdit
                 value={deal.name}
                 onSave={(val) => handleDealUpdate('name', val)}
@@ -667,7 +667,7 @@ export default function DealDetailPage() {
                     className="text-sm text-gray-500 hover:text-blue-600 flex items-center gap-1"
                   >
                     <Building2 className="h-3 w-3" />
-                    {deal.company.name}
+                    <span className="truncate">{deal.company.name}</span>
                   </Link>
                 )}
                 {deal.owner && (
@@ -680,7 +680,7 @@ export default function DealDetailPage() {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <Button
             variant="outline"
             size="sm"
@@ -702,7 +702,7 @@ export default function DealDetailPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr,auto] gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_auto] gap-6">
         {/* Main Content */}
         <div className="space-y-6 min-w-0">
           {/* Pipeline Stages - Pipedrive Arrow Style */}
@@ -1310,22 +1310,23 @@ export default function DealDetailPage() {
         </div>
 
         {/* Sidebar */}
-        <div className={`hidden lg:flex ${isSidebarCollapsed ? 'w-6' : 'w-80'} transition-all duration-200`}>
-          {/* Edge toggle button */}
-          <button
-            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            className="flex-shrink-0 w-6 flex items-start justify-center pt-2 text-gray-400 hover:text-gray-600 transition-colors"
-            title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {isSidebarCollapsed ? (
-              <PanelRightOpen className="h-5 w-5" />
-            ) : (
-              <PanelRightClose className="h-5 w-5" />
-            )}
-          </button>
+        <div className={`hidden lg:block flex-shrink-0 group ${isSidebarCollapsed ? 'w-6' : 'w-80'} transition-all duration-200`}>
+          <div className="flex">
+            {/* Edge toggle button - visible on hover */}
+            <button
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              className={`flex-shrink-0 w-6 flex items-start justify-center pt-2 transition-opacity duration-200 ${isSidebarCollapsed ? 'text-gray-400 hover:text-gray-600' : 'text-gray-300 opacity-0 group-hover:opacity-100 hover:text-gray-500'}`}
+              title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {isSidebarCollapsed ? (
+                <PanelRightOpen className="h-5 w-5" />
+              ) : (
+                <PanelRightClose className="h-5 w-5" />
+              )}
+            </button>
 
-          {!isSidebarCollapsed && (
-          <div className="flex-1 space-y-6">
+            {!isSidebarCollapsed && (
+            <div className="w-72 space-y-6">
           {/* Associations Card */}
           {isSectionVisible("key-people") && (
           <Card>
@@ -1588,8 +1589,9 @@ export default function DealDetailPage() {
             </CardContent>
           </Card>
           )}
+            </div>
+            )}
           </div>
-          )}
         </div>
       </div>
 

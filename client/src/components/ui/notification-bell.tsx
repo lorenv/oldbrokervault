@@ -81,6 +81,7 @@ export function NotificationBell() {
         contact: `/contacts/${notification.entityId}`,
         company: `/companies/${notification.entityId}`,
         task: `/tasks`, // Tasks don't have individual pages yet
+        cim: `/documents/${notification.entityId}`,
       };
       const route = routes[notification.entityType];
       if (route) {

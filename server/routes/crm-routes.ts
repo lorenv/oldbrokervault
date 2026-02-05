@@ -3040,6 +3040,7 @@ router.patch('/contacts/:id', async (req, res) => {
       'ownerId',
       'lifecycleStage',
       'leadStatus',
+      'contactType',
       'customProperties',
       'source',
       'linkedinUrl',

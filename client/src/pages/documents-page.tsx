@@ -38,6 +38,7 @@ interface CimDocumentWithAnalysis extends CimDocument {
   pendingNdaCount?: number; // Number of NDA signatures pending approval
   dealId?: number | null;
   dealName?: string | null;
+  generationStatus?: 'generating' | 'ready' | 'failed';
 }
 
 export default function DocumentsPage() {
@@ -497,14 +498,11 @@ export default function DocumentsPage() {
         {/* Documents Display - Card or List View */}
         {!documentsLoading && viewMode === 'card' && (
           <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-            {documents?.map((doc) => (
-              <Card key={doc.id} className="group relative hover:shadow-2xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 border border-gray-100 shadow-lg bg-white overflow-hidden">
-                <div
-                  className="absolute top-0 left-0 right-0 h-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                  style={{ background: brandColor ? `linear-gradient(to right, ${brandColor}, ${brandColor}aa)` : 'linear-gradient(to right, #3b82f6, #6366f1, #8b5cf6)' }}
-                ></div>
-                <Link href={`/documents/${doc.id}?tab=analytics`} className="block">
-                  <div className="cursor-pointer">
+            {documents?.map((doc) => {
+              const isGenerating = doc.generationStatus === 'generating';
+
+              const cardContent = (
+                <div className="cursor-pointer">
                     <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-6">
                       <div className="flex justify-between items-start gap-2 sm:gap-3">
                         <div className="flex-1 min-w-0">
@@ -803,19 +801,61 @@ export default function DocumentsPage() {
                       </div>
                     </CardContent>
                   </div>
-                </Link>
-              </Card>
-            ))}
+              );
+
+              return (
+                <Card key={doc.id} className={`group relative transition-all duration-300 border shadow-lg bg-white overflow-hidden ${
+                  isGenerating
+                    ? 'border-blue-300 cursor-default'
+                    : 'border-gray-100 hover:shadow-2xl hover:scale-[1.02] hover:-translate-y-1'
+                }`}>
+                  {/* Generating overlay */}
+                  {isGenerating && (
+                    <div className="absolute inset-0 bg-white/80 z-10 flex items-center justify-center rounded-lg">
+                      <div className="flex items-center gap-2 text-indigo-600">
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        <span className="font-medium">Generating...</span>
+                      </div>
+                    </div>
+                  )}
+                  <div
+                    className={`absolute top-0 left-0 right-0 h-1 transition-opacity duration-300 ${
+                      isGenerating
+                        ? 'opacity-100 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500'
+                        : 'opacity-0 group-hover:opacity-100'
+                    }`}
+                    style={!isGenerating ? { background: brandColor ? `linear-gradient(to right, ${brandColor}, ${brandColor}aa)` : 'linear-gradient(to right, #3b82f6, #6366f1, #8b5cf6)' } : undefined}
+                  ></div>
+                  <Link href={isGenerating ? `/documents/${doc.id}/generating` : `/documents/${doc.id}?tab=analytics`} className="block">
+                    {cardContent}
+                  </Link>
+                </Card>
+              );
+            })}
           </div>
         )}
 
         {/* Documents Display - List View */}
         {!documentsLoading && viewMode === 'list' && (
           <div className="space-y-2">
-            {documents?.map((doc) => (
-              <div key={doc.id} className="relative">
-                <Link href={`/documents/${doc.id}?tab=analytics`}>
-                  <div className="group cursor-pointer hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/50 transition-all duration-200 border border-gray-200 hover:border-blue-300 rounded-lg p-3 sm:p-4 bg-white shadow-md hover:shadow-xl">
+            {documents?.map((doc) => {
+              const isGenerating = doc.generationStatus === 'generating';
+
+              const listContent = (
+                <div className={`group transition-all duration-200 border rounded-lg p-3 sm:p-4 bg-white shadow-md relative cursor-pointer ${
+                  isGenerating
+                    ? 'border-blue-300 hover:border-blue-400 hover:shadow-xl'
+                    : 'hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/50 border-gray-200 hover:border-blue-300 hover:shadow-xl'
+                }`}>
+                  {/* Generating overlay for list view */}
+                  {isGenerating && (
+                    <div className="absolute inset-0 bg-white/80 z-10 flex items-center justify-center rounded-lg">
+                      <div className="flex items-center gap-2 text-indigo-600">
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        <span className="font-medium">Generating...</span>
+                      </div>
+                    </div>
+                  )}
                     <div className="flex items-center justify-between gap-4">
                       {/* Left side - Logo and Title */}
                       <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -1107,10 +1147,17 @@ export default function DocumentsPage() {
                         </div>
                       </div>
                     </div>
-                  </div>
-                </Link>
-              </div>
-            ))}
+                </div>
+              );
+
+              return (
+                <div key={doc.id} className="relative">
+                  <Link href={isGenerating ? `/documents/${doc.id}/generating` : `/documents/${doc.id}?tab=analytics`}>
+                    {listContent}
+                  </Link>
+                </div>
+              );
+            })}
           </div>
         )}
 

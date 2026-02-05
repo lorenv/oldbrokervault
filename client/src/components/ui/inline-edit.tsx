@@ -14,7 +14,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { Pencil, Check, X, Loader2, Mail } from "lucide-react";
+import { Pencil, Loader2, Mail } from "lucide-react";
 
 export type InlineEditType = 'text' | 'email' | 'phone' | 'number' | 'currency' | 'date' | 'select';
 
@@ -36,6 +36,7 @@ interface InlineEditProps {
   prefix?: string;
   formatDisplay?: (value: any) => string;
   disabled?: boolean;
+  truncate?: boolean;
 }
 
 export function InlineEdit({
@@ -51,11 +52,11 @@ export function InlineEdit({
   prefix,
   formatDisplay,
   disabled = false,
+  truncate = true,
 }: InlineEditProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(String(value ?? ''));
   const [isLoading, setIsLoading] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Update edit value when prop changes
@@ -112,7 +113,7 @@ export function InlineEdit({
   }, [handleSave, handleCancel]);
 
   const handleBlur = useCallback(() => {
-    // Small delay to allow click on save/cancel buttons
+    // Small delay to allow any pending interactions
     setTimeout(() => {
       if (isEditing && !isLoading) {
         handleSave();
@@ -185,7 +186,7 @@ export function InlineEdit({
     }
 
     return (
-      <div className={cn("inline-flex items-center gap-1", className)}>
+      <div className={cn("inline-flex items-center gap-1 relative", className)}>
         <Input
           ref={inputRef}
           type={type === 'currency' ? 'number' : type === 'phone' ? 'tel' : type}
@@ -194,28 +195,16 @@ export function InlineEdit({
           onKeyDown={handleKeyDown}
           onBlur={handleBlur}
           placeholder={placeholder}
-          className={cn("h-7 text-sm px-2 min-w-[100px]", inputClassName)}
+          className={cn(
+            "h-7 text-sm px-1.5 min-w-[100px] border-0 border-b-2 border-gray-300 rounded-none bg-gray-50/60 shadow-none",
+            "focus-visible:ring-0 focus-visible:border-blue-500 focus-visible:bg-white",
+            "transition-colors duration-150",
+            inputClassName,
+          )}
           disabled={isLoading}
         />
-        {isLoading ? (
-          <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
-        ) : (
-          <>
-            <button
-              type="button"
-              onClick={handleSave}
-              className="p-0.5 text-green-600 hover:text-green-700"
-            >
-              <Check className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="p-0.5 text-gray-400 hover:text-gray-600"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </>
+        {isLoading && (
+          <Loader2 className="h-3 w-3 animate-spin text-muted-foreground flex-shrink-0" />
         )}
       </div>
     );
@@ -225,20 +214,21 @@ export function InlineEdit({
     <button
       type="button"
       onClick={() => setIsEditing(true)}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
       className={cn(
-        "inline-flex items-center gap-1.5 text-left rounded px-1 -mx-1 py-0.5 transition-colors max-w-full",
-        "hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
+        "group/inline inline-flex items-center gap-1.5 text-left rounded-sm px-1.5 -mx-1.5 py-0.5 transition-all duration-150 max-w-full",
+        "hover:bg-gray-100 focus:outline-none focus-visible:bg-gray-100",
         className
       )}
     >
-      <span className={cn("text-sm text-gray-900 truncate", !displayValue && "text-muted-foreground italic", displayClassName)}>
+      <span className={cn(
+        "text-sm",
+        truncate && "truncate",
+        displayValue ? "text-gray-900" : "text-gray-400 italic",
+        displayClassName,
+      )}>
         {displayValue || emptyText}
       </span>
-      {isHovered && (
-        <Pencil className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-      )}
+      <Pencil className="h-3 w-3 text-gray-400 opacity-0 group-hover/inline:opacity-100 transition-opacity duration-150 flex-shrink-0" />
     </button>
   );
 }
@@ -253,7 +243,6 @@ export function InlineEditEmail(props: InlineEditEmailProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(String(value ?? ''));
   const [isLoading, setIsLoading] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Update edit value when prop changes
@@ -336,28 +325,15 @@ export function InlineEditEmail(props: InlineEditEmailProps) {
           onKeyDown={handleKeyDown}
           onBlur={handleBlur}
           placeholder="email@example.com"
-          className="h-7 text-sm px-2 min-w-[180px]"
+          className={cn(
+            "h-7 text-sm px-1.5 min-w-[180px] border-0 border-b-2 border-gray-300 rounded-none bg-gray-50/60 shadow-none",
+            "focus-visible:ring-0 focus-visible:border-blue-500 focus-visible:bg-white",
+            "transition-colors duration-150",
+          )}
           disabled={isLoading}
         />
-        {isLoading ? (
-          <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
-        ) : (
-          <>
-            <button
-              type="button"
-              onClick={handleSave}
-              className="p-0.5 text-green-600 hover:text-green-700"
-            >
-              <Check className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="p-0.5 text-gray-400 hover:text-gray-600"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </>
+        {isLoading && (
+          <Loader2 className="h-3 w-3 animate-spin text-muted-foreground flex-shrink-0" />
         )}
       </div>
     );
@@ -367,9 +343,7 @@ export function InlineEditEmail(props: InlineEditEmailProps) {
   return (
     <TooltipProvider delayDuration={300}>
       <div
-        className={cn("inline-flex items-center gap-1", className)}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        className={cn("group/inline inline-flex items-center gap-1", className)}
       >
         {hasValue ? (
           <Tooltip>
@@ -409,12 +383,12 @@ export function InlineEditEmail(props: InlineEditEmailProps) {
           <button
             type="button"
             onClick={() => setIsEditing(true)}
-            className="text-sm text-muted-foreground italic hover:text-foreground"
+            className="text-sm text-gray-400 italic hover:text-gray-600 transition-colors"
           >
             {emptyText}
           </button>
         )}
-        {isHovered && hasValue && (
+        {hasValue && (
           <Tooltip>
             <TooltipTrigger asChild>
               <button
@@ -423,7 +397,7 @@ export function InlineEditEmail(props: InlineEditEmailProps) {
                   e.stopPropagation();
                   setIsEditing(true);
                 }}
-                className="p-0.5 text-muted-foreground hover:text-foreground rounded hover:bg-accent/50 transition-colors"
+                className="p-0.5 text-gray-400 opacity-0 group-hover/inline:opacity-100 hover:text-gray-600 rounded transition-all duration-150"
               >
                 <Pencil className="h-3 w-3" />
               </button>

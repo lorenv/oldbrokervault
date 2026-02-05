@@ -85,7 +85,10 @@
       "Bash(do printf \"%d\\\\n\" \"0x$hex\")",
       "Bash(done)",
       "Bash(npm run optimize-images:dry:*)",
-      "Bash(journalctl:*)"
+      "Bash(journalctl:*)",
+      "Bash(git stash:*)",
+      "Bash(git stash pop:*)",
+      "Bash(npx vite build:*)"
     ],
     "deny": [],
     "ask": [],

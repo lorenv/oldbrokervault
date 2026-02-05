@@ -11,6 +11,7 @@ import { useLocation } from "wouter";
 import confetti from "canvas-confetti";
 import { getAttributionForSignup } from "../lib/utm";
 import { trackSignupCompleted, identifyUser } from "../lib/posthog";
+import { getPlanIntent, clearPlanIntent } from "../lib/plan-intent";
 
 // Function to detect incognito/private browsing mode
 async function detectIncognitoMode(): Promise<boolean> {
@@ -235,7 +236,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(errorMessage);
       }
     },
-    onSuccess: (user: SelectUser) => {
+    onSuccess: async (user: SelectUser) => {
       queryClient.setQueryData(["/api/user"], user);
 
       // Track signup completion in PostHog
@@ -280,6 +281,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Mark user as new for get started checklist
       localStorage.setItem('show-get-started-checklist', 'true');
+
+      // Check for pending plan upgrade intent
+      const planIntent = getPlanIntent();
+
+      if (planIntent) {
+        clearPlanIntent();
+
+        try {
+          // Map billing to plan ID: 'pro' for annual, 'pro_monthly' for monthly
+          const planId = planIntent.billing === 'monthly' ? 'pro_monthly' : 'pro';
+          const response = await apiRequest("POST", "/api/subscription/create-checkout", {
+            body: { plan: planId }
+          });
+          const { url } = await response.json();
+
+          if (url) {
+            toast({
+              title: "Account created!",
+              description: "Redirecting to checkout...",
+            });
+            setTimeout(() => {
+              window.location.href = url;
+            }, 1500);
+            return; // Don't redirect to dashboard
+          }
+        } catch (error) {
+          console.error('Failed to create checkout session:', error);
+          // Fall through to normal dashboard redirect
+        }
+      }
 
       // Redirect to dashboard after successful registration
       setTimeout(() => setLocation("/dashboard"), 1800);

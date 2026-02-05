@@ -1882,6 +1882,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`[Background CIM] Document ${docId} generation complete and saved`);
 
+      // Create in-app notification for CIM completion
+      try {
+        const { notifications, organizationMembers } = await import("@shared/schema");
+        const [membership] = await db.select().from(organizationMembers)
+          .where(and(eq(organizationMembers.userId, userId), eq(organizationMembers.status, 'active')))
+          .limit(1);
+        if (membership) {
+          await db.insert(notifications).values({
+            organizationId: membership.organizationId,
+            userId: userId,
+            type: 'cim_ready',
+            title: 'CIM Ready!',
+            message: `Your CIM "${data.title || 'Untitled'}" has been generated and is ready to view.`,
+            entityType: 'cim',
+            entityId: docId,
+          });
+        }
+      } catch (notifError) {
+        console.error('[Background CIM] Failed to create notification:', notifError);
+      }
+
       // Dispatch webhook events
       const doc = await storage.getCimDocument(docId);
       if (doc) {
@@ -1916,6 +1937,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         generationStatus: 'failed',
         generationError: errorMessage,
       });
+
+      // Create in-app notification for CIM failure
+      try {
+        const { notifications, organizationMembers } = await import("@shared/schema");
+        const [membership] = await db.select().from(organizationMembers)
+          .where(and(eq(organizationMembers.userId, userId), eq(organizationMembers.status, 'active')))
+          .limit(1);
+        if (membership) {
+          await db.insert(notifications).values({
+            organizationId: membership.organizationId,
+            userId: userId,
+            type: 'cim_failed',
+            title: 'CIM Generation Failed',
+            message: `Generation of "${data.title || 'Untitled'}" failed: ${errorMessage}`,
+            entityType: 'cim',
+            entityId: docId,
+          });
+        }
+      } catch (notifError) {
+        console.error('[Background CIM] Failed to create failure notification:', notifError);
+      }
     }
   }
 
@@ -3416,6 +3458,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching CIM status:", error);
       res.status(500).json({ error: "Failed to fetch document status" });
+    }
+  });
+
+  // Cancel CIM generation (delete in-progress document)
+  app.delete("/api/cim/:id/generation", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const docId = parseInt(req.params.id);
+      if (isNaN(docId)) {
+        return res.status(400).json({ error: "Invalid document ID" });
+      }
+
+      const doc = await storage.getCimDocument(docId);
+      if (!doc || doc.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      if (doc.generationStatus !== 'generating') {
+        return res.status(400).json({ error: "Document is not generating" });
+      }
+
+      // Delete the placeholder document
+      await storage.deleteCimDocument(docId);
+
+      res.json({ success: true, message: "Generation cancelled" });
+    } catch (error) {
+      console.error("Error cancelling CIM generation:", error);
+      res.status(500).json({ error: "Failed to cancel generation" });
     }
   });
 
