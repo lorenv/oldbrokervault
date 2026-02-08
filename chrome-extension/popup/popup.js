@@ -19,8 +19,13 @@ const states = {
 
 // Initialize popup
 document.addEventListener('DOMContentLoaded', async () => {
+  console.log('[BV Auth] Popup initialized');
+
   // Load stored auth token
   const stored = await chrome.storage.sync.get(['authToken', 'user']);
+  console.log('[BV Auth] Stored token:', stored.authToken ? `${stored.authToken.substring(0, 10)}... (length: ${stored.authToken.length})` : 'NONE');
+  console.log('[BV Auth] Stored user:', JSON.stringify(stored.user));
+
   if (stored.authToken) {
     authToken = stored.authToken;
     currentUser = stored.user;
@@ -51,6 +56,10 @@ async function signIn() {
   const redirectUrl = chrome.identity.getRedirectURL();
   const authUrl = `${BASE_URL}/api/extension/auth?redirect_uri=${encodeURIComponent(redirectUrl)}`;
 
+  console.log('[BV Auth] Starting sign-in flow');
+  console.log('[BV Auth] Redirect URL:', redirectUrl);
+  console.log('[BV Auth] Auth URL:', authUrl);
+
   try {
     // Launch auth flow - this handles the popup and redirect automatically
     const responseUrl = await chrome.identity.launchWebAuthFlow({
@@ -58,12 +67,18 @@ async function signIn() {
       interactive: true
     });
 
+    console.log('[BV Auth] Response URL received:', responseUrl);
+
     // Extract token from the response URL fragment (server sends via hash for security)
     const url = new URL(responseUrl);
+    console.log('[BV Auth] Parsed URL - hash:', url.hash, '| search:', url.search);
+
     const hashParams = new URLSearchParams(url.hash.substring(1));
     const token = hashParams.get('token');
     const userId = hashParams.get('user_id');
     const email = hashParams.get('email');
+
+    console.log('[BV Auth] Extracted - token:', token ? `${token.substring(0, 10)}...` : 'NULL', '| userId:', userId, '| email:', email);
 
     if (token) {
       authToken = token;
@@ -75,14 +90,16 @@ async function signIn() {
         user: currentUser
       });
 
+      console.log('[BV Auth] Token stored successfully');
       setState('ready');
       await loadPageInfo();
       await loadRecentDocuments();
     } else {
+      console.error('[BV Auth] No token in response URL. Full hash:', url.hash, '| Full search:', url.search);
       throw new Error('No token received');
     }
   } catch (error) {
-    console.error('Auth failed:', error);
+    console.error('[BV Auth] Sign-in failed:', error.message, error);
     if (error.message !== 'The user did not approve access.') {
       showError('Sign in failed. Please try again.');
     }
@@ -90,24 +107,36 @@ async function signIn() {
 }
 
 async function signOut() {
+  console.log('[BV Auth] Starting sign-out, current token:', authToken ? `${authToken.substring(0, 10)}...` : 'NULL');
   try {
-    await fetch(`${API_URL}/auth/logout`, {
+    const response = await fetch(`${API_URL}/auth/logout`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${authToken}`
       }
     });
+    console.log('[BV Auth] Logout response:', response.status, await response.text());
   } catch (e) {
-    // Ignore logout errors
+    console.warn('[BV Auth] Logout request failed (continuing with local cleanup):', e.message);
   }
 
   authToken = null;
   currentUser = null;
   await chrome.storage.sync.remove(['authToken', 'user']);
+  // Also clear any cached auth state from the identity API
+  try {
+    const redirectUrl = chrome.identity.getRedirectURL();
+    await chrome.identity.clearAllCachedAuthTokens();
+    console.log('[BV Auth] Cleared cached auth tokens');
+  } catch (e) {
+    // clearAllCachedAuthTokens may not be available, ignore
+  }
+  console.log('[BV Auth] Sign-out complete, storage cleared');
   setState('signedOut');
 }
 
 async function checkAuthStatus() {
+  console.log('[BV Auth] Checking auth status, token:', authToken ? `${authToken.substring(0, 10)}...` : 'NULL');
   try {
     const response = await fetch(`${API_URL}/auth/status`, {
       headers: {
@@ -115,20 +144,23 @@ async function checkAuthStatus() {
       }
     });
 
+    console.log('[BV Auth] Status response HTTP:', response.status);
     const data = await response.json();
+    console.log('[BV Auth] Status response data:', JSON.stringify(data));
 
     if (data.authenticated) {
       currentUser = data.user;
       setState('ready');
     } else {
       // Token expired or invalid
+      console.log('[BV Auth] Token not authenticated, clearing storage');
       authToken = null;
       currentUser = null;
       await chrome.storage.sync.remove(['authToken', 'user']);
       setState('signedOut');
     }
   } catch (error) {
-    console.error('Auth check failed:', error);
+    console.error('[BV Auth] Auth check failed:', error.message, error);
     setState('signedOut');
   }
 }

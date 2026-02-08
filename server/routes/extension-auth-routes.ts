@@ -52,11 +52,12 @@ router.get('/auth', async (req: Request, res: Response) => {
   }
 
   // User not logged in, redirect to login with return URL
+  // Add cache-buster to prevent Chrome's auth flow window from serving stale SPA bundles
   const callbackPath = redirectUri
     ? `/api/extension/auth/callback?redirect_uri=${encodeURIComponent(redirectUri)}`
     : '/api/extension/auth/callback';
   const returnUrl = encodeURIComponent(callbackPath);
-  return res.redirect(`/login?redirect=${returnUrl}&extension=true`);
+  return res.redirect(`/login?redirect=${returnUrl}&extension=true&_cb=${Date.now()}`);
 });
 
 /**
