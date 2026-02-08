@@ -74,7 +74,7 @@ export default function ESignaturesPage() {
       <SEOHead
         title="eSignatures - Secure Digital Document Signing for M&A"
         description="Streamline your M&A document signing with secure eSignatures. Features include parallel/sequential signing, audit logs, AI summarization, mobile signing, and certificate of completion."
-        canonicalUrl="https://cimshare.com/features/esignatures"
+        canonicalUrl="https://brokervault.ai/features/esignatures"
       />
 
       {/* Hero Section */}

@@ -12,7 +12,10 @@
     "check": "tsc",
     "db:push": "drizzle-kit push",
     "optimize-images": "node scripts/optimize-images.js",
-    "optimize-images:dry": "node scripts/optimize-images.js --dry-run"
+    "optimize-images:dry": "node scripts/optimize-images.js --dry-run",
+    "test:permissions": "tsx tests/test-permissions.ts",
+    "test:notifications": "tsx tests/test-notifications.ts",
+    "test:all": "tsx tests/test-permissions.ts && tsx tests/test-notifications.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",

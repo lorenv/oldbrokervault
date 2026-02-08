@@ -24,7 +24,7 @@ export class MessageService {
     for (let i = 0; i < 5; i++) {
       randomId += characters.charAt(Math.floor(Math.random() * characters.length));
     }
-    return `thread-${randomId}@reply.cimshare.com`;
+    return `thread-${randomId}@reply.brokervault.ai`;
   }
 
   // Check if a thread email already exists
@@ -52,7 +52,7 @@ export class MessageService {
 
     // Fallback to timestamp-based ID if random generation fails
     const timestamp = Date.now().toString(36);
-    return `thread-${timestamp}@reply.cimshare.com`;
+    return `thread-${timestamp}@reply.brokervault.ai`;
   }
 
   // Create a new message thread from contact form
@@ -522,7 +522,7 @@ export class MessageService {
             <p style="margin: 0; font-size: 14px; color: #1e40af;">
               <strong>Reply Options:</strong><br>
               • Reply directly to this email to respond<br>
-              • View in your <a href="https://cimshare.com/dashboard" style="color: #2563eb;">Message Center</a>
+              • View in your <a href="https://brokervault.ai/dashboard" style="color: #2563eb;">Message Center</a>
             </p>
           </div>
         </div>
@@ -530,8 +530,8 @@ export class MessageService {
 
       await sendEmail({
         to: threadDetails.ownerEmail,
-        from: "system@cimshare.com", // Use verified sender address
-        replyTo: threadDetails.threadEmailAddress || "system@cimshare.com",
+        from: "system@brokervault.ai", // Use verified sender address
+        replyTo: threadDetails.threadEmailAddress || "system@brokervault.ai",
         subject: `New inquiry: ${threadDetails.subject}`,
         html: emailContent
       });
@@ -617,8 +617,8 @@ export class MessageService {
 
       await sendEmail({
         to: thread.inquirerEmail,
-        from: "system@cimshare.com", // Use verified sender address
-        replyTo: thread.threadEmailAddress || "system@cimshare.com",
+        from: "system@brokervault.ai", // Use verified sender address
+        replyTo: thread.threadEmailAddress || "system@brokervault.ai",
         subject: `Re: ${thread.subject}`,
         html: emailContent,
         attachments: sendgridAttachments,
@@ -749,16 +749,16 @@ export class MessageService {
         return;
       }
       
-      // Extract thread email (format: thread-xxxxx@cimshare.com or thread-xxxxx@reply.cimshare.com)
+      // Extract thread email (format: thread-xxxxx@brokervault.ai or thread-xxxxx@reply.brokervault.ai)
       // Now supports alphanumeric thread IDs
-      let threadMatch = toEmail.match(/thread-([a-z0-9]+)@(?:reply\.)?cimshare\.com/i);
+      let threadMatch = toEmail.match(/thread-([a-z0-9]+)@(?:reply\.)?brokervault\.ai/i);
       let threadEmail = threadMatch ? threadMatch[0] : null;
 
       // If not found in main 'to' field, check envelope data
       if (!threadEmail && envelope?.to) {
         for (const recipient of envelope.to) {
           const cleanRecipient = extractEmail(recipient);
-          threadMatch = cleanRecipient.match(/thread-([a-z0-9]+)@(?:reply\.)?cimshare\.com/i);
+          threadMatch = cleanRecipient.match(/thread-([a-z0-9]+)@(?:reply\.)?brokervault\.ai/i);
           if (threadMatch) {
             console.log("Found thread email in envelope.to:", threadMatch[0]);
             threadEmail = threadMatch[0];
@@ -772,7 +772,7 @@ export class MessageService {
         const recipients = webhookData.to.split(',');
         for (const recipient of recipients) {
           const cleanRecipient = extractEmail(recipient.trim());
-          threadMatch = cleanRecipient.match(/thread-([a-z0-9]+)@(?:reply\.)?cimshare\.com/i);
+          threadMatch = cleanRecipient.match(/thread-([a-z0-9]+)@(?:reply\.)?brokervault\.ai/i);
           if (threadMatch) {
             console.log("Found thread email in comma-separated recipients:", threadMatch[0]);
             threadEmail = threadMatch[0];
@@ -999,8 +999,8 @@ export class MessageService {
 
       await sendEmail({
         to: threadDetails.inquirerEmail,
-        from: "system@cimshare.com", // Use verified sender address
-        replyTo: threadDetails.threadEmailAddress || "system@cimshare.com",
+        from: "system@brokervault.ai", // Use verified sender address
+        replyTo: threadDetails.threadEmailAddress || "system@brokervault.ai",
         subject: `Re: ${threadDetails.subject}`,
         html: emailContent
       });

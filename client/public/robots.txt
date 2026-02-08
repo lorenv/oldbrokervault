@@ -1,11 +1,11 @@
 # robots.txt for CIM Share
-# https://cimshare.com
+# https://brokervault.ai
 
 User-agent: *
 Allow: /
 
 # Sitemap location
-Sitemap: https://cimshare.com/sitemap.xml
+Sitemap: https://brokervault.ai/sitemap.xml
 
 # Disallow protected/private areas
 Disallow: /dashboard

@@ -462,7 +462,7 @@ export default function SDEAnalyzerPage() {
                   Supports .xls and .xlsx files up to 8MB
                 </p>
                 <p className="text-xs text-slate-500 mb-4 max-w-md mx-auto">
-                  File should contain one tab with your Profit & Loss report and clear date headers. For any issues, contact <a href="mailto:support@cimshare.com" className="text-blue-600 hover:underline">support@cimshare.com</a>
+                  File should contain one tab with your Profit & Loss report and clear date headers. For any issues, contact <a href="mailto:support@brokervault.ai" className="text-blue-600 hover:underline">support@brokervault.ai</a>
                 </p>
                 <Button
                   onClick={() => fileInputRef.current?.click()}

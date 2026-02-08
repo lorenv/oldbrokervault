@@ -26,7 +26,7 @@ interface SendTemplateEmailParams {
 }
 
 export class EmailService {
-  private defaultFromEmail = 'support@cimshare.com'; // Updated to use verified sender
+  private defaultFromEmail = 'support@brokervault.ai'; // Updated to use verified sender
 
   async sendTemplateEmail(params: SendTemplateEmailParams): Promise<boolean> {
     const service = getMailService();
@@ -63,7 +63,7 @@ export class EmailService {
   async sendWelcomeEmail(userEmail: string, userName?: string): Promise<boolean> {
     return this.sendTemplateEmail({
       to: userEmail,
-      from: 'support@cimshare.com',
+      from: 'support@brokervault.ai',
       templateId: 'd-470daf43d03f4e769ff1ad67effcb998',
       dynamicTemplateData: {
         user_name: userName || 'there',

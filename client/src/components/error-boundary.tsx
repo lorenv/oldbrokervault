@@ -24,7 +24,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Report error to server (emails rob@cimshare.com)
+    // Report error to server (emails rob@brokervault.ai)
     reportError({
       error,
       componentStack: errorInfo.componentStack || undefined,

@@ -179,18 +179,20 @@ process.env.VITE_APP_URL || 'https://cimshare.com'
 - [ ] Set `APP_URL=https://NEWDOMAIN.com`
 - [ ] Set `FRONTEND_URL=https://NEWDOMAIN.com`
 
-### 3. Code Updates
-- [ ] Update `client/src/lib/url-utils.ts` PRODUCTION_DOMAIN
-- [ ] Find/replace hardcoded domains in server files
-- [ ] Find/replace hardcoded domains in client files
-- [ ] Update `client/index.html` meta tags
-- [ ] Update `client/public/sitemap.xml`
-- [ ] Update `client/public/robots.txt`
+### 3. Code Updates (COMPLETED 2026-02-08)
+- [x] Update `client/src/lib/url-utils.ts` PRODUCTION_DOMAIN
+- [x] Find/replace hardcoded domains in server files (22 files updated)
+- [x] Find/replace hardcoded domains in client files (34 files updated)
+- [x] Update `client/index.html` meta tags
+- [x] Update `client/public/sitemap.xml`
+- [x] Update `client/public/robots.txt`
 
-### 4. Email System
-- [ ] Update all `@cimshare.com` email addresses
-- [ ] Update `reply.cimshare.com` thread email pattern in `server/message-service.ts`
-- [ ] Update SendGrid Inbound Parse hostname
+### 4. Email System (COMPLETED 2026-02-08)
+- [x] Update all `@cimshare.com` email addresses → `@brokervault.ai`
+- [x] Update `reply.cimshare.com` thread email pattern in `server/message-service.ts`
+- [x] Update email template logo (brokervaultlogo.svg)
+- [x] Update copyright year to 2026
+- [ ] Update SendGrid Inbound Parse hostname to `reply.brokervault.ai`
 
 ### 5. Post-Migration
 - [ ] Set up 301 redirects from old domain

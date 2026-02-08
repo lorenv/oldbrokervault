@@ -64,7 +64,7 @@ export default function IntegrationsFeaturePage() {
       <SEOHead
         title="Integrations - Connect Your M&A Workflow to 5,000+ Apps"
         description="Automate your M&A workflows with powerful integrations. Connect CIM Share to Zapier, HubSpot, Salesforce, Slack, and thousands more. Get instant notifications for CIM views, NDA signatures, and more."
-        canonicalUrl="https://cimshare.com/features/integrations"
+        canonicalUrl="https://brokervault.ai/features/integrations"
       />
 
       {/* Hero Section */}

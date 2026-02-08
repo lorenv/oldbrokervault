@@ -32,7 +32,7 @@ import { eq } from 'drizzle-orm';
 const HUBSPOT_CLIENT_ID = process.env.HUBSPOT_CLIENT_ID || '';
 const HUBSPOT_CLIENT_SECRET = process.env.HUBSPOT_CLIENT_SECRET || '';
 const HUBSPOT_REDIRECT_URI = process.env.HUBSPOT_REDIRECT_URI ||
-  `${process.env.BASE_URL || 'https://cimshare.com'}/api/integrations/oauth/callback/hubspot`;
+  `${process.env.BASE_URL || 'https://brokervault.ai'}/api/integrations/oauth/callback/hubspot`;
 
 // Required scopes for CRM access
 const HUBSPOT_SCOPES = [

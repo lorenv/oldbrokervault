@@ -7,7 +7,7 @@ export default function PrivacyPolicyPage() {
       <SEOHead
         title="Privacy Policy - CIM Share"
         description="CIM Share privacy policy. Learn how we collect, use, and protect your personal information when using our CIM creation and document sharing platform."
-        canonicalUrl="https://cimshare.com/privacy-policy"
+        canonicalUrl="https://brokervault.ai/privacy-policy"
       />
       <div className="container mx-auto px-4 py-12 max-w-4xl">
         <h1 className="text-3xl font-bold mb-8">Privacy Policy</h1>
@@ -147,7 +147,7 @@ export default function PrivacyPolicyPage() {
 
             <h3 className="text-lg font-medium mb-2 mt-4">Your Control Over AI Processing</h3>
             <p>
-              AI processing is essential to our core service of generating CIM documents. If you have specific concerns about AI processing of your data, please contact us at privacy@cimshare.com to discuss your requirements.
+              AI processing is essential to our core service of generating CIM documents. If you have specific concerns about AI processing of your data, please contact us at privacy@brokervault.ai to discuss your requirements.
             </p>
 
             <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
@@ -198,7 +198,7 @@ export default function PrivacyPolicyPage() {
               <li><strong>Objection:</strong> Object to certain processing of your information</li>
               <li><strong>Restriction:</strong> Request restriction of processing in certain circumstances</li>
             </ul>
-            <p className="mt-3">To exercise these rights, please contact us at privacy@cimshare.com.</p>
+            <p className="mt-3">To exercise these rights, please contact us at privacy@brokervault.ai.</p>
           </section>
 
           <section>
@@ -235,7 +235,7 @@ export default function PrivacyPolicyPage() {
               If you have questions about this Privacy Policy or our privacy practices, please contact us at:
             </p>
             <p>
-              <strong>Email:</strong> privacy@cimshare.com<br />
+              <strong>Email:</strong> privacy@brokervault.ai<br />
               <strong>Mail:</strong> Dealve Inc., Privacy Department, 123 Business District, Suite 456, New York, NY 10001<br />
               <strong>Phone:</strong> +1 (555) 123-4567
             </p>

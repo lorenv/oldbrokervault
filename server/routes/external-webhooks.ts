@@ -242,12 +242,12 @@ export async function registerExternalWebhooks(app: Express) {
 
     try {
       const testData = req.body || {
-        to: "thread-abc12@reply.cimshare.com",
+        to: "thread-abc12@reply.brokervault.ai",
         from: "test@example.com",
         subject: "Test reply",
         text: "This is a test email reply",
         envelope: JSON.stringify({
-          to: ["thread-abc12@reply.cimshare.com"],
+          to: ["thread-abc12@reply.brokervault.ai"],
           from: "test@example.com"
         })
       };
@@ -273,7 +273,7 @@ export async function registerExternalWebhooks(app: Express) {
   app.get('/api/webhook/sendgrid/info', (req, res) => {
     const baseUrl = process.env.REPLIT_DOMAINS
       ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}`
-      : 'https://cimshare.com';
+      : 'https://brokervault.ai';
 
     const inboundSecretConfigured = !!process.env.SENDGRID_INBOUND_WEBHOOK_SECRET;
     const eventSignatureConfigured = !!process.env.SENDGRID_WEBHOOK_VERIFICATION_KEY;

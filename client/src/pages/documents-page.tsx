@@ -631,7 +631,7 @@ export default function DocumentsPage() {
                                     e.preventDefault();
                                     e.stopPropagation();
                                     if (doc.shareSlug) {
-                                      navigator.clipboard.writeText(`${window.location.hostname === "localhost" ? window.location.origin : "https://cimshare.com"}/share/${doc.shareSlug}`);
+                                      navigator.clipboard.writeText(`${window.location.hostname === "localhost" ? window.location.origin : "https://brokervault.ai"}/share/${doc.shareSlug}`);
                                       toast({
                                         title: "Share link copied",
                                         description: "The share link has been copied to your clipboard"
@@ -682,7 +682,7 @@ export default function DocumentsPage() {
                           e.preventDefault();
                           e.stopPropagation();
                           if (doc.shareSlug) {
-                            navigator.clipboard.writeText(`${window.location.hostname === "localhost" ? window.location.origin : "https://cimshare.com"}/share/${doc.shareSlug}`);
+                            navigator.clipboard.writeText(`${window.location.hostname === "localhost" ? window.location.origin : "https://brokervault.ai"}/share/${doc.shareSlug}`);
                             toast({
                               title: "Share link copied",
                               description: "The share link has been copied to your clipboard"
@@ -982,7 +982,7 @@ export default function DocumentsPage() {
                                     e.preventDefault();
                                     e.stopPropagation();
                                     if (doc.shareSlug) {
-                                      navigator.clipboard.writeText(`${window.location.hostname === "localhost" ? window.location.origin : "https://cimshare.com"}/share/${doc.shareSlug}`);
+                                      navigator.clipboard.writeText(`${window.location.hostname === "localhost" ? window.location.origin : "https://brokervault.ai"}/share/${doc.shareSlug}`);
                                       toast({
                                         title: "Share link copied",
                                         description: "The share link has been copied to your clipboard"
@@ -1033,7 +1033,7 @@ export default function DocumentsPage() {
                                   e.preventDefault();
                                   e.stopPropagation();
                                   if (doc.shareSlug) {
-                                    navigator.clipboard.writeText(`${window.location.hostname === "localhost" ? window.location.origin : "https://cimshare.com"}/share/${doc.shareSlug}`);
+                                    navigator.clipboard.writeText(`${window.location.hostname === "localhost" ? window.location.origin : "https://brokervault.ai"}/share/${doc.shareSlug}`);
                                     toast({
                                       title: "Share link copied",
                                       description: "The share link has been copied to your clipboard"

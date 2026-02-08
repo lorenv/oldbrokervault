@@ -19,7 +19,7 @@ export default function BusinessBrokersPage() {
       <SEOHead
         title="CIM Share for M&A Advisors - Professional CIM Creation Platform"
         description="CIM Share helps M&A advisors and business brokers create professional CIMs quickly with AI assistance, secure document sharing, and NDA protection. Streamline your deal flow today."
-        canonicalUrl="https://cimshare.com/solutions/business-brokers"
+        canonicalUrl="https://brokervault.ai/solutions/business-brokers"
       />
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-16 lg:py-24">

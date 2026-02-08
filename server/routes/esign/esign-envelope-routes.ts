@@ -508,7 +508,7 @@ router.post('/envelopes/:id/send', async (req: Request, res: Response) => {
 
     for (const recipient of recipientsToNotify) {
       // Generate signing URL
-      const signingUrl = `${process.env.APP_URL || 'https://cimshare.com'}/esign/sign/${recipient.accessToken}`;
+      const signingUrl = `${process.env.APP_URL || 'https://brokervault.ai'}/esign/sign/${recipient.accessToken}`;
 
       // Send email and check result
       let emailSent = false;
@@ -1225,7 +1225,7 @@ async function reminderHandler(req: Request, res: Response) {
       }
 
       // Send reminder email
-      const signingUrl = `${process.env.APP_URL || 'https://cimshare.com'}/esign/sign/${recipient.accessToken}`;
+      const signingUrl = `${process.env.APP_URL || 'https://brokervault.ai'}/esign/sign/${recipient.accessToken}`;
       try {
         await sendEsignReminderEmail({
           recipientEmail: recipient.email,
@@ -1792,7 +1792,7 @@ router.post('/sign/:token/complete', async (req: Request, res: Response) => {
       }
 
       // Send completion emails to all parties with the signed PDF attached
-      const envelopeUrl = `${process.env.APP_URL || 'https://cimshare.com'}/esign/envelope/${envelope.envelopeId}`;
+      const envelopeUrl = `${process.env.APP_URL || 'https://brokervault.ai'}/esign/envelope/${envelope.envelopeId}`;
       const signerNames = allSigners.map(s => s.name).join(', ');
 
       // Prepare PDF attachment if available
@@ -1879,7 +1879,7 @@ router.post('/sign/:token/complete', async (req: Request, res: Response) => {
           .limit(1);
 
         const senderName = owner ? getFullName(owner) || owner.email : 'Document Owner';
-        const signingUrl = `${process.env.APP_URL || 'https://cimshare.com'}/esign/sign/${nextSigner.accessToken}`;
+        const signingUrl = `${process.env.APP_URL || 'https://brokervault.ai'}/esign/sign/${nextSigner.accessToken}`;
 
         try {
           await sendEsignInvitationEmail({

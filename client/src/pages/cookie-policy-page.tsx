@@ -6,7 +6,7 @@ export default function CookiePolicyPage() {
       <SEOHead
         title="Cookie Policy - CIM Share"
         description="CIM Share cookie policy. Learn how we use cookies and similar technologies to improve your experience on our platform."
-        canonicalUrl="https://cimshare.com/cookie-policy"
+        canonicalUrl="https://brokervault.ai/cookie-policy"
       />
       <div className="container mx-auto px-4 py-12 max-w-4xl">
         <h1 className="text-3xl font-bold mb-8">Cookie Policy</h1>
@@ -155,7 +155,7 @@ export default function CookiePolicyPage() {
               If you have questions about this Cookie Policy or our use of cookies, please contact us at:
             </p>
             <p>
-              <strong>Email:</strong> privacy@cimshare.com<br />
+              <strong>Email:</strong> privacy@brokervault.ai<br />
               <strong>Mail:</strong> Dealve Inc., Privacy Department, 123 Business District, Suite 456, New York, NY 10001<br />
               <strong>Phone:</strong> 737-377-0009
             </p>

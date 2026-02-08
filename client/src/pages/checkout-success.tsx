@@ -127,7 +127,7 @@ export default function CheckoutSuccess() {
                 </Button>
                 <Button 
                   variant="outline" 
-                  onClick={() => window.location.href = 'mailto:support@cimshare.com'}
+                  onClick={() => window.location.href = 'mailto:support@brokervault.ai'}
                 >
                   Contact Support
                 </Button>

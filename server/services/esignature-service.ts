@@ -138,7 +138,7 @@ export class ESignatureService {
         // Send signing invitation email
         await sendEmail({
           to: recipient.email,
-          from: 'system@cimshare.com',
+          from: 'system@brokervault.ai',
           subject: `Please sign: ${session[0].title}`,
           html: this.generateSigningEmailTemplate({
             recipientName: recipient.name,
@@ -416,7 +416,7 @@ export class ESignatureService {
           console.log('📧 Sending completion email to:', recipient.email);
           await sendEmail({
             to: recipient.email,
-            from: 'system@cimshare.com',
+            from: 'system@brokervault.ai',
             subject: `Document Completed: ${sessionData.session.title}`,
             html: this.generateCompletionEmailTemplate({
               recipientName: recipient.name,
@@ -563,7 +563,7 @@ export class ESignatureService {
         if (recipient.role === 'cc' || recipient.role === 'signer') {
           await sendEmail({
             to: recipient.email,
-            from: 'system@cimshare.com',
+            from: 'system@brokervault.ai',
             subject: `Document Processing Error: ${sessionData.session.title}`,
             html: `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">

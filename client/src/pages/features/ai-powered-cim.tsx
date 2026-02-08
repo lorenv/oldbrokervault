@@ -58,7 +58,7 @@ export default function AiPoweredCimPage() {
       <SEOHead
         title="AI-Powered CIM Generator - Create Professional CIMs in Minutes"
         description="Create professional Confidential Information Memorandums (CIMs) in minutes with AI. Transform meeting transcripts and website data into investment-grade documents automatically."
-        canonicalUrl="https://cimshare.com/features/ai-powered-cim"
+        canonicalUrl="https://brokervault.ai/features/ai-powered-cim"
       />
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-16 lg:py-24">
@@ -128,7 +128,7 @@ export default function AiPoweredCimPage() {
             {/* Tony's Transmissions Image Card */}
             <div
               className="relative overflow-hidden rounded-xl shadow-lg hover:shadow-2xl hover:-translate-y-4 hover:rotate-1 transition-all duration-500 cursor-pointer group"
-              onClick={() => window.open("https://cimshare.com/share/cim-q3bqjm", "_blank")}
+              onClick={() => window.open("https://brokervault.ai/share/cim-q3bqjm", "_blank")}
             >
               <img
                 src="/tonys-transmissions-preview.png"
@@ -152,7 +152,7 @@ export default function AiPoweredCimPage() {
             {/* Arbor Partners Image Card */}
             <div
               className="relative overflow-hidden rounded-xl shadow-lg hover:shadow-2xl hover:-translate-y-4 hover:-rotate-1 transition-all duration-500 cursor-pointer group"
-              onClick={() => window.open("https://cimshare.com/share/cim-2axr79", "_blank")}
+              onClick={() => window.open("https://brokervault.ai/share/cim-2axr79", "_blank")}
             >
               <img
                 src="/arbor-partners-preview.png"
@@ -176,7 +176,7 @@ export default function AiPoweredCimPage() {
             {/* Public Listings Page Card */}
             <div
               className="relative overflow-hidden rounded-xl shadow-lg hover:shadow-2xl hover:-translate-y-4 hover:rotate-1 transition-all duration-500 cursor-pointer group"
-              onClick={() => window.open("https://cimshare.com/listings/dealve-inc", "_blank")}
+              onClick={() => window.open("https://brokervault.ai/listings/dealve-inc", "_blank")}
             >
               <div className="aspect-[4/3] bg-gradient-to-br from-cyan-500 via-blue-500 to-indigo-600 flex flex-col items-center justify-center p-6 group-hover:scale-105 transition-transform duration-500">
                 <Globe className="w-16 h-16 text-white/90 mb-4" />
@@ -204,7 +204,7 @@ export default function AiPoweredCimPage() {
             {/* Teaser Example Card */}
             <div
               className="relative overflow-hidden rounded-xl shadow-lg hover:shadow-2xl hover:-translate-y-4 hover:-rotate-1 transition-all duration-500 cursor-pointer group"
-              onClick={() => window.open("https://cimshare.com/teaser/prominent-food-beverage-business-with-strong-marke-2ea50f", "_blank")}
+              onClick={() => window.open("https://brokervault.ai/teaser/prominent-food-beverage-business-with-strong-marke-2ea50f", "_blank")}
             >
               <div className="aspect-[4/3] bg-gradient-to-br from-purple-500 via-pink-500 to-rose-500 flex flex-col items-center justify-center p-6 group-hover:scale-105 transition-transform duration-500">
                 <FileText className="w-16 h-16 text-white/90 mb-4" />
@@ -793,7 +793,7 @@ export default function AiPoweredCimPage() {
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
                     <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
-                    <span className="text-slate-700">Custom URL (yourcompany.cimshare.com)</span>
+                    <span className="text-slate-700">Custom URL (yourcompany.brokervault.ai)</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />

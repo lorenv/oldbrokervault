@@ -149,7 +149,7 @@ export function UnsubscribePage() {
             <p className="mt-2 text-gray-600">{error}</p>
             <div className="mt-6">
               <a
-                href="mailto:support@cimshare.com"
+                href="mailto:support@brokervault.ai"
                 className="inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Contact Support
@@ -262,7 +262,7 @@ export function UnsubscribePage() {
 
         <div className="mt-6 pt-6 border-t text-center">
           <p className="text-sm text-gray-500">
-            Need help? <a href="mailto:support@cimshare.com" className="text-blue-600 hover:underline">Contact support</a>
+            Need help? <a href="mailto:support@brokervault.ai" className="text-blue-600 hover:underline">Contact support</a>
           </p>
         </div>
       </div>

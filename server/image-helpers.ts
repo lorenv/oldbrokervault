@@ -71,7 +71,7 @@ export async function resolveImageData(imagePath: string): Promise<ImageData | n
     }
 
     // Check if it's an object storage URL (either full URL or relative path)
-    // This handles: /api/object-storage/... or https://cimshare.com/api/object-storage/...
+    // This handles: /api/object-storage/... or https://brokervault.ai/api/object-storage/...
     const storageKey = extractObjectStorageKey(imagePath);
     if (storageKey) {
       console.log(`[resolveImageData] Processing object storage URL, key: ${storageKey}`);

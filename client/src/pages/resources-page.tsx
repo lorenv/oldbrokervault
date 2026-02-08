@@ -36,7 +36,7 @@ export default function ResourcesPage() {
         title="Resources | CIM Share"
         description="Video tutorials, guides, and resources to help you get the most out of CIM Share for your M&A transactions."
         keywords="CIM Share tutorials, M&A resources, CIM generator guide, deal room tutorials, business broker resources"
-        canonicalUrl="https://cimshare.com/resources"
+        canonicalUrl="https://brokervault.ai/resources"
       />
 
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
