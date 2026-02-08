@@ -27,7 +27,7 @@ const MICROSOFT_CLIENT_ID = process.env.MICROSOFT_CLIENT_ID || '';
 const MICROSOFT_CLIENT_SECRET = process.env.MICROSOFT_CLIENT_SECRET || '';
 const MICROSOFT_TENANT_ID = process.env.MICROSOFT_TENANT_ID || 'common'; // 'common' for multi-tenant
 const MICROSOFT_REDIRECT_URI = process.env.MICROSOFT_REDIRECT_URI ||
-  `${process.env.BASE_URL || 'https://cimshare.com'}/api/integrations/oauth/callback/microsoft`;
+  `${process.env.BASE_URL || 'https://brokervault.ai'}/api/integrations/oauth/callback/microsoft`;
 
 // Microsoft Graph API scopes
 const MICROSOFT_SCOPES = [

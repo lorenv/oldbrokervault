@@ -10,7 +10,7 @@ export default function DataSecurityPage() {
       <SEOHead
         title="Data Security - CIM Share"
         description="Learn about CIM Share's enterprise-grade security measures. We protect your confidential business data with encryption, secure infrastructure, and strict access controls."
-        canonicalUrl="https://cimshare.com/data-security"
+        canonicalUrl="https://brokervault.ai/data-security"
       />
       <div className="container mx-auto px-4 py-12 max-w-6xl">
         <div className="text-center mb-12">
@@ -284,7 +284,7 @@ export default function DataSecurityPage() {
             <a className="text-blue-600 hover:underline">Cookie Policy</a>
           </Link>
           <span className="text-muted-foreground">|</span>
-          <a href="mailto:privacy@cimshare.com" className="text-blue-600 hover:underline">
+          <a href="mailto:privacy@brokervault.ai" className="text-blue-600 hover:underline">
             Contact Privacy Team
           </a>
         </div>

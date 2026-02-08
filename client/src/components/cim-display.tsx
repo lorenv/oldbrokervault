@@ -65,6 +65,17 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Badge } from "@/components/ui/badge";
+import {
+  resolveHeaderStyle,
+  getHeaderStyleClasses,
+  DENSITY_CONFIGS,
+  FONT_PRESETS,
+  type HeaderStyle,
+  type HeaderRendering,
+  type FontPreset,
+  type DividerStyle,
+  type LayoutDensity,
+} from "@/lib/share-themes";
 
 // Enhanced inline editor for flexible CIM sections with rich text support
 interface FlexibleSectionEditorProps {
@@ -107,6 +118,30 @@ function FlexibleSectionEditor({ value, onSave, placeholder = "Enter text...", m
       enableRichText={enableRichText}
     />
   );
+}
+
+// Section divider component for visual separation between sections
+function SectionDivider({ style, themeColors }: { style: DividerStyle; themeColors?: any }) {
+  if (style === 'line') {
+    return <div className="my-6 border-t border-gray-200" />;
+  }
+  if (style === 'dotted') {
+    return <div className="my-6 border-t border-dotted border-gray-300" />;
+  }
+  if (style === 'decorative') {
+    return (
+      <div className="my-8 flex items-center justify-center gap-2">
+        <div className="h-px flex-1 bg-gray-200" />
+        <div className="flex gap-1.5">
+          <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: themeColors?.primary || '#94a3b8' }} />
+          <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: themeColors?.secondary || '#94a3b8' }} />
+          <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: themeColors?.primary || '#94a3b8' }} />
+        </div>
+        <div className="h-px flex-1 bg-gray-200" />
+      </div>
+    );
+  }
+  return null;
 }
 
 // Draggable Section Wrapper Component
@@ -169,6 +204,10 @@ interface CimDisplayProps {
     theme: string;
     sectionStyle: 'cards' | 'flat' | 'minimal';
     contactPosition: string;
+    headerStyle?: string;
+    fontPreset?: string;
+    dividerStyle?: string;
+    layoutDensity?: string;
   };
   themeColors?: {
     primary: string;
@@ -757,19 +796,56 @@ export function CimDisplay({
 
         {/* Business Images */}
         {(localSelectedImages && localSelectedImages.length > 0 || !isSharedView) && (() => {
-          const isMinimalStyleForImages = isSharedView && displaySettings?.sectionStyle === 'minimal';
+          const imgHeaderStyle = isSharedView
+            ? (displaySettings?.headerStyle as HeaderStyle || (displaySettings?.sectionStyle === 'minimal' ? 'underline' : 'gradient'))
+            : 'gradient';
+          const imgHeaderRendering = isSharedView && themeColors
+            ? getHeaderStyleClasses(imgHeaderStyle, themeColors)
+            : null;
+          const imgDensity = isSharedView
+            ? DENSITY_CONFIGS[(displaySettings?.layoutDensity as LayoutDensity) || 'standard']
+            : DENSITY_CONFIGS['standard'];
+          const imgFontConfig = isSharedView && displaySettings?.fontPreset
+            ? FONT_PRESETS[displaySettings.fontPreset as FontPreset]
+            : undefined;
+
+          const getImgWrapperClasses = () => {
+            if (!isSharedView) return "mb-4 border-2 border-gray-200 rounded-lg overflow-hidden";
+            if (!imgHeaderRendering) return "mb-4 border-2 border-gray-200 rounded-lg overflow-hidden";
+            return `${imgDensity.sectionGap} relative group ${imgHeaderRendering.sectionWrapper}`;
+          };
+          const getImgHeaderClasses = () => {
+            if (!isSharedView) return "bg-gradient-to-r from-slate-600 to-blue-600 text-white p-4 flex justify-between items-center";
+            if (!imgHeaderRendering) return "bg-gradient-to-r text-white p-4 flex justify-between items-center";
+            return `${imgHeaderRendering.headerContainer} flex justify-between items-center`;
+          };
+          const getImgHeaderStyle = () => {
+            if (!isSharedView) return undefined;
+            if (!imgHeaderRendering) return undefined;
+            return imgHeaderRendering.headerContainerStyle;
+          };
+          const getImgTitleClasses = () => {
+            if (!isSharedView) return "font-semibold text-white";
+            if (!imgHeaderRendering) return "font-semibold text-white";
+            return `${imgHeaderRendering.titleText}`;
+          };
+          const getImgTitleStyle = () => {
+            if (!isSharedView || !imgHeaderRendering) return undefined;
+            return { ...imgHeaderRendering.titleTextStyle, fontFamily: imgFontConfig?.headingFamily };
+          };
+
           return (
-          <div className={isMinimalStyleForImages ? "mb-6" : "mb-4 border-2 border-gray-200 rounded-lg overflow-hidden"}>
+          <div className={getImgWrapperClasses()} style={imgHeaderRendering?.sectionWrapperStyle}>
             <div
-              className={isMinimalStyleForImages
-                ? "py-4 flex justify-between items-center"
-                : "bg-gradient-to-r from-slate-600 to-blue-600 text-white p-4 flex justify-between items-center"
-              }
-              style={!isMinimalStyleForImages && themeColors ? { background: `linear-gradient(to right, ${themeColors.gradient.from}, ${themeColors.gradient.to})` } : undefined}
+              className={getImgHeaderClasses()}
+              style={getImgHeaderStyle()}
             >
               <div>
-                <h3 className={isMinimalStyleForImages ? "text-lg font-semibold" : "font-semibold text-white"} style={isMinimalStyleForImages && themeColors ? { color: themeColors.primary } : undefined}>Business Images</h3>
-                {isMinimalStyleForImages && themeColors && (
+                {imgHeaderRendering?.showTopRule && (
+                  <div className="h-0.5 mb-4 rounded" style={{ backgroundColor: themeColors?.primary, opacity: 0.3 }} />
+                )}
+                <h3 className={getImgTitleClasses()} style={getImgTitleStyle()}>Business Images</h3>
+                {imgHeaderRendering?.showUnderline && themeColors && (
                   <div className="h-0.5 mt-2 rounded w-32" style={{ backgroundColor: themeColors.primary }} />
                 )}
               </div>
@@ -794,7 +870,7 @@ export function CimDisplay({
                 </div>
               )}
             </div>
-            <div className={isMinimalStyleForImages ? "py-4" : "bg-white p-6"}>
+            <div className={imgHeaderRendering ? imgHeaderRendering.contentArea : "bg-white p-6"}>
               {localSelectedImages && localSelectedImages.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {localSelectedImages.map((image: any, index: number) => (
@@ -870,42 +946,58 @@ export function CimDisplay({
             strategy={verticalListSortingStrategy}
           >
             {/* Unified Sections - Regular and Custom integrated by position */}
-            {createUnifiedSections().map((unifiedSection: any) => {
+            {(() => {
+              const allSections = createUnifiedSections();
+              const fontConfig = isSharedView && displaySettings?.fontPreset
+                ? FONT_PRESETS[displaySettings.fontPreset as FontPreset]
+                : undefined;
+              return allSections.map((unifiedSection: any, index: number) => {
               if (unifiedSection.type === 'regular') {
                 const section = unifiedSection.data;
                 const sectionId = unifiedSection.id;
-                // Determine section style classes based on displaySettings
-                const sectionStyleType = isSharedView ? (displaySettings?.sectionStyle || 'cards') : 'cards';
-                const isMinimalStyle = sectionStyleType === 'minimal';
+                // Resolve header style
+                const effectiveHeaderStyle = isSharedView
+                  ? (displaySettings?.headerStyle as HeaderStyle || (displaySettings?.sectionStyle === 'minimal' ? 'underline' : 'gradient'))
+                  : 'gradient';
+
+                // Get rendering config from theme system
+                const headerRendering = isSharedView && themeColors
+                  ? getHeaderStyleClasses(effectiveHeaderStyle, themeColors)
+                  : null;
+
+                // Get density config
+                const density = isSharedView
+                  ? DENSITY_CONFIGS[(displaySettings?.layoutDensity as LayoutDensity) || 'standard']
+                  : DENSITY_CONFIGS['standard'];
+
                 const getWrapperClasses = () => {
                   if (!isSharedView) return "mb-4 relative group border-2 border-gray-200 shadow-none overflow-hidden";
-                  if (isMinimalStyle) return "mb-6 relative group";
-                  return "mb-4 relative group bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden";
+                  if (!headerRendering) return "mb-4 relative group bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden";
+                  return `${density.sectionGap} relative group ${headerRendering.sectionWrapper}`;
                 };
                 const getHeaderClasses = () => {
                   if (!isSharedView) return "bg-gradient-to-r from-slate-600 to-blue-600 text-white";
-                  if (isMinimalStyle) return "px-6 py-4";
-                  return "text-white";
+                  if (!headerRendering) return "text-white";
+                  return headerRendering.headerContainer;
                 };
                 const getHeaderStyle = () => {
                   if (!isSharedView) return undefined;
-                  if (isMinimalStyle) return undefined; // Minimal style doesn't use gradient background
-                  if (!themeColors) return undefined;
-                  return { background: `linear-gradient(to right, ${themeColors.gradient.from}, ${themeColors.gradient.to})` };
+                  if (!headerRendering) return undefined;
+                  return headerRendering.headerContainerStyle;
                 };
                 const getTitleClasses = () => {
                   if (!isSharedView) return "text-lg pr-8 text-white";
-                  if (isMinimalStyle) return "text-lg font-semibold pr-8";
-                  return "text-lg pr-8 text-white";
+                  if (!headerRendering) return "text-lg pr-8 text-white";
+                  return `${headerRendering.titleText} pr-8`;
                 };
                 const getTitleStyle = () => {
-                  if (!isSharedView || !isMinimalStyle || !themeColors) return undefined;
-                  return { color: themeColors.primary };
+                  if (!isSharedView || !headerRendering) return undefined;
+                  return { ...headerRendering.titleTextStyle, fontFamily: fontConfig?.headingFamily };
                 };
 
                 return (
                   <DraggableSection key={sectionId} id={sectionId} isSharedView={isSharedView}>
-                    <Card className={getWrapperClasses()}>
+                    <Card className={getWrapperClasses()} style={headerRendering?.sectionWrapperStyle}>
                       {!isSharedView && (
                         <Button
                           size="sm"
@@ -916,14 +1008,19 @@ export function CimDisplay({
                         </Button>
                       )}
                       <CardHeader className={getHeaderClasses()} style={getHeaderStyle()}>
+                        {/* Top rule for editorial style */}
+                        {headerRendering?.showTopRule && (
+                          <div className="h-0.5 mb-4 rounded" style={{ backgroundColor: themeColors?.primary, opacity: 0.3 }} />
+                        )}
                         <CardTitle className={getTitleClasses()} style={getTitleStyle()}>
                           {section.title}
                         </CardTitle>
-                        {isMinimalStyle && themeColors && (
-                          <div className="h-0.5 mt-2 rounded" style={{ backgroundColor: themeColors.primary }} />
+                        {/* Underline for underline style */}
+                        {headerRendering?.showUnderline && themeColors && (
+                          <div className="h-0.5 mt-2 rounded w-32" style={{ backgroundColor: themeColors.primary }} />
                         )}
                       </CardHeader>
-                      <CardContent>
+                      <CardContent className={headerRendering ? headerRendering.contentArea : undefined}>
                         <div className="prose prose-base max-w-none break-words overflow-hidden text-base leading-relaxed">
                           {!isSharedView ? (
                             <FlexibleSectionEditor
@@ -960,7 +1057,7 @@ export function CimDisplay({
                               enableRichText={true}
                             />
                           ) : (
-                            <div className="prose prose-base max-w-none break-words overflow-hidden text-base leading-relaxed">
+                            <div className="prose prose-base max-w-none break-words overflow-hidden text-base leading-relaxed" style={fontConfig ? { fontFamily: fontConfig.bodyFamily } : undefined}>
                               {/<[^>]+>/.test(section.content) ? (
                                 <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(section.content) }} />
                               ) : (
@@ -989,43 +1086,55 @@ export function CimDisplay({
                         </div>
                       </CardContent>
                     </Card>
+                    {/* Divider between sections */}
+                    {isSharedView && displaySettings?.dividerStyle && displaySettings.dividerStyle !== 'none' && index < allSections.length - 1 && (
+                      <SectionDivider style={displaySettings.dividerStyle as DividerStyle} themeColors={themeColors} />
+                    )}
                   </DraggableSection>
                 );
               } else {
                 // Custom section rendering
                 const customSection = unifiedSection.data;
-                // Use same section style as regular sections
-                const customSectionStyleType = isSharedView ? (displaySettings?.sectionStyle || 'cards') : 'cards';
-                const isCustomMinimalStyle = customSectionStyleType === 'minimal';
+
+                // Resolve header style for custom sections (same as regular)
+                const customEffectiveHeaderStyle = isSharedView
+                  ? (displaySettings?.headerStyle as HeaderStyle || (displaySettings?.sectionStyle === 'minimal' ? 'underline' : 'gradient'))
+                  : 'gradient';
+                const customHeaderRendering = isSharedView && themeColors
+                  ? getHeaderStyleClasses(customEffectiveHeaderStyle, themeColors)
+                  : null;
+                const customDensity = isSharedView
+                  ? DENSITY_CONFIGS[(displaySettings?.layoutDensity as LayoutDensity) || 'standard']
+                  : DENSITY_CONFIGS['standard'];
+
                 const getCustomWrapperClasses = () => {
                   if (!isSharedView) return "mb-4 relative group";
-                  if (isCustomMinimalStyle) return "mb-6 relative group";
-                  return "mb-4 relative group bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden";
+                  if (!customHeaderRendering) return "mb-4 relative group bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden";
+                  return `${customDensity.sectionGap} relative group ${customHeaderRendering.sectionWrapper}`;
                 };
                 const getCustomHeaderClasses = () => {
                   if (!isSharedView) return "";
-                  if (isCustomMinimalStyle) return "px-6 py-4";
-                  return "text-white";
+                  if (!customHeaderRendering) return "text-white";
+                  return customHeaderRendering.headerContainer;
                 };
                 const getCustomHeaderStyle = () => {
                   if (!isSharedView) return undefined;
-                  if (isCustomMinimalStyle) return undefined;
-                  if (!themeColors) return undefined;
-                  return { background: `linear-gradient(to right, ${themeColors.gradient.from}, ${themeColors.gradient.to})` };
+                  if (!customHeaderRendering) return undefined;
+                  return customHeaderRendering.headerContainerStyle;
                 };
                 const getCustomTitleClasses = () => {
                   if (!isSharedView) return "text-lg pr-16";
-                  if (isCustomMinimalStyle) return "text-lg font-semibold pr-16";
-                  return "text-lg pr-16 text-white";
+                  if (!customHeaderRendering) return "text-lg pr-16 text-white";
+                  return `${customHeaderRendering.titleText} pr-16`;
                 };
                 const getCustomTitleStyle = () => {
-                  if (!isSharedView || !isCustomMinimalStyle || !themeColors) return undefined;
-                  return { color: themeColors.primary };
+                  if (!isSharedView || !customHeaderRendering) return undefined;
+                  return { ...customHeaderRendering.titleTextStyle, fontFamily: fontConfig?.headingFamily };
                 };
 
                 return (
                   <DraggableSection key={`custom-${customSection.id}`} id={`custom-${customSection.id}`} isSharedView={isSharedView}>
-                    <Card className={getCustomWrapperClasses()}>
+                    <Card className={getCustomWrapperClasses()} style={customHeaderRendering?.sectionWrapperStyle}>
                       {!isSharedView && (
                         <>
                           <Button
@@ -1047,14 +1156,19 @@ export function CimDisplay({
                         </>
                       )}
                       <CardHeader className={getCustomHeaderClasses()} style={getCustomHeaderStyle()}>
+                        {/* Top rule for editorial style */}
+                        {customHeaderRendering?.showTopRule && (
+                          <div className="h-0.5 mb-4 rounded" style={{ backgroundColor: themeColors?.primary, opacity: 0.3 }} />
+                        )}
                         <CardTitle className={getCustomTitleClasses()} style={getCustomTitleStyle()}>
                           {customSection.title}
                         </CardTitle>
-                        {isCustomMinimalStyle && themeColors && (
-                          <div className="h-0.5 mt-2 rounded" style={{ backgroundColor: themeColors.primary }} />
+                        {/* Underline for underline style */}
+                        {customHeaderRendering?.showUnderline && themeColors && (
+                          <div className="h-0.5 mt-2 rounded w-32" style={{ backgroundColor: themeColors.primary }} />
                         )}
                       </CardHeader>
-                      <CardContent>
+                      <CardContent className={customHeaderRendering ? customHeaderRendering.contentArea : undefined}>
                         {customSection.type === 'text' ? (
                           <div className="prose prose-base max-w-none break-words overflow-hidden text-base leading-relaxed">
                             {!isSharedView ? (
@@ -1083,7 +1197,7 @@ export function CimDisplay({
                                 enableRichText={true}
                               />
                             ) : (
-                              <div className="prose prose-base max-w-none break-words overflow-hidden text-base leading-relaxed">
+                              <div className="prose prose-base max-w-none break-words overflow-hidden text-base leading-relaxed" style={fontConfig ? { fontFamily: fontConfig.bodyFamily } : undefined}>
                                 {customSection.content.includes('<') && customSection.content.includes('>') ? (
                                   <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(customSection.content) }} />
                                 ) : (
@@ -1320,10 +1434,15 @@ export function CimDisplay({
                         ) : null}
                       </CardContent>
                     </Card>
+                    {/* Divider between sections */}
+                    {isSharedView && displaySettings?.dividerStyle && displaySettings.dividerStyle !== 'none' && index < allSections.length - 1 && (
+                      <SectionDivider style={displaySettings.dividerStyle as DividerStyle} themeColors={themeColors} />
+                    )}
                   </DraggableSection>
                 );
               }
-            })}
+            });
+            })()}
           </SortableContext>
         </DndContext>
 

@@ -1056,10 +1056,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const protocol = req.headers['x-forwarded-proto'] || req.protocol;
       const host = req.get('host');
       
-      // Use production domain for image URLs - force cimshare.com for any production request
+      // Use production domain for image URLs - force brokervault.ai for any production request
       let baseUrl;
-      if (host?.includes('cimshare.com') || req.headers['x-forwarded-host']?.includes('cimshare.com') || req.headers.host?.includes('cimshare.com')) {
-        baseUrl = 'https://cimshare.com';
+      if (host?.includes('brokervault.ai') || req.headers['x-forwarded-host']?.includes('brokervault.ai') || req.headers.host?.includes('brokervault.ai')) {
+        baseUrl = 'https://brokervault.ai';
       } else {
         baseUrl = `${protocol}://${host}`;
       }
@@ -1298,11 +1298,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get the base URL from the request
       const protocol = req.headers['x-forwarded-proto'] || 'https';
-      const host = req.headers.host || 'cimshare.com';
+      const host = req.headers.host || 'brokervault.ai';
       // Use production domain for image URLs in production environment
       let baseUrl;
-      if (process.env.NODE_ENV === 'production' || host?.includes('cimshare.com')) {
-        baseUrl = 'https://cimshare.com';
+      if (process.env.NODE_ENV === 'production' || host?.includes('brokervault.ai')) {
+        baseUrl = 'https://brokervault.ai';
       } else {
         baseUrl = `${protocol}://${host}`;
       }
@@ -1678,7 +1678,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
     
-    const supportEmail = process.env.SUPPORT_EMAIL || 'contact@cimshare.com';
+    const supportEmail = process.env.SUPPORT_EMAIL || 'contact@brokervault.ai';
     const companyName = process.env.COMPANY_NAME || 'Broker Vault';
     
     res.json({
@@ -1909,7 +1909,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const cimCreatedPayload = {
           cim_id: doc.id,
           title: doc.title,
-          share_url: doc.shareSlug ? `${process.env.BASE_URL || 'https://cimshare.com'}/share/${doc.shareSlug}` : null,
+          share_url: doc.shareSlug ? `${process.env.BASE_URL || 'https://brokervault.ai'}/share/${doc.shareSlug}` : null,
           created_at: doc.createdAt,
           document: { id: doc.id, title: doc.title },
         };
@@ -6111,11 +6111,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get the base URL from the request
       const protocol = req.headers['x-forwarded-proto'] || 'https';
-      const host = req.headers.host || 'cimshare.com';
+      const host = req.headers.host || 'brokervault.ai';
       // Use production domain for image URLs in production environment
       let baseUrl;
-      if (process.env.NODE_ENV === 'production' || host?.includes('cimshare.com')) {
-        baseUrl = 'https://cimshare.com';
+      if (process.env.NODE_ENV === 'production' || host?.includes('brokervault.ai')) {
+        baseUrl = 'https://brokervault.ai';
       } else {
         baseUrl = `${protocol}://${host}`;
       }
@@ -6282,8 +6282,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const protocol = req.headers['x-forwarded-proto'] || req.protocol;
       const host = req.get('host');
       let baseUrl;
-      if (process.env.NODE_ENV === 'production' || host?.includes('cimshare.com')) {
-        baseUrl = 'https://cimshare.com';
+      if (process.env.NODE_ENV === 'production' || host?.includes('brokervault.ai')) {
+        baseUrl = 'https://brokervault.ai';
       } else {
         baseUrl = `${protocol}://${host}`;
       }
@@ -6328,7 +6328,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const testEmailSent = await sendEmail({
         to: to,
-        from: 'system@cimshare.com',
+        from: 'system@brokervault.ai',
         subject: 'Test Message from Broker Vault',
         text: 'Hello! This is a simple test message to verify email delivery is working correctly. Please reply if you receive this.',
         html: '<p>Hello!</p><p>This is a simple test message to verify email delivery is working correctly.</p><p>Please reply if you receive this.</p>',
@@ -6399,12 +6399,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Convert relative URLs to absolute URLs for email images
-      const baseUrl = process.env.NODE_ENV === 'production' ? 'https://cimshare.com' : req.protocol + '://' + req.get('host');
+      const baseUrl = process.env.NODE_ENV === 'production' ? 'https://brokervault.ai' : req.protocol + '://' + req.get('host');
       const profilePhotoUrl = sender.profilePhoto ? (sender.profilePhoto.startsWith('http') ? sender.profilePhoto : `${baseUrl}${sender.profilePhoto}`) : null;
       const businessLogoUrl = sender.businessLogo ? (sender.businessLogo.startsWith('http') ? sender.businessLogo : `${baseUrl}${sender.businessLogo}`) : null;
 
       const fromName = senderName || sender.name || sender.email;
-      const fromEmail = 'system@cimshare.com'; // Use verified sender email
+      const fromEmail = 'system@brokervault.ai'; // Use verified sender email
 
       // Prepare email content
       const subject = `Confidential Information Memorandum - ${documentTitle}`;
@@ -7087,7 +7087,7 @@ ${finalQuestion}
 
       // Dispatch cim.published event when document is made public
       if (isPublic && !doc.shareEnabled) {
-        const baseUrl = process.env.BASE_URL || 'https://cimshare.com';
+        const baseUrl = process.env.BASE_URL || 'https://brokervault.ai';
         const shareUrl = updatedDoc.customSlug
           ? `${baseUrl}/share/${updatedDoc.customSlug}`
           : `${baseUrl}/share/${updatedDoc.shareSlug}`;
@@ -8368,8 +8368,8 @@ ${finalQuestion}
       // Send email using existing email service
       const { sendEmail } = await import("./email");
       const emailSent = await sendEmail({
-        to: 'system@cimshare.com',
-        from: 'system@cimshare.com', // Verified sender
+        to: 'system@brokervault.ai',
+        from: 'system@brokervault.ai', // Verified sender
         replyTo: email, // User's email as reply-to
         subject: `Support Request: ${subject}`,
         html: emailHtml,
@@ -9157,8 +9157,8 @@ ${finalQuestion}
         // Send "pending approval" email
         emailSent = await sendEmail({
           to: signature.signerEmail,
-          from: 'system@cimshare.com',
-          replyTo: 'system@cimshare.com',
+          from: 'system@brokervault.ai',
+          replyTo: 'system@brokervault.ai',
           subject: `NDA Signature Received - ${doc.title}`,
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -9251,8 +9251,8 @@ ${finalQuestion}
           // Send "pending approval" email
           return await sendEmail({
             to: signature.signerEmail,
-            from: 'system@cimshare.com',
-            replyTo: 'system@cimshare.com',
+            from: 'system@brokervault.ai',
+            replyTo: 'system@brokervault.ai',
             subject: `NDA Signature Received - ${doc.title}`,
             html: `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -9749,7 +9749,7 @@ ${finalQuestion}
             
             // Handle object storage URLs - convert to full domain URLs for emails
             if (url.startsWith('/api/object-storage/')) {
-              return `https://cimshare.com${url}`;
+              return `https://brokervault.ai${url}`;
             }
             
             return url;

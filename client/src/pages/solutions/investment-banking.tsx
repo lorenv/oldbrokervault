@@ -23,7 +23,7 @@ export default function InvestmentBankingPage() {
       <SEOHead
         title="CIM Share for Investment Banks - Enterprise Document Solutions"
         description="Enterprise-grade CIM creation and secure document sharing for investment banks. Professional documentation with enhanced security, collaboration features, and institutional-level compliance."
-        canonicalUrl="https://cimshare.com/solutions/investment-banking"
+        canonicalUrl="https://brokervault.ai/solutions/investment-banking"
       />
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-16 lg:py-24">
@@ -625,7 +625,7 @@ export default function InvestmentBankingPage() {
                 </Button>
               </a>
               <Button size="lg" variant="outline" asChild>
-                <a href="mailto:enterprise@cimshare.com">
+                <a href="mailto:enterprise@brokervault.ai">
                   Contact Sales Team
                 </a>
               </Button>

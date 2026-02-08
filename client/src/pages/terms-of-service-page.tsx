@@ -6,7 +6,7 @@ export default function TermsOfServicePage() {
       <SEOHead
         title="Terms of Service - CIM Share"
         description="CIM Share terms of service. Review the terms and conditions for using our CIM creation and document sharing platform."
-        canonicalUrl="https://cimshare.com/terms-of-service"
+        canonicalUrl="https://brokervault.ai/terms-of-service"
       />
       <div className="container mx-auto px-4 py-12 max-w-4xl">
         <h1 className="text-3xl font-bold mb-8">Terms of Service</h1>
@@ -149,7 +149,7 @@ export default function TermsOfServicePage() {
               If you have questions about these Terms, please contact us at:
             </p>
             <p>
-              <strong>Email:</strong> legal@cimshare.com<br />
+              <strong>Email:</strong> legal@brokervault.ai<br />
               <strong>Mail:</strong> Dealve Inc., Legal Department, 123 Business District, Suite 456, New York, NY 10001<br />
               <strong>Phone:</strong> +1 (555) 123-4567
             </p>

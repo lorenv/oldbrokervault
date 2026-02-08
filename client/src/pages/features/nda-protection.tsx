@@ -55,7 +55,7 @@ export default function NdaProtectionPage() {
       <SEOHead
         title="NDA Protection - Secure Document Sharing with Built-in NDAs"
         description="Protect your confidential business information with built-in NDA management. Require signed NDAs before document access, track viewer activity, and maintain full control over your sensitive deal documents."
-        canonicalUrl="https://cimshare.com/features/nda-protection"
+        canonicalUrl="https://brokervault.ai/features/nda-protection"
       />
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-16 lg:py-24">

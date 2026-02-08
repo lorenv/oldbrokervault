@@ -1,8 +1,8 @@
 import { MailService } from '@sendgrid/mail';
 import { logger } from './logger';
 
-const ALERT_EMAIL = 'rob@cimshare.com';
-const FROM_EMAIL = 'alerts@cimshare.com';
+const ALERT_EMAIL = 'rob@brokervault.ai';
+const FROM_EMAIL = 'alerts@brokervault.ai';
 
 let mailService: MailService | null = null;
 

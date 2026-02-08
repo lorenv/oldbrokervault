@@ -74,10 +74,10 @@ export default function PricingPage() {
         try {
           const response = await fetch('/api/config');
           const config = await response.json();
-          const supportEmail = config.company?.supportEmail || 'contact@cimshare.com';
+          const supportEmail = config.company?.supportEmail || 'contact@brokervault.ai';
           window.open(`mailto:${supportEmail}?subject=Enterprise Plan Inquiry&body=I am interested in learning more about your Enterprise plan.`, '_blank');
         } catch (error) {
-          window.open('mailto:contact@cimshare.com?subject=Enterprise Plan Inquiry&body=I am interested in learning more about your Enterprise plan.', '_blank');
+          window.open('mailto:contact@brokervault.ai?subject=Enterprise Plan Inquiry&body=I am interested in learning more about your Enterprise plan.', '_blank');
         }
         return;
       }
@@ -221,7 +221,7 @@ export default function PricingPage() {
       <SEOHead
         title="Pricing - CIM Share Plans & Pricing"
         description="Simple, transparent pricing. $59/seat/month for full CRM, unlimited CIMs, and free viewer seats. Compare and save vs HubSpot and Salesforce."
-        canonicalUrl="https://cimshare.com/pricing"
+        canonicalUrl="https://brokervault.ai/pricing"
       />
       <div className="container mx-auto px-4 py-16">
         {/* Header Section */}
@@ -595,7 +595,7 @@ export default function PricingPage() {
         {/* FAQ or Trust indicators could go here */}
         <div className="text-center">
           <p className="text-gray-500 text-sm">
-            Questions? <a href="mailto:contact@cimshare.com" className="text-blue-600 hover:underline">Contact us</a>
+            Questions? <a href="mailto:contact@brokervault.ai" className="text-blue-600 hover:underline">Contact us</a>
           </p>
         </div>
       </div>

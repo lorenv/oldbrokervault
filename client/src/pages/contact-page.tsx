@@ -63,7 +63,7 @@ export default function ContactPage() {
       <SEOHead
         title="Contact Us - Get in Touch with CIM Share"
         description="Have questions about CIM Share? Contact our team for support, sales inquiries, or partnership opportunities. We're here to help you create professional CIMs."
-        canonicalUrl="https://cimshare.com/contact"
+        canonicalUrl="https://brokervault.ai/contact"
       />
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-20">
@@ -173,7 +173,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-lg">Email Support</h3>
-                    <p className="text-gray-600">support@cimshare.com</p>
+                    <p className="text-gray-600">support@brokervault.ai</p>
                     <p className="text-sm text-gray-500">Response within 24 hours</p>
                   </div>
                 </div>

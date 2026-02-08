@@ -74,7 +74,7 @@ export default function HomePage() {
 
     if (planId === 'enterprise') {
       // For Enterprise plan, open contact form
-      window.open('mailto:contact@cimshare.com?subject=Enterprise Plan Inquiry&body=I am interested in learning more about your Enterprise plan for unlimited CIM generation.', '_blank');
+      window.open('mailto:contact@brokervault.ai?subject=Enterprise Plan Inquiry&body=I am interested in learning more about your Enterprise plan for unlimited CIM generation.', '_blank');
     } else {
       // For all other plans, show signup modal
       setShowSignupModal(true);
@@ -180,7 +180,7 @@ export default function HomePage() {
       <SEOHead
         title="CIM Share - Create Professional CIMs in Minutes with AI"
         description="Create professional Confidential Information Memorandums (CIMs) in minutes with AI. Features NDA protection, SDE analyzer, investor CRM, and e-signatures for M&A advisors and business brokers."
-        canonicalUrl="https://cimshare.com"
+        canonicalUrl="https://brokervault.ai"
       />
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-cyan-400 via-blue-500 via-purple-500 via-pink-500 to-orange-400 pt-32 pb-20 relative overflow-hidden">
@@ -1186,7 +1186,7 @@ export default function HomePage() {
               }`}
               data-animate-id="example-1"
               onClick={() =>
-                window.open("https://cimshare.com/share/cim-q3bqjm", "_blank")
+                window.open("https://brokervault.ai/share/cim-q3bqjm", "_blank")
               }
             >
               <img
@@ -1223,7 +1223,7 @@ export default function HomePage() {
               data-animate-id="example-2"
               style={{ transitionDelay: "200ms" }}
               onClick={() =>
-                window.open("https://cimshare.com/share/cim-2axr79", "_blank")
+                window.open("https://brokervault.ai/share/cim-2axr79", "_blank")
               }
             >
               <img
@@ -1260,7 +1260,7 @@ export default function HomePage() {
               data-animate-id="example-3"
               style={{ transitionDelay: "300ms" }}
               onClick={() =>
-                window.open("https://cimshare.com/listings/dealve-inc", "_blank")
+                window.open("https://brokervault.ai/listings/dealve-inc", "_blank")
               }
             >
               <img
@@ -1297,7 +1297,7 @@ export default function HomePage() {
               data-animate-id="example-4"
               style={{ transitionDelay: "400ms" }}
               onClick={() =>
-                window.open("https://cimshare.com/teaser/prominent-food-beverage-business-with-strong-marke-2ea50f", "_blank")
+                window.open("https://brokervault.ai/teaser/prominent-food-beverage-business-with-strong-marke-2ea50f", "_blank")
               }
             >
               <img

@@ -588,7 +588,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
 
   // Generate share link for a specific signer
   const generateSignerShareLink = (signature: any) => {
-    const baseUrl = window.location.hostname === 'localhost' ? window.location.origin : 'https://cimshare.com';
+    const baseUrl = window.location.hostname === 'localhost' ? window.location.origin : 'https://brokervault.ai';
     return `${baseUrl}/share/${cimDocument.shareSlug}?token=${signature.accessToken}`;
   };
 

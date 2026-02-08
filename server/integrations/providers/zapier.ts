@@ -69,7 +69,7 @@ export class ZapierProvider extends BaseProvider {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'User-Agent': 'CIMShare-Integrations/1.0'
+          'User-Agent': 'BrokerVault-Integrations/1.0'
         },
         body: payloadString
       });

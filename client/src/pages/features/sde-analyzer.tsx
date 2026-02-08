@@ -54,7 +54,7 @@ export default function SdeAnalyzerPage() {
       <SEOHead
         title="AI-Powered SDE Analyzer - Calculate Seller's Discretionary Earnings"
         description="Calculate SDE in minutes with AI. Upload financial documents and let AI automatically identify revenue patterns, extract addbacks, and calculate Seller's Discretionary Earnings for accurate business valuations."
-        canonicalUrl="https://cimshare.com/features/sde-analyzer"
+        canonicalUrl="https://brokervault.ai/features/sde-analyzer"
       />
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-16 lg:py-24">

@@ -55,7 +55,7 @@ export default function MessagesFeaturePage() {
       <SEOHead
         title="Message Center - Centralized Communication for Deal Flow | CIM Share"
         description="Manage all buyer inquiries in one place with CIM Share's integrated message center. Bidirectional email sync, smart filtering, search, and archive features keep your deal communications organized."
-        canonicalUrl="https://cimshare.com/features/messages"
+        canonicalUrl="https://brokervault.ai/features/messages"
       />
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-16 lg:py-24">

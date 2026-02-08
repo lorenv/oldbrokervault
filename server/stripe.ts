@@ -182,10 +182,10 @@ export async function createSubscriptionSessionDirect(planId: keyof typeof subsc
   console.log("Request host:", requestHost);
 
   // Determine the correct base URL for redirects
-  let baseUrl = `https://cimshare.com`; // Default to production domain
+  let baseUrl = `https://brokervault.ai`; // Default to production domain
   
   // Use request host if it's the production domain
-  if (requestHost && requestHost.includes('cimshare.com')) {
+  if (requestHost && requestHost.includes('brokervault.ai')) {
     baseUrl = `https://${requestHost}`;
   } 
   // Only use Replit domain for development/testing
@@ -285,10 +285,10 @@ export async function createSubscriptionSession(planId: keyof typeof subscriptio
   const customerId = await getOrCreateCustomer(userId, user.email);
 
   // Determine the correct base URL for redirects
-  let baseUrl = `https://cimshare.com`; // Default to production domain
+  let baseUrl = `https://brokervault.ai`; // Default to production domain
   
   // Use request host if it's the production domain
-  if (requestHost && requestHost.includes('cimshare.com')) {
+  if (requestHost && requestHost.includes('brokervault.ai')) {
     baseUrl = `https://${requestHost}`;
   } 
   // Only use Replit domain for development/testing
@@ -368,7 +368,7 @@ export async function createCustomerPortalSession(userId: number) {
 
   // Use production domain or development domain based on environment
   const baseUrl = process.env.NODE_ENV === 'production'
-    ? 'https://cimshare.com'
+    ? 'https://brokervault.ai'
     : `https://${process.env.REPL_SLUG}.replit.dev`;
 
   return stripe.billingPortal.sessions.create({

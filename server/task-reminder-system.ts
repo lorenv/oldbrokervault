@@ -186,8 +186,8 @@ export class TaskReminderSystem {
     }
 
     const taskUrl = task.objectType && task.objectId
-      ? `https://cimshare.com/${task.objectType}s/${task.objectId}`
-      : 'https://cimshare.com/tasks';
+      ? `https://brokervault.ai/${task.objectType}s/${task.objectId}`
+      : 'https://brokervault.ai/tasks';
 
     const subject = `Reminder: ${task.title}`;
 

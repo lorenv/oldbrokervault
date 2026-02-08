@@ -2,7 +2,7 @@
  * Utility functions for URL generation that work consistently across environments
  */
 
-const PRODUCTION_DOMAIN = 'cimshare.com';
+const PRODUCTION_DOMAIN = 'brokervault.ai';
 
 /**
  * Get the base URL for the application, handling both development and production environments
@@ -21,7 +21,7 @@ export function getBaseUrl(): string {
 
 /**
  * Get the base URL with an optional custom subdomain
- * @param customSubdomain - Optional subdomain (e.g., "acme" for acme.cimshare.com)
+ * @param customSubdomain - Optional subdomain (e.g., "acme" for acme.brokervault.ai)
  */
 export function getBaseUrlWithSubdomain(customSubdomain?: string | null): string {
   if (typeof window === 'undefined') {

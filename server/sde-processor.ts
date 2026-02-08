@@ -156,14 +156,14 @@ export class SDEProcessor {
 
       await emailService.sendTemplateEmail({
         to: user.email,
-        from: 'support@cimshare.com',
+        from: 'support@brokervault.ai',
         templateId: SDE_COMPLETE_TEMPLATE_ID,
         dynamicTemplateData: {
           user_name: user.firstName || user.name || 'there',
           filename: analysisData.originalFilename,
           processing_time: processingTime,
           expiration_date: expirationDate,
-          download_url: `${process.env.VITE_APP_URL || 'https://cimshare.com'}/sde-analyzer`,
+          download_url: `${process.env.VITE_APP_URL || 'https://brokervault.ai'}/sde-analyzer`,
           analysis_id: analysisData.id
         }
       });

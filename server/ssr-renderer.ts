@@ -290,7 +290,7 @@ function generatePageContent(route: string, meta: PageMeta): string {
           <h2>Get in Touch</h2>
           <p>${meta.description}</p>
           <div>
-            <p>Email: support@cimshare.com</p>
+            <p>Email: support@brokervault.ai</p>
             <p>Phone: 1-800-CIM-SHARE</p>
             <p>Address: Business Documentation Solutions</p>
           </div>

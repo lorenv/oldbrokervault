@@ -6,7 +6,7 @@ export default function EulaPage() {
       <SEOHead
         title="End User License Agreement (EULA) - CIM Share"
         description="CIM Share End User License Agreement. Review the software license terms for using our CIM creation and document sharing platform."
-        canonicalUrl="https://cimshare.com/eula"
+        canonicalUrl="https://brokervault.ai/eula"
       />
       <div className="container mx-auto px-4 py-12 max-w-4xl">
         <h1 className="text-3xl font-bold mb-8">End User License Agreement (EULA)</h1>
@@ -158,7 +158,7 @@ export default function EulaPage() {
               If you have questions about this EULA, please contact us at:
             </p>
             <p>
-              <strong>Email:</strong> legal@cimshare.com<br />
+              <strong>Email:</strong> legal@brokervault.ai<br />
               <strong>Phone:</strong> 737-377-0009<br />
               <strong>Address:</strong> Dealve Inc., Legal Department, 123 Business District, Suite 456, New York, NY 10001
             </p>

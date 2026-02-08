@@ -1,6 +1,6 @@
 /**
  * Client-side error reporting utility
- * Sends error reports to the server which emails them to rob@cimshare.com
+ * Sends error reports to the server which emails them to rob@brokervault.ai
  */
 
 interface ErrorReportOptions {

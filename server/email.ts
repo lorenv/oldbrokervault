@@ -293,8 +293,8 @@ async function sendNdaConfirmationEmail(
 
   return await sendEmail({
     to: viewerEmail,
-    from: 'system@cimshare.com',
-    replyTo: 'system@cimshare.com', // Keep generic for NDA confirmation
+    from: 'system@brokervault.ai',
+    replyTo: 'system@brokervault.ai', // Keep generic for NDA confirmation
     subject: `NDA Confirmation - ${cimTitle}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -357,7 +357,7 @@ async function sendCimLinkEmail(
   // Build email options with optional CC
   const emailOptions: any = {
     to: viewerEmail,
-    from: 'system@cimshare.com',
+    from: 'system@brokervault.ai',
     replyTo: ownerProfile.email,
     subject: `Access to ${cimTitle} - CIM Document`,
     html: `
@@ -482,7 +482,7 @@ async function sendOwnerNdaNotification(
 
   return await sendEmail({
     to: ownerEmail,
-    from: 'system@cimshare.com',
+    from: 'system@brokervault.ai',
     subject: `NDA Signed by ${viewerEmail} - ${cimTitle}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -609,7 +609,7 @@ async function sendPasswordResetEmail(
 
   return await sendEmail({
     to: userEmail,
-    from: 'system@cimshare.com', // Use verified sender
+    from: 'system@brokervault.ai', // Use verified sender
     subject: 'Reset Your Broker Vault Password',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -686,8 +686,8 @@ async function sendApprovalEmail(
 
   // Create direct share URL with access token, using custom subdomain if available
   const baseUrl = customSubdomain
-    ? `https://${customSubdomain}.cimshare.com`
-    : 'https://cimshare.com';
+    ? `https://${customSubdomain}.brokervault.ai`
+    : 'https://brokervault.ai';
   const shareUrl = `${baseUrl}/share/${shareSlug}?token=${accessToken}`;
   
   // Use the new CIM link email function if owner profile is available
@@ -706,8 +706,8 @@ async function sendApprovalEmail(
   // Fallback to basic approval email with generic contact info
   return await sendEmail({
     to: signerEmail,
-    from: 'system@cimshare.com',
-    replyTo: 'system@cimshare.com',
+    from: 'system@brokervault.ai',
+    replyTo: 'system@brokervault.ai',
     subject: `Access Approved - ${title}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -768,7 +768,7 @@ async function sendOwnerApprovalNotification(
 ): Promise<boolean> {
   return await sendEmail({
     to: ownerEmail,
-    from: 'system@cimshare.com',
+    from: 'system@brokervault.ai',
     subject: `NDA Signature Awaiting Approval - ${cimTitle}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -789,7 +789,7 @@ async function sendOwnerApprovalNotification(
         <p>Please log in to your Broker Vault documents page to review and approve this signer's access to the document.</p>
 
         <div style="text-align: center; margin: 30px 0;">
-          <a href="https://cimshare.com/documents"
+          <a href="https://brokervault.ai/documents"
              style="background-color: #28a745; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
             Review & Approve
           </a>
@@ -817,7 +817,7 @@ async function sendOwnerApprovalNotification(
       
       Please log in to your Broker Vault documents page to review and approve this signer's access to the document.
 
-      Documents: https://cimshare.com/documents
+      Documents: https://brokervault.ai/documents
     `
   });
 }
@@ -838,8 +838,8 @@ async function sendRejectionEmail(
 
   return await sendEmail({
     to: signerEmail,
-    from: 'system@cimshare.com',
-    replyTo: ownerProfile?.email || 'system@cimshare.com',
+    from: 'system@brokervault.ai',
+    replyTo: ownerProfile?.email || 'system@brokervault.ai',
     subject: `Application Update - ${cimTitle}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -895,7 +895,7 @@ async function sendCollaborationInvitationEmail(
   permission: 'Edit' | 'Assist',
   acceptToken: string
 ): Promise<boolean> {
-  const baseUrl = process.env.BASE_URL || 'https://cimshare.com';
+  const baseUrl = process.env.BASE_URL || 'https://brokervault.ai';
   const acceptUrl = `${baseUrl}/invitation/${acceptToken}`;
 
   const permissionDescription = permission === 'Edit'
@@ -904,7 +904,7 @@ async function sendCollaborationInvitationEmail(
 
   return await sendEmail({
     to: inviteeEmail,
-    from: 'system@cimshare.com',
+    from: 'system@brokervault.ai',
     subject: `You've been invited to collaborate on "${documentTitle}"`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -967,7 +967,7 @@ async function sendCollaboratorRemovedEmail(
 ): Promise<boolean> {
   return await sendEmail({
     to: collaboratorEmail,
-    from: 'system@cimshare.com',
+    from: 'system@brokervault.ai',
     subject: `Access removed for "${documentTitle}"`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -1019,7 +1019,7 @@ async function sendEditLockTakenOverEmail(
 ): Promise<boolean> {
   return await sendEmail({
     to: previousEditorEmail,
-    from: 'system@cimshare.com',
+    from: 'system@brokervault.ai',
     subject: `Your editing session was interrupted on "${documentTitle}"`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -1204,8 +1204,8 @@ async function sendCspViolationEmail(params: {
   `;
 
   return sendEmail({
-    to: 'support@cimshare.com',
-    from: 'support@cimshare.com',
+    to: 'support@brokervault.ai',
+    from: 'support@brokervault.ai',
     replyTo: params.userEmail,
     subject: `CSP Violation: ${params.userName} - Document #${params.documentId}`,
     html: htmlContent,
@@ -1336,7 +1336,7 @@ async function sendEsignInvitationEmail(params: EsignEmailParams): Promise<boole
   // Use OAuth email if user has connected their email account
   return sendEmailWithOAuth({
     to: params.recipientEmail,
-    from: 'signatures@cimshare.com',
+    from: 'signatures@brokervault.ai',
     replyTo: params.senderEmail,
     subject: `${params.senderName} sent you "${params.documentTitle}" for signature`,
     html: htmlContent,
@@ -1411,7 +1411,7 @@ async function sendEsignReminderEmail(params: EsignEmailParams): Promise<boolean
   // Use OAuth email if user has connected their email account
   return sendEmailWithOAuth({
     to: params.recipientEmail,
-    from: 'signatures@cimshare.com',
+    from: 'signatures@brokervault.ai',
     replyTo: params.senderEmail,
     subject: `Reminder: "${params.documentTitle}" is awaiting your signature`,
     html: htmlContent,
@@ -1514,7 +1514,7 @@ async function sendEsignCompletedEmail(params: {
 
   const emailOptions: any = {
     to: params.recipientEmail,
-    from: 'signatures@cimshare.com',
+    from: 'signatures@brokervault.ai',
     subject: `Completed: "${params.documentTitle}" - All Signatures Collected`,
     html: htmlContent,
     text: `
@@ -1611,7 +1611,7 @@ async function sendEsignDeclinedEmail(params: {
 
   return sendEmail({
     to: params.ownerEmail,
-    from: 'signatures@cimshare.com',
+    from: 'signatures@brokervault.ai',
     subject: `Declined: "${params.documentTitle}" was declined by ${params.declinedByName}`,
     html: htmlContent,
     text: `
@@ -1692,7 +1692,7 @@ async function sendEsignVoidedEmail(params: {
 
   return sendEmail({
     to: params.recipientEmail,
-    from: 'signatures@cimshare.com',
+    from: 'signatures@brokervault.ai',
     subject: `Voided: "${params.documentTitle}" has been cancelled`,
     html: htmlContent,
     text: `
@@ -1713,13 +1713,13 @@ async function sendFirstDocumentCongratulationsEmail(params: {
   documentId: number;
 }): Promise<boolean> {
   const { userEmail, userName, documentTitle, documentId } = params;
-  const documentUrl = `https://cimshare.com/cim/${documentId}`;
+  const documentUrl = `https://brokervault.ai/cim/${documentId}`;
   const firstName = userName.split(' ')[0] || 'there';
 
   return sendEmail({
     to: userEmail,
-    from: 'Broker Vault <hello@cimshare.com>',
-    replyTo: 'support@cimshare.com',
+    from: 'Broker Vault <hello@brokervault.ai>',
+    replyTo: 'support@brokervault.ai',
     subject: `Congratulations on your first CIM! - ${documentTitle}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
@@ -1779,7 +1779,7 @@ async function sendFirstDocumentCongratulationsEmail(params: {
 
         <div style="background-color: #f8f9fa; padding: 20px 30px; border-radius: 0 0 8px 8px; border-top: 1px solid #eee;">
           <p style="margin: 0; color: #666; font-size: 14px; text-align: center;">
-            Questions? Contact us at <a href="mailto:support@cimshare.com" style="color: #667eea;">support@cimshare.com</a>
+            Questions? Contact us at <a href="mailto:support@brokervault.ai" style="color: #667eea;">support@brokervault.ai</a>
           </p>
         </div>
       </div>
@@ -1806,7 +1806,7 @@ Set password protection, expiration dates, and control who can access your docum
 Send documents for legally binding electronic signatures directly from Broker Vault.
 
 We're here to help you succeed. If you have any questions or feature suggestions,
-don't hesitate to reach out at support@cimshare.com!
+don't hesitate to reach out at support@brokervault.ai!
 
 Best regards,
 The Broker Vault Team
@@ -1824,7 +1824,7 @@ async function sendTeamInviteEmail(params: {
   inviteToken?: string; // Optional token for pending invitations (non-existing users)
 }): Promise<boolean> {
   const { inviteeEmail, inviteeName, inviterName, organizationName, role, inviteToken } = params;
-  const baseUrl = process.env.BASE_URL || 'https://cimshare.com';
+  const baseUrl = process.env.BASE_URL || 'https://brokervault.ai';
 
   // If there's an invite token, user needs to create account first
   // Otherwise, they just need to log in
@@ -1847,7 +1847,7 @@ async function sendTeamInviteEmail(params: {
 
   return await sendEmail({
     to: inviteeEmail,
-    from: 'system@cimshare.com',
+    from: 'system@brokervault.ai',
     subject: `You've been invited to join ${organizationName} on Broker Vault`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -1925,7 +1925,7 @@ async function sendMentionNotificationEmail(params: {
   noteContent: string;
 }): Promise<boolean> {
   const { mentionedUserEmail, mentionedUserName, mentionerName, entityType, entityName, entityId, noteContent } = params;
-  const baseUrl = process.env.BASE_URL || 'https://cimshare.com';
+  const baseUrl = process.env.BASE_URL || 'https://brokervault.ai';
 
   // Build the URL to the entity (handle "company" -> "companies" plural)
   const entityPlural = entityType === 'company' ? 'companies' : `${entityType}s`;
@@ -1940,7 +1940,7 @@ async function sendMentionNotificationEmail(params: {
 
   return await sendEmail({
     to: mentionedUserEmail,
-    from: 'system@cimshare.com',
+    from: 'system@brokervault.ai',
     subject: `${mentionerName} mentioned you in a note`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

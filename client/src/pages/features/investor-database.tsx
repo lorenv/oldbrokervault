@@ -58,7 +58,7 @@ export default function InvestorDatabasePage() {
       <SEOHead
         title="Investor CRM - Track Buyer Relationships and Deal Activity"
         description="Never lose a lead with our investor CRM built for M&A. Track buyer relationships, monitor document views, manage NDA signatures, and close deals faster with comprehensive contact management."
-        canonicalUrl="https://cimshare.com/features/investor-database"
+        canonicalUrl="https://brokervault.ai/features/investor-database"
       />
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-16 lg:py-24">

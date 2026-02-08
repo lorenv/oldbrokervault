@@ -909,7 +909,7 @@ export default function AccountPage() {
                     className="flex-1"
                     maxLength={32}
                   />
-                  <span className="text-sm text-muted-foreground whitespace-nowrap">.cimshare.com</span>
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">.brokervault.ai</span>
                   {profileForm.customSubdomain && (
                     <Button
                       type="button"
@@ -924,7 +924,7 @@ export default function AccountPage() {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {profileForm.customSubdomain ? (
-                    <>Your share links will be: <span className="font-medium text-blue-600">{profileForm.customSubdomain}.cimshare.com/share/...</span></>
+                    <>Your share links will be: <span className="font-medium text-blue-600">{profileForm.customSubdomain}.brokervault.ai/share/...</span></>
                   ) : (
                     <>Choose a subdomain for branded share links (lowercase letters, numbers, and hyphens only)</>
                   )}

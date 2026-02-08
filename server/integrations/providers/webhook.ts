@@ -73,7 +73,7 @@ export class WebhookProvider extends BaseProvider {
     try {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        'User-Agent': 'CIMShare-Integrations/1.0',
+        'User-Agent': 'BrokerVault-Integrations/1.0',
         'X-Webhook-Event': String(eventPayload.event),
         'X-Webhook-Event-Id': eventPayload.eventId || crypto.randomUUID(),
       };

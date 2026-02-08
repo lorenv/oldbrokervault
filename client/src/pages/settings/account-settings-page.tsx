@@ -540,7 +540,7 @@ export default function AccountSettingsPage() {
                 <Label htmlFor="customSubdomain" className="flex items-center gap-2"><Globe className="h-4 w-4" />Custom Share Link Subdomain</Label>
                 <div className="flex items-center gap-2">
                   <Input id="customSubdomain" value={profileForm.customSubdomain} onChange={(e) => handleInputChange("customSubdomain", e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} placeholder="your-company" className="flex-1" maxLength={32} />
-                  <span className="text-sm text-muted-foreground">.cimshare.com</span>
+                  <span className="text-sm text-muted-foreground">.brokervault.ai</span>
                 </div>
               </div>
               <Button onClick={handleProfileSave} disabled={updateProfileMutation.isPending} className="w-full">

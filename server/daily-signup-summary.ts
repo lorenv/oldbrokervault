@@ -83,7 +83,7 @@ export class DailySignupSummaryService {
 
       await mailService.send({
         to: 'robertkale20@gmail.com',
-        from: 'support@cimshare.com',
+        from: 'support@brokervault.ai',
         subject: `Daily Signup Summary - ${newUsers.length} New User${newUsers.length > 1 ? 's' : ''}`,
         html: emailHtml,
         text: emailText

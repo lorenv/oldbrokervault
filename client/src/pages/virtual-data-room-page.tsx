@@ -74,7 +74,7 @@ export default function VirtualDataRoomPage() {
       <SEOHead
         title="Virtual Data Room - VettingVault by CIM Share"
         description="Modern virtual data room powered by AI. Guided document upload, unlimited team access, and secure collaboration for M&A transactions. Use your CIM Share login to access VettingVault."
-        canonicalUrl="https://cimshare.com/virtual-data-room"
+        canonicalUrl="https://brokervault.ai/virtual-data-room"
       />
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-20">

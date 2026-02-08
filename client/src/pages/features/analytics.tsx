@@ -54,7 +54,7 @@ export default function AnalyticsFeaturePage() {
       <SEOHead
         title="Analytics Dashboard - Track CIM Engagement & Buyer Interest | CIM Share"
         description="Get real-time insights into how buyers engage with your CIMs. Track views, time spent, geographic distribution, section engagement, and identify your hottest prospects."
-        canonicalUrl="https://cimshare.com/features/analytics"
+        canonicalUrl="https://brokervault.ai/features/analytics"
       />
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-16 lg:py-24">

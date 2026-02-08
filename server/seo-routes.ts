@@ -11,7 +11,7 @@ import { logger } from './logger';
  * Setup SEO-optimized routes for public pages
  */
 export function setupSEORoutes(app: Express) {
-  const baseUrl = process.env.BASE_URL || 'https://cimshare.com';
+  const baseUrl = process.env.BASE_URL || 'https://brokervault.ai';
   
   // Cache for rendered pages (in memory for now)
   const pageCache = new Map<string, { html: string; timestamp: number }>();
