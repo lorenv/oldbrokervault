@@ -89,7 +89,9 @@
       "Bash(git stash:*)",
       "Bash(git stash pop:*)",
       "Bash(npx vite build:*)",
-      "Bash(npm run test:all:*)"
+      "Bash(npm run test:all:*)",
+      "Bash(DATABASE_URL=\"$PRODUCTION_DATABASE_URL\" npx tsx:*)",
+      "Bash(printenv:*)"
     ],
     "deny": [],
     "ask": [],

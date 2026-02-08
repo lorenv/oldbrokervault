@@ -449,7 +449,9 @@ router.post('/envelopes', async (req: Request, res: Response) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: 'Invalid request data', details: error.errors });
     }
-    res.status(500).json({ error: 'Failed to create envelope' });
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.error('[ESIGN] Envelope creation error detail:', errMsg);
+    res.status(500).json({ error: 'Failed to create envelope', detail: errMsg });
   }
 });
 
