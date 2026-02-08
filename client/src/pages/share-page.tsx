@@ -23,7 +23,14 @@ import {
   DEFAULT_DISPLAY_SETTINGS,
   getThemeColors,
   getThemeCSSVariables,
-  SECTION_STYLES
+  SECTION_STYLES,
+  resolveHeaderStyle,
+  getHeaderStyleClasses,
+  DENSITY_CONFIGS,
+  FONT_PRESETS,
+  type HeaderStyle,
+  type FontPreset,
+  type LayoutDensity,
 } from "@/lib/share-themes";
 
 export function SharePage() {
@@ -186,6 +193,12 @@ export function SharePage() {
   const sectionStyle = SECTION_STYLES[displaySettings.sectionStyle];
   const showSidebar = displaySettings.contactPosition === 'sidebar';
 
+  const effectiveHeaderStyle = resolveHeaderStyle(displaySettings);
+  const headerRendering = getHeaderStyleClasses(effectiveHeaderStyle, themeColors);
+  const density = DENSITY_CONFIGS[(displaySettings.layoutDensity as LayoutDensity) || 'standard'];
+  const fontPreset = (displaySettings.fontPreset as FontPreset) || 'modern-sans';
+  const fontConfig = FONT_PRESETS[fontPreset];
+
   // Fetch uploaded files for the shared document
   const { data: uploadedFiles = [], isLoading: filesLoading } = useQuery({
     queryKey: ['/api/share', shareSlug, 'files'],
@@ -270,6 +283,26 @@ export function SharePage() {
       sendHeartbeat();
     };
   }, [shareData?.viewSessionId]);
+
+  // Load Google Fonts for font presets
+  useEffect(() => {
+    const fontPreset = displaySettings.fontPreset || 'modern-sans';
+    const fontConfig = FONT_PRESETS[fontPreset as FontPreset];
+    if (fontConfig?.googleFontUrl) {
+      const linkId = 'cim-google-font';
+      let link = document.getElementById(linkId) as HTMLLinkElement;
+      if (!link) {
+        link = document.createElement('link');
+        link.id = linkId;
+        link.rel = 'stylesheet';
+        document.head.appendChild(link);
+      }
+      link.href = fontConfig.googleFontUrl;
+    }
+    return () => {
+      // Don't remove on cleanup - fonts should persist
+    };
+  }, [displaySettings.fontPreset]);
 
   if (isCheckingNda || isLoading || isValidatingToken) {
     return (
@@ -560,6 +593,7 @@ export function SharePage() {
             <div className="max-w-6xl mx-auto text-center">
               <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-white mb-8 tracking-tight break-words px-4 animate-slide-up delay-300"
                   style={{
+                    fontFamily: fontConfig.headingFamily,
                     textShadow: '0 2px 4px rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.2), 0 8px 16px rgba(0,0,0,0.1)'
                   }}>
                 {shareData.cim.title}
@@ -678,7 +712,8 @@ export function SharePage() {
                   />
                 </div>
               )}
-              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-slate-600 to-blue-600 bg-clip-text text-transparent mb-8 tracking-tight break-words px-4 animate-slide-up delay-300">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-slate-600 to-blue-600 bg-clip-text text-transparent mb-8 tracking-tight break-words px-4 animate-slide-up delay-300"
+                  style={{ fontFamily: fontConfig.headingFamily }}>
                 {shareData.cim.title}
               </h1>
               {shareData.cim.description && (
@@ -766,10 +801,10 @@ export function SharePage() {
       )}
 
       {/* Content section with sidebar layout */}
-      <div className="max-w-[90rem] mx-auto px-4 md:px-6 py-8" style={themeCSSVars as React.CSSProperties}>
+      <div className={`max-w-[90rem] mx-auto px-4 md:px-6 ${density.pageSpacing}`} style={{ ...themeCSSVars, fontFamily: fontConfig.bodyFamily } as React.CSSProperties}>
         <div className={`flex flex-col ${showSidebar ? 'lg:flex-row' : ''} gap-6 lg:gap-8`}>
           {/* Main content area - full width when contact is at bottom */}
-          <div className={`${showSidebar ? 'flex-1' : 'w-full'} min-w-0 ${displaySettings.sectionStyle === 'minimal' ? 'bg-white rounded-xl shadow-lg p-8' : 'space-y-6'} animate-fade-in delay-200`}>
+          <div className={`${showSidebar ? 'flex-1' : 'w-full'} min-w-0 ${['underline', 'editorial', 'pill'].includes(effectiveHeaderStyle) ? 'bg-white rounded-xl shadow-lg p-8' : 'space-y-6'} animate-fade-in delay-200`}>
             {shareData.cim.analysis?.isUploadedFile === true ? (
               <div>
                 {filesLoading ? (
@@ -867,13 +902,14 @@ export function SharePage() {
             ) : (
               <>
                 {/* Financial Information Section - Always show */}
-                <Card className={displaySettings.sectionStyle === 'cards' ? "border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden animate-slide-up delay-300" : "border-0 shadow-none bg-transparent animate-slide-up delay-300"}>
-                    {displaySettings.sectionStyle === 'cards' ? (
+                <Card className={headerRendering.sectionWrapper ? `border-0 ${headerRendering.sectionWrapper} animate-slide-up delay-300` : "border-0 shadow-none bg-transparent animate-slide-up delay-300"}
+                  style={headerRendering.sectionWrapperStyle as React.CSSProperties}>
+                    {effectiveHeaderStyle === 'gradient' ? (
                       <CardHeader
                         className="text-white pb-6 pt-8 px-8"
-                        style={{ background: `linear-gradient(to right, ${themeColors.gradient.from}, ${themeColors.gradient.to})` }}
+                        style={headerRendering.headerContainerStyle as React.CSSProperties}
                       >
-                        <CardTitle className="flex items-center gap-3 text-2xl font-bold text-white">
+                        <CardTitle className="flex items-center gap-3 text-2xl font-bold text-white" style={{ fontFamily: fontConfig.headingFamily }}>
                           <div className="p-2 bg-white/20 rounded-lg">
                             <DollarSign className="h-6 w-6 text-white" />
                           </div>
@@ -881,15 +917,20 @@ export function SharePage() {
                         </CardTitle>
                       </CardHeader>
                     ) : (
-                      <div className="py-4">
-                        <h2 className="text-lg font-semibold flex items-center gap-2" style={{ color: themeColors.primary }}>
+                      <div className={headerRendering.headerContainer} style={headerRendering.headerContainerStyle as React.CSSProperties}>
+                        {headerRendering.showTopRule && (
+                          <div className="h-0.5 mb-4 rounded" style={{ backgroundColor: themeColors.primary, opacity: 0.3 }} />
+                        )}
+                        <h2 className={headerRendering.titleText} style={{ ...headerRendering.titleTextStyle, fontFamily: fontConfig.headingFamily } as React.CSSProperties}>
                           <DollarSign className="h-5 w-5" style={{ color: themeColors.primary }} />
                           Financial Information
                         </h2>
-                        <div className="h-0.5 mt-2 rounded w-40" style={{ backgroundColor: themeColors.primary }} />
+                        {headerRendering.showUnderline && (
+                          <div className="h-0.5 mt-2 rounded w-40" style={{ backgroundColor: themeColors.primary }} />
+                        )}
                       </div>
                     )}
-                    <CardContent className={displaySettings.sectionStyle === 'cards' ? "p-8" : "p-0 pt-4"}>
+                    <CardContent className={effectiveHeaderStyle === 'gradient' ? "p-8" : headerRendering.contentArea}>
                       {/* Website extracted logo inside financial box - use website logo unless user uploaded override */}
                       {(shareData.cim.logoUrl || shareData.cim.userProfile?.businessLogo) && (
                         <div className="flex justify-center mb-8 pb-6 border-b border-gray-200 animate-fade-in delay-500">
@@ -942,13 +983,14 @@ export function SharePage() {
 
                 {/* Website URL Section */}
                 {shareData.websiteUrl && (
-                  <Card className={displaySettings.sectionStyle === 'cards' ? "border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden animate-slide-up delay-500" : "border-0 shadow-none bg-transparent animate-slide-up delay-500"}>
-                    {displaySettings.sectionStyle === 'cards' ? (
+                  <Card className={headerRendering.sectionWrapper ? `border-0 ${headerRendering.sectionWrapper} animate-slide-up delay-500` : "border-0 shadow-none bg-transparent animate-slide-up delay-500"}
+                    style={headerRendering.sectionWrapperStyle as React.CSSProperties}>
+                    {effectiveHeaderStyle === 'gradient' ? (
                       <CardHeader
                         className="text-white pb-6 pt-8 px-8"
-                        style={{ background: `linear-gradient(to right, ${themeColors.gradient.from}, ${themeColors.gradient.to})` }}
+                        style={headerRendering.headerContainerStyle as React.CSSProperties}
                       >
-                        <CardTitle className="flex items-center gap-3 text-2xl font-bold text-white">
+                        <CardTitle className="flex items-center gap-3 text-2xl font-bold text-white" style={{ fontFamily: fontConfig.headingFamily }}>
                           <div className="p-2 bg-white/20 rounded-lg">
                             <Globe className="h-6 w-6 text-white" />
                           </div>
@@ -956,15 +998,20 @@ export function SharePage() {
                         </CardTitle>
                       </CardHeader>
                     ) : (
-                      <div className="py-4">
-                        <h2 className="text-lg font-semibold flex items-center gap-2" style={{ color: themeColors.primary }}>
+                      <div className={headerRendering.headerContainer} style={headerRendering.headerContainerStyle as React.CSSProperties}>
+                        {headerRendering.showTopRule && (
+                          <div className="h-0.5 mb-4 rounded" style={{ backgroundColor: themeColors.primary, opacity: 0.3 }} />
+                        )}
+                        <h2 className={headerRendering.titleText} style={{ ...headerRendering.titleTextStyle, fontFamily: fontConfig.headingFamily } as React.CSSProperties}>
                           <Globe className="h-5 w-5" style={{ color: themeColors.primary }} />
                           Website
                         </h2>
-                        <div className="h-0.5 mt-2 rounded w-20" style={{ backgroundColor: themeColors.primary }} />
+                        {headerRendering.showUnderline && (
+                          <div className="h-0.5 mt-2 rounded w-20" style={{ backgroundColor: themeColors.primary }} />
+                        )}
                       </div>
                     )}
-                    <CardContent className={displaySettings.sectionStyle === 'cards' ? "p-8" : "p-0 pt-4"}>
+                    <CardContent className={effectiveHeaderStyle === 'gradient' ? "p-8" : headerRendering.contentArea}>
                       <div className="text-center">
                         <a
                           href={shareData.websiteUrl.startsWith('http') ? shareData.websiteUrl : `https://${shareData.websiteUrl}`}
