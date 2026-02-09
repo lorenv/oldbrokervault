@@ -378,8 +378,9 @@ export default function CompanyDetailPage() {
 
   return (
     <div className="p-4 md:p-6 pr-2 md:pr-4">
-      {/* Header - stacks on mobile */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
+      {/* Header - sticky */}
+      <div className="sticky top-0 z-10 bg-white -ml-4 -mr-2 -mt-4 pl-4 pr-2 pt-4 md:-ml-6 md:-mr-4 md:-mt-6 md:pl-6 md:pr-4 md:pt-6 pb-3 mb-3 border-b border-gray-100">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <Button variant="ghost" size="sm" asChild className="w-fit">
           <Link href="/companies"><ArrowLeft className="h-4 w-4 mr-2" />Companies</Link>
         </Button>
@@ -428,15 +429,14 @@ export default function CompanyDetailPage() {
           </Button>
         </div>
       </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_auto] gap-6">
         <div className="space-y-6 min-w-0">
           {/* Company Information - Compact */}
           {isSectionVisible("company-info") && (
-          <div className="bg-white px-3 pb-5 mb-2 relative">
-            {/* Partial separator line at bottom */}
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-gray-200" />
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 text-sm">
+          <div className="bg-white px-3 pb-5 mb-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-3 sm:gap-y-2 text-sm">
               {/* Website */}
               <div className="space-y-0.5 min-w-0">
                 <Label className="text-xs text-gray-500 block">Website</Label>
@@ -508,14 +508,17 @@ export default function CompanyDetailPage() {
                 <TabsTrigger variant="underline" value="activity">
                   <Clock className="h-4 w-4 mr-1" />
                   Activity
+                  {activities && activities.length > 0 && <span className="ml-1 text-xs text-gray-400 tabular-nums">{activities.length}</span>}
                 </TabsTrigger>
                 <TabsTrigger variant="underline" value="notes">
                   <MessageSquare className="h-4 w-4 mr-1" />
                   Notes
+                  {notes && notes.length > 0 && <span className="ml-1 text-xs text-gray-400 tabular-nums">{notes.length}</span>}
                 </TabsTrigger>
                 <TabsTrigger variant="underline" value="tasks">
                   <CheckSquare className="h-4 w-4 mr-1" />
                   Tasks
+                  {tasks && tasks.length > 0 && <span className="ml-1 text-xs text-gray-400 tabular-nums">{tasks.length}</span>}
                 </TabsTrigger>
                 <TabsTrigger variant="underline" value="emails">
                   <Mail className="h-4 w-4 mr-1" />
@@ -529,20 +532,24 @@ export default function CompanyDetailPage() {
               <Card>
                 <CardContent className="pt-6">
                   {activities && activities.length > 0 ? (
-                    <div className="space-y-4">
-                      {activities.map((activity: Activity) => {
+                    <div>
+                      {activities.map((activity: Activity, index: number) => {
+                        const isLast = index === activities.length - 1;
                         const { icon: ActivityIcon, bg, color } = getActivityIcon(activity.activityType);
                         const embedded = activity.embeddedContent;
 
                         return (
                           <div
                             key={activity.id}
-                            className="flex gap-3 pb-4 border-b last:border-0"
+                            className="flex gap-3"
                           >
-                            <div className={`w-8 h-8 rounded-full ${bg} flex items-center justify-center flex-shrink-0 mt-1`}>
-                              <ActivityIcon className={`h-4 w-4 ${color}`} />
+                            <div className="flex flex-col items-center">
+                              <div className={`w-8 h-8 rounded-full ${bg} flex items-center justify-center flex-shrink-0`}>
+                                <ActivityIcon className={`h-4 w-4 ${color}`} />
+                              </div>
+                              {!isLast && <div className="w-px flex-1 bg-gray-200 min-h-[16px]" />}
                             </div>
-                            <div className="flex-1 min-w-0">
+                            <div className={`flex-1 min-w-0 ${!isLast ? 'pb-6' : ''}`}>
                               <div className="flex items-center justify-between">
                                 <p className="text-sm text-gray-900">
                                   <span className="font-medium">
@@ -865,7 +872,13 @@ export default function CompanyDetailPage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500 py-2">No contacts associated</p>
+                  <button
+                    onClick={() => setIsLinkContactOpen(true)}
+                    className="w-full flex flex-col items-center gap-2 py-4 px-3 border border-dashed border-gray-300 rounded-lg text-gray-400 hover:border-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
+                  >
+                    <User className="h-5 w-5" />
+                    <span className="text-sm">Link a contact</span>
+                  </button>
                 )}
               </div>
 
@@ -903,7 +916,13 @@ export default function CompanyDetailPage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500 py-2">No deals yet</p>
+                  <button
+                    onClick={() => setIsLinkDealOpen(true)}
+                    className="w-full flex flex-col items-center gap-2 py-4 px-3 border border-dashed border-gray-300 rounded-lg text-gray-400 hover:border-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
+                  >
+                    <Briefcase className="h-5 w-5" />
+                    <span className="text-sm">Link a deal</span>
+                  </button>
                 )}
               </div>
             </CardContent>
