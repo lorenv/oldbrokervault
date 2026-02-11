@@ -1105,7 +1105,14 @@ export default function EsignSign() {
           {/* Sidebar - Shows first on mobile */}
           <div className="space-y-3 md:space-y-4 order-1 lg:order-2">
             {/* E-SIGN Act Consent - Clickwrap style - Always visible */}
-            <Card className={`border-2 ${hasConsented ? 'border-green-500 bg-green-50' : 'border-gray-200'}`}>
+            <Card
+              className={`border-2 ${hasConsented ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300 cursor-pointer'}`}
+              onClick={() => {
+                if (!hasConsented && !consentMutation.isPending) {
+                  consentMutation.mutate();
+                }
+              }}
+            >
               <CardContent className="pt-4">
                 {hasConsented ? (
                   <div className="flex items-start gap-3">
@@ -1139,6 +1146,7 @@ export default function EsignSign() {
                           type="button"
                           onClick={(e) => {
                             e.preventDefault();
+                            e.stopPropagation();
                             setShowConsentDialog(true);
                           }}
                           className="text-blue-600 hover:text-blue-800 underline font-medium"

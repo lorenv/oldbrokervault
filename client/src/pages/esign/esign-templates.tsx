@@ -4,24 +4,7 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   FileText,
   Plus,
@@ -34,9 +17,7 @@ import {
   Clock,
   Users,
   Link2,
-  ExternalLink,
   Check,
-  Loader2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -82,9 +63,6 @@ export default function EsignTemplates() {
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteTemplateId, setDeleteTemplateId] = useState<number | null>(null);
-  const [powerFormTemplate, setPowerFormTemplate] = useState<EsignTemplate | null>(null);
-  const [powerFormSlug, setPowerFormSlug] = useState("");
-  const [powerFormMode, setPowerFormMode] = useState<'upfront' | 'sequential' | 'choice'>('choice');
   const [copiedUrl, setCopiedUrl] = useState<number | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -133,66 +111,6 @@ export default function EsignTemplates() {
       });
     },
   });
-
-  const powerFormMutation = useMutation({
-    mutationFn: async ({ templateId, enabled, slug, settings }: {
-      templateId: number;
-      enabled: boolean;
-      slug?: string;
-      settings?: { multiSignerMode: string };
-    }) => {
-      return apiRequest("POST", `/api/esign/templates/${templateId}/powerform`, {
-        enabled,
-        slug,
-        settings,
-      });
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/esign/templates"] });
-      if (data.powerFormUrl) {
-        toast({
-          title: "PowerForm enabled",
-          description: "Your shareable link is ready to use.",
-        });
-      } else {
-        toast({
-          title: "PowerForm disabled",
-          description: "The shareable link has been deactivated.",
-        });
-      }
-      setPowerFormTemplate(null);
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update PowerForm settings.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const openPowerFormDialog = (template: EsignTemplate) => {
-    setPowerFormTemplate(template);
-    setPowerFormSlug(template.powerFormSlug || template.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40));
-    setPowerFormMode((template.powerFormSettings?.multiSignerMode as any) || 'choice');
-  };
-
-  const handlePowerFormSave = () => {
-    if (!powerFormTemplate) return;
-    powerFormMutation.mutate({
-      templateId: powerFormTemplate.id,
-      enabled: true,
-      slug: powerFormSlug,
-      settings: { multiSignerMode: powerFormMode },
-    });
-  };
-
-  const handlePowerFormDisable = (templateId: number) => {
-    powerFormMutation.mutate({
-      templateId,
-      enabled: false,
-    });
-  };
 
   const copyPowerFormUrl = (template: EsignTemplate) => {
     const baseUrl = window.location.origin;
@@ -327,37 +245,13 @@ export default function EsignTemplates() {
                               <Copy className="h-4 w-4 mr-2" />
                               Duplicate
                             </DropdownMenuItem>
-                            {template.powerFormEnabled ? (
-                              <>
-                                <DropdownMenuItem onClick={(e) => {
-                                  e.stopPropagation();
-                                  copyPowerFormUrl(template);
-                                }}>
-                                  <Link2 className="h-4 w-4 mr-2" />
-                                  Copy PowerForm Link
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={(e) => {
-                                  e.stopPropagation();
-                                  openPowerFormDialog(template);
-                                }}>
-                                  <Edit className="h-4 w-4 mr-2" />
-                                  Edit PowerForm
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={(e) => {
-                                  e.stopPropagation();
-                                  handlePowerFormDisable(template.id);
-                                }}>
-                                  <ExternalLink className="h-4 w-4 mr-2" />
-                                  Disable PowerForm
-                                </DropdownMenuItem>
-                              </>
-                            ) : (
+                            {template.powerFormSlug && (
                               <DropdownMenuItem onClick={(e) => {
                                 e.stopPropagation();
-                                openPowerFormDialog(template);
+                                copyPowerFormUrl(template);
                               }}>
                                 <Link2 className="h-4 w-4 mr-2" />
-                                Create PowerForm Link
+                                Copy PowerForm Link
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuItem
@@ -409,7 +303,7 @@ export default function EsignTemplates() {
                       </div>
 
                       {/* PowerForm indicator */}
-                      {template.powerFormEnabled && (
+                      {template.powerFormSlug && (
                         <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded-lg">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
@@ -496,96 +390,6 @@ export default function EsignTemplates() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* PowerForm Configuration Dialog */}
-      <Dialog open={powerFormTemplate !== null} onOpenChange={() => setPowerFormTemplate(null)}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Link2 className="h-5 w-5 text-blue-600" />
-              {powerFormTemplate?.powerFormEnabled ? 'Edit PowerForm' : 'Create PowerForm'}
-            </DialogTitle>
-            <DialogDescription>
-              Create a shareable link that anyone can use to fill out and sign this template.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            {/* URL Slug */}
-            <div className="space-y-2">
-              <Label htmlFor="slug">URL Slug</Label>
-              <Input
-                id="slug"
-                value={powerFormSlug}
-                onChange={(e) => setPowerFormSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                placeholder="my-form"
-              />
-              <p className="text-xs text-gray-500">
-                Only lowercase letters, numbers, and hyphens. Link will be: /esign/form/{powerFormSlug || 'your-slug'}
-              </p>
-            </div>
-
-            {/* Multi-signer mode (only show if template has multiple signers) */}
-            {powerFormTemplate && powerFormTemplate.placeholderRecipients.filter((r: any) => r.role === 'signer').length > 1 && (
-              <div className="space-y-2">
-                <Label>Multiple Signers</Label>
-                <Select value={powerFormMode} onValueChange={(v) => setPowerFormMode(v as any)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="choice">
-                      Let first signer choose
-                    </SelectItem>
-                    <SelectItem value="upfront">
-                      Collect all signers upfront
-                    </SelectItem>
-                    <SelectItem value="sequential">
-                      Sequential handoff
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-gray-500">
-                  {powerFormMode === 'choice' && "First signer decides how to handle other signers."}
-                  {powerFormMode === 'upfront' && "First signer provides info for all signers at once."}
-                  {powerFormMode === 'sequential' && "Each signer passes the link to the next."}
-                </p>
-              </div>
-            )}
-
-            {/* Preview URL */}
-            {powerFormSlug && (
-              <div className="p-3 bg-gray-50 rounded-lg border">
-                <p className="text-xs text-gray-500 mb-1">Your PowerForm link:</p>
-                <p className="text-sm font-medium text-blue-600 break-all">
-                  {window.location.origin}/esign/form/{powerFormSlug}
-                </p>
-              </div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPowerFormTemplate(null)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handlePowerFormSave}
-              disabled={!powerFormSlug || powerFormMutation.isPending}
-            >
-              {powerFormMutation.isPending ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Link2 className="h-4 w-4 mr-2" />
-                  {powerFormTemplate?.powerFormEnabled ? 'Update PowerForm' : 'Create PowerForm'}
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -91,7 +91,11 @@
       "Bash(npx vite build:*)",
       "Bash(npm run test:all:*)",
       "Bash(DATABASE_URL=\"$PRODUCTION_DATABASE_URL\" npx tsx:*)",
-      "Bash(printenv:*)"
+      "Bash(printenv:*)",
+      "Bash(git count-objects:*)",
+      "Bash(git rm:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": [],
