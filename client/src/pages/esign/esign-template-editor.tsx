@@ -40,19 +40,8 @@ import {
   File,
   ChevronDown,
   Pointer,
-  Link2,
   Copy,
-  Loader2,
-  ExternalLink,
 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { ESIGN_RECIPIENT_COLORS, ESIGN_CC_COLOR } from "@shared/schema";
@@ -584,13 +573,6 @@ export default function EsignTemplateEditor() {
   const [mobileFieldType, setMobileFieldType] = useState<string | null>(null);
   const [isTapToPlaceMode, setIsTapToPlaceMode] = useState(false);
 
-  // PowerForm state
-  const [showPowerFormDialog, setShowPowerFormDialog] = useState(false);
-  const [powerFormEnabled, setPowerFormEnabled] = useState(false);
-  const [powerFormSlug, setPowerFormSlug] = useState("");
-  const [powerFormUrl, setPowerFormUrl] = useState<string | null>(null);
-  const [copiedPowerFormUrl, setCopiedPowerFormUrl] = useState(false);
-
   // Track active dragging item for DragOverlay visual feedback
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [activeDragData, setActiveDragData] = useState<{ type: string; fromPalette: boolean; field?: TemplateField } | null>(null);
@@ -750,15 +732,6 @@ export default function EsignTemplateEditor() {
       }
       setRecipients(template.placeholderRecipients || []);
       setFields(template.fields || []);
-
-      // Load PowerForm settings
-      if (template.powerFormEnabled) {
-        setPowerFormEnabled(true);
-        setPowerFormSlug(template.powerFormSlug || "");
-        if (template.powerFormSlug) {
-          setPowerFormUrl(`${window.location.origin}/esign/form/${template.powerFormSlug}`);
-        }
-      }
     }
   }, [template]);
 
@@ -1178,49 +1151,11 @@ export default function EsignTemplateEditor() {
     },
   });
 
-  // PowerForm mutation
-  const powerFormMutation = useMutation({
-    mutationFn: async (enabled: boolean) => {
-      if (!templateId) throw new Error("Template must be saved first");
-      return apiRequest("POST", `/api/esign/templates/${templateId}/powerform`, {
-        body: { enabled },
-      });
-    },
-    onSuccess: async (data: any) => {
-      await queryClient.refetchQueries({ queryKey: ["/api/esign/templates", templateId] });
-      if (data.powerFormUrl) {
-        setPowerFormEnabled(true);
-        setPowerFormSlug(data.slug);
-        setPowerFormUrl(data.powerFormUrl);
-        toast({
-          title: "PowerForm enabled",
-          description: "Your template now has a shareable PowerForm link.",
-        });
-      } else {
-        setPowerFormEnabled(false);
-        setPowerFormSlug("");
-        setPowerFormUrl(null);
-        toast({
-          title: "PowerForm disabled",
-          description: "The PowerForm link has been deactivated.",
-        });
-      }
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to update PowerForm settings. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
   // Copy PowerForm URL to clipboard
   const copyPowerFormUrl = () => {
-    if (powerFormUrl) {
-      navigator.clipboard.writeText(powerFormUrl);
-      setCopiedPowerFormUrl(true);
-      setTimeout(() => setCopiedPowerFormUrl(false), 2000);
+    if (template?.powerFormSlug) {
+      const url = `${window.location.origin}/esign/form/${template.powerFormSlug}`;
+      navigator.clipboard.writeText(url);
       toast({
         title: "Copied!",
         description: "PowerForm link copied to clipboard.",
@@ -1295,28 +1230,28 @@ export default function EsignTemplateEditor() {
                   <Menu className="h-4 w-4" />
                 </Button>
 
-                {/* PowerForm Button - only show for saved templates */}
-                {isEditing && (
+                {/* Copy PowerForm Link - only show for saved templates with a slug */}
+                {isEditing && template?.powerFormSlug && (
                   <>
                     {/* Desktop button with text */}
                     <Button
-                      variant={powerFormEnabled ? "default" : "outline"}
+                      variant="outline"
                       size="sm"
-                      onClick={() => setShowPowerFormDialog(true)}
+                      onClick={copyPowerFormUrl}
                       className="hidden md:flex"
                     >
-                      <Link2 className="h-4 w-4 mr-2" />
-                      {powerFormEnabled ? "PowerForm Active" : "Enable PowerForm"}
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy Link
                     </Button>
                     {/* Mobile icon-only button */}
                     <Button
-                      variant={powerFormEnabled ? "default" : "outline"}
+                      variant="outline"
                       size="icon"
-                      onClick={() => setShowPowerFormDialog(true)}
+                      onClick={copyPowerFormUrl}
                       className="md:hidden"
-                      title={powerFormEnabled ? "PowerForm Active" : "Enable PowerForm"}
+                      title="Copy PowerForm Link"
                     >
-                      <Link2 className="h-4 w-4" />
+                      <Copy className="h-4 w-4" />
                     </Button>
                   </>
                 )}
@@ -1997,137 +1932,6 @@ export default function EsignTemplateEditor() {
           </div>
         </>
       </div>
-
-      {/* PowerForm Dialog */}
-      <Dialog open={showPowerFormDialog} onOpenChange={setShowPowerFormDialog}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Link2 className="h-5 w-5" />
-              PowerForm Settings
-            </DialogTitle>
-            <DialogDescription>
-              Enable PowerForm to create a shareable link that anyone can use to fill out and sign this template.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            {powerFormEnabled ? (
-              <>
-                {/* PowerForm is enabled - show link */}
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full" />
-                    <span className="font-medium text-green-800">PowerForm Active</span>
-                  </div>
-                  <p className="text-sm text-green-700 mb-3">
-                    Anyone with this link can fill out and sign the template.
-                  </p>
-
-                  {/* Link display */}
-                  <div className="bg-white rounded border p-2 mb-3">
-                    <code className="text-xs text-gray-700 break-all">
-                      {powerFormUrl}
-                    </code>
-                  </div>
-
-                  {/* Action buttons */}
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={copyPowerFormUrl}
-                      className="flex-1"
-                    >
-                      {copiedPowerFormUrl ? (
-                        <>
-                          <Check className="h-4 w-4 mr-2" />
-                          Copied!
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-4 w-4 mr-2" />
-                          Copy Link
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => window.open(powerFormUrl!, '_blank')}
-                    >
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      Open
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Disable button */}
-                <Button
-                  variant="outline"
-                  className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
-                  onClick={() => powerFormMutation.mutate(false)}
-                  disabled={powerFormMutation.isPending}
-                >
-                  {powerFormMutation.isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Disabling...
-                    </>
-                  ) : (
-                    "Disable PowerForm"
-                  )}
-                </Button>
-              </>
-            ) : (
-              <>
-                {/* PowerForm is disabled - show enable option */}
-                <div className="bg-gray-50 border rounded-lg p-4">
-                  <h4 className="font-medium text-gray-900 mb-2">What is PowerForm?</h4>
-                  <ul className="text-sm text-gray-600 space-y-2">
-                    <li className="flex items-start gap-2">
-                      <span className="text-blue-500 mt-0.5">•</span>
-                      Create a shareable link to this template
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-blue-500 mt-0.5">•</span>
-                      Anyone can fill out and sign without you sending an envelope
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-blue-500 mt-0.5">•</span>
-                      You'll be notified when someone completes the form
-                    </li>
-                  </ul>
-                </div>
-
-                <Button
-                  className="w-full"
-                  onClick={() => powerFormMutation.mutate(true)}
-                  disabled={powerFormMutation.isPending}
-                >
-                  {powerFormMutation.isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Enabling...
-                    </>
-                  ) : (
-                    <>
-                      <Link2 className="h-4 w-4 mr-2" />
-                      Enable PowerForm
-                    </>
-                  )}
-                </Button>
-              </>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPowerFormDialog(false)}>
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* DragOverlay - shows visual feedback only for new fields from palette */}
       <DragOverlay dropAnimation={null}>

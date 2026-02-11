@@ -223,7 +223,7 @@ export default function HomePage() {
                   playsInline
                   className="w-full h-auto object-contain max-w-sm mx-auto lg:max-w-none rounded-xl shadow-2xl"
                 >
-                  <source src="/hero-video.mp4" type="video/mp4" />
+                  <source src="/api/object-storage/videos/hero-video.mp4" type="video/mp4" />
                   Your browser does not support the video tag.
                 </video>
               </div>
@@ -518,7 +518,7 @@ export default function HomePage() {
                 }
               >
                 <LazyVideo
-                  src="/investor-database-feature.mp4"
+                  src="/api/object-storage/videos/investor-database-feature.mp4"
                   muted
                   autoPlay
                   loop
@@ -595,7 +595,7 @@ export default function HomePage() {
                 onClick={() => setEnlargedImage("/nda-signatures-preview.png")}
               >
                 <LazyVideo
-                  src="/nda-management-feature.mp4"
+                  src="/api/object-storage/videos/nda-management-feature.mp4"
                   muted
                   autoPlay
                   loop
@@ -616,7 +616,7 @@ export default function HomePage() {
                 data-animate-id="showcase-3"
               >
                 <LazyVideo
-                  src="/analytics optimized_1759637064475.mp4"
+                  src="/api/object-storage/videos/analytics-optimized.mp4"
                   muted
                   autoPlay
                   loop
@@ -699,7 +699,7 @@ export default function HomePage() {
                 }
               >
                 <LazyVideo
-                  src="/esignature-feature.mp4"
+                  src="/api/object-storage/videos/esignature-feature.mp4"
                   muted
                   autoPlay
                   loop

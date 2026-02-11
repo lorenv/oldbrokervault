@@ -16,6 +16,13 @@ import { processPDFToImages, processDocumentToImages } from '../../services/pdf-
 import { ObjectStorageService } from '../../object-storage';
 import { sanitizeFilename } from '../../utils/sanitize-filename';
 import { upload, libreOfficeFormats, isLibreOfficeSupported, getDocumentType } from './esign-utils';
+import { generateSecureToken } from '../../token-utils';
+
+function generatePowerFormSlug(name: string): string {
+  const base = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+  const suffix = generateSecureToken().slice(0, 8);
+  return `${base}-${suffix}`;
+}
 
 const router = Router();
 
@@ -255,6 +262,7 @@ router.post('/templates', async (req: Request, res: Response) => {
     console.log('[ESIGN] Template creation request body:', JSON.stringify(req.body, null, 2));
     const validated = insertEsignTemplateSchema.parse(req.body);
 
+    const slug = generatePowerFormSlug(validated.name);
     const [template] = await db
       .insert(esignTemplates)
       .values({
@@ -266,6 +274,10 @@ router.post('/templates', async (req: Request, res: Response) => {
         totalPages: validated.totalPages || 1,
         placeholderRecipients: validated.placeholderRecipients || [],
         fields: validated.fields || [],
+        powerFormEnabled: true,
+        powerFormSlug: slug,
+        powerFormSettings: { multiSignerMode: 'choice' },
+        powerFormCreatedAt: new Date(),
       })
       .returning();
 
@@ -307,10 +319,21 @@ router.put('/templates/:id', async (req: Request, res: Response) => {
 
     const validated = insertEsignTemplateSchema.partial().parse(req.body);
 
+    // Auto-enable PowerForm if the template doesn't have a slug yet
+    const powerFormFields: Record<string, any> = {};
+    if (!existing.powerFormSlug) {
+      const templateName = validated.name || existing.name;
+      powerFormFields.powerFormEnabled = true;
+      powerFormFields.powerFormSlug = generatePowerFormSlug(templateName);
+      powerFormFields.powerFormSettings = { multiSignerMode: 'choice' };
+      powerFormFields.powerFormCreatedAt = new Date();
+    }
+
     const [updated] = await db
       .update(esignTemplates)
       .set({
         ...validated,
+        ...powerFormFields,
         updatedAt: new Date(),
       })
       .where(eq(esignTemplates.id, templateId))
@@ -388,17 +411,23 @@ router.post('/templates/:id/duplicate', async (req: Request, res: Response) => {
     }
 
     // Create duplicate with "Copy of" prefix
+    const dupName = `Copy of ${original.name}`;
+    const dupSlug = generatePowerFormSlug(dupName);
     const [duplicate] = await db
       .insert(esignTemplates)
       .values({
         userId: req.user.id,
-        name: `Copy of ${original.name}`,
+        name: dupName,
         description: original.description,
         documentUrl: original.documentUrl,
         pageImages: original.pageImages,
         totalPages: original.totalPages,
         placeholderRecipients: original.placeholderRecipients,
         fields: original.fields,
+        powerFormEnabled: true,
+        powerFormSlug: dupSlug,
+        powerFormSettings: { multiSignerMode: 'choice' },
+        powerFormCreatedAt: new Date(),
       })
       .returning();
 

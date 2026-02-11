@@ -102,7 +102,7 @@ export default function NdaProtectionPage() {
           </div>
           <div className="rounded-2xl overflow-hidden shadow-2xl border border-slate-200">
             <LazyVideo
-              src="/ndamanagement.mp4"
+              src="/api/object-storage/videos/ndamanagement.mp4"
               className="w-full"
               autoPlay
               muted

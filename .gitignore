@@ -12,10 +12,12 @@ backup.sql
 *.backup
 
 # Test artifacts
-test-*.pdf
+test*.pdf
+test_*.pdf
 server/public
 vite.config.ts.*
 *.tar.gz
+*.mp4
 
 # System config files that should not be committed
 .config/
