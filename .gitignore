@@ -12,7 +12,8 @@ backup.sql
 *.backup
 
 # Test artifacts
-test-*.pdf
+test*.pdf
+test_*.pdf
 server/public
 vite.config.ts.*
 *.tar.gz
