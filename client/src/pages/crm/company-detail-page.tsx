@@ -508,17 +508,17 @@ export default function CompanyDetailPage() {
                 <TabsTrigger variant="underline" value="activity">
                   <Clock className="h-4 w-4 mr-1" />
                   Activity
-                  {activities && activities.length > 0 && <span className="ml-1 text-xs text-gray-400 tabular-nums">{activities.length}</span>}
+                  {activities && activities.length > 0 && <span className="ml-1 text-xs text-gray-400 tabular-nums">({activities.length})</span>}
                 </TabsTrigger>
                 <TabsTrigger variant="underline" value="notes">
                   <MessageSquare className="h-4 w-4 mr-1" />
                   Notes
-                  {notes && notes.length > 0 && <span className="ml-1 text-xs text-gray-400 tabular-nums">{notes.length}</span>}
+                  {notes && notes.length > 0 && <span className="ml-1 text-xs text-gray-400 tabular-nums">({notes.length})</span>}
                 </TabsTrigger>
                 <TabsTrigger variant="underline" value="tasks">
                   <CheckSquare className="h-4 w-4 mr-1" />
                   Tasks
-                  {tasks && tasks.length > 0 && <span className="ml-1 text-xs text-gray-400 tabular-nums">{tasks.length}</span>}
+                  {tasks && tasks.length > 0 && <span className="ml-1 text-xs text-gray-400 tabular-nums">({tasks.length})</span>}
                 </TabsTrigger>
                 <TabsTrigger variant="underline" value="emails">
                   <Mail className="h-4 w-4 mr-1" />
@@ -830,15 +830,17 @@ export default function CompanyDetailPage() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Contacts</h4>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsLinkContactOpen(true)}
-                    className="h-6 px-2 text-gray-500 hover:text-gray-700"
-                  >
-                    <Plus className="h-3 w-3 mr-1" />
-                    Add
-                  </Button>
+                  {(company as any).contacts?.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsLinkContactOpen(true)}
+                      className="h-6 px-2 text-gray-500 hover:text-gray-700"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Add
+                    </Button>
+                  )}
                 </div>
                 {(company as any).contacts?.length > 0 ? (
                   <div className="space-y-2">
@@ -886,15 +888,17 @@ export default function CompanyDetailPage() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Deals</h4>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsLinkDealOpen(true)}
-                    className="h-6 px-2 text-gray-500 hover:text-gray-700"
-                  >
-                    <Plus className="h-3 w-3 mr-1" />
-                    Add
-                  </Button>
+                  {(company as any).deals?.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsLinkDealOpen(true)}
+                      className="h-6 px-2 text-gray-500 hover:text-gray-700"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Add
+                    </Button>
+                  )}
                 </div>
                 {(company as any).deals?.length > 0 ? (
                   <div className="space-y-2">

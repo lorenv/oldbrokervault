@@ -1680,7 +1680,26 @@ export default function EsignTemplateEditor() {
             </div>
 
             {/* Main Canvas */}
-            <div className="flex-1 min-w-0 pb-32 lg:pb-0">
+            <div className="flex-1 min-w-0 pb-36 lg:pb-0">
+              {/* Mobile-only: Recipient quick-add prompt when no recipients */}
+              {recipients.length === 0 && (
+                <div className="lg:hidden mb-3 bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-amber-800">Add a recipient first</p>
+                    <p className="text-xs text-amber-600 mt-0.5">Recipients are needed to assign signature fields</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-shrink-0 border-amber-300 text-amber-800 hover:bg-amber-100"
+                    onClick={() => addRecipient('signer')}
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Add Signer
+                  </Button>
+                </div>
+              )}
+
               <Card className="h-[calc(100vh-200px)] lg:h-[calc(100vh-180px)] flex flex-col">
                 <CardHeader className="border-b flex-shrink-0">
                   <div className="flex items-center justify-between">
@@ -1816,36 +1835,51 @@ export default function EsignTemplateEditor() {
           </div>
         </div>
 
-        {/* Mobile Bottom Bars - Only show when document is loaded */}
-        {pageImages.length > 0 && (
-          <>
-            {/* Mobile Field Placement Bar - positioned above nav bar */}
-            <div className="fixed bottom-16 left-0 right-0 bg-white border-t shadow-lg z-40 lg:hidden">
-              <div className="flex items-center gap-2 px-3 py-2">
-                {/* Recipient selector */}
-                <Select
-                  value={activeRecipientId || ""}
-                  onValueChange={(value) => setActiveRecipientId(value)}
+        {/* Mobile Bottom Bars - Always show on mobile for recipient management */}
+        <>
+          {/* Mobile Field Placement Bar - positioned above nav bar */}
+          <div className="fixed bottom-16 left-0 right-0 bg-white border-t shadow-lg z-40 lg:hidden">
+            <div className="flex items-center gap-2 px-3 py-2">
+              {/* Recipient selector + Add button */}
+              <div className="flex items-center gap-1">
+                {recipients.length > 0 ? (
+                  <Select
+                    value={activeRecipientId || ""}
+                    onValueChange={(value) => setActiveRecipientId(value)}
+                  >
+                    <SelectTrigger className="w-[120px] h-9 text-xs">
+                      <SelectValue placeholder="Recipient" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {recipients.map((recipient) => (
+                        <SelectItem key={recipient.id} value={recipient.id}>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-3 h-3 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: recipient.color }}
+                            />
+                            <span className="truncate">{recipient.label}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <span className="text-xs text-gray-500 px-1">No recipients</span>
+                )}
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="h-9 w-9 flex-shrink-0"
+                  onClick={() => addRecipient('signer')}
+                  title="Add Signer"
                 >
-                  <SelectTrigger className="w-[130px] h-9 text-xs">
-                    <SelectValue placeholder="Recipient" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {recipients.map((recipient) => (
-                      <SelectItem key={recipient.id} value={recipient.id}>
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-3 h-3 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: recipient.color }}
-                          />
-                          <span className="truncate">{recipient.label}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
 
-                {/* Field type selector */}
+              {/* Field type selector - only when documents are loaded */}
+              {pageImages.length > 0 && (
                 <Select
                   value={mobileFieldType || ""}
                   onValueChange={(value) => {
@@ -1854,7 +1888,7 @@ export default function EsignTemplateEditor() {
                   }}
                   disabled={!activeRecipientId}
                 >
-                  <SelectTrigger className="w-[120px] h-9 text-xs">
+                  <SelectTrigger className="w-[110px] h-9 text-xs">
                     <SelectValue placeholder="Field type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1871,53 +1905,59 @@ export default function EsignTemplateEditor() {
                     })}
                   </SelectContent>
                 </Select>
+              )}
 
-                {/* Tap-to-place indicator/toggle */}
-                {isTapToPlaceMode ? (
-                  <div className="flex items-center gap-2 flex-1">
-                    <div className="flex items-center gap-1.5 text-xs text-blue-600 bg-blue-50 px-2 py-1.5 rounded-md">
-                      <Pointer className="h-3 w-3" />
-                      <span>Tap to place</span>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-8 text-xs ml-auto"
-                      onClick={() => {
-                        setIsTapToPlaceMode(false);
-                        setMobileFieldType(null);
-                      }}
-                    >
-                      Done
-                    </Button>
+              {/* Tap-to-place indicator/toggle */}
+              {pageImages.length > 0 && isTapToPlaceMode ? (
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 text-xs text-blue-600 bg-blue-50 px-2 py-1.5 rounded-md">
+                    <Pointer className="h-3 w-3" />
+                    <span>Tap to place</span>
                   </div>
-                ) : (
-                  <div className="text-xs text-gray-500 flex-1">
-                    {!activeRecipientId ? (
-                      "Select recipient first"
-                    ) : (
-                      "Select field to place"
-                    )}
-                  </div>
-                )}
-              </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 text-xs ml-auto"
+                    onClick={() => {
+                      setIsTapToPlaceMode(false);
+                      setMobileFieldType(null);
+                    }}
+                  >
+                    Done
+                  </Button>
+                </div>
+              ) : (
+                <div className="text-xs text-gray-500 flex-1 min-w-0 truncate">
+                  {recipients.length === 0 ? (
+                    "Add a signer to get started"
+                  ) : !activeRecipientId ? (
+                    "Select recipient first"
+                  ) : pageImages.length === 0 ? (
+                    "Upload a document next"
+                  ) : (
+                    "Select field to place"
+                  )}
+                </div>
+              )}
             </div>
+          </div>
 
-            {/* Mobile Navigation Bar - bottom sticky */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-40 lg:hidden">
-              <div className="flex items-center justify-between px-3 py-2">
-                {/* Back button */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setLocation("/esign/templates")}
-                  className="h-10"
-                >
-                  <ArrowLeft className="h-4 w-4 mr-1" />
-                  Back
-                </Button>
+          {/* Mobile Navigation Bar - bottom sticky */}
+          <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-40 lg:hidden">
+            <div className="flex items-center justify-between px-3 py-2">
+              {/* Back button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setLocation("/esign/templates")}
+                className="h-10"
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Back
+              </Button>
 
-                {/* Zoom controls */}
+              {/* Zoom controls - only show when documents loaded */}
+              {pageImages.length > 0 ? (
                 <div className="flex items-center gap-1 bg-gray-100 rounded-lg px-2 py-1">
                   <Button
                     size="icon"
@@ -1937,21 +1977,25 @@ export default function EsignTemplateEditor() {
                     <ZoomIn className="h-4 w-4" />
                   </Button>
                 </div>
+              ) : (
+                <div className="flex items-center gap-1 text-xs text-gray-500">
+                  {recipients.length} recipient{recipients.length !== 1 ? 's' : ''}
+                </div>
+              )}
 
-                {/* Save button */}
-                <Button
-                  onClick={() => saveMutation.mutate()}
-                  disabled={!canSave || saveMutation.isPending}
-                  size="sm"
-                  className="h-10"
-                >
-                  <Save className="h-4 w-4 mr-1" />
-                  {saveMutation.isPending ? "..." : "Save"}
-                </Button>
-              </div>
+              {/* Save button */}
+              <Button
+                onClick={() => saveMutation.mutate()}
+                disabled={!canSave || saveMutation.isPending}
+                size="sm"
+                className="h-10"
+              >
+                <Save className="h-4 w-4 mr-1" />
+                {saveMutation.isPending ? "..." : "Save"}
+              </Button>
             </div>
-          </>
-        )}
+          </div>
+        </>
       </div>
 
       {/* PowerForm Dialog */}

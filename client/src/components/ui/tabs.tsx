@@ -3,14 +3,69 @@ import * as TabsPrimitive from "@radix-ui/react-tabs"
 
 import { cn } from "@/lib/utils"
 
-const Tabs = TabsPrimitive.Root
+// Context for directional slide animation on tab content
+const TabsDirectionContext = React.createContext<'left' | 'right' | null>(null);
+const TabsTriggerOrderContext = React.createContext<((value: string) => void) | null>(null);
 
-// Context for animated tabs
+// Context for animated tabs (underline indicator)
 const AnimatedTabsContext = React.createContext<{
   registerTab: (value: string, element: HTMLButtonElement | null) => void;
   activeTab: string | undefined;
   indicatorStyle: React.CSSProperties;
 } | null>(null);
+
+// Enhanced Tabs root with direction tracking
+const Tabs = React.forwardRef<
+  React.ElementRef<typeof TabsPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Root>
+>(({ onValueChange, children, ...props }, ref) => {
+  const [direction, setDirection] = React.useState<'left' | 'right' | null>(null);
+  const tabOrderRef = React.useRef<string[]>([]);
+  const currentValueRef = React.useRef<string | undefined>(
+    (props.value as string) ?? (props.defaultValue as string)
+  );
+
+  const registerTriggerOrder = React.useCallback((value: string) => {
+    if (!tabOrderRef.current.includes(value)) {
+      tabOrderRef.current.push(value);
+    }
+  }, []);
+
+  const handleValueChange = React.useCallback((newValue: string) => {
+    const prevValue = currentValueRef.current;
+    if (prevValue) {
+      const prevIdx = tabOrderRef.current.indexOf(prevValue);
+      const newIdx = tabOrderRef.current.indexOf(newValue);
+      if (prevIdx !== -1 && newIdx !== -1) {
+        setDirection(newIdx > prevIdx ? 'right' : 'left');
+      }
+    }
+    currentValueRef.current = newValue;
+    onValueChange?.(newValue);
+  }, [onValueChange]);
+
+  // Keep ref in sync with controlled value
+  React.useEffect(() => {
+    if (props.value !== undefined) {
+      currentValueRef.current = props.value as string;
+    }
+  }, [props.value]);
+
+  return (
+    <TabsDirectionContext.Provider value={direction}>
+      <TabsTriggerOrderContext.Provider value={registerTriggerOrder}>
+        <TabsPrimitive.Root
+          ref={ref}
+          onValueChange={handleValueChange}
+          {...props}
+        >
+          {children}
+        </TabsPrimitive.Root>
+      </TabsTriggerOrderContext.Provider>
+    </TabsDirectionContext.Provider>
+  );
+})
+Tabs.displayName = "Tabs"
 
 // Animated TabsList with sliding indicator
 const TabsList = React.forwardRef<
@@ -57,9 +112,9 @@ const TabsList = React.forwardRef<
     // Initial update
     updateIndicator();
 
-    // Watch for changes
+    // Watch for changes - observe data-state, content changes (badge counts), and DOM additions/removals
     const observer = new MutationObserver(updateIndicator);
-    observer.observe(list, { attributes: true, subtree: true, attributeFilter: ['data-state'] });
+    observer.observe(list, { attributes: true, childList: true, subtree: true, characterData: true });
 
     // Also update on resize
     window.addEventListener('resize', updateIndicator);
@@ -125,6 +180,7 @@ const TabsTrigger = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger> & { variant?: "default" | "underline" }
 >(({ className, variant = "default", value, ...props }, ref) => {
   const context = React.useContext(AnimatedTabsContext);
+  const registerOrder = React.useContext(TabsTriggerOrderContext);
   const triggerRef = React.useRef<HTMLButtonElement>(null);
 
   const registerTab = context?.registerTab;
@@ -135,6 +191,13 @@ const TabsTrigger = React.forwardRef<
       return () => registerTab(value, null);
     }
   }, [registerTab, value]);
+
+  // Register trigger order for directional content animation
+  React.useEffect(() => {
+    if (registerOrder && value) {
+      registerOrder(value);
+    }
+  }, [registerOrder, value]);
 
   const combinedRef = React.useCallback(
     (node: HTMLButtonElement) => {
@@ -176,16 +239,28 @@ TabsTrigger.displayName = TabsPrimitive.Trigger.displayName
 const TabsContent = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
->(({ className, ...props }, ref) => (
-  <TabsPrimitive.Content
-    ref={ref}
-    className={cn(
-      "mt-6 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 animate-in fade-in-0 slide-in-from-bottom-2 duration-200",
-      className
-    )}
-    {...props}
-  />
-))
+>(({ className, ...props }, ref) => {
+  const direction = React.useContext(TabsDirectionContext);
+
+  return (
+    <TabsPrimitive.Content
+      ref={ref}
+      forceMount
+      className={cn(
+        "mt-6 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        "data-[state=inactive]:hidden",
+        "data-[state=active]:animate-in data-[state=active]:duration-500 data-[state=active]:ease-out",
+        direction === 'right'
+          ? 'data-[state=active]:slide-in-from-right-8'
+          : direction === 'left'
+            ? 'data-[state=active]:slide-in-from-left-8'
+            : 'data-[state=active]:slide-in-from-bottom-2',
+        className
+      )}
+      {...props}
+    />
+  );
+})
 TabsContent.displayName = TabsPrimitive.Content.displayName
 
 export { Tabs, TabsList, TabsTrigger, TabsContent }
