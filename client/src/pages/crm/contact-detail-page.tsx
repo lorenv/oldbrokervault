@@ -70,6 +70,16 @@ import {
   PanelRightOpen,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+  CommandSeparator,
+} from "@/components/ui/command";
 
 // Helper function to get activity icon based on type
 function getActivityIcon(activityType: string) {
@@ -161,8 +171,8 @@ export default function ContactDetailPage() {
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<any>(null);
   const [isCustomizerOpen, setIsCustomizerOpen] = useState(false);
-  const [showTagInput, setShowTagInput] = useState(false);
-  const [newTagValue, setNewTagValue] = useState("");
+  const [isTagPopoverOpen, setIsTagPopoverOpen] = useState(false);
+  const [tagSearchValue, setTagSearchValue] = useState("");
   const [activeTab, setActiveTab] = useState("activity");
   const [newNote, setNewNote] = useState("");
   const [mentionedUserIds, setMentionedUserIds] = useState<number[]>([]);
@@ -381,21 +391,37 @@ export default function ContactDetailPage() {
     updateContactMutation.mutate({ [field]: value || null });
   }, [updateContactMutation]);
 
+  // Preset tag definitions
+  const presetTags = [
+    { value: "VIP", color: "bg-purple-500" },
+    { value: "Decision Maker", color: "bg-blue-500" },
+    { value: "Hot Lead", color: "bg-red-500" },
+    { value: "Champion", color: "bg-amber-500" },
+    { value: "Influencer", color: "bg-pink-500" },
+    { value: "Technical", color: "bg-cyan-500" },
+    { value: "Executive", color: "bg-indigo-500" },
+    { value: "Referral", color: "bg-green-500" },
+    { value: "Do Not Contact", color: "bg-gray-500" },
+  ];
+
   // Tag management functions
-  const handleAddTag = useCallback(async (tagName: string) => {
+  const handleToggleTag = useCallback(async (tagName: string) => {
+    const currentTags = (contact as any)?.tags || [];
+    const isActive = currentTags.includes(tagName);
+    const updatedTags = isActive
+      ? currentTags.filter((t: string) => t !== tagName)
+      : [...currentTags, tagName];
+    await updateContactMutation.mutateAsync({ tags: updatedTags });
+  }, [contact, updateContactMutation]);
+
+  const handleCreateCustomTag = useCallback(async (tagName: string) => {
     const trimmedTag = tagName.trim();
     if (!trimmedTag) return;
-
     const currentTags = (contact as any)?.tags || [];
-    if (currentTags.includes(trimmedTag)) {
-      toast({ title: "Tag already exists", variant: "destructive" });
-      return;
-    }
-
+    if (currentTags.includes(trimmedTag)) return;
     await updateContactMutation.mutateAsync({ tags: [...currentTags, trimmedTag] });
-    setNewTagValue("");
-    setShowTagInput(false);
-  }, [contact, updateContactMutation, toast]);
+    setTagSearchValue("");
+  }, [contact, updateContactMutation]);
 
   const handleRemoveTag = useCallback(async (tagToRemove: string) => {
     const currentTags = (contact as any)?.tags || [];
@@ -465,8 +491,9 @@ export default function ContactDetailPage() {
 
   return (
     <div className="p-4 md:p-6 pr-2 md:pr-4">
-      {/* Header - stacks on mobile */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
+      {/* Header - sticky */}
+      <div className="sticky top-0 z-10 bg-white -ml-4 -mr-2 -mt-4 pl-4 pr-2 pt-4 md:-ml-6 md:-mr-4 md:-mt-6 md:pl-6 md:pr-4 md:pt-6 pb-3 mb-3 border-b border-gray-100">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <Button variant="ghost" size="sm" asChild className="w-fit">
           <Link href="/contacts"><ArrowLeft className="h-4 w-4 mr-2" />Contacts</Link>
         </Button>
@@ -485,7 +512,7 @@ export default function ContactDetailPage() {
             size="md"
           />
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-0">
               <InlineEdit
                 value={(contact as any).firstName}
                 onSave={(val) => handleContactUpdate('firstName', val)}
@@ -542,6 +569,7 @@ export default function ContactDetailPage() {
           </Button>
         </div>
       </div>
+      </div>
 
       {/* Mobile Quick Actions */}
       {isMobile && (contact as any).email && (
@@ -584,10 +612,8 @@ export default function ContactDetailPage() {
         <div className="space-y-6 min-w-0">
           {/* Contact Information - Compact */}
           {isSectionVisible("contact-info") && (
-          <div className="bg-white px-3 pb-5 mb-2 relative">
-            {/* Partial separator line at bottom */}
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-gray-200" />
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 text-sm">
+          <div className="bg-white px-3 pb-5 mb-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-3 sm:gap-y-2 text-sm">
               {/* Email */}
               <div className="space-y-0.5 min-w-0">
                 <Label className="text-xs text-gray-500 block">Email</Label>
@@ -629,14 +655,14 @@ export default function ContactDetailPage() {
 
             {/* Contact Type, Lead Status & Tags row */}
             {isSectionVisible("contact-classification") && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 mt-3 pt-3 border-t border-gray-200">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-3 sm:gap-y-2 mt-3 pt-3 border-t border-gray-200">
               <div>
                 <Label className="text-xs text-gray-500">Contact Type</Label>
                 <Select
                   value={contactType}
                   onValueChange={(value) => handleContactUpdate('contactType', value)}
                 >
-                  <SelectTrigger className={`h-7 w-full text-xs ${getContactTypeColor(contactType)}`}>
+                  <SelectTrigger className={`h-7 w-[130px] text-xs ${getContactTypeColor(contactType)}`}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -653,7 +679,7 @@ export default function ContactDetailPage() {
                   value={leadStatus}
                   onValueChange={(value) => handleContactUpdate('leadStatus', value)}
                 >
-                  <SelectTrigger className={`h-7 w-full text-xs ${getLeadStatusColor(leadStatus)}`}>
+                  <SelectTrigger className={`h-7 w-[130px] text-xs ${getLeadStatusColor(leadStatus)}`}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -665,75 +691,82 @@ export default function ContactDetailPage() {
                 </Select>
               </div>
               <div className="md:col-span-2">
-                <div className="flex items-center gap-1">
-                  <Label className="text-xs text-gray-500">Tags</Label>
-                  {!showTagInput && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowTagInput(true)}
-                      className="h-4 w-4 p-0 text-gray-500 hover:text-gray-700"
-                    >
-                      <Plus className="h-3 w-3" />
-                    </Button>
-                  )}
-                </div>
-                {showTagInput ? (
-                  <div className="flex gap-1">
-                    <Input
-                      placeholder="Tag name..."
-                      value={newTagValue}
-                      onChange={(e) => setNewTagValue(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleAddTag(newTagValue);
-                        } else if (e.key === 'Escape') {
-                          setShowTagInput(false);
-                          setNewTagValue("");
-                        }
-                      }}
-                      className="h-6 text-xs flex-1"
-                      autoFocus
-                    />
-                    <Button
-                      size="sm"
-                      onClick={() => handleAddTag(newTagValue)}
-                      disabled={!newTagValue.trim()}
-                      className="h-6 px-2 text-xs"
-                    >
-                      Add
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setShowTagInput(false);
-                        setNewTagValue("");
-                      }}
-                      className="h-6 px-1"
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ) : tags.length > 0 ? (
-                  <div className="flex flex-wrap gap-1.5 mt-1">
-                    {tags.map((tag: string, index: number) => (
-                      <Badge key={index} variant="outline" className="bg-white pr-1 flex items-center gap-1 text-sm text-gray-700">
+                <Label className="text-xs text-gray-500">Tags</Label>
+                <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                  {tags.map((tag: string, index: number) => {
+                    const preset = presetTags.find(p => p.value === tag);
+                    return (
+                      <Badge key={index} variant="outline" className="bg-white pr-1.5 py-0.5 flex items-center gap-1.5 text-sm text-gray-700 font-medium">
+                        {preset && <span className={`w-2 h-2 rounded-full ${preset.color} flex-shrink-0`} />}
                         {tag}
                         <button
                           onClick={() => handleRemoveTag(tag)}
                           className="ml-0.5 hover:bg-gray-200 rounded p-0.5 transition-colors"
                           title={`Remove ${tag}`}
                         >
-                          <X className="h-3 w-3 text-gray-500 hover:text-gray-700" />
+                          <X className="h-3 w-3 text-gray-400 hover:text-gray-700" />
                         </button>
                       </Badge>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-400 mt-1">No tags</p>
-                )}
+                    );
+                  })}
+                  <Popover open={isTagPopoverOpen} onOpenChange={(open) => { setIsTagPopoverOpen(open); if (!open) setTagSearchValue(""); }}>
+                    <PopoverTrigger asChild>
+                      <button className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors px-1 py-0.5 rounded hover:bg-gray-100">
+                        <Plus className="h-3 w-3" />
+                        {tags.length === 0 && "Add tags"}
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-56 p-0" align="start">
+                      <Command shouldFilter={false}>
+                        <CommandInput
+                          placeholder="Search or create..."
+                          value={tagSearchValue}
+                          onValueChange={setTagSearchValue}
+                          className="h-9 text-sm"
+                        />
+                        <CommandList>
+                          <CommandGroup>
+                            {presetTags
+                              .filter(preset => !tagSearchValue || preset.value.toLowerCase().includes(tagSearchValue.toLowerCase()))
+                              .map((preset) => {
+                                const isActive = tags.includes(preset.value);
+                                return (
+                                  <CommandItem
+                                    key={preset.value}
+                                    value={preset.value}
+                                    onSelect={() => handleToggleTag(preset.value)}
+                                    className="flex items-center gap-2 cursor-pointer"
+                                  >
+                                    <span className={`w-2 h-2 rounded-full ${preset.color} flex-shrink-0`} />
+                                    <span className="flex-1 text-sm text-gray-700">{preset.value}</span>
+                                    {isActive && <Check className="h-3.5 w-3.5 text-gray-500" />}
+                                  </CommandItem>
+                                );
+                              })}
+                          </CommandGroup>
+                          {tagSearchValue.trim() && !presetTags.some(p => p.value.toLowerCase() === tagSearchValue.trim().toLowerCase()) && (
+                            <>
+                              <CommandSeparator />
+                              <CommandGroup>
+                                <CommandItem
+                                  value={`create-${tagSearchValue}`}
+                                  onSelect={() => handleCreateCustomTag(tagSearchValue)}
+                                  className="flex items-center gap-2 cursor-pointer"
+                                >
+                                  <Plus className="h-3.5 w-3.5 text-gray-400" />
+                                  <span className="text-sm text-gray-700">Create &ldquo;{tagSearchValue.trim()}&rdquo;</span>
+                                </CommandItem>
+                              </CommandGroup>
+                            </>
+                          )}
+                          {tagSearchValue.trim() && presetTags.filter(p => p.value.toLowerCase().includes(tagSearchValue.toLowerCase())).length === 0 && !tagSearchValue.trim() && (
+                            <CommandEmpty>No tags found</CommandEmpty>
+                          )}
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
             </div>
             )}
@@ -832,14 +865,17 @@ export default function ContactDetailPage() {
                 <TabsTrigger variant="underline" value="activity">
                   <Clock className="h-4 w-4 mr-1" />
                   Activity
+                  {activities && activities.length > 0 && <span className="ml-1 text-xs text-gray-400 tabular-nums">({activities.length})</span>}
                 </TabsTrigger>
                 <TabsTrigger variant="underline" value="notes">
                   <MessageSquare className="h-4 w-4 mr-1" />
                   Notes
+                  {notes && notes.length > 0 && <span className="ml-1 text-xs text-gray-400 tabular-nums">({notes.length})</span>}
                 </TabsTrigger>
                 <TabsTrigger variant="underline" value="tasks">
                   <CheckSquare className="h-4 w-4 mr-1" />
                   Tasks
+                  {tasks && tasks.length > 0 && <span className="ml-1 text-xs text-gray-400 tabular-nums">({tasks.length})</span>}
                 </TabsTrigger>
                 <TabsTrigger variant="underline" value="emails">
                   <Mail className="h-4 w-4 mr-1" />
@@ -853,20 +889,24 @@ export default function ContactDetailPage() {
               <Card>
                 <CardContent className="pt-6">
                   {activities && activities.length > 0 ? (
-                    <div className="space-y-4">
-                      {activities.map((activity: ActivityItem) => {
+                    <div>
+                      {activities.map((activity: ActivityItem, index: number) => {
+                        const isLast = index === activities.length - 1;
                         const { icon: ActivityIcon, bg, color } = getActivityIcon(activity.activityType);
                         const embedded = activity.embeddedContent;
 
                         return (
                           <div
                             key={activity.id}
-                            className="flex gap-3 pb-4 border-b last:border-0"
+                            className="flex gap-3"
                           >
-                            <div className={`w-8 h-8 rounded-full ${bg} flex items-center justify-center flex-shrink-0 mt-1`}>
-                              <ActivityIcon className={`h-4 w-4 ${color}`} />
+                            <div className="flex flex-col items-center">
+                              <div className={`w-8 h-8 rounded-full ${bg} flex items-center justify-center flex-shrink-0`}>
+                                <ActivityIcon className={`h-4 w-4 ${color}`} />
+                              </div>
+                              {!isLast && <div className="w-px flex-1 bg-gray-200 min-h-[16px]" />}
                             </div>
-                            <div className="flex-1 min-w-0">
+                            <div className={`flex-1 min-w-0 ${!isLast ? 'pb-6' : ''}`}>
                               <div className="flex items-center justify-between">
                                 <p className="text-sm text-gray-900">
                                   <span className="font-medium">
@@ -1193,7 +1233,13 @@ export default function ContactDetailPage() {
                     <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
                   </Link>
                 ) : (
-                  <p className="text-sm text-gray-500 py-2">No company linked</p>
+                  <button
+                    onClick={() => setIsLinkCompanyOpen(true)}
+                    className="w-full flex flex-col items-center gap-2 py-4 px-3 border border-dashed border-gray-300 rounded-lg text-gray-400 hover:border-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
+                  >
+                    <Building2 className="h-5 w-5" />
+                    <span className="text-sm">Link a company</span>
+                  </button>
                 )}
               </div>
 
@@ -1201,15 +1247,17 @@ export default function ContactDetailPage() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Deals</h4>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsLinkDealOpen(true)}
-                    className="h-6 px-2 text-gray-500 hover:text-gray-700"
-                  >
-                    <Plus className="h-3 w-3 mr-1" />
-                    Add
-                  </Button>
+                  {(contact as any).deals?.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsLinkDealOpen(true)}
+                      className="h-6 px-2 text-gray-500 hover:text-gray-700"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Add
+                    </Button>
+                  )}
                 </div>
                 {(contact as any).deals?.length > 0 ? (
                   <div className="space-y-2">
@@ -1231,7 +1279,13 @@ export default function ContactDetailPage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500 py-2">No deals associated</p>
+                  <button
+                    onClick={() => setIsLinkDealOpen(true)}
+                    className="w-full flex flex-col items-center gap-2 py-4 px-3 border border-dashed border-gray-300 rounded-lg text-gray-400 hover:border-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
+                  >
+                    <Briefcase className="h-5 w-5" />
+                    <span className="text-sm">Link a deal</span>
+                  </button>
                 )}
               </div>
             </CardContent>
