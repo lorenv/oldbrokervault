@@ -16,6 +16,7 @@ test-*.pdf
 server/public
 vite.config.ts.*
 *.tar.gz
+*.mp4
 
 # System config files that should not be committed
 .config/

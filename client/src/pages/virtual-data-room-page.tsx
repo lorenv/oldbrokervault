@@ -16,7 +16,7 @@ import {
   FileText
 } from "lucide-react";
 import vvLogoBlue from "@/assets/vv-logo-blue_1758929244400.png";
-import heroVideo from "@/assets/hero-video_1758929337474.mp4";
+const heroVideo = "/api/object-storage/videos/hero-video-vdr.mp4";
 import { SEOHead } from "@/components/seo-head";
 import { LazyVideo } from "@/components/ui/lazy-video";
 

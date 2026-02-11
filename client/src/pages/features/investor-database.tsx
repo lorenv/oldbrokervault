@@ -105,7 +105,7 @@ export default function InvestorDatabasePage() {
           </div>
           <div className="rounded-2xl overflow-hidden shadow-2xl border border-slate-200">
             <LazyVideo
-              src="/crm.mp4"
+              src="/api/object-storage/videos/crm.mp4"
               className="w-full"
               autoPlay
               muted
