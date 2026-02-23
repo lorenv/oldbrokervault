@@ -247,6 +247,8 @@ export const cimDocuments = pgTable("cim_documents", {
     sectionStyle: 'cards' | 'flat' | 'minimal';
     contactPosition: 'sidebar' | 'bottom';
   }>(),
+  // External URL CIM - redirects to an external CIM link while tracking views
+  externalUrl: text("external_url"),
   // Background generation status fields
   generationStatus: text("generation_status").default("ready"), // 'generating', 'ready', 'failed'
   generationError: text("generation_error"),
@@ -368,9 +370,9 @@ export const ndaFieldAssignments = pgTable("nda_field_assignments", {
 // Audit trail for e-signature compliance
 export const ndaAuditLog = pgTable("nda_audit_log", {
   id: serial("id").primaryKey(),
-  signingSessionId: integer("signing_session_id").notNull(),
+  signingSessionId: integer("signing_session_id"), // nullable for whitelist auto-approve logs
   recipientId: integer("recipient_id"),
-  action: text("action").notNull(), // session_created, document_sent, document_viewed, field_signed, document_completed
+  action: text("action").notNull(), // session_created, document_sent, document_viewed, field_signed, document_completed, auto_approved
   details: jsonb("details").default({}).notNull(),
   ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
@@ -396,6 +398,7 @@ export const ndaSignatures = pgTable("nda_signatures", {
   fieldValues: jsonb("field_values").default({}).notNull(), // Field ID to value mapping
   signingSessionId: integer("signing_session_id"), // Link to new signing session
   stage: text("stage"), // Kanban stage for organizing signers
+  statusCheckToken: text("status_check_token").unique(), // Token for buyers to check NDA approval status
 }, (table) => ({
   documentApprovedIdx: index("nda_signatures_document_approved_idx").on(table.cimDocumentId, table.approved),
 }));
@@ -423,6 +426,46 @@ export const ndaRedirectLinks = pgTable("nda_redirect_links", {
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// NDA Whitelist Rules - Auto-approve trusted buyers
+export const ndaWhitelistRules = pgTable("nda_whitelist_rules", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(), // Broker who owns the rule
+  organizationId: integer("organization_id"), // Org-level rules (nullable for personal)
+  ruleType: text("rule_type").notNull(), // 'domain', 'email', 'organization'
+  ruleValue: text("rule_value").notNull(), // e.g., 'blackstone.com', 'john@buyer.com', or company ID
+  appliesToAllDeals: boolean("applies_to_all_deals").default(true).notNull(),
+  cimDocumentId: integer("cim_document_id"), // Specific deal (nullable if global)
+  isActive: boolean("is_active").default(true).notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Buyer Surveys - Qualification surveys for buyers
+export const buyerSurveys = pgTable("buyer_surveys", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(), // Broker who created the survey
+  organizationId: integer("organization_id"),
+  cimDocumentId: integer("cim_document_id"), // Deal-specific (nullable for default)
+  name: text("name").notNull(),
+  questions: jsonb("questions").default([]).notNull(), // Array of question objects
+  isDefault: boolean("is_default").default(false).notNull(),
+  isRequired: boolean("is_required").default(false).notNull(), // Must complete to access CIM
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Buyer Survey Responses - Submitted qualification data
+export const buyerSurveyResponses = pgTable("buyer_survey_responses", {
+  id: serial("id").primaryKey(),
+  surveyId: integer("survey_id").notNull(),
+  contactId: integer("contact_id"), // FK to crmContacts (nullable for pre-contact submissions)
+  cimDocumentId: integer("cim_document_id"),
+  signerEmail: text("signer_email").notNull(), // For matching before CRM contact exists
+  responses: jsonb("responses").default({}).notNull(), // Question-answer pairs
+  completedAt: timestamp("completed_at").defaultNow().notNull(),
 });
 
 // Extension Tokens - Chrome extension authentication
@@ -547,6 +590,12 @@ export const messageThreads = pgTable("message_threads", {
   subject: text("subject").notNull(),
   status: text("status").default("active").notNull(), // active, archived, closed
   threadEmailAddress: text("thread_email_address").unique(), // unique email for this thread
+  // Buyer management linkage
+  dealId: integer("deal_id"), // FK to deals - thread linked to specific deal
+  contactId: integer("contact_id"), // FK to crmContacts - thread linked to buyer
+  threadType: text("thread_type").default("inquiry"), // inquiry, nda_followup, deal_qa, general, offer_discussion
+  priority: text("priority").default("normal"), // normal, high, urgent
+  assignedTo: integer("assigned_to"), // FK to organization_members
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   lastMessageAt: timestamp("last_message_at").defaultNow().notNull()
@@ -562,6 +611,7 @@ export const messages = pgTable("messages", {
   messageType: text("message_type").notNull(), // contact_form, email_reply, app_message
   sendgridMessageId: text("sendgrid_message_id"), // for tracking
   isRead: boolean("is_read").default(false).notNull(),
+  isInternal: boolean("is_internal").default(false).notNull(), // Internal broker team note (not visible to buyer)
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
@@ -844,13 +894,63 @@ export const insertNdaFieldAssignmentSchema = createInsertSchema(ndaFieldAssignm
 
 // E-Signature Audit Log Schema
 export const insertNdaAuditLogSchema = createInsertSchema(ndaAuditLog).pick({
-  signingSessionId: true,
   action: true
 }).extend({
+  signingSessionId: z.number().nullable().optional(),
   recipientId: z.number().optional(),
   details: z.record(z.any()).optional(),
   ipAddress: z.string().optional(),
   userAgent: z.string().optional()
+});
+
+// NDA Whitelist Rules
+export const insertNdaWhitelistRuleSchema = createInsertSchema(ndaWhitelistRules).pick({
+  userId: true,
+  ruleType: true,
+  ruleValue: true
+}).extend({
+  organizationId: z.number().nullable().optional(),
+  ruleType: z.enum(['domain', 'email', 'organization']),
+  ruleValue: z.string().min(1, "Rule value is required"),
+  appliesToAllDeals: z.boolean().optional(),
+  cimDocumentId: z.number().nullable().optional(),
+  isActive: z.boolean().optional(),
+  notes: z.string().nullable().optional()
+});
+
+// Buyer Survey schemas
+export const buyerSurveyQuestionSchema = z.object({
+  id: z.string(),
+  text: z.string().min(1),
+  type: z.enum(['select', 'text', 'number', 'file_upload', 'multi_select', 'textarea']),
+  options: z.array(z.string()).optional(),
+  required: z.boolean().default(false),
+  category: z.string().optional(), // financial_capability, experience, strategy, etc.
+  section: z.string().optional(), // groups questions ("About You", "Deal Criteria")
+  crmField: z.string().nullable().optional(), // maps to CRM contact field (e.g., "buyerType", "acquisitionCriteria.industries")
+  placeholder: z.string().optional(), // input hint text
+});
+
+export const insertBuyerSurveySchema = createInsertSchema(buyerSurveys).pick({
+  userId: true,
+  name: true
+}).extend({
+  organizationId: z.number().nullable().optional(),
+  cimDocumentId: z.number().nullable().optional(),
+  name: z.string().min(1, "Survey name is required"),
+  questions: z.array(buyerSurveyQuestionSchema).min(1),
+  isDefault: z.boolean().optional(),
+  isRequired: z.boolean().optional()
+});
+
+export const insertBuyerSurveyResponseSchema = createInsertSchema(buyerSurveyResponses).pick({
+  surveyId: true,
+  signerEmail: true
+}).extend({
+  contactId: z.number().nullable().optional(),
+  cimDocumentId: z.number().nullable().optional(),
+  signerEmail: z.string().email(),
+  responses: z.record(z.any())
 });
 
 export const insertNdaAccessTokenSchema = createInsertSchema(ndaAccessTokens).pick({
@@ -2438,6 +2538,16 @@ export const companies = pgTable("companies", {
   // Description/notes
   description: text("description"),
 
+  // Company type for M&A categorization
+  companyType: text("company_type"), // pe_firm, strategic_acquirer, search_fund, family_office, individual, other
+
+  // Enrichment data
+  enrichmentStatus: text("enrichment_status"), // pending, enriched, failed, manual
+  enrichedAt: timestamp("enriched_at"),
+  enrichmentData: jsonb("enrichment_data"), // Raw enrichment results from website/API
+  employeeCount: text("employee_count"),
+  foundedYear: integer("founded_year"),
+
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
@@ -2491,6 +2601,40 @@ export const crmContacts = pgTable("crm_contacts", {
 
   // Tags for categorization
   tags: text("tags").array().default([]).notNull(),
+
+  // Buyer-specific fields (populated when contactType = 'buyer')
+  buyerType: text("buyer_type"), // strategic, financial, individual, search_fund, family_office, other
+  acquisitionCriteria: jsonb("acquisition_criteria"), // Revenue range, EBITDA range, industries, geographies
+  financialCapability: text("financial_capability"), // unverified, self_reported, proof_of_funds, pre_approved
+  proofOfFundsFile: text("proof_of_funds_file"), // File path to uploaded proof
+  proofOfFundsVerifiedAt: timestamp("proof_of_funds_verified_at"),
+  estimatedBudget: text("estimated_budget"), // Acquisition budget range
+  priorAcquisitions: integer("prior_acquisitions"),
+  qualificationScore: integer("qualification_score"), // Computed score (1-100)
+  qualificationDetails: jsonb("qualification_details"), // Breakdown of scoring components
+  lastScoredAt: timestamp("last_scored_at"),
+  isActiveBuyer: boolean("is_active_buyer"),
+
+  // Seller-specific fields (populated when contactType = 'seller')
+  sellerStage: text("seller_stage"), // lead, meeting, proposal, engaged
+  sellerMotivation: text("seller_motivation"), // retirement, burnout, partner_dispute, health, relocation, new_venture, other
+  sellerTimeline: text("seller_timeline"), // immediate, 3_months, 6_months, 12_months, flexible
+  sellerEngagementStatus: text("seller_engagement_status"), // prospect, contacted, meeting_scheduled, proposal_sent, engaged, on_hold, lost
+  sellerEngagementSignedAt: timestamp("seller_engagement_signed_at"),
+  sellerAskingPrice: text("seller_asking_price"),
+  sellerListingStatus: text("seller_listing_status"), // not_listed, preparing, active, under_loi, closed
+  sellerSource: text("seller_source"), // referral, direct_marketing, inbound, cold_outreach, other
+  sellerReferredBy: text("seller_referred_by"),
+  sellerNotes: text("seller_notes"),
+
+  // Seller preliminary business financials (captured during lead phase before Deal exists)
+  sellerRevenueRange: text("seller_revenue_range"), // e.g. "under_500k", "500k_1m", "1m_5m", "5m_10m", "10m_25m", "25m_plus"
+  sellerProfitRange: text("seller_profit_range"), // e.g. "under_100k", "100k_250k", "250k_500k", "500k_1m", "1m_5m"
+  sellerIndustry: text("seller_industry"),
+  sellerBusinessDescription: text("seller_business_description"),
+
+  // Seller file uploads (financials, tax returns, etc. shared during lead phase)
+  sellerFiles: jsonb("seller_files"), // Array of { name, path, uploadedAt, type }
 
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
@@ -3261,7 +3405,13 @@ export const insertCompanySchema = createInsertSchema(companies).pick({
   linkedinUrl: optionalUrl,
   ownerId: z.number().nullable().optional(),
   customProperties: z.record(z.any()).optional(),
-  description: z.string().nullable().optional()
+  description: z.string().nullable().optional(),
+  // Company type and enrichment
+  companyType: z.enum(['pe_firm', 'strategic_acquirer', 'search_fund', 'family_office', 'individual', 'other']).nullable().optional(),
+  enrichmentStatus: z.enum(['pending', 'enriched', 'failed', 'manual']).nullable().optional(),
+  enrichmentData: z.record(z.any()).nullable().optional(),
+  employeeCount: z.string().nullable().optional(),
+  foundedYear: z.number().nullable().optional()
 });
 
 export const insertCrmContactSchema = createInsertSchema(crmContacts).pick({
@@ -3284,7 +3434,17 @@ export const insertCrmContactSchema = createInsertSchema(crmContacts).pick({
   source: z.string().nullable().optional(),
   linkedinUrl: z.string().url().nullable().optional(),
   notes: z.string().nullable().optional(),
-  tags: z.array(z.string()).optional()
+  tags: z.array(z.string()).optional(),
+  // Buyer-specific fields
+  buyerType: z.enum(['strategic', 'financial', 'individual', 'search_fund', 'family_office', 'other']).nullable().optional(),
+  acquisitionCriteria: z.record(z.any()).nullable().optional(),
+  financialCapability: z.enum(['unverified', 'self_reported', 'proof_of_funds', 'pre_approved']).nullable().optional(),
+  proofOfFundsFile: z.string().nullable().optional(),
+  estimatedBudget: z.string().nullable().optional(),
+  priorAcquisitions: z.number().nullable().optional(),
+  qualificationScore: z.number().min(0).max(100).nullable().optional(),
+  qualificationDetails: z.record(z.any()).nullable().optional(),
+  isActiveBuyer: z.boolean().nullable().optional()
 });
 
 export const insertPipelineSchema = createInsertSchema(pipelines).pick({
@@ -3564,3 +3724,13 @@ export type InsertUserNotificationPreferences = typeof userNotificationPreferenc
 
 export type Session = typeof session.$inferSelect;
 export type EmailVerificationCode = typeof emailVerificationCodes.$inferSelect;
+
+// Buyer Management types
+export type NdaWhitelistRule = typeof ndaWhitelistRules.$inferSelect;
+export type InsertNdaWhitelistRule = z.infer<typeof insertNdaWhitelistRuleSchema>;
+
+export type BuyerSurvey = typeof buyerSurveys.$inferSelect;
+export type InsertBuyerSurvey = z.infer<typeof insertBuyerSurveySchema>;
+
+export type BuyerSurveyResponse = typeof buyerSurveyResponses.$inferSelect;
+export type InsertBuyerSurveyResponse = z.infer<typeof insertBuyerSurveyResponseSchema>;
