@@ -2002,6 +2002,65 @@ You received this email because you were mentioned in Broker Vault.
   });
 }
 
+// Send pending NDA email with status + buyer form links
+async function sendNdaPendingEmail(
+  signerEmail: string,
+  signerName: string,
+  documentTitle: string,
+  statusUrl: string,
+  buyerFormUrl: string
+): Promise<boolean> {
+  return await sendEmail({
+    to: signerEmail,
+    from: 'system@brokervault.ai',
+    subject: `NDA Received - ${documentTitle}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #1a1a1a;">NDA Signature Received</h2>
+        <p>Hello ${signerName},</p>
+
+        <p>Thank you for signing the NDA for <strong>${documentTitle}</strong>.</p>
+
+        <p>Your signature has been received and is currently pending review. You will receive another email once a decision has been made.</p>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${statusUrl}"
+             style="background-color: #2563eb; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: 600;">
+            Check NDA Status
+          </a>
+        </div>
+
+        <p style="color: #555;">While you wait, you can help expedite the review process by completing your buyer profile:</p>
+
+        <div style="text-align: center; margin: 20px 0;">
+          <a href="${buyerFormUrl}"
+             style="background-color: #f8fafc; color: #2563eb; padding: 10px 24px; text-decoration: none; border-radius: 5px; display: inline-block; border: 1px solid #2563eb; font-weight: 500;">
+            Complete Buyer Profile
+          </a>
+        </div>
+
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+        <p style="color: #666; font-size: 12px;">
+          This email contains confidential information. Please handle accordingly.
+        </p>
+      </div>
+    `,
+    text: `
+      NDA Signature Received
+
+      Hello ${signerName},
+
+      Thank you for signing the NDA for ${documentTitle}.
+
+      Your signature has been received and is currently pending review. You will receive another email once a decision has been made.
+
+      Check NDA Status: ${statusUrl}
+
+      Complete your Buyer Profile: ${buyerFormUrl}
+    `
+  });
+}
+
 export {
   sendEmail,
   sendNdaSignedEmail,
@@ -2016,6 +2075,7 @@ export {
   sendCollaboratorRemovedEmail,
   sendEditLockTakenOverEmail,
   sendCspViolationEmail,
+  sendNdaPendingEmail,
   // E-Signature emails
   sendEsignInvitationEmail,
   sendEsignReminderEmail,

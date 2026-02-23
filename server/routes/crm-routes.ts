@@ -16,7 +16,9 @@ import {
   crmTasks,
   users,
   cimDocuments,
+  ndaSignatures,
   investorContacts,
+  ndaWhitelistRules,
   buyerPipelineStages,
   dealBuyers,
   integrationConnections,
@@ -2901,10 +2903,33 @@ router.get('/contacts', async (req, res) => {
       .from(crmContacts)
       .where(and(...conditions));
 
+    // Get NDA signature counts per contact email
+    const contactEmails = contactList
+      .map((c) => c.contact.email?.toLowerCase().trim())
+      .filter((e): e is string => !!e);
+
+    let ndaCountMap: Record<string, number> = {};
+    if (contactEmails.length > 0) {
+      const ndaCounts = await db
+        .select({
+          email: sql<string>`LOWER(${ndaSignatures.signerEmail})`,
+          count: sql<number>`count(*)`,
+        })
+        .from(ndaSignatures)
+        .innerJoin(cimDocuments, eq(cimDocuments.id, ndaSignatures.cimDocumentId))
+        .where(sql`LOWER(${ndaSignatures.signerEmail}) IN (${sql.join(contactEmails.map(e => sql`${e}`), sql`, `)})`)
+        .groupBy(sql`LOWER(${ndaSignatures.signerEmail})`);
+
+      for (const row of ndaCounts) {
+        ndaCountMap[row.email] = Number(row.count);
+      }
+    }
+
     res.json({
       contacts: contactList.map((c) => ({
         ...c.contact,
         company: c.company,
+        ndaCount: c.contact.email ? (ndaCountMap[c.contact.email.toLowerCase().trim()] || 0) : 0,
       })),
       total: Number(countResult?.count || 0),
       page: parseInt(page as string),
@@ -2943,17 +2968,72 @@ router.get('/contacts/:id', async (req, res) => {
       return res.status(404).json({ error: 'Contact not found' });
     }
 
-    // Get associated deals
+    // Get associated deals from dealContacts (seller/other contacts)
     const contactDeals = await db
       .select({ deal: deals, association: dealContacts })
       .from(dealContacts)
       .innerJoin(deals, eq(deals.id, dealContacts.dealId))
       .where(and(eq(dealContacts.contactId, contactId), isNull(deals.deletedAt)));
 
+    // Also get deals from dealBuyers (buyer pipeline)
+    const buyerDeals = await db
+      .select({ deal: deals, buyerRecord: dealBuyers })
+      .from(dealBuyers)
+      .innerJoin(deals, eq(deals.id, dealBuyers.dealId))
+      .where(and(eq(dealBuyers.contactId, contactId), isNull(deals.deletedAt)));
+
+    // Get NDA signatures for this contact's email (for buyer view) with deal info
+    let ndaHistory: Array<{ id: number; cimDocumentId: number; documentTitle: string; signedAt: Date; approved: boolean; rejected: boolean; dealId: number | null; dealName: string | null }> = [];
+    if (result.contact.email) {
+      const signatures = await db
+        .select({
+          id: ndaSignatures.id,
+          cimDocumentId: ndaSignatures.cimDocumentId,
+          documentTitle: cimDocuments.title,
+          signedAt: ndaSignatures.signedAt,
+          approved: ndaSignatures.approved,
+          rejected: ndaSignatures.rejected,
+          dealId: cimDocuments.dealId,
+          dealName: deals.name,
+        })
+        .from(ndaSignatures)
+        .innerJoin(cimDocuments, eq(cimDocuments.id, ndaSignatures.cimDocumentId))
+        .leftJoin(deals, eq(deals.id, cimDocuments.dealId))
+        .where(sql`LOWER(${ndaSignatures.signerEmail}) = ${result.contact.email.toLowerCase().trim()}`)
+        .orderBy(desc(ndaSignatures.signedAt));
+      ndaHistory = signatures;
+    }
+
+    // Check if contact email is whitelisted
+    let isWhitelisted = false;
+    if (result.contact.email) {
+      const emailLower = result.contact.email.toLowerCase().trim();
+      const [whitelistRule] = await db
+        .select()
+        .from(ndaWhitelistRules)
+        .where(
+          and(
+            eq(ndaWhitelistRules.userId, req.user!.id),
+            eq(ndaWhitelistRules.ruleType, 'email'),
+            eq(ndaWhitelistRules.isActive, true),
+            sql`LOWER(${ndaWhitelistRules.ruleValue}) = ${emailLower}`,
+          ),
+        )
+        .limit(1);
+      isWhitelisted = !!whitelistRule;
+    }
+
     res.json({
       ...result.contact,
       company: result.company,
-      deals: contactDeals.map((d) => ({ ...d.deal, role: d.association.role })),
+      deals: [
+        ...contactDeals.map((d) => ({ ...d.deal, role: d.association.role })),
+        ...buyerDeals
+          .filter((bd) => !contactDeals.some((cd) => cd.deal.id === bd.deal.id))
+          .map((bd) => ({ ...bd.deal, role: 'buyer', dealBuyerId: bd.buyerRecord.id })),
+      ],
+      ndaHistory,
+      isWhitelisted,
     });
   } catch (error) {
     console.error('[CRM] Error fetching contact:', error);
@@ -3047,6 +3127,29 @@ router.patch('/contacts/:id', async (req, res) => {
       'avatarUrl',
       'notes',
       'tags',
+      // Buyer-specific fields
+      'buyerType',
+      'acquisitionCriteria',
+      'financialCapability',
+      'estimatedBudget',
+      'priorAcquisitions',
+      'isActiveBuyer',
+      // Seller-specific fields
+      'sellerStage',
+      'sellerMotivation',
+      'sellerTimeline',
+      'sellerEngagementStatus',
+      'sellerEngagementSignedAt',
+      'sellerAskingPrice',
+      'sellerListingStatus',
+      'sellerSource',
+      'sellerReferredBy',
+      'sellerNotes',
+      'sellerRevenueRange',
+      'sellerProfitRange',
+      'sellerIndustry',
+      'sellerBusinessDescription',
+      'sellerFiles',
     ];
 
     for (const field of allowedFields) {
@@ -9068,6 +9171,316 @@ router.get('/import/:id', async (req, res) => {
   } catch (error) {
     console.error('[CRM] Error fetching import details:', error);
     res.status(500).json({ error: 'Failed to fetch import details' });
+  }
+});
+
+// ============================================
+// SELLER-SPECIFIC ENDPOINTS
+// ============================================
+
+// GET /sellers - Convenience endpoint for seller contacts
+router.get('/sellers', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    const { search, sortField = 'createdAt', sortOrder = 'desc' } = req.query;
+
+    let conditions: any[] = [
+      eq(crmContacts.organizationId, orgData.organization.id),
+      eq(crmContacts.contactType, 'seller'),
+    ];
+
+    if (search && typeof search === 'string' && search.trim()) {
+      const searchTerm = `%${search.trim().toLowerCase()}%`;
+      conditions.push(
+        or(
+          ilike(crmContacts.email, searchTerm),
+          ilike(crmContacts.firstName, searchTerm),
+          ilike(crmContacts.lastName, searchTerm),
+          sql`CONCAT(${crmContacts.firstName}, ' ', ${crmContacts.lastName}) ILIKE ${searchTerm}`
+        )!
+      );
+    }
+
+    const sortDir = sortOrder === 'asc' ? asc : desc;
+    let orderClause;
+    switch (sortField) {
+      case 'sellerStage': orderClause = sortDir(crmContacts.sellerStage); break;
+      case 'name': orderClause = sortDir(crmContacts.firstName); break;
+      case 'sellerAskingPrice': orderClause = sortDir(crmContacts.sellerAskingPrice); break;
+      default: orderClause = sortDir(crmContacts.createdAt);
+    }
+
+    const contactList = await db
+      .select({ contact: crmContacts, company: companies })
+      .from(crmContacts)
+      .leftJoin(companies, eq(companies.id, crmContacts.companyId))
+      .where(and(...conditions))
+      .orderBy(orderClause);
+
+    res.json({
+      contacts: contactList.map((c) => ({
+        ...c.contact,
+        company: c.company,
+      })),
+      total: contactList.length,
+    });
+  } catch (error) {
+    console.error('[CRM] Error fetching sellers:', error);
+    res.status(500).json({ error: 'Failed to fetch sellers' });
+  }
+});
+
+// GET /buyers - Convenience endpoint for buyer contacts
+router.get('/buyers', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    const { search, sortField = 'createdAt', sortOrder = 'desc' } = req.query;
+
+    let conditions: any[] = [
+      eq(crmContacts.organizationId, orgData.organization.id),
+      eq(crmContacts.contactType, 'buyer'),
+    ];
+
+    if (search && typeof search === 'string' && search.trim()) {
+      const searchTerm = `%${search.trim().toLowerCase()}%`;
+      conditions.push(
+        or(
+          ilike(crmContacts.email, searchTerm),
+          ilike(crmContacts.firstName, searchTerm),
+          ilike(crmContacts.lastName, searchTerm),
+          sql`CONCAT(${crmContacts.firstName}, ' ', ${crmContacts.lastName}) ILIKE ${searchTerm}`
+        )!
+      );
+    }
+
+    const sortDir = sortOrder === 'asc' ? asc : desc;
+    let orderClause;
+    switch (sortField) {
+      case 'qualificationScore': orderClause = sortDir(crmContacts.qualificationScore); break;
+      case 'name': orderClause = sortDir(crmContacts.firstName); break;
+      default: orderClause = sortDir(crmContacts.createdAt);
+    }
+
+    const contactList = await db
+      .select({ contact: crmContacts, company: companies })
+      .from(crmContacts)
+      .leftJoin(companies, eq(companies.id, crmContacts.companyId))
+      .where(and(...conditions))
+      .orderBy(orderClause);
+
+    res.json({
+      contacts: contactList.map((c) => ({
+        ...c.contact,
+        company: c.company,
+      })),
+      total: contactList.length,
+    });
+  } catch (error) {
+    console.error('[CRM] Error fetching buyers:', error);
+    res.status(500).json({ error: 'Failed to fetch buyers' });
+  }
+});
+
+// GET /sellers/stats - Seller pipeline statistics
+router.get('/sellers/stats', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    const stageCountsResult = await db
+      .select({
+        stage: crmContacts.sellerStage,
+        count: sql<number>`count(*)`,
+      })
+      .from(crmContacts)
+      .where(
+        and(
+          eq(crmContacts.organizationId, orgData.organization.id),
+          eq(crmContacts.contactType, 'seller')
+        )
+      )
+      .groupBy(crmContacts.sellerStage);
+
+    const stageCounts: Record<string, number> = {};
+    for (const row of stageCountsResult) {
+      stageCounts[row.stage || 'lead'] = Number(row.count);
+    }
+
+    const totalSellers = Object.values(stageCounts).reduce((a, b) => a + b, 0);
+
+    res.json({
+      total: totalSellers,
+      byStage: stageCounts,
+    });
+  } catch (error) {
+    console.error('[CRM] Error fetching seller stats:', error);
+    res.status(500).json({ error: 'Failed to fetch seller stats' });
+  }
+});
+
+// Seller file upload configuration
+const sellerUploadsDir = path.join(process.cwd(), 'private', 'seller-files');
+fs.mkdir(sellerUploadsDir, { recursive: true }).catch(console.error);
+
+const sellerFileUpload = multer({
+  storage: multer.diskStorage({
+    destination: sellerUploadsDir,
+    filename: (req, file, cb) => {
+      const uniqueSuffix = crypto.randomBytes(8).toString('hex');
+      const sanitizedName = sanitizeFilename(file.originalname);
+      cb(null, `${uniqueSuffix}-${sanitizedName}`);
+    },
+  }),
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB
+  fileFilter: (req, file, cb) => {
+    const allowed = [
+      'application/pdf',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'text/csv',
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+    ];
+    if (allowed.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('File type not allowed. Accepted: PDF, Excel, CSV, JPEG, PNG'));
+    }
+  },
+});
+
+// POST /sellers/:id/files - Upload files to seller contact
+router.post('/sellers/:id/files', sellerFileUpload.single('file'), async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const contactId = parseInt(req.params.id);
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) return res.status(404).json({ error: 'Organization not found' });
+
+    const [contact] = await db
+      .select()
+      .from(crmContacts)
+      .where(and(eq(crmContacts.id, contactId), eq(crmContacts.organizationId, orgData.organization.id)));
+
+    if (!contact) return res.status(404).json({ error: 'Contact not found' });
+    if (contact.contactType !== 'seller') return res.status(400).json({ error: 'Contact is not a seller' });
+
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+    const fileType = req.body.fileType || 'other'; // financials, tax_returns, pnl, other
+    const existingFiles = (contact.sellerFiles as any[]) || [];
+    const newFile = {
+      name: req.file.originalname,
+      path: req.file.filename,
+      uploadedAt: new Date().toISOString(),
+      type: fileType,
+      size: req.file.size,
+    };
+
+    const [updated] = await db
+      .update(crmContacts)
+      .set({
+        sellerFiles: [...existingFiles, newFile],
+        updatedAt: new Date(),
+      })
+      .where(eq(crmContacts.id, contactId))
+      .returning();
+
+    res.json({ file: newFile, contact: updated });
+  } catch (error) {
+    console.error('[CRM] Error uploading seller file:', error);
+    res.status(500).json({ error: 'Failed to upload file' });
+  }
+});
+
+// DELETE /sellers/:id/files/:filename - Remove an uploaded seller file
+router.delete('/sellers/:id/files/:filename', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const contactId = parseInt(req.params.id);
+    const filename = req.params.filename;
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) return res.status(404).json({ error: 'Organization not found' });
+
+    const [contact] = await db
+      .select()
+      .from(crmContacts)
+      .where(and(eq(crmContacts.id, contactId), eq(crmContacts.organizationId, orgData.organization.id)));
+
+    if (!contact) return res.status(404).json({ error: 'Contact not found' });
+
+    const existingFiles = (contact.sellerFiles as any[]) || [];
+    const updatedFiles = existingFiles.filter((f: any) => f.path !== filename);
+
+    if (updatedFiles.length === existingFiles.length) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    // Delete file from disk
+    const filePath = path.join(sellerUploadsDir, filename);
+    await fs.unlink(filePath).catch(() => {});
+
+    const [updated] = await db
+      .update(crmContacts)
+      .set({
+        sellerFiles: updatedFiles,
+        updatedAt: new Date(),
+      })
+      .where(eq(crmContacts.id, contactId))
+      .returning();
+
+    res.json(updated);
+  } catch (error) {
+    console.error('[CRM] Error deleting seller file:', error);
+    res.status(500).json({ error: 'Failed to delete file' });
+  }
+});
+
+// GET /sellers/:id/files/:filename - Download a seller file
+router.get('/sellers/:id/files/:filename', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const contactId = parseInt(req.params.id);
+    const filename = req.params.filename;
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) return res.status(404).json({ error: 'Organization not found' });
+
+    const [contact] = await db
+      .select()
+      .from(crmContacts)
+      .where(and(eq(crmContacts.id, contactId), eq(crmContacts.organizationId, orgData.organization.id)));
+
+    if (!contact) return res.status(404).json({ error: 'Contact not found' });
+
+    const existingFiles = (contact.sellerFiles as any[]) || [];
+    const file = existingFiles.find((f: any) => f.path === filename);
+    if (!file) return res.status(404).json({ error: 'File not found' });
+
+    const filePath = path.join(sellerUploadsDir, filename);
+    res.download(filePath, file.name);
+  } catch (error) {
+    console.error('[CRM] Error downloading seller file:', error);
+    res.status(500).json({ error: 'Failed to download file' });
   }
 });
 
