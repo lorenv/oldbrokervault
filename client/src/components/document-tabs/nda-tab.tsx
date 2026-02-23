@@ -1540,6 +1540,14 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                         >
                           <BarChart3 className="h-3 w-3" />
                         </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setLocation(`/ndas/${signature.id}`)}
+                          title="Open in NDA Hub"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                        </Button>
                       </div>
                     </TableCell>
                       </TableRow>

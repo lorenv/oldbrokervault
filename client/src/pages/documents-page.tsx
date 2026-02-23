@@ -52,6 +52,8 @@ export default function DocumentsPage() {
     shareToken?: string;
   }>({ open: false });
   const [exportingDocId, setExportingDocId] = useState<number | null>(null);
+  const [externalUrlDialog, setExternalUrlDialog] = useState(false);
+  const [externalUrlForm, setExternalUrlForm] = useState({ title: "", url: "" });
   const [viewMode, setViewMode] = useState<'card' | 'list'>(() => {
     return (localStorage.getItem('documentsViewMode') as 'card' | 'list') || 'list';
   });
@@ -267,6 +269,26 @@ export default function DocumentsPage() {
     }
   });
 
+  const createExternalUrlMutation = useMutation({
+    mutationFn: async (data: { title: string; externalUrl: string }) => {
+      const response = await apiRequest("POST", "/api/cim/external-url", { body: data });
+      return response.json();
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/cim"] });
+      setExternalUrlDialog(false);
+      setExternalUrlForm({ title: "", url: "" });
+      toast({ title: "External CIM Link Created", description: `"${result.title}" is ready to share` });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create external URL CIM",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Handle PDF export
   const handleExport = async (docId: number, format: 'pdf' | 'word') => {
     setExportingDocId(docId);
@@ -326,12 +348,22 @@ export default function DocumentsPage() {
           description="Manage and share your CIM documents"
           icon={<FolderOpen className="h-5 w-5" />}
           actions={
-            <Link href="/dashboard?mode=cim">
-              <Button variant="outline" className="flex items-center gap-2 border-blue-300 hover:border-blue-400 hover:bg-blue-50">
-                <Plus className="h-4 w-4 text-blue-600" />
-                <span className="hidden sm:inline text-blue-700">Create New CIM with AI</span>
+            <div className="flex items-center gap-2">
+              <Link href="/dashboard?mode=cim">
+                <Button variant="outline" className="flex items-center gap-2 border-blue-300 hover:border-blue-400 hover:bg-blue-50">
+                  <Plus className="h-4 w-4 text-blue-600" />
+                  <span className="hidden sm:inline text-blue-700">Create with AI</span>
+                </Button>
+              </Link>
+              <Button
+                variant="outline"
+                className="flex items-center gap-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50"
+                onClick={() => setExternalUrlDialog(true)}
+              >
+                <LinkIcon className="h-4 w-4 text-gray-600" />
+                <span className="hidden sm:inline text-gray-700">Link External CIM</span>
               </Button>
-            </Link>
+            </div>
           }
         />
 
@@ -1289,6 +1321,54 @@ export default function DocumentsPage() {
         shareUrl={emailShareDialog.shareToken ? `${getBaseUrlWithSubdomain(user?.customSubdomain)}/share/${emailShareDialog.shareToken}` : ''}
         senderName={user?.name || undefined}
       />
+
+      {/* External URL CIM Dialog */}
+      <Dialog open={externalUrlDialog} onOpenChange={setExternalUrlDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Link External CIM</DialogTitle>
+            <DialogDescription>
+              Add a link to an existing CIM hosted elsewhere. Viewers will be redirected to your external URL while BrokerVault tracks views and NDA signatures.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="text-sm font-medium text-gray-700">Document Title</label>
+              <Input
+                placeholder="e.g., Project Alpha CIM"
+                value={externalUrlForm.title}
+                onChange={(e) => setExternalUrlForm(prev => ({ ...prev, title: e.target.value }))}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700">External URL</label>
+              <Input
+                placeholder="https://example.com/my-cim-document"
+                value={externalUrlForm.url}
+                onChange={(e) => setExternalUrlForm(prev => ({ ...prev, url: e.target.value }))}
+                className="mt-1"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                The share link will redirect visitors to this URL after any NDA requirements are met.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExternalUrlDialog(false)}>Cancel</Button>
+            <Button
+              onClick={() => createExternalUrlMutation.mutate({ title: externalUrlForm.title, externalUrl: externalUrlForm.url })}
+              disabled={!externalUrlForm.title || !externalUrlForm.url || createExternalUrlMutation.isPending}
+            >
+              {createExternalUrlMutation.isPending ? (
+                <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Creating...</>
+              ) : (
+                "Create Link"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

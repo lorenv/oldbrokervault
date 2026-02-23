@@ -251,7 +251,7 @@ export default function DealDetailPage() {
   const [mentionedUserIds, setMentionedUserIds] = useState<number[]>([]);
   const [isAddContactDialogOpen, setIsAddContactDialogOpen] = useState(false);
   const [selectedContactId, setSelectedContactId] = useState<string>("");
-  const [contactRole, setContactRole] = useState("other");
+  const [contactRole, setContactRole] = useState("seller");
   const [contactMode, setContactMode] = useState<"existing" | "new">("existing");
   const [contactSearch, setContactSearch] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -270,6 +270,10 @@ export default function DealDetailPage() {
   const [isLinkCompanyOpen, setIsLinkCompanyOpen] = useState(false);
   const [companySearch, setCompanySearch] = useState("");
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
+
+  // Link CIM dialog state
+  const [isLinkCimOpen, setIsLinkCimOpen] = useState(false);
+  const [cimSearch, setCimSearch] = useState("");
 
   // Sidebar collapse state - persisted to localStorage
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
@@ -310,10 +314,10 @@ export default function DealDetailPage() {
     queryKey: ["/api/crm/pipelines"],
   });
 
-  // Fetch all contacts for the add contact dialog
+  // Fetch seller contacts for the add seller dialog
   const { data: contactsData } = useQuery<{ contacts: Contact[] }>({
-    queryKey: ["/api/crm/contacts"],
-    queryFn: () => apiRequest("GET", "/api/crm/contacts").then(res => res.json()),
+    queryKey: ["/api/crm/contacts", { contactType: "seller" }],
+    queryFn: () => apiRequest("GET", "/api/crm/contacts?contactType=seller").then(res => res.json()),
   });
   const allContacts = contactsData?.contacts;
 
@@ -354,6 +358,13 @@ export default function DealDetailPage() {
     queryFn: () => apiRequest("GET", `/api/crm/tasks/deal/${id}`).then(res => res.json()),
     enabled: !!id,
   });
+
+  // Fetch user's CIM documents for linking — uses server-side search
+  const { data: allCimDocsData } = useQuery<{ documents: any[]; total: number }>({
+    queryKey: [`/api/cim?limit=50${cimSearch ? `&search=${encodeURIComponent(cimSearch)}` : ''}`],
+    enabled: isLinkCimOpen,
+  });
+  const allCimDocs = allCimDocsData?.documents;
 
   // Fetch deal buyers
   const { data: buyers } = useQuery<DealBuyer[]>({
@@ -552,15 +563,50 @@ export default function DealDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/deals", id] });
       setIsAddContactDialogOpen(false);
       setSelectedContactId("");
-      setContactRole("other");
-      toast({ title: "Contact added", description: "Contact has been linked to this deal." });
+      setContactRole("seller");
+      toast({ title: "Seller added", description: "Seller has been linked to this deal." });
     },
     onError: () => {
-      toast({ title: "Error", description: "Failed to add contact.", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to add seller.", variant: "destructive" });
+    },
+  });
+
+  // Remove contact from deal mutation
+  const removeContactMutation = useMutation({
+    mutationFn: (contactId: number) =>
+      apiRequest("DELETE", `/api/crm/deals/${id}/contacts/${contactId}`).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals", id] });
+      toast({ title: "Seller removed" });
     },
   });
 
   // Link company to deal mutation
+  const linkCimMutation = useMutation({
+    mutationFn: (cimDocumentId: number) =>
+      apiRequest("POST", `/api/crm/deals/${id}/documents`, {
+        body: { cimDocumentId },
+      }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals", id] });
+      setIsLinkCimOpen(false);
+      setCimSearch("");
+      toast({ title: "CIM linked", description: "Document has been linked to this deal." });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to link document", variant: "destructive" });
+    },
+  });
+
+  const unlinkCimMutation = useMutation({
+    mutationFn: (documentId: number) =>
+      apiRequest("DELETE", `/api/crm/deals/${id}/documents/${documentId}`).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals", id] });
+      toast({ title: "CIM unlinked" });
+    },
+  });
+
   const linkCompanyMutation = useMutation({
     mutationFn: (companyId: number) =>
       apiRequest("PATCH", `/api/crm/deals/${id}`, { body: { companyId } }).then(res => res.json()),
@@ -1135,32 +1181,48 @@ export default function DealDetailPage() {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-lg">CIM Documents</CardTitle>
-                  <Button asChild size="sm">
-                    <Link href={`/dashboard?mode=cim&dealId=${deal.id}`}>
-                      <WandSparkles className="h-4 w-4 mr-2" />
-                      Create CIM
-                    </Link>
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setIsLinkCimOpen(true)}>
+                      <LinkIcon className="h-4 w-4 mr-2" />
+                      Link Existing
+                    </Button>
+                    <Button asChild size="sm">
+                      <Link href={`/dashboard?mode=cim&dealId=${deal.id}`}>
+                        <WandSparkles className="h-4 w-4 mr-2" />
+                        Create CIM
+                      </Link>
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {deal.documents && deal.documents.length > 0 ? (
                     <div className="space-y-3">
                       {deal.documents.map((doc) => (
-                        <Link
-                          key={doc.id}
-                          href={`/documents/${doc.id}`}
-                          className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 border"
-                        >
-                          <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
-                            <WandSparkles className="h-5 w-5 text-indigo-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate">{doc.title}</p>
-                            <p className="text-xs text-gray-500">
-                              Created {new Date(doc.createdAt).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </Link>
+                        <div key={doc.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 border group">
+                          <Link
+                            href={`/documents/${doc.id}`}
+                            className="flex items-center gap-3 flex-1 min-w-0"
+                          >
+                            <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                              <WandSparkles className="h-5 w-5 text-indigo-600" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate text-gray-900">{doc.title}</p>
+                              <p className="text-xs text-gray-500">
+                                Created {new Date(doc.createdAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </Link>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="opacity-0 group-hover:opacity-100 h-7 w-7 p-0 text-gray-400 hover:text-red-600"
+                            onClick={() => unlinkCimMutation.mutate(doc.id)}
+                            title="Unlink from deal"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       ))}
                     </div>
                   ) : (
@@ -1168,14 +1230,20 @@ export default function DealDetailPage() {
                       <WandSparkles className="h-12 w-12 text-gray-400 mx-auto mb-3" />
                       <p className="text-gray-700 font-medium">No CIMs yet</p>
                       <p className="text-sm text-gray-500 mt-1 mb-4">
-                        Create a CIM to showcase this deal to potential buyers
+                        Link an existing CIM or create a new one for this deal
                       </p>
-                      <Button asChild size="sm">
-                        <Link href={`/dashboard?mode=cim&dealId=${deal.id}`}>
-                          <WandSparkles className="h-4 w-4 mr-2" />
-                          Create Your First CIM
-                        </Link>
-                      </Button>
+                      <div className="flex items-center justify-center gap-2">
+                        <Button variant="outline" size="sm" onClick={() => setIsLinkCimOpen(true)}>
+                          <LinkIcon className="h-4 w-4 mr-2" />
+                          Link Existing
+                        </Button>
+                        <Button asChild size="sm">
+                          <Link href={`/dashboard?mode=cim&dealId=${deal.id}`}>
+                            <WandSparkles className="h-4 w-4 mr-2" />
+                            Create CIM
+                          </Link>
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </CardContent>
@@ -1376,10 +1444,10 @@ export default function DealDetailPage() {
                 )}
               </div>
 
-              {/* Contacts */}
+              {/* Seller */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Contacts</h4>
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Seller</h4>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -1393,56 +1461,57 @@ export default function DealDetailPage() {
                 {deal.contacts && deal.contacts.length > 0 ? (
                   <div className="space-y-2">
                     {deal.contacts.map((contact: any) => (
-                      <Link
+                      <div
                         key={contact.id}
-                        href={`/contacts/${contact.id}`}
-                        className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition-colors"
+                        className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition-colors group"
                       >
-                        {contact.avatarUrl ? (
-                          <img
-                            src={contact.avatarUrl}
-                            alt={`${contact.firstName} ${contact.lastName}`}
-                            className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                          />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
-                            {(contact.firstName?.[0] || '').toUpperCase()}{(contact.lastName?.[0] || '').toUpperCase()}
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
+                        <Link href={`/contacts/${contact.id}`} className="flex items-center gap-3 flex-1 min-w-0">
+                          {contact.avatarUrl ? (
+                            <img
+                              src={contact.avatarUrl}
+                              alt={`${contact.firstName} ${contact.lastName}`}
+                              className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
+                              {(contact.firstName?.[0] || '').toUpperCase()}{(contact.lastName?.[0] || '').toUpperCase()}
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
                             <p className="font-medium text-gray-900 truncate">
                               {contact.firstName} {contact.lastName}
                             </p>
-                            {contact.role && (
-                              <Badge variant="secondary" className="text-xs flex-shrink-0">
-                                {contact.role}
-                              </Badge>
+                            {contact.email && (
+                              <p className="text-sm text-gray-500 truncate">{contact.email}</p>
                             )}
                           </div>
-                          {contact.email && (
-                            <p className="text-sm text-gray-500 truncate">{contact.email}</p>
-                          )}
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                      </Link>
+                        </Link>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 flex-shrink-0"
+                          onClick={() => removeContactMutation.mutate(contact.id)}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500 py-2">No contacts linked</p>
+                  <p className="text-sm text-gray-500 py-2">No seller linked</p>
                 )}
               </div>
 
               {!deal.company && (!deal.contacts || deal.contacts.length === 0) && (
                 <div className="text-center py-3">
-                  <p className="text-sm text-gray-500 mb-2">No company or contacts linked yet</p>
+                  <p className="text-sm text-gray-500 mb-2">No company or seller linked yet</p>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setIsAddContactDialogOpen(true)}
                   >
                     <UserPlus className="h-4 w-4 mr-2" />
-                    Add Contact
+                    Add Seller
                   </Button>
                 </div>
               )}
@@ -1646,7 +1715,7 @@ export default function DealDetailPage() {
         objectId={parseInt(id!)}
       />
 
-      {/* Add Contact Dialog - rendered at root level so it works from any tab */}
+      {/* Add Seller Dialog - rendered at root level so it works from any tab */}
       <Dialog open={isAddContactDialogOpen} onOpenChange={(open) => {
         setIsAddContactDialogOpen(open);
         if (!open) {
@@ -1657,9 +1726,9 @@ export default function DealDetailPage() {
       }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Contact to Deal</DialogTitle>
+            <DialogTitle>Add Seller to Deal</DialogTitle>
             <DialogDescription>
-              Link an existing contact or create a new one.
+              Link an existing contact as the seller or create a new one.
             </DialogDescription>
           </DialogHeader>
 
@@ -1737,21 +1806,7 @@ export default function DealDetailPage() {
                 )}
               </div>
 
-              {/* Role Selection */}
-              <div className="space-y-2">
-                <Label>Role in this deal</Label>
-                <Select value={contactRole} onValueChange={setContactRole}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="primary">Primary Contact</SelectItem>
-                    <SelectItem value="decision_maker">Decision Maker</SelectItem>
-                    <SelectItem value="influencer">Influencer</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Role is always 'seller' for this sidebar section */}
             </div>
           ) : (
             <div className="py-4 text-center">
@@ -1954,6 +2009,69 @@ export default function DealDetailPage() {
               disabled={deleteDealMutation.isPending}
             >
               {deleteDealMutation.isPending ? "Deleting..." : "Delete Deal"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Link CIM Dialog */}
+      <Dialog open={isLinkCimOpen} onOpenChange={setIsLinkCimOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Link CIM Document</DialogTitle>
+            <DialogDescription>
+              Associate an existing CIM document with this deal.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search CIM documents..."
+                value={cimSearch}
+                onChange={(e) => setCimSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+
+            <div className="max-h-64 overflow-y-auto border rounded-lg">
+              {(() => {
+                const existingDocIds = new Set((deal.documents || []).map((d: any) => d.id));
+                const availableCims = (allCimDocs || []).filter(
+                  (doc: any) => !existingDocIds.has(doc.id)
+                );
+                return availableCims.length > 0 ? (
+                  availableCims.map((doc: any) => (
+                    <button
+                      key={doc.id}
+                      onClick={() => linkCimMutation.mutate(doc.id)}
+                      disabled={linkCimMutation.isPending}
+                      className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 border-b last:border-b-0 text-left transition-colors"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                        <FileText className="h-4 w-4 text-indigo-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm text-gray-900 truncate">{doc.title}</p>
+                        <p className="text-xs text-gray-500">
+                          Created {new Date(doc.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </button>
+                  ))
+                ) : (
+                  <div className="p-4 text-center text-gray-500 text-sm">
+                    {cimSearch ? "No CIM documents match your search" : "No available CIM documents to link"}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsLinkCimOpen(false)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

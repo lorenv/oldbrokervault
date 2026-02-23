@@ -60,7 +60,8 @@ interface NavItem {
 const mainNavItems: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard", matchPaths: ["/dashboard"] },
   { label: "Deals", icon: Kanban, href: "/deals", matchPaths: ["/deals"] },
-  { label: "Contacts", icon: Contact, href: "/contacts", matchPaths: ["/contacts", "/investor-database"] },
+  { label: "Buyers", icon: Users, href: "/buyers", matchPaths: ["/buyers"] },
+  { label: "Sellers", icon: Contact, href: "/sellers", matchPaths: ["/sellers"] },
   { label: "Companies", icon: Building2, href: "/companies", matchPaths: ["/companies"] },
   { label: "Tasks", icon: CheckSquare, href: "/tasks", matchPaths: ["/tasks"] },
 ];
@@ -69,6 +70,7 @@ const mainNavItems: NavItem[] = [
 const secondaryNavItems: NavItem[] = [
   { label: "AI CIMs", icon: FileText, href: "/documents", matchPaths: ["/documents"] },
   { label: "E-Signatures", icon: Signature, href: "/esign", matchPaths: ["/esign"] },
+  { label: "NDAs", icon: Shield, href: "/ndas", matchPaths: ["/ndas"] },
   { label: "Data Room", icon: FolderLock, href: "/data-room", matchPaths: ["/data-room"] },
   { label: "Analytics", icon: BarChart3, href: "/analytics", matchPaths: ["/analytics"] },
   { label: "Messages", icon: MessageCircle, href: "/messages", matchPaths: ["/messages"] },
@@ -140,7 +142,8 @@ export function AppSidebar() {
 
     // Special handling for Analytics badge with pending approvals count
     const isAnalytics = item.label === "Analytics";
-    const showPendingBadge = isAnalytics && pendingApprovalsCount > 0;
+    const isNDAs = item.label === "NDAs";
+    const showPendingBadge = (isAnalytics || isNDAs) && pendingApprovalsCount > 0;
 
     // Special handling for Tasks badge with overdue count
     const isTasks = item.label === "Tasks";

@@ -28,6 +28,8 @@ const TeaserPage = lazy(() => import("@/pages/teaser-page").then(m => ({ default
 const TeaserEmbedPage = lazy(() => import("@/pages/teaser-embed-page").then(m => ({ default: m.TeaserEmbedPage })));
 const ListingsPage = lazy(() => import("@/pages/listings-page").then(m => ({ default: m.ListingsPage })));
 const NdaRedirectPage = lazy(() => import("@/pages/nda-redirect-page").then(m => ({ default: m.NdaRedirectPage })));
+const NdaStatusPage = lazy(() => import("@/pages/nda-status-page").then(m => ({ default: m.NdaStatusPage })));
+const BuyerFormPage = lazy(() => import("@/pages/buyer-form-page").then(m => ({ default: m.BuyerFormPage })));
 const UnsubscribePage = lazy(() => import("@/pages/unsubscribe-page").then(m => ({ default: m.UnsubscribePage })));
 const AcceptCollaborationPage = lazy(() => import("@/pages/accept-collaboration-page").then(m => ({ default: m.AcceptCollaborationPage })));
 const InvitationLandingPage = lazy(() => import("@/pages/invitation-landing-page").then(m => ({ default: m.InvitationLandingPage })));
@@ -56,6 +58,8 @@ const BrandingPage = lazy(() => import("@/pages/settings/branding-page"));
 const SettingsIndexPage = lazy(() => import("@/pages/settings/settings-index-page"));
 const EmailSettingsPage = lazy(() => import("@/pages/settings/email-settings-page"));
 const PipelineSettingsPage = lazy(() => import("@/pages/settings/pipeline-settings-page"));
+const NdaWhitelistPage = lazy(() => import("@/pages/settings/nda-whitelist-page"));
+const BuyerSurveysPage = lazy(() => import("@/pages/settings/buyer-surveys-page"));
 
 // Lazy-loaded CRM Pages
 const DealsPage = lazy(() => import("@/pages/crm/deals-page"));
@@ -64,7 +68,15 @@ const CompaniesPage = lazy(() => import("@/pages/crm/companies-page"));
 const CompanyDetailPage = lazy(() => import("@/pages/crm/company-detail-page"));
 const ContactsPage = lazy(() => import("@/pages/crm/contacts-page"));
 const ContactDetailPage = lazy(() => import("@/pages/crm/contact-detail-page"));
+const BuyersPage = lazy(() => import("@/pages/crm/buyers-page"));
+const BuyerDetailPage = lazy(() => import("@/pages/crm/buyer-detail-page"));
+const SellersPage = lazy(() => import("@/pages/crm/sellers-page"));
+const SellerDetailPage = lazy(() => import("@/pages/crm/seller-detail-page"));
 const TasksPage = lazy(() => import("@/pages/crm/tasks-page"));
+
+// Lazy-loaded NDA Hub Pages
+const NdasPage = lazy(() => import("@/pages/ndas-page"));
+const NdaDetailPage = lazy(() => import("@/pages/nda-detail-page"));
 
 // Lazy-loaded E-Signature Pages
 const EsignDashboard = lazy(() => import("@/pages/esign/esign-dashboard"));
@@ -111,6 +123,9 @@ const authenticatedRoutes = [
   '/tasks',
   '/companies',
   '/contacts',
+  '/buyers',
+  '/sellers',
+  '/ndas',
 ];
 
 // Public esign routes that should NOT use sidebar even when logged in
@@ -155,8 +170,16 @@ function AuthenticatedRouter() {
         <ProtectedRoute path="/tasks" component={TasksPage} />
         <ProtectedRoute path="/companies" component={CompaniesPage} />
         <ProtectedRoute path="/companies/:id" component={CompanyDetailPage} />
+        <ProtectedRoute path="/buyers" component={BuyersPage} />
+        <ProtectedRoute path="/buyers/:id" component={BuyerDetailPage} />
+        <ProtectedRoute path="/sellers" component={SellersPage} />
+        <ProtectedRoute path="/sellers/:id" component={SellerDetailPage} />
         <ProtectedRoute path="/contacts" component={ContactsPage} />
         <ProtectedRoute path="/contacts/:id" component={ContactDetailPage} />
+
+        {/* NDA Hub Routes */}
+        <ProtectedRoute path="/ndas" component={NdasPage} />
+        <ProtectedRoute path="/ndas/:id" component={NdaDetailPage} />
 
         {/* E-Signature Routes */}
         <ProtectedRoute path="/esign" component={EsignDashboard} />
@@ -193,6 +216,8 @@ function AuthenticatedRouter() {
         <ProtectedRoute path="/settings/webhooks" component={WebhooksPage} />
         <ProtectedRoute path="/settings/branding" component={BrandingPage} />
         <ProtectedRoute path="/settings/nda-templates" component={NdaTemplatesPage} />
+        <ProtectedRoute path="/settings/nda-whitelist" component={NdaWhitelistPage} />
+        <ProtectedRoute path="/settings/buyer-surveys" component={BuyerSurveysPage} />
 
         {/* Legacy settings routes - redirect to new pages */}
         <ProtectedRoute path="/settings/account" component={ProfilePage} />
@@ -249,6 +274,8 @@ function PublicRouter() {
       <Route path="/teaser/:slug/embed" component={TeaserEmbedPage} />
       <Route path="/listings/:slug" component={ListingsPage} />
       <Route path="/nda/redirect/:redirectId" component={NdaRedirectPage} />
+      <Route path="/nda/status/:token" component={NdaStatusPage} />
+      <Route path="/buyer-form/:token" component={BuyerFormPage} />
       <Route path="/share/:shareSlug/sign-nda" component={EnhancedNdaSigningPage} />
       <Route path="/sign/:accessToken" component={SignDocumentPage} />
 
