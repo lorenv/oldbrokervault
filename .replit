@@ -10,6 +10,9 @@ build = ["./build-autoscale.sh"]
 run = ["node", "start.js"]
 deploymentTarget = "autoscale"
 
+[env] 
+PATH = "/home/runner/workspace/.local/bin:$PATH"
+
 [[ports]]
 localPort = 3000
 externalPort = 3001
