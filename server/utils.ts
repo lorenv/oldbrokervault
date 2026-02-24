@@ -1,6 +1,23 @@
+import type { Request } from 'express';
+
 /**
  * Utility functions for the server
  */
+
+/**
+ * Get the base URL from the current request (preferred) or environment variables.
+ * Works on any domain — no hardcoded production URL.
+ */
+export function getServerBaseUrl(req?: Request): string {
+  if (req) {
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+    const host = req.get('host');
+    if (host) return `${protocol}://${host}`;
+  }
+  if (process.env.BASE_URL) return process.env.BASE_URL;
+  if (process.env.REPLIT_DOMAINS) return `https://${process.env.REPLIT_DOMAINS.split(',')[0]}`;
+  return '';
+}
 
 /**
  * Formats CIM analysis data as plain text

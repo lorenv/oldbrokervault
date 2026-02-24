@@ -39,7 +39,6 @@ import {
   Search,
   LayoutGrid,
   List,
-  Building2,
   Calendar,
   Trash2,
   ArrowUp,
@@ -72,12 +71,10 @@ interface Deal {
   stageId: number;
   pipelineId: number;
   closeDate: string | null;
-  companyId: number | null;
   ownerId: number | null;
   priority: string | null;
   source: string | null;
-  company?: { id: number; name: string } | null;
-  owner?: { id: number; email: string; firstName: string | null; lastName: string | null } | null;
+  owner?: { id: number; email: string; firstName: string | null; lastName: string | null; name?: string | null; profilePhoto?: string | null } | null;
   stage?: { id: number; name: string; color: string; probability: number };
   createdAt: string;
 }
@@ -168,12 +165,6 @@ const DealCard = memo(function DealCard({ deal, isDragging, isOverlay }: { deal:
             {deal.name}
           </h4>
         </Link>
-        {deal.company && (
-          <div className={`flex items-center gap-1.5 text-gray-500 ${isMobile ? "text-base mt-3" : "text-sm mt-2"}`}>
-            <Building2 className={isMobile ? "h-4 w-4" : "h-3.5 w-3.5"} />
-            <span className="truncate">{deal.company.name}</span>
-          </div>
-        )}
         {deal.amount && (
           <div className={`font-semibold text-green-600 ${isMobile ? "text-base mt-3" : "text-sm mt-2"}`}>
             {new Intl.NumberFormat("en-US", {
@@ -434,7 +425,6 @@ export default function DealsPage() {
     name: "",
     amount: "",
     closeDate: "",
-    companyId: "",
     ownerId: "",
   });
   const [currentPage, setCurrentPage] = useState(1);
@@ -495,14 +485,8 @@ export default function DealsPage() {
     enabled: !!defaultPipeline?.id && viewMode === 'kanban',
   });
 
-  // Fetch companies
-  const { data: companiesData } = useQuery({
-    queryKey: ["/api/crm/companies"],
-  });
-  const companies = (companiesData as any)?.companies || [];
-
   // Fetch organization members for owners
-  const { data: membersData } = useQuery<{ id: number; userId: number; email: string; firstName: string | null; lastName: string | null }[]>({
+  const { data: membersData } = useQuery<{ id: number; userId: number; email: string; firstName: string | null; lastName: string | null; profilePhoto?: string | null }[]>({
     queryKey: ["/api/crm/organization/members"],
     queryFn: () => apiRequest("GET", "/api/crm/organization/members").then(res => res.json()),
   });
@@ -587,7 +571,7 @@ export default function DealsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"], refetchType: 'all' });
       queryClient.invalidateQueries({ queryKey: ["/api/crm/deals/kanban"], refetchType: 'all' });
       setIsCreateDialogOpen(false);
-      setNewDeal({ name: "", amount: "", closeDate: "", companyId: "", ownerId: "" });
+      setNewDeal({ name: "", amount: "", closeDate: "", ownerId: "" });
       toast({ title: "Deal created", description: "Your new deal has been created successfully." });
     },
     onError: (error: any) => {
@@ -636,7 +620,6 @@ export default function DealsPage() {
       name: newDeal.name,
       amount: newDeal.amount || null,
       closeDate: newDeal.closeDate || null,
-      companyId: newDeal.companyId ? parseInt(newDeal.companyId) : null,
       ownerId: newDeal.ownerId ? parseInt(newDeal.ownerId) : null,
     });
   };
@@ -725,10 +708,9 @@ export default function DealsPage() {
     const selectedDealsList = allDeals.filter((d: Deal) => selectedDeals.has(d.id));
     if (selectedDealsList.length === 0) return;
 
-    const headers = ["Name", "Company", "Stage", "Value", "Currency", "Close Date", "Priority", "Source", "Created"];
+    const headers = ["Name", "Stage", "Value", "Currency", "Close Date", "Priority", "Source", "Created"];
     const rows = selectedDealsList.map((d: Deal) => [
       d.name || "",
-      d.company?.name || "",
       d.stage?.name || "",
       d.amount || "",
       d.currency || "USD",
@@ -760,7 +742,7 @@ export default function DealsPage() {
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters.search, filters.stageIds, filters.ownerIds, filters.companyIds]);
+  }, [filters.search, filters.stages, filters.ownerId]);
 
   // Pagination calculations for list view
   const totalItems = allDeals.length;
@@ -927,7 +909,6 @@ export default function DealsPage() {
               filters={filters}
               onFilterChange={updateFilter}
               onClearFilters={clearFilters}
-              companies={companies}
               owners={members.map((m) => ({ id: m.userId, name: m.firstName && m.lastName ? `${m.firstName} ${m.lastName}` : m.email, profilePhoto: m.profilePhoto }))}
               customFields={customFields}
               activeFilterCount={activeFilterCount}
@@ -1074,14 +1055,13 @@ export default function DealsPage() {
                     />
                   </th>
                   {visibleColumns.map((col) => {
-                    const sortable = ['name', 'amount', 'closeDate', 'createdAt', 'stage', 'company', 'priority'].includes(col.id);
-                    // Percentage-based widths for even column distribution (totals ~100% for typical 6 columns)
-                    const columnWidth = col.id === 'name' ? '28%' :
-                                       col.id === 'company' ? '20%' :
-                                       col.id === 'stage' ? '13%' :
-                                       col.id === 'amount' ? '13%' :
-                                       col.id === 'closeDate' ? '13%' :
-                                       col.id === 'owner' ? '13%' : '13%';
+                    const sortable = ['name', 'amount', 'closeDate', 'createdAt', 'stage', 'priority'].includes(col.id);
+                    // Percentage-based widths for even column distribution (totals ~100% for typical 5 columns)
+                    const columnWidth = col.id === 'name' ? '30%' :
+                                       col.id === 'stage' ? '15%' :
+                                       col.id === 'amount' ? '15%' :
+                                       col.id === 'closeDate' ? '15%' :
+                                       col.id === 'owner' ? '15%' : '10%';
                     const widthStyle = { width: columnWidth };
                     if (sortable) {
                       return (
@@ -1130,9 +1110,6 @@ export default function DealsPage() {
                             </div>
                             <span className="text-sm font-medium text-gray-900 group-hover:text-blue-600 truncate">{deal.name}</span>
                           </Link>
-                        )}
-                        {col.id === 'company' && (
-                          <span className="text-sm text-gray-500">{deal.company?.name || '-'}</span>
                         )}
                         {col.id === 'stage' && deal.stage && (
                           <span
@@ -1320,24 +1297,6 @@ export default function DealsPage() {
                 onChange={(e) => setNewDeal({ ...newDeal, amount: e.target.value })}
                 placeholder="e.g., 500000"
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="company">Company</Label>
-              <Select
-                value={newDeal.companyId}
-                onValueChange={(value) => setNewDeal({ ...newDeal, companyId: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a company" />
-                </SelectTrigger>
-                <SelectContent>
-                  {companies.filter((company: any) => company.id != null).map((company: any) => (
-                    <SelectItem key={company.id} value={company.id.toString()}>
-                      {company.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="owner">Deal Owner</Label>

@@ -215,6 +215,13 @@ export function SharePage() {
     gcTime: 0
   });
 
+  // Redirect to deal NDA signing page when ndaShareSlug is present
+  useEffect(() => {
+    if (ndaCheck?.requiresNda && ndaCheck?.ndaShareSlug && !hasSignedNda && !accessToken) {
+      window.location.href = `/nda/${ndaCheck.ndaShareSlug}`;
+    }
+  }, [ndaCheck?.requiresNda, ndaCheck?.ndaShareSlug, hasSignedNda, accessToken]);
+
   useEffect(() => {
 
     // Don't show bypass screen anymore - the server already handles owner bypass

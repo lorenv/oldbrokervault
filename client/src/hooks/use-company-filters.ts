@@ -5,7 +5,6 @@ export interface CompanyFilters {
   industry: string;
   city: string;
   state: string;
-  hasDeals: boolean | null;
   hasContacts: boolean | null;
   createdFrom: string | null;
   createdTo: string | null;
@@ -30,8 +29,7 @@ export const DEFAULT_COMPANY_COLUMNS: ColumnConfig[] = [
   { id: 'website', label: 'Website', visible: true, width: '22%', order: 2 },
   { id: 'location', label: 'Location', visible: true, width: '17%', order: 3 },
   { id: 'contacts', label: 'Contacts', visible: true, width: '11%', order: 4 },
-  { id: 'deals', label: 'Deals', visible: true, width: '11%', order: 5 },
-  { id: 'createdAt', label: 'Created', visible: false, width: '17%', order: 6 },
+  { id: 'createdAt', label: 'Created', visible: false, width: '17%', order: 5 },
 ];
 
 export const DEFAULT_COMPANY_FILTERS: CompanyFilters = {
@@ -39,7 +37,6 @@ export const DEFAULT_COMPANY_FILTERS: CompanyFilters = {
   industry: '',
   city: '',
   state: '',
-  hasDeals: null,
   hasContacts: null,
   createdFrom: null,
   createdTo: null,
@@ -62,7 +59,6 @@ export function useCompanyFilters() {
     if (filters.industry) count++;
     if (filters.city) count++;
     if (filters.state) count++;
-    if (filters.hasDeals !== null) count++;
     if (filters.hasContacts !== null) count++;
     if (filters.createdFrom) count++;
     if (filters.createdTo) count++;
@@ -77,7 +73,6 @@ export function useCompanyFilters() {
     if (filters.industry) params.set('industry', filters.industry);
     if (filters.city) params.set('city', filters.city);
     if (filters.state) params.set('state', filters.state);
-    if (filters.hasDeals !== null) params.set('hasDeals', filters.hasDeals.toString());
     if (filters.hasContacts !== null) params.set('hasContacts', filters.hasContacts.toString());
     if (filters.createdFrom) params.set('createdFrom', filters.createdFrom);
     if (filters.createdTo) params.set('createdTo', filters.createdTo);

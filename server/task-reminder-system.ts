@@ -185,9 +185,10 @@ export class TaskReminderSystem {
       }
     }
 
+    const serverBase = process.env.BASE_URL || '';
     const taskUrl = task.objectType && task.objectId
-      ? `https://brokervault.ai/${task.objectType}s/${task.objectId}`
-      : 'https://brokervault.ai/tasks';
+      ? `${serverBase}/${task.objectType}s/${task.objectId}`
+      : `${serverBase}/tasks`;
 
     const subject = `Reminder: ${task.title}`;
 

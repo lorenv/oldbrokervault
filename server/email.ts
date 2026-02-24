@@ -5,6 +5,7 @@ import { users, cimDocuments } from '@shared/schema.ts';
 import * as emailSync from './services/email-sync';
 import { gmailProvider } from './integrations/providers/gmail';
 import { microsoftProvider } from './integrations/providers/microsoft';
+import { getServerBaseUrl } from './utils';
 
 // Critical: Check for SENDGRID_API_KEY with detailed production debugging
 let mailService: MailService | null = null;
@@ -685,9 +686,10 @@ async function sendApprovalEmail(
   }
 
   // Create direct share URL with access token, using custom subdomain if available
-  const baseUrl = customSubdomain
-    ? `https://${customSubdomain}.brokervault.ai`
-    : 'https://brokervault.ai';
+  const serverBase = getServerBaseUrl();
+  const baseUrl = customSubdomain && serverBase
+    ? `${serverBase.replace('://', `://${customSubdomain}.`)}`
+    : serverBase;
   const shareUrl = `${baseUrl}/share/${shareSlug}?token=${accessToken}`;
   
   // Use the new CIM link email function if owner profile is available
@@ -789,7 +791,7 @@ async function sendOwnerApprovalNotification(
         <p>Please log in to your Broker Vault documents page to review and approve this signer's access to the document.</p>
 
         <div style="text-align: center; margin: 30px 0;">
-          <a href="https://brokervault.ai/documents"
+          <a href="${getServerBaseUrl()}/documents"
              style="background-color: #28a745; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
             Review & Approve
           </a>
@@ -817,7 +819,7 @@ async function sendOwnerApprovalNotification(
       
       Please log in to your Broker Vault documents page to review and approve this signer's access to the document.
 
-      Documents: https://brokervault.ai/documents
+      Documents: ${getServerBaseUrl()}/documents
     `
   });
 }
@@ -895,7 +897,7 @@ async function sendCollaborationInvitationEmail(
   permission: 'Edit' | 'Assist',
   acceptToken: string
 ): Promise<boolean> {
-  const baseUrl = process.env.BASE_URL || 'https://brokervault.ai';
+  const baseUrl = getServerBaseUrl();
   const acceptUrl = `${baseUrl}/invitation/${acceptToken}`;
 
   const permissionDescription = permission === 'Edit'
@@ -1713,7 +1715,7 @@ async function sendFirstDocumentCongratulationsEmail(params: {
   documentId: number;
 }): Promise<boolean> {
   const { userEmail, userName, documentTitle, documentId } = params;
-  const documentUrl = `https://brokervault.ai/cim/${documentId}`;
+  const documentUrl = `${getServerBaseUrl()}/cim/${documentId}`;
   const firstName = userName.split(' ')[0] || 'there';
 
   return sendEmail({
@@ -1824,7 +1826,7 @@ async function sendTeamInviteEmail(params: {
   inviteToken?: string; // Optional token for pending invitations (non-existing users)
 }): Promise<boolean> {
   const { inviteeEmail, inviteeName, inviterName, organizationName, role, inviteToken } = params;
-  const baseUrl = process.env.BASE_URL || 'https://brokervault.ai';
+  const baseUrl = getServerBaseUrl();
 
   // If there's an invite token, user needs to create account first
   // Otherwise, they just need to log in
@@ -1925,7 +1927,7 @@ async function sendMentionNotificationEmail(params: {
   noteContent: string;
 }): Promise<boolean> {
   const { mentionedUserEmail, mentionedUserName, mentionerName, entityType, entityName, entityId, noteContent } = params;
-  const baseUrl = process.env.BASE_URL || 'https://brokervault.ai';
+  const baseUrl = getServerBaseUrl();
 
   // Build the URL to the entity (handle "company" -> "companies" plural)
   const entityPlural = entityType === 'company' ? 'companies' : `${entityType}s`;

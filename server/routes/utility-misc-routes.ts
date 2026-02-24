@@ -388,7 +388,7 @@ export function registerUtilityRoutes(app: Express) {
       }
 
       // Convert relative URLs to absolute URLs for email images
-      const baseUrl = process.env.NODE_ENV === 'production' ? 'https://brokervault.ai' : req.protocol + '://' + req.get('host');
+      const baseUrl = req.protocol + '://' + req.get('host');
       const profilePhotoUrl = sender.profilePhoto ? (sender.profilePhoto.startsWith('http') ? sender.profilePhoto : `${baseUrl}${sender.profilePhoto}`) : null;
       const businessLogoUrl = sender.businessLogo ? (sender.businessLogo.startsWith('http') ? sender.businessLogo : `${baseUrl}${sender.businessLogo}`) : null;
 

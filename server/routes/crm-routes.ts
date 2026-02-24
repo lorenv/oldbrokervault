@@ -240,11 +240,11 @@ async function getUserOrganization(userId: number) {
       const companiesMap = new Map<string, number>();
 
       // Collect unique companies for batch insert
-      const uniqueCompanyNames = [...new Set(
+      const uniqueCompanyNames = Array.from(new Set(
         existingInvestorContacts
           .filter(contact => contact.company)
           .map(contact => contact.company!)
-      )];
+      ));
 
       if (uniqueCompanyNames.length > 0) {
         const companyValues = uniqueCompanyNames.map(companyName => ({
@@ -728,7 +728,7 @@ router.post('/migrate-cims-to-deals', async (req, res) => {
     for (const cim of orphanCims) {
       // Extract deal name from CIM title or company name
       const dealName = cim.title ||
-        (cim.content as any)?.companyInfo?.companyName ||
+        (cim.analysis as any)?.companyInfo?.companyName ||
         `Deal from CIM ${cim.id}`;
 
       // Create the deal
@@ -2332,7 +2332,6 @@ router.get('/companies', async (req, res) => {
       industry,
       city,
       state,
-      hasDeals,
       hasContacts,
       createdFrom,
       createdTo,
@@ -2411,21 +2410,20 @@ router.get('/companies', async (req, res) => {
         orderClause = sortDir(companies.createdAt);
     }
 
-    // For hasDeals and hasContacts, we need subqueries
+    // For hasContacts, we need subqueries
     // These are post-filtered for now to keep the query simpler
     let companyList = await db
       .select()
       .from(companies)
       .where(and(...conditions))
       .orderBy(orderClause)
-      .limit(parseInt(limit as string) * 2) // Fetch extra to account for hasDeals/hasContacts filtering
+      .limit(parseInt(limit as string) * 2) // Fetch extra to account for hasContacts filtering
       .offset(offset);
 
     // Get contact and deal counts for each company
     const companyIds = companyList.map(c => c.id);
 
     let contactCounts: Record<number, number> = {};
-    let dealCounts: Record<number, number> = {};
 
     if (companyIds.length > 0) {
       const contactCountResults = await db
@@ -2440,31 +2438,9 @@ router.get('/companies', async (req, res) => {
       contactCounts = Object.fromEntries(
         contactCountResults.map(r => [r.companyId, Number(r.count)])
       );
-
-      const dealCountResults = await db
-        .select({
-          companyId: deals.companyId,
-          count: sql<number>`count(*)`,
-        })
-        .from(deals)
-        .where(and(
-          inArray(deals.companyId, companyIds),
-          isNull(deals.deletedAt)
-        ))
-        .groupBy(deals.companyId);
-
-      dealCounts = Object.fromEntries(
-        dealCountResults.map(r => [r.companyId, Number(r.count)])
-      );
     }
 
-    // Apply hasDeals and hasContacts filters
-    if (hasDeals === 'true') {
-      companyList = companyList.filter(c => (dealCounts[c.id] || 0) > 0);
-    } else if (hasDeals === 'false') {
-      companyList = companyList.filter(c => (dealCounts[c.id] || 0) === 0);
-    }
-
+    // Apply hasContacts filter
     if (hasContacts === 'true') {
       companyList = companyList.filter(c => (contactCounts[c.id] || 0) > 0);
     } else if (hasContacts === 'false') {
@@ -2484,7 +2460,6 @@ router.get('/companies', async (req, res) => {
       companies: companyList.map(c => ({
         ...c,
         contactCount: contactCounts[c.id] || 0,
-        dealCount: dealCounts[c.id] || 0,
       })),
       total: Number(countResult?.count || 0),
       page: parseInt(page as string),
@@ -2526,15 +2501,7 @@ router.get('/companies/:id', async (req, res) => {
       .where(eq(crmContacts.companyId, companyId))
       .limit(100);
 
-    // Get associated deals
-    const companyDeals = await db
-      .select()
-      .from(deals)
-      .where(and(eq(deals.companyId, companyId), isNull(deals.deletedAt)))
-      .orderBy(desc(deals.createdAt))
-      .limit(50);
-
-    res.json({ ...company, contacts, deals: companyDeals });
+    res.json({ ...company, contacts });
   } catch (error) {
     console.error('[CRM] Error fetching company:', error);
     res.status(500).json({ error: 'Failed to fetch company' });
@@ -2691,16 +2658,11 @@ router.delete('/companies/:id', async (req, res) => {
       return res.status(404).json({ error: 'Company not found' });
     }
 
-    // Remove company associations from contacts and deals
+    // Remove company associations from contacts
     await db
       .update(crmContacts)
       .set({ companyId: null, updatedAt: new Date() })
       .where(eq(crmContacts.companyId, companyId));
-
-    await db
-      .update(deals)
-      .set({ companyId: null, updatedAt: new Date() })
-      .where(eq(deals.companyId, companyId));
 
     await db.delete(companies).where(eq(companies.id, companyId));
 
@@ -3134,22 +3096,6 @@ router.patch('/contacts/:id', async (req, res) => {
       'estimatedBudget',
       'priorAcquisitions',
       'isActiveBuyer',
-      // Seller-specific fields
-      'sellerStage',
-      'sellerMotivation',
-      'sellerTimeline',
-      'sellerEngagementStatus',
-      'sellerEngagementSignedAt',
-      'sellerAskingPrice',
-      'sellerListingStatus',
-      'sellerSource',
-      'sellerReferredBy',
-      'sellerNotes',
-      'sellerRevenueRange',
-      'sellerProfitRange',
-      'sellerIndustry',
-      'sellerBusinessDescription',
-      'sellerFiles',
     ];
 
     for (const field of allowedFields) {
@@ -3542,7 +3488,6 @@ router.get('/deals', async (req, res) => {
       search,
       stages, // comma-separated stage IDs
       owners, // comma-separated owner IDs
-      companies: companyIds, // comma-separated company IDs
       amountMin,
       amountMax,
       closeDateFrom,
@@ -3609,14 +3554,6 @@ router.get('/deals', async (req, res) => {
       }
     }
 
-    // Companies filter
-    if (companyIds) {
-      const compIds = (companyIds as string).split(',').map(c => parseInt(c.trim())).filter(c => !isNaN(c));
-      if (compIds.length > 0) {
-        conditions.push(inArray(deals.companyId, compIds));
-      }
-    }
-
     // Amount range filter
     if (amountMin) {
       conditions.push(sql`CAST(${deals.amount} AS DECIMAL) >= ${parseFloat(amountMin as string)}`);
@@ -3661,15 +3598,10 @@ router.get('/deals', async (req, res) => {
       }
     }
 
-    // Search filter (searches deal name and company name)
+    // Search filter
     if (search) {
       const searchTerm = `%${search}%`;
-      conditions.push(
-        or(
-          ilike(deals.name, searchTerm),
-          ilike(companies.name, searchTerm)
-        )
-      );
+      conditions.push(ilike(deals.name, searchTerm));
     }
 
     // Build sort order
@@ -3681,7 +3613,6 @@ router.get('/deals', async (req, res) => {
       updatedAt: deals.updatedAt,
       priority: deals.priority,
       stage: pipelineStages.displayOrder,
-      company: companies.name,
     };
 
     const sortColumn = sortFieldMap[sortField as string] || deals.createdAt;
@@ -3692,12 +3623,10 @@ router.get('/deals', async (req, res) => {
       .select({
         deal: deals,
         stage: pipelineStages,
-        company: companies,
         owner: users,
       })
       .from(deals)
       .leftJoin(pipelineStages, eq(pipelineStages.id, deals.stageId))
-      .leftJoin(companies, eq(companies.id, deals.companyId))
       .leftJoin(users, eq(users.id, deals.ownerId))
       .where(and(...conditions))
       .orderBy(orderDirection)
@@ -3716,14 +3645,12 @@ router.get('/deals', async (req, res) => {
       })
       .from(deals)
       .leftJoin(pipelineStages, eq(pipelineStages.id, deals.stageId))
-      .leftJoin(companies, eq(companies.id, deals.companyId))
       .where(and(...conditions));
 
     res.json({
       deals: dealList.map((d) => ({
         ...d.deal,
         stage: d.stage,
-        company: d.company,
         owner: d.owner ? {
           id: d.owner.id,
           email: d.owner.email,
@@ -3807,7 +3734,6 @@ router.get('/deals/kanban/:pipelineId', async (req, res) => {
     const allDeals = await db
       .select({
         deal: deals,
-        company: companies,
         owner: {
           id: users.id,
           email: users.email,
@@ -3818,7 +3744,6 @@ router.get('/deals/kanban/:pipelineId', async (req, res) => {
         },
       })
       .from(deals)
-      .leftJoin(companies, eq(companies.id, deals.companyId))
       .leftJoin(users, eq(users.id, deals.ownerId))
       .where(and(...baseConditions))
       .orderBy(desc(deals.updatedAt))
@@ -3841,7 +3766,6 @@ router.get('/deals/kanban/:pipelineId', async (req, res) => {
       ...stage,
       deals: (dealsByStage.get(stage.id) || []).map((d) => ({
         ...d.deal,
-        company: d.company,
         owner: d.owner?.id ? d.owner : null,
       })),
     }));
@@ -3870,7 +3794,6 @@ router.get('/deals/:id', async (req, res) => {
         deal: deals,
         stage: pipelineStages,
         pipeline: pipelines,
-        company: companies,
         owner: {
           id: users.id,
           email: users.email,
@@ -3883,7 +3806,6 @@ router.get('/deals/:id', async (req, res) => {
       .from(deals)
       .leftJoin(pipelineStages, eq(pipelineStages.id, deals.stageId))
       .leftJoin(pipelines, eq(pipelines.id, deals.pipelineId))
-      .leftJoin(companies, eq(companies.id, deals.companyId))
       .leftJoin(users, eq(users.id, deals.ownerId))
       .where(
         and(
@@ -3970,7 +3892,6 @@ router.get('/deals/:id', async (req, res) => {
       ...result.deal,
       stage: result.stage,
       pipeline: result.pipeline,
-      company: result.company,
       owner: result.owner?.id ? result.owner : null,
       contacts: contacts.map((c) => ({ ...c.contact, role: c.association.role })),
       documents: allDocuments,
@@ -4103,18 +4024,34 @@ router.patch('/deals/:id', async (req, res) => {
       'closeDate',
       'probability',
       'ownerId',
-      'companyId',
       'customProperties',
       'source',
       'lostReason',
       'description',
       'priority',
+      // Business details
+      'askingPrice',
+      'revenueRange',
+      'profitRange',
+      'industry',
+      'businessDescription',
+      'listingStatus',
+      // Seller engagement context
+      'sellerMotivation',
+      'sellerTimeline',
+      'engagementStatus',
+      'engagementSignedAt',
+      // Source tracking
+      'dealSource',
+      'referredBy',
+      // Files
+      'files',
     ];
 
     for (const field of allowedFields) {
       if (req.body[field] !== undefined) {
         // Convert date strings to Date objects for timestamp fields
-        if (field === 'closeDate' && req.body[field]) {
+        if ((field === 'closeDate' || field === 'engagementSignedAt') && req.body[field]) {
           updateData[field] = new Date(req.body[field]);
         } else {
           updateData[field] = req.body[field];
@@ -5553,7 +5490,7 @@ router.get('/activity-feed/:objectType/:objectId', async (req, res) => {
               fileSize: attachmentData.attachment.fileSize,
               mimeType: attachmentData.attachment.mimeType,
               uploader: attachmentData.uploader,
-              createdAt: attachmentData.attachment.createdAt,
+              createdAt: attachmentData.attachment.uploadedAt,
               downloadUrl: `/api/crm/attachments/${attachmentData.attachment.id}/download`,
             },
           };
@@ -6333,7 +6270,7 @@ router.get('/tasks', async (req, res) => {
 
     // Get creator info separately to avoid complex join
     const taskIds = tasks.map(t => t.task.id);
-    const creatorIds = [...new Set(tasks.map(t => t.task.createdBy))];
+    const creatorIds = Array.from(new Set(tasks.map(t => t.task.createdBy)));
 
     const creators = creatorIds.length > 0 ? await db
       .select({
@@ -6469,7 +6406,7 @@ router.get('/tasks/:objectType/:objectId', async (req, res) => {
       );
 
     // Get creator info
-    const creatorIds = [...new Set(tasks.map(t => t.task.createdBy))];
+    const creatorIds = Array.from(new Set(tasks.map(t => t.task.createdBy)));
     const creators = creatorIds.length > 0 ? await db
       .select({
         id: users.id,
@@ -7007,11 +6944,11 @@ router.post('/contacts/:id/emails', async (req, res) => {
     // Log activity
     await db.insert(crmActivities).values({
       organizationId: orgData.organization.id,
-      contactId: contactId,
-      type: 'email',
-      subject: `Sent: ${subject}`,
-      description: `Email sent to ${contact.email}`,
-      createdById: req.user!.id,
+      objectType: 'contact',
+      objectId: contactId,
+      activityType: 'email',
+      performedBy: req.user!.id,
+      metadata: { subject: `Sent: ${subject}`, description: `Email sent to ${contact.email}` },
     });
 
     // Update last used timestamp
@@ -7144,7 +7081,7 @@ router.get('/deals/:id/emails', async (req, res) => {
           .map(email => ({
             ...email,
             contactEmail,
-            contactName: contacts.find(c => c.email?.toLowerCase() === contactEmail)?.name,
+            contactName: (() => { const c = contacts.find(c => c.email?.toLowerCase() === contactEmail); return c ? `${c.firstName || ''} ${c.lastName || ''}`.trim() || c.email : undefined; })(),
           }));
 
         allEmails = [...allEmails, ...emails];
@@ -7812,10 +7749,8 @@ router.get('/search', async (req, res) => {
         .select({
           id: deals.id,
           name: deals.name,
-          companyName: companies.name,
         })
         .from(deals)
-        .leftJoin(companies, eq(companies.id, deals.companyId))
         .where(
           and(
             eq(deals.organizationId, orgData.organization.id),
@@ -7830,7 +7765,6 @@ router.get('/search', async (req, res) => {
           type: 'deal' as const,
           id: d.id,
           title: d.name,
-          subtitle: d.companyName || undefined,
         }))
       );
     }
@@ -8235,8 +8169,6 @@ const IMPORT_FIELD_DEFINITIONS = {
       { key: 'description', label: 'Description', required: false },
     ],
     associations: [
-      { key: 'companyName', label: 'Company Name', required: false },
-      { key: 'companyDomain', label: 'Company Domain', required: false },
       { key: 'contactEmails', label: 'Contact Emails', required: false },
       { key: 'pipelineName', label: 'Pipeline', required: false },
       { key: 'stageName', label: 'Stage', required: false },
@@ -8574,7 +8506,6 @@ router.post('/import/preview', async (req, res) => {
         .select({
           id: deals.id,
           name: deals.name,
-          companyId: deals.companyId
         })
         .from(deals)
         .where(and(
@@ -8664,21 +8595,10 @@ router.post('/import/preview', async (req, res) => {
           }
         }
       } else if (entityType === 'deal' && mappedRow.name) {
-        // For deals: exact name match + same company = duplicate
+        // For deals: exact name match = duplicate
         const normalizedName = mappedRow.name.toLowerCase().trim();
-        // First resolve company association
-        let companyId: number | null = null;
-        if (mappedRow.companyDomain) {
-          const company = allCompanies.find(c => c.domain?.toLowerCase() === mappedRow.companyDomain.toLowerCase());
-          if (company) companyId = company.id;
-        } else if (mappedRow.companyName) {
-          const company = allCompanies.find(c => c.name?.toLowerCase() === mappedRow.companyName.toLowerCase());
-          if (company) companyId = company.id;
-        }
-
         const match = existingRecords.find(r =>
-          r.name?.toLowerCase() === normalizedName &&
-          (companyId === null || r.companyId === companyId)
+          r.name?.toLowerCase() === normalizedName
         );
         if (match) {
           duplicateOf = { id: match.id, displayName: match.name };
@@ -8686,7 +8606,7 @@ router.post('/import/preview', async (req, res) => {
       }
 
       // Resolve associations
-      if (entityType === 'contact' || entityType === 'deal') {
+      if (entityType === 'contact') {
         // Company association
         if (mappedRow.companyDomain || mappedRow.companyName) {
           let matchedCompany = null;
@@ -8772,7 +8692,7 @@ router.post('/import/preview', async (req, res) => {
       valid: preview.filter(r => r.errors.length === 0 && !r.duplicateOf).length,
       duplicates: preview.filter(r => r.duplicateOf).length,
       errors: preview.filter(r => r.errors.length > 0).length,
-      newCompanies: entityType !== 'company' ?
+      newCompanies: entityType === 'contact' ?
         new Set(preview.filter(r => r.associations.company?.action === 'create').map(r => r.associations.company?.inputValue?.toLowerCase())).size : 0,
     };
 
@@ -8973,28 +8893,6 @@ router.post('/import/execute', async (req, res) => {
           });
           importedCount++;
         } else if (entityType === 'deal') {
-          // Resolve company association
-          let companyId: number | null = null;
-          if (associations.company) {
-            if (associations.company.action === 'link' && associations.company.match) {
-              companyId = associations.company.match.id;
-            } else if (associations.company.action === 'create' && associations.company.inputValue) {
-              const cacheKey = associations.company.inputValue.toLowerCase();
-              if (createdCompanies.has(cacheKey)) {
-                companyId = createdCompanies.get(cacheKey)!;
-              } else {
-                const [newCompany] = await db.insert(companies).values({
-                  organizationId: orgData.organization.id,
-                  name: associations.company.inputValue,
-                  domain: mappedData.companyDomain || null,
-                  ownerId: orgData.membership.id,
-                }).returning();
-                companyId = newCompany.id;
-                createdCompanies.set(cacheKey, companyId);
-              }
-            }
-          }
-
           // Resolve pipeline and stage
           const pipelineId = associations.pipeline?.match?.id || defaultPipeline?.id;
           const stageId = associations.stage?.match?.id || defaultStage?.id;
@@ -9045,7 +8943,6 @@ router.post('/import/execute', async (req, res) => {
             priority: ['low', 'normal', 'high'].includes(mappedData.priority) ? mappedData.priority : 'normal',
             source: mappedData.source || 'import',
             description: mappedData.description || null,
-            companyId,
             ownerId,
             customProperties,
           }).returning();
@@ -9210,9 +9107,7 @@ router.get('/sellers', async (req, res) => {
     const sortDir = sortOrder === 'asc' ? asc : desc;
     let orderClause;
     switch (sortField) {
-      case 'sellerStage': orderClause = sortDir(crmContacts.sellerStage); break;
       case 'name': orderClause = sortDir(crmContacts.firstName); break;
-      case 'sellerAskingPrice': orderClause = sortDir(crmContacts.sellerAskingPrice); break;
       default: orderClause = sortDir(crmContacts.createdAt);
     }
 
@@ -9303,9 +9198,8 @@ router.get('/sellers/stats', async (req, res) => {
       return res.status(404).json({ error: 'Organization not found' });
     }
 
-    const stageCountsResult = await db
+    const [countResult] = await db
       .select({
-        stage: crmContacts.sellerStage,
         count: sql<number>`count(*)`,
       })
       .from(crmContacts)
@@ -9314,19 +9208,10 @@ router.get('/sellers/stats', async (req, res) => {
           eq(crmContacts.organizationId, orgData.organization.id),
           eq(crmContacts.contactType, 'seller')
         )
-      )
-      .groupBy(crmContacts.sellerStage);
-
-    const stageCounts: Record<string, number> = {};
-    for (const row of stageCountsResult) {
-      stageCounts[row.stage || 'lead'] = Number(row.count);
-    }
-
-    const totalSellers = Object.values(stageCounts).reduce((a, b) => a + b, 0);
+      );
 
     res.json({
-      total: totalSellers,
-      byStage: stageCounts,
+      total: Number(countResult?.count || 0),
     });
   } catch (error) {
     console.error('[CRM] Error fetching seller stats:', error);
@@ -9334,13 +9219,13 @@ router.get('/sellers/stats', async (req, res) => {
   }
 });
 
-// Seller file upload configuration
-const sellerUploadsDir = path.join(process.cwd(), 'private', 'seller-files');
-fs.mkdir(sellerUploadsDir, { recursive: true }).catch(console.error);
+// Deal file upload configuration
+const dealUploadsDir = path.join(process.cwd(), 'private', 'deal-files');
+fs.mkdir(dealUploadsDir, { recursive: true }).catch(console.error);
 
-const sellerFileUpload = multer({
+const dealFileUpload = multer({
   storage: multer.diskStorage({
-    destination: sellerUploadsDir,
+    destination: dealUploadsDir,
     filename: (req, file, cb) => {
       const uniqueSuffix = crypto.randomBytes(8).toString('hex');
       const sanitizedName = sanitizeFilename(file.originalname);
@@ -9366,27 +9251,26 @@ const sellerFileUpload = multer({
   },
 });
 
-// POST /sellers/:id/files - Upload files to seller contact
-router.post('/sellers/:id/files', sellerFileUpload.single('file'), async (req, res) => {
+// POST /deals/:id/files - Upload files to a deal
+router.post('/deals/:id/files', dealFileUpload.single('file'), async (req, res) => {
   if (!req.isAuthenticated()) return res.sendStatus(401);
 
   try {
-    const contactId = parseInt(req.params.id);
+    const dealId = parseInt(req.params.id);
     const orgData = await getUserOrganization(req.user!.id);
     if (!orgData) return res.status(404).json({ error: 'Organization not found' });
 
-    const [contact] = await db
+    const [deal] = await db
       .select()
-      .from(crmContacts)
-      .where(and(eq(crmContacts.id, contactId), eq(crmContacts.organizationId, orgData.organization.id)));
+      .from(deals)
+      .where(and(eq(deals.id, dealId), eq(deals.organizationId, orgData.organization.id), isNull(deals.deletedAt)));
 
-    if (!contact) return res.status(404).json({ error: 'Contact not found' });
-    if (contact.contactType !== 'seller') return res.status(400).json({ error: 'Contact is not a seller' });
+    if (!deal) return res.status(404).json({ error: 'Deal not found' });
 
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
     const fileType = req.body.fileType || 'other'; // financials, tax_returns, pnl, other
-    const existingFiles = (contact.sellerFiles as any[]) || [];
+    const existingFiles = (deal.files as any[]) || [];
     const newFile = {
       name: req.file.originalname,
       path: req.file.filename,
@@ -9396,39 +9280,39 @@ router.post('/sellers/:id/files', sellerFileUpload.single('file'), async (req, r
     };
 
     const [updated] = await db
-      .update(crmContacts)
+      .update(deals)
       .set({
-        sellerFiles: [...existingFiles, newFile],
+        files: [...existingFiles, newFile],
         updatedAt: new Date(),
       })
-      .where(eq(crmContacts.id, contactId))
+      .where(eq(deals.id, dealId))
       .returning();
 
-    res.json({ file: newFile, contact: updated });
+    res.json({ file: newFile, deal: updated });
   } catch (error) {
-    console.error('[CRM] Error uploading seller file:', error);
+    console.error('[CRM] Error uploading deal file:', error);
     res.status(500).json({ error: 'Failed to upload file' });
   }
 });
 
-// DELETE /sellers/:id/files/:filename - Remove an uploaded seller file
-router.delete('/sellers/:id/files/:filename', async (req, res) => {
+// DELETE /deals/:id/files/:filename - Remove an uploaded deal file
+router.delete('/deals/:id/files/:filename', async (req, res) => {
   if (!req.isAuthenticated()) return res.sendStatus(401);
 
   try {
-    const contactId = parseInt(req.params.id);
+    const dealId = parseInt(req.params.id);
     const filename = req.params.filename;
     const orgData = await getUserOrganization(req.user!.id);
     if (!orgData) return res.status(404).json({ error: 'Organization not found' });
 
-    const [contact] = await db
+    const [deal] = await db
       .select()
-      .from(crmContacts)
-      .where(and(eq(crmContacts.id, contactId), eq(crmContacts.organizationId, orgData.organization.id)));
+      .from(deals)
+      .where(and(eq(deals.id, dealId), eq(deals.organizationId, orgData.organization.id), isNull(deals.deletedAt)));
 
-    if (!contact) return res.status(404).json({ error: 'Contact not found' });
+    if (!deal) return res.status(404).json({ error: 'Deal not found' });
 
-    const existingFiles = (contact.sellerFiles as any[]) || [];
+    const existingFiles = (deal.files as any[]) || [];
     const updatedFiles = existingFiles.filter((f: any) => f.path !== filename);
 
     if (updatedFiles.length === existingFiles.length) {
@@ -9436,50 +9320,50 @@ router.delete('/sellers/:id/files/:filename', async (req, res) => {
     }
 
     // Delete file from disk
-    const filePath = path.join(sellerUploadsDir, filename);
+    const filePath = path.join(dealUploadsDir, filename);
     await fs.unlink(filePath).catch(() => {});
 
     const [updated] = await db
-      .update(crmContacts)
+      .update(deals)
       .set({
-        sellerFiles: updatedFiles,
+        files: updatedFiles,
         updatedAt: new Date(),
       })
-      .where(eq(crmContacts.id, contactId))
+      .where(eq(deals.id, dealId))
       .returning();
 
     res.json(updated);
   } catch (error) {
-    console.error('[CRM] Error deleting seller file:', error);
+    console.error('[CRM] Error deleting deal file:', error);
     res.status(500).json({ error: 'Failed to delete file' });
   }
 });
 
-// GET /sellers/:id/files/:filename - Download a seller file
-router.get('/sellers/:id/files/:filename', async (req, res) => {
+// GET /deals/:id/files/:filename - Download a deal file
+router.get('/deals/:id/files/:filename', async (req, res) => {
   if (!req.isAuthenticated()) return res.sendStatus(401);
 
   try {
-    const contactId = parseInt(req.params.id);
+    const dealId = parseInt(req.params.id);
     const filename = req.params.filename;
     const orgData = await getUserOrganization(req.user!.id);
     if (!orgData) return res.status(404).json({ error: 'Organization not found' });
 
-    const [contact] = await db
+    const [deal] = await db
       .select()
-      .from(crmContacts)
-      .where(and(eq(crmContacts.id, contactId), eq(crmContacts.organizationId, orgData.organization.id)));
+      .from(deals)
+      .where(and(eq(deals.id, dealId), eq(deals.organizationId, orgData.organization.id), isNull(deals.deletedAt)));
 
-    if (!contact) return res.status(404).json({ error: 'Contact not found' });
+    if (!deal) return res.status(404).json({ error: 'Deal not found' });
 
-    const existingFiles = (contact.sellerFiles as any[]) || [];
+    const existingFiles = (deal.files as any[]) || [];
     const file = existingFiles.find((f: any) => f.path === filename);
     if (!file) return res.status(404).json({ error: 'File not found' });
 
-    const filePath = path.join(sellerUploadsDir, filename);
+    const filePath = path.join(dealUploadsDir, filename);
     res.download(filePath, file.name);
   } catch (error) {
-    console.error('[CRM] Error downloading seller file:', error);
+    console.error('[CRM] Error downloading deal file:', error);
     res.status(500).json({ error: 'Failed to download file' });
   }
 });

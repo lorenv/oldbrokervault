@@ -139,14 +139,8 @@ export function registerExportRoutes(app: Express) {
 
       // Get the base URL from the request
       const protocol = req.headers['x-forwarded-proto'] || 'https';
-      const host = req.headers.host || 'brokervault.ai';
-      // Use production domain for image URLs in production environment
-      let baseUrl;
-      if (process.env.NODE_ENV === 'production' || host?.includes('brokervault.ai')) {
-        baseUrl = 'https://brokervault.ai';
-      } else {
-        baseUrl = `${protocol}://${host}`;
-      }
+      const host = req.headers.host || req.get('host') || '';
+      let baseUrl = `${protocol}://${host}`;
 
       // Get user's PDF template preferences
       const pdfTemplate = userProfile.pdfBackgroundTemplate || 'classic';
@@ -309,12 +303,7 @@ export function registerExportRoutes(app: Express) {
       // Use production domain for image URLs in production environment
       const protocol = req.headers['x-forwarded-proto'] || req.protocol;
       const host = req.get('host');
-      let baseUrl;
-      if (process.env.NODE_ENV === 'production' || host?.includes('brokervault.ai')) {
-        baseUrl = 'https://brokervault.ai';
-      } else {
-        baseUrl = `${protocol}://${host}`;
-      }
+      let baseUrl = `${protocol}://${host}`;
 
       const html = generateHtml(doc.analysis, doc.logoUrl || undefined, userProfile, doc.websiteUrl || undefined, doc.selectedImages ? doc.selectedImages : undefined, financialData, financialFilesList, baseUrl);
 

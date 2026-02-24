@@ -19,11 +19,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronDown, ChevronUp, Filter, X, Plus } from "lucide-react";
 import type { DealFilters, CustomFieldFilterValue } from "@/hooks/use-deal-filters";
 
-interface Company {
-  id: number;
-  name: string;
-}
-
 interface Owner {
   id: number;
   name: string;
@@ -43,7 +38,6 @@ interface AdvancedFiltersProps {
   onFilterChange: <K extends keyof DealFilters>(key: K, value: DealFilters[K]) => void;
   onCustomFieldFilterChange: (fieldName: string, value: CustomFieldFilterValue) => void;
   onClearFilters: () => void;
-  companies: Company[];
   owners: Owner[];
   customFields?: CustomField[];
   activeFilterCount: number;
@@ -54,7 +48,6 @@ export function DealsAdvancedFilters({
   onFilterChange,
   onCustomFieldFilterChange,
   onClearFilters,
-  companies,
   owners,
   customFields = [],
   activeFilterCount,
@@ -167,33 +160,6 @@ export function DealsAdvancedFilters({
                   className="h-8 text-sm bg-background"
                 />
               </div>
-            </div>
-
-            {/* Company Filter */}
-            <div className="space-y-2">
-              <Label className="text-xs font-medium text-muted-foreground">Company</Label>
-              <Select
-                value={filters.companies.length === 1 ? filters.companies[0].toString() : 'all'}
-                onValueChange={(value) => {
-                  if (value === 'all') {
-                    onFilterChange('companies', []);
-                  } else {
-                    onFilterChange('companies', [parseInt(value)]);
-                  }
-                }}
-              >
-                <SelectTrigger className="h-8 text-sm bg-background">
-                  <SelectValue placeholder="All Companies" />
-                </SelectTrigger>
-                <SelectContent position="popper" className="z-50 max-h-60">
-                  <SelectItem value="all">All Companies</SelectItem>
-                  {companies.map((company) => (
-                    <SelectItem key={company.id} value={company.id.toString()}>
-                      {company.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
 
             {/* Owner Filter */}

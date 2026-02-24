@@ -26,7 +26,7 @@ import type {
 const GMAIL_CLIENT_ID = process.env.GMAIL_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || '';
 const GMAIL_CLIENT_SECRET = process.env.GMAIL_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET || '';
 const GMAIL_REDIRECT_URI = process.env.GMAIL_REDIRECT_URI ||
-  `${process.env.BASE_URL || 'https://brokervault.ai'}/api/integrations/oauth/callback/gmail`;
+  `${process.env.BASE_URL || ''}/api/integrations/oauth/callback/gmail`;
 
 // Gmail API scopes
 // Read-only by default for safety - upgrade to modify if needed

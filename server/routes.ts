@@ -87,6 +87,8 @@ import { registerUtilityRoutes } from "./routes/utility-misc-routes";
 import { registerNdaWhitelistRoutes } from "./routes/nda-whitelist-routes";
 import { registerNdaHubRoutes } from "./routes/nda-hub-routes";
 import { registerBuyerSurveyRoutes } from "./routes/buyer-survey-routes";
+import { registerSellerIntakeRoutes } from "./routes/seller-intake-routes";
+import { registerDealNdaRoutes } from "./routes/deal-nda-routes";
 import { upload, isAuthorizedAdmin, hasPremiumAccess, aiGenerationLimiter, hashSharePassword, verifySharePassword, readFileFromDisk, cleanupTempFile, cleanupTempFilePath, largeFileUpload, addRoundedCorners } from "./route-utils";
 
 // Directory paths
@@ -206,6 +208,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerNdaWhitelistRoutes(app);
   registerNdaHubRoutes(app);
   registerBuyerSurveyRoutes(app);
+  registerSellerIntakeRoutes(app);
+  registerDealNdaRoutes(app);
 
   // CIM Document Routes with file upload support
 
@@ -355,7 +359,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const cimCreatedPayload = {
           cim_id: doc.id,
           title: doc.title,
-          share_url: doc.shareSlug ? `${process.env.BASE_URL || 'https://brokervault.ai'}/share/${doc.shareSlug}` : null,
+          share_url: doc.shareSlug ? `${req.protocol}://${req.get('host')}/share/${doc.shareSlug}` : null,
           created_at: doc.createdAt,
           document: { id: doc.id, title: doc.title },
         };
@@ -2402,7 +2406,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Dispatch cim.published event when document is made public
       if (isPublic && !doc.shareEnabled) {
-        const baseUrl = process.env.BASE_URL || 'https://brokervault.ai';
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
         const shareUrl = updatedDoc.customSlug
           ? `${baseUrl}/share/${updatedDoc.customSlug}`
           : `${baseUrl}/share/${updatedDoc.shareSlug}`;

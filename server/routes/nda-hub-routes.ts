@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { storage } from "../storage";
 import { db } from "../db";
-import { ndaSignatures, ndaAccessTokens, cimDocuments, deals, organizationMembers } from "@shared/schema";
+import { ndaSignatures, ndaAccessTokens, cimDocuments, deals, organizationMembers, dealNdas } from "@shared/schema";
 import { eq, and, or, inArray, desc, asc, isNull, ilike, sql } from "drizzle-orm";
 import { sendApprovalEmail, sendRejectionEmail } from "../email";
 import { dispatchWebhookEvent } from "../webhook-dispatcher";
@@ -112,11 +112,12 @@ export function registerNdaHubRoutes(app: Express) {
           : ndaSignatures.signedAt;
       const orderFn = sortOrder === "asc" ? asc : desc;
 
-      // Get signatures
+      // Get signatures (including dealNdaId for deal-level NDA tracking)
       const signatures = await db
         .select({
           id: ndaSignatures.id,
           cimDocumentId: ndaSignatures.cimDocumentId,
+          dealNdaId: ndaSignatures.dealNdaId,
           signerName: ndaSignatures.signerName,
           signerEmail: ndaSignatures.signerEmail,
           signerLocation: ndaSignatures.signerLocation,
@@ -148,10 +149,22 @@ export function registerNdaHubRoutes(app: Express) {
         dealMap = new Map(dealRows.map((d) => [d.id, d.name]));
       }
 
+      // Get deal NDA names for signatures that came through deal NDAs
+      const dealNdaIds = Array.from(new Set(signatures.filter((s) => s.dealNdaId).map((s) => s.dealNdaId!)));
+      let dealNdaMap = new Map<number, { name: string | null; dealId: number }>();
+      if (dealNdaIds.length > 0) {
+        const ndaRows = await db
+          .select({ id: dealNdas.id, name: dealNdas.name, dealId: dealNdas.dealId })
+          .from(dealNdas)
+          .where(inArray(dealNdas.id, dealNdaIds));
+        dealNdaMap = new Map(ndaRows.map((n) => [n.id, { name: n.name, dealId: n.dealId }]));
+      }
+
       // Format response
       const formattedSignatures = signatures.map((sig) => {
         const doc = docMap.get(sig.cimDocumentId);
-        const sigDealId = doc?.dealId || null;
+        const ndaInfo = sig.dealNdaId ? dealNdaMap.get(sig.dealNdaId) : null;
+        const sigDealId = ndaInfo?.dealId || doc?.dealId || null;
         return {
           id: sig.id,
           signerName: sig.signerName,
@@ -167,6 +180,8 @@ export function registerNdaHubRoutes(app: Express) {
           documentTitle: doc?.title || "Unknown Document",
           dealId: sigDealId,
           dealName: sigDealId ? dealMap.get(sigDealId) || null : null,
+          dealNdaId: sig.dealNdaId || null,
+          dealNdaName: ndaInfo?.name || null,
         };
       });
 

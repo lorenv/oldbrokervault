@@ -168,6 +168,8 @@ export default function FillableNdaDocument({
     signatureFields.forEach(field => {
       if (field.type === 'name' && prefilledName) {
         initialValues[field.id] = prefilledName;
+      } else if (field.type === 'signature' && prefilledName) {
+        initialValues[field.id] = prefilledName;
       } else if (field.type === 'email' && prefilledEmail) {
         initialValues[field.id] = prefilledEmail;
       } else if (field.type === 'date') {

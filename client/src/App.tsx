@@ -30,6 +30,8 @@ const ListingsPage = lazy(() => import("@/pages/listings-page").then(m => ({ def
 const NdaRedirectPage = lazy(() => import("@/pages/nda-redirect-page").then(m => ({ default: m.NdaRedirectPage })));
 const NdaStatusPage = lazy(() => import("@/pages/nda-status-page").then(m => ({ default: m.NdaStatusPage })));
 const BuyerFormPage = lazy(() => import("@/pages/buyer-form-page").then(m => ({ default: m.BuyerFormPage })));
+const SellerIntakePage = lazy(() => import("@/pages/seller-intake-page").then(m => ({ default: m.SellerIntakePage })));
+const DealNdaPage = lazy(() => import("@/pages/deal-nda-page").then(m => ({ default: m.DealNdaPage })));
 const UnsubscribePage = lazy(() => import("@/pages/unsubscribe-page").then(m => ({ default: m.UnsubscribePage })));
 const AcceptCollaborationPage = lazy(() => import("@/pages/accept-collaboration-page").then(m => ({ default: m.AcceptCollaborationPage })));
 const InvitationLandingPage = lazy(() => import("@/pages/invitation-landing-page").then(m => ({ default: m.InvitationLandingPage })));
@@ -60,6 +62,7 @@ const EmailSettingsPage = lazy(() => import("@/pages/settings/email-settings-pag
 const PipelineSettingsPage = lazy(() => import("@/pages/settings/pipeline-settings-page"));
 const NdaWhitelistPage = lazy(() => import("@/pages/settings/nda-whitelist-page"));
 const BuyerSurveysPage = lazy(() => import("@/pages/settings/buyer-surveys-page"));
+const SellerIntakeSettingsPage = lazy(() => import("@/pages/settings/seller-intake-page"));
 
 // Lazy-loaded CRM Pages
 const DealsPage = lazy(() => import("@/pages/crm/deals-page"));
@@ -218,6 +221,7 @@ function AuthenticatedRouter() {
         <ProtectedRoute path="/settings/nda-templates" component={NdaTemplatesPage} />
         <ProtectedRoute path="/settings/nda-whitelist" component={NdaWhitelistPage} />
         <ProtectedRoute path="/settings/buyer-surveys" component={BuyerSurveysPage} />
+        <ProtectedRoute path="/settings/seller-intake" component={SellerIntakeSettingsPage} />
 
         {/* Legacy settings routes - redirect to new pages */}
         <ProtectedRoute path="/settings/account" component={ProfilePage} />
@@ -275,7 +279,9 @@ function PublicRouter() {
       <Route path="/listings/:slug" component={ListingsPage} />
       <Route path="/nda/redirect/:redirectId" component={NdaRedirectPage} />
       <Route path="/nda/status/:token" component={NdaStatusPage} />
+      <Route path="/nda/:shareSlug" component={DealNdaPage} />
       <Route path="/buyer-form/:token" component={BuyerFormPage} />
+      <Route path="/sell/:slug" component={SellerIntakePage} />
       <Route path="/share/:shareSlug/sign-nda" component={EnhancedNdaSigningPage} />
       <Route path="/sign/:accessToken" component={SignDocumentPage} />
 

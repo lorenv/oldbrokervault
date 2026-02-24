@@ -2,7 +2,7 @@ import type { Express } from 'express';
 import { storage } from '../storage';
 import { db } from '../db';
 import { eq, and, sql, desc } from 'drizzle-orm';
-import { financialFiles } from '@shared/schema';
+import { financialFiles, dealNdas } from '@shared/schema';
 import { shareLimiter, verifySharePassword, hashSharePassword, addRoundedCorners } from '../route-utils';
 import { objectStorage } from '../object-storage';
 import { generateWordDocument, generatePDF } from '../document-export';
@@ -177,19 +177,45 @@ export function registerSharingRoutes(app: Express) {
         // Ignore errors fetching owner profile
       }
 
+      // Check for an active deal NDA protecting this CIM
+      let ndaShareSlug: string | null = null;
+      let dealNdaApprovalRequired = false;
+      try {
+        const [activeDealNda] = await db
+          .select({ shareSlug: dealNdas.shareSlug, approvalRequired: dealNdas.approvalRequired })
+          .from(dealNdas)
+          .where(and(
+            eq(dealNdas.cimDocumentId, cimDoc.id),
+            eq(dealNdas.isActive, true),
+            eq(dealNdas.shareEnabled, true)
+          ))
+          .limit(1);
+
+        if (activeDealNda) {
+          ndaShareSlug = activeDealNda.shareSlug;
+          dealNdaApprovalRequired = activeDealNda.approvalRequired;
+        }
+      } catch {
+        // Ignore errors looking up deal NDAs
+      }
+
+      const hasDealNda = !!ndaShareSlug;
+      const requiresNda = hasDealNda
+        ? !isOwner && !isCollaborator
+        : Boolean(cimDoc.ndaProtected) && !isOwner && !isCollaborator;
+
       const result = {
-        requiresNda: Boolean(cimDoc.ndaProtected) && !isOwner && !isCollaborator, // Bypass NDA for owner and collaborators
-        requiresApproval: Boolean(cimDoc.ndaApprovalRequired),
+        requiresNda,
+        requiresApproval: hasDealNda ? dealNdaApprovalRequired : Boolean(cimDoc.ndaApprovalRequired),
         title: cimDoc.title || 'Untitled Document',
         documentId: cimDoc.id,
         isOwner: isOwner,
         isCollaborator: isCollaborator,
-        bypassedNda: (isOwner || isCollaborator) && Boolean(cimDoc.ndaProtected), // Let frontend know NDA was bypassed
+        bypassedNda: (isOwner || isCollaborator) && (hasDealNda || Boolean(cimDoc.ndaProtected)),
         currentUserId: req.user?.id || null,
-        ownerBusinessLogo: ownerBusinessLogo
+        ownerBusinessLogo: ownerBusinessLogo,
+        ndaShareSlug: requiresNda ? ndaShareSlug : null, // Share slug for deal NDA signing page redirect
       };
-
-      // Skip caching to avoid import issues
 
       res.json(result);
 
@@ -215,7 +241,7 @@ export function registerSharingRoutes(app: Express) {
         const cacheModule = await import('../cache');
         shareCache = cacheModule.shareCache;
         CACHE_TTL = cacheModule.CACHE_TTL;
-        cacheKey = shareCache.keys.shareDocument(shareSlug);
+        cacheKey = (shareCache as any).keys.shareDocument(shareSlug);
         cachedData = shareCache.get(cacheKey);
 
         if (cachedData && !token) {
@@ -223,7 +249,7 @@ export function registerSharingRoutes(app: Express) {
           return res.json(cachedData);
         }
       } catch (cacheError) {
-        console.log("Cache unavailable, proceeding without cache:", cacheError.message);
+        console.log("Cache unavailable, proceeding without cache:", (cacheError as Error).message);
       }
 
       // Immediate validation
@@ -232,11 +258,11 @@ export function registerSharingRoutes(app: Express) {
       }
 
       // PERFORMANCE OPTIMIZATION 1: Use reliable database query with timeout protection
-      let cimDoc;
+      let cimDoc: Awaited<ReturnType<typeof storage.getCimByShareSlug>>;
       try {
         cimDoc = await Promise.race([
           storage.getCimByShareSlugOptimized(shareSlug),
-          new Promise((_, reject) =>
+          new Promise<never>((_, reject) =>
             setTimeout(() => reject(new Error('Query timeout')), 6000)
           )
         ]);
@@ -333,7 +359,7 @@ export function registerSharingRoutes(app: Express) {
                 cim_id: cimDoc.id,
                 title: cimDoc.title,
                 viewer_email: accessToken.signerEmail,
-                viewer_name: accessToken.signerName,
+                viewer_name: accessToken.signerEmail,
                 viewer_type: 'nda_signer',
                 viewed_at: new Date().toISOString(),
               };
@@ -415,7 +441,7 @@ export function registerSharingRoutes(app: Express) {
         })()
         ]);
       } catch (error) {
-        console.log("Parallel query failed, using fallback:", error.message);
+        console.log("Parallel query failed, using fallback:", (error as Error).message);
         // Fallback to sequential standard queries
         userProfile = await storage.getUser(cimDoc.userId);
         customSections = await storage.getCustomSections(cimDoc.id);
@@ -434,13 +460,7 @@ export function registerSharingRoutes(app: Express) {
       const protocol = req.headers['x-forwarded-proto'] || req.protocol;
       const host = req.get('host');
 
-      // Use production domain for image URLs - force brokervault.ai for any production request
-      let baseUrl;
-      if (host?.includes('brokervault.ai') || req.headers['x-forwarded-host']?.includes('brokervault.ai') || req.headers.host?.includes('brokervault.ai')) {
-        baseUrl = 'https://brokervault.ai';
-      } else {
-        baseUrl = `${protocol}://${host}`;
-      }
+      let baseUrl = `${protocol}://${host}`;
 
       // Enhanced URL processing function for all image types
       const processImageUrl = (url: string | null) => {
@@ -467,7 +487,7 @@ export function registerSharingRoutes(app: Express) {
 
       // Process images and URLs in parallel
       const [absoluteSelectedImages, absoluteLogoUrl, ndaUrl] = [
-        (cimDoc.selectedImages || []).map(processImageUrl).filter(Boolean),
+        (cimDoc.selectedImages || []).map(processImageUrl).filter((x): x is string => Boolean(x)),
         processImageUrl(cimDoc.logoUrl),
         cimDoc.ndaProtected ? `${baseUrl}/nda/${shareSlug}` : null
       ];
@@ -564,10 +584,10 @@ export function registerSharingRoutes(app: Express) {
       // PERFORMANCE OPTIMIZATION 7: Cache successful responses (except when using tokens)
       if (shareCache && !token && !cimDoc.ndaProtected) {
         try {
-          shareCache.set(cacheKey, responseData, CACHE_TTL.SHARE_DOCUMENT);
+          shareCache.set(cacheKey, responseData, CACHE_TTL?.SHARE_DOCUMENT);
           console.log("Response cached for future requests");
         } catch (cacheError) {
-          console.log("Cache write failed:", cacheError.message);
+          console.log("Cache write failed:", (cacheError as Error).message);
         }
       }
 
@@ -677,14 +697,8 @@ export function registerSharingRoutes(app: Express) {
 
       // Get the base URL from the request
       const protocol = req.headers['x-forwarded-proto'] || 'https';
-      const host = req.headers.host || 'brokervault.ai';
-      // Use production domain for image URLs in production environment
-      let baseUrl;
-      if (process.env.NODE_ENV === 'production' || host?.includes('brokervault.ai')) {
-        baseUrl = 'https://brokervault.ai';
-      } else {
-        baseUrl = `${protocol}://${host}`;
-      }
+      const host = req.headers.host || req.get('host') || '';
+      let baseUrl = `${protocol}://${host}`;
 
       // Process user profile images for PDF generation using same logic as share route
       const processImageUrl = (url: string | null) => {
@@ -725,7 +739,7 @@ export function registerSharingRoutes(app: Express) {
 
       // Process logo URL and selected images with proper URL conversion for PDF export
       const processedLogoUrl = processImageUrl(cimDoc.logoUrl);
-      const processedSelectedImages = (cimDoc.selectedImages || []).map(processImageUrl).filter(Boolean);
+      const processedSelectedImages = (cimDoc.selectedImages || []).map(processImageUrl).filter((x): x is string => Boolean(x));
       const processedCoverImageUrl = processImageUrl(cimDoc.coverImageUrl);
 
       // Process custom section images for PDF export (similar to share route processing)
@@ -764,12 +778,9 @@ export function registerSharingRoutes(app: Express) {
           console.log(`File ${index}:`, {
             id: file.id,
             filename: file.filename,
-            file_size: file.file_size,
             fileSize: file.fileSize,
-            cim_document_id: file.cim_document_id,
             cimDocumentId: file.cimDocumentId,
-            filePath: file.filePath,
-            file_path: file.file_path
+            filePath: file.filePath
           });
         });
       } else {
@@ -785,7 +796,7 @@ export function registerSharingRoutes(app: Express) {
       const brandedPdfTemplate = userProfile.brandedPdfTemplate || 'none';
 
       // Build effective brand colors: use user-selected colors if set, otherwise fall back to extracted colors
-      const extractedColors = userProfile.brandColors || [];
+      const extractedColors = (userProfile.brandColors || []) as string[];
       const effectivePrimaryColor = userProfile.pdfPrimaryColor || (extractedColors[0] as string) || '#3b82f6';
       const effectiveSecondaryColor = userProfile.pdfSecondaryColor || (extractedColors[1] as string) || '#e5e7eb';
       const brandColors = [effectivePrimaryColor, effectiveSecondaryColor];

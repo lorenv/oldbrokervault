@@ -17,6 +17,7 @@ import {
   Upload,
   Shield,
   ClipboardList,
+  Store,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -175,6 +176,14 @@ const settingsNavSections: SettingsNavSection[] = [
         viewPermission: "settings.branding.view",
         editPermission: "settings.branding.edit",
       },
+      {
+        label: "Seller Intake Form",
+        icon: Store,
+        href: "/settings/seller-intake",
+        description: "Public seller intake form",
+        viewPermission: "settings.branding.view",
+        editPermission: "settings.branding.edit",
+      },
     ],
   },
 ];
@@ -200,6 +209,7 @@ const routePermissions: Record<string, { view?: PermissionKey; edit?: Permission
   '/settings/nda-templates': { view: 'settings.branding.view', edit: 'settings.branding.edit' },
   '/settings/nda-whitelist': { view: 'settings.branding.view', edit: 'settings.branding.edit' },
   '/settings/buyer-surveys': { view: 'settings.branding.view', edit: 'settings.branding.edit' },
+  '/settings/seller-intake': { view: 'settings.branding.view', edit: 'settings.branding.edit' },
 };
 
 interface SettingsLayoutProps {
@@ -323,7 +333,7 @@ export function SettingsLayout({ children, title, description }: SettingsLayoutP
                             <Icon className={cn("h-4 w-4", active ? "text-blue-600" : "text-gray-500")} />
                             <span className="flex-1">{item.label}</span>
                             {isViewOnly && (
-                              <Eye className="h-3 w-3 text-gray-400" title="View only" />
+                              <Eye className="h-3 w-3 text-gray-400" aria-label="View only" />
                             )}
                           </Link>
                         </li>

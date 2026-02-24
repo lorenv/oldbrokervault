@@ -382,6 +382,7 @@ export const ndaAuditLog = pgTable("nda_audit_log", {
 export const ndaSignatures = pgTable("nda_signatures", {
   id: serial("id").primaryKey(),
   cimDocumentId: integer("cim_document_id").notNull(),
+  dealNdaId: integer("deal_nda_id"), // FK to dealNdas (nullable for legacy CIM-level signatures)
   shareSlug: text("share_slug"),
   signerName: text("signer_name").notNull(),
   signerEmail: text("signer_email").notNull(),
@@ -408,6 +409,7 @@ export const ndaAccessTokens = pgTable("nda_access_tokens", {
   id: serial("id").primaryKey(),
   token: text("token").unique().notNull(), // Unique secure token
   cimDocumentId: integer("cim_document_id").notNull(),
+  dealNdaId: integer("deal_nda_id"), // FK to dealNdas (nullable for legacy CIM-level tokens)
   ndaSignatureId: integer("nda_signature_id").notNull(),
   signerEmail: text("signer_email").notNull(),
   isActive: boolean("is_active").default(true).notNull(),
@@ -857,7 +859,8 @@ export const insertNdaSignatureSchema = createInsertSchema(ndaSignatures).pick({
 }).extend({
   shareSlug: z.string().optional(),
   fieldValues: z.record(z.string()).optional(), // Field ID to value mapping
-  signingSessionId: z.number().optional()
+  signingSessionId: z.number().optional(),
+  dealNdaId: z.number().optional()
 });
 
 // E-Signature Signing Session Schema
@@ -2615,27 +2618,6 @@ export const crmContacts = pgTable("crm_contacts", {
   lastScoredAt: timestamp("last_scored_at"),
   isActiveBuyer: boolean("is_active_buyer"),
 
-  // Seller-specific fields (populated when contactType = 'seller')
-  sellerStage: text("seller_stage"), // lead, meeting, proposal, engaged
-  sellerMotivation: text("seller_motivation"), // retirement, burnout, partner_dispute, health, relocation, new_venture, other
-  sellerTimeline: text("seller_timeline"), // immediate, 3_months, 6_months, 12_months, flexible
-  sellerEngagementStatus: text("seller_engagement_status"), // prospect, contacted, meeting_scheduled, proposal_sent, engaged, on_hold, lost
-  sellerEngagementSignedAt: timestamp("seller_engagement_signed_at"),
-  sellerAskingPrice: text("seller_asking_price"),
-  sellerListingStatus: text("seller_listing_status"), // not_listed, preparing, active, under_loi, closed
-  sellerSource: text("seller_source"), // referral, direct_marketing, inbound, cold_outreach, other
-  sellerReferredBy: text("seller_referred_by"),
-  sellerNotes: text("seller_notes"),
-
-  // Seller preliminary business financials (captured during lead phase before Deal exists)
-  sellerRevenueRange: text("seller_revenue_range"), // e.g. "under_500k", "500k_1m", "1m_5m", "5m_10m", "10m_25m", "25m_plus"
-  sellerProfitRange: text("seller_profit_range"), // e.g. "under_100k", "100k_250k", "250k_500k", "500k_1m", "1m_5m"
-  sellerIndustry: text("seller_industry"),
-  sellerBusinessDescription: text("seller_business_description"),
-
-  // Seller file uploads (financials, tax returns, etc. shared during lead phase)
-  sellerFiles: jsonb("seller_files"), // Array of { name, path, uploadedAt, type }
-
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
@@ -2704,9 +2686,6 @@ export const deals = pgTable("deals", {
   // Ownership
   ownerId: integer("owner_id"), // FK to organization_members
 
-  // Company association
-  companyId: integer("company_id"), // FK to companies
-
   // Custom properties
   customProperties: jsonb("custom_properties").default({}).notNull(),
 
@@ -2719,6 +2698,27 @@ export const deals = pgTable("deals", {
 
   // Priority
   priority: text("priority").default("normal"), // low, normal, high
+
+  // Business details (deal-level, not contact-level)
+  askingPrice: text("asking_price"),
+  revenueRange: text("revenue_range"), // under_500k, 500k_1m, 1m_5m, 5m_10m, 10m_25m, 25m_plus
+  profitRange: text("profit_range"), // under_100k, 100k_250k, 250k_500k, 500k_1m, 1m_5m
+  industry: text("industry"),
+  businessDescription: text("business_description"),
+  listingStatus: text("listing_status"), // not_listed, preparing, active, under_loi, closed
+
+  // Seller engagement context
+  sellerMotivation: text("seller_motivation"), // retirement, burnout, partner_dispute, health, relocation, new_venture, other
+  sellerTimeline: text("seller_timeline"), // immediate, 3_months, 6_months, 12_months, flexible
+  engagementStatus: text("engagement_status"), // prospect, contacted, meeting_scheduled, proposal_sent, engaged, on_hold, lost
+  engagementSignedAt: timestamp("engagement_signed_at"),
+
+  // Deal source tracking
+  dealSource: text("deal_source"), // referral, direct_marketing, inbound, cold_outreach, intake_form, other
+  referredBy: text("referred_by"),
+
+  // File uploads (financials, tax returns, etc.)
+  files: jsonb("files"), // Array of { name, path, uploadedAt, type }
 
   // Soft delete
   deletedAt: timestamp("deleted_at"),
@@ -2746,6 +2746,23 @@ export const dealDocuments = pgTable("deal_documents", {
   cimDocumentId: integer("cim_document_id").notNull(),
 
   linkedAt: timestamp("linked_at").defaultNow().notNull()
+});
+
+// Deal NDAs - Standalone NDA entities linked to deals and CIMs
+export const dealNdas = pgTable("deal_ndas", {
+  id: serial("id").primaryKey(),
+  dealId: integer("deal_id").notNull(),
+  cimDocumentId: integer("cim_document_id").notNull(),
+  organizationId: integer("organization_id").notNull(),
+  ndaTemplateId: integer("nda_template_id"),
+  approvalRequired: boolean("approval_required").default(false).notNull(),
+  copyMeOnEmails: boolean("copy_me_on_emails").default(false).notNull(),
+  shareSlug: text("share_slug").unique().notNull(),
+  shareEnabled: boolean("share_enabled").default(true).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  name: text("name"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 // CRM Notes - Polymorphic notes for deals, contacts, companies
@@ -3487,11 +3504,32 @@ export const insertDealSchema = createInsertSchema(deals).pick({
   closeDate: z.union([z.date(), z.string().transform(s => s ? new Date(s) : null)]).nullable().optional(),
   probability: z.number().min(0).max(100).nullable().optional(),
   ownerId: z.number().nullable().optional(),
-  companyId: z.number().nullable().optional(),
   customProperties: z.record(z.any()).optional(),
   source: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
-  priority: z.enum(['low', 'normal', 'high']).optional()
+  priority: z.enum(['low', 'normal', 'high']).optional(),
+  // Business details
+  askingPrice: z.string().nullable().optional(),
+  revenueRange: z.string().nullable().optional(),
+  profitRange: z.string().nullable().optional(),
+  industry: z.string().nullable().optional(),
+  businessDescription: z.string().nullable().optional(),
+  listingStatus: z.string().nullable().optional(),
+  // Seller engagement context
+  sellerMotivation: z.string().nullable().optional(),
+  sellerTimeline: z.string().nullable().optional(),
+  engagementStatus: z.string().nullable().optional(),
+  engagementSignedAt: z.union([z.date(), z.string().transform(s => s ? new Date(s) : null)]).nullable().optional(),
+  // Source tracking
+  dealSource: z.string().nullable().optional(),
+  referredBy: z.string().nullable().optional(),
+  // Files
+  files: z.array(z.object({
+    name: z.string(),
+    path: z.string(),
+    uploadedAt: z.string(),
+    type: z.string().optional()
+  })).nullable().optional()
 });
 
 export const insertDealContactSchema = createInsertSchema(dealContacts).pick({
@@ -3509,6 +3547,20 @@ export const insertDealDocumentSchema = createInsertSchema(dealDocuments).pick({
 }).extend({
   dealId: z.number().min(1),
   cimDocumentId: z.number().min(1)
+});
+
+export const insertDealNdaSchema = createInsertSchema(dealNdas).pick({
+  dealId: true,
+  cimDocumentId: true,
+  organizationId: true,
+}).extend({
+  dealId: z.number().min(1),
+  cimDocumentId: z.number().min(1),
+  organizationId: z.number().min(1),
+  ndaTemplateId: z.number().nullable().optional(),
+  approvalRequired: z.boolean().optional(),
+  copyMeOnEmails: z.boolean().optional(),
+  name: z.string().nullable().optional(),
 });
 
 export const insertCrmNoteSchema = createInsertSchema(crmNotes).pick({
@@ -3688,6 +3740,9 @@ export type InsertDealContact = z.infer<typeof insertDealContactSchema>;
 
 export type DealDocument = typeof dealDocuments.$inferSelect;
 export type InsertDealDocument = z.infer<typeof insertDealDocumentSchema>;
+
+export type DealNda = typeof dealNdas.$inferSelect;
+export type InsertDealNda = z.infer<typeof insertDealNdaSchema>;
 
 export type CrmNote = typeof crmNotes.$inferSelect;
 export type InsertCrmNote = z.infer<typeof insertCrmNoteSchema>;

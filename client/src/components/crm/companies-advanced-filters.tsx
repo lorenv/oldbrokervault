@@ -22,7 +22,6 @@ export interface CompanyFilters {
   industry: string;
   city: string;
   state: string;
-  hasDeals: boolean | null;
   hasContacts: boolean | null;
   createdFrom: string | null;
   createdTo: string | null;
@@ -33,7 +32,6 @@ export const DEFAULT_COMPANY_FILTERS: CompanyFilters = {
   industry: '',
   city: '',
   state: '',
-  hasDeals: null,
   hasContacts: null,
   createdFrom: null,
   createdTo: null,
@@ -142,17 +140,10 @@ export function CompaniesAdvancedFilters({
             </div>
           </div>
 
-          {/* Has Deals/Contacts */}
+          {/* Has Contacts */}
           <div className="space-y-2">
             <Label className="text-xs font-medium text-gray-700">Company Status</Label>
             <div className="flex flex-wrap gap-2">
-              <Badge
-                variant={filters.hasDeals === true ? "default" : "outline"}
-                className="cursor-pointer hover:bg-gray-100"
-                onClick={() => updateFilter('hasDeals', filters.hasDeals === true ? null : true)}
-              >
-                Has Deals
-              </Badge>
               <Badge
                 variant={filters.hasContacts === true ? "default" : "outline"}
                 className="cursor-pointer hover:bg-gray-100"

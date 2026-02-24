@@ -31,7 +31,6 @@ import {
   MapPin,
   Phone,
   Users,
-  Briefcase,
   CheckSquare,
   Plus,
   Mail,
@@ -152,11 +151,8 @@ export default function CompanyDetailPage() {
 
   // Association dialog state
   const [isLinkContactOpen, setIsLinkContactOpen] = useState(false);
-  const [isLinkDealOpen, setIsLinkDealOpen] = useState(false);
   const [contactSearch, setContactSearch] = useState("");
-  const [dealSearch, setDealSearch] = useState("");
   const [selectedContactId, setSelectedContactId] = useState<string>("");
-  const [selectedDealId, setSelectedDealId] = useState<string>("");
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   // Sidebar collapse state - persisted to localStorage
@@ -208,31 +204,15 @@ export default function CompanyDetailPage() {
   });
   const allContacts = contactsData?.contacts || [];
 
-  // Fetch all deals for linking
-  const { data: dealsData } = useQuery<{ deals: any[] }>({
-    queryKey: ["/api/crm/deals"],
-    queryFn: () => apiRequest("GET", "/api/crm/deals").then(res => res.json()),
-  });
-  const allDeals = dealsData?.deals || [];
-
   // Filter available contacts (exclude already associated contacts)
   const availableContacts = allContacts.filter(
     (contact) => !(company as any)?.contacts?.some((c: any) => c.id === contact.id)
-  );
-
-  // Filter available deals (exclude already associated deals)
-  const availableDeals = allDeals.filter(
-    (deal) => !(company as any)?.deals?.some((d: any) => d.id === deal.id)
   );
 
   // Filtered lists based on search
   const filteredContacts = availableContacts.filter((contact) =>
     `${contact.firstName} ${contact.lastName}`.toLowerCase().includes(contactSearch.toLowerCase()) ||
     contact.email?.toLowerCase().includes(contactSearch.toLowerCase())
-  );
-
-  const filteredDeals = availableDeals.filter((deal) =>
-    deal.name?.toLowerCase().includes(dealSearch.toLowerCase())
   );
 
   // Mutation to link contact to company
@@ -250,24 +230,6 @@ export default function CompanyDetailPage() {
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to link contact.", variant: "destructive" });
-    },
-  });
-
-  // Mutation to link deal to company
-  const linkDealMutation = useMutation({
-    mutationFn: (dealId: number) =>
-      apiRequest("PATCH", `/api/crm/deals/${dealId}`, { body: { companyId: parseInt(id!) } }).then(res => res.json()),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/companies"], refetchType: 'all' });
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/deals"], refetchType: 'all' });
-      setIsLinkDealOpen(false);
-      setSelectedDealId("");
-      setDealSearch("");
-      toast({ title: "Deal linked", description: "Deal has been associated with this company." });
-    },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to link deal.", variant: "destructive" });
     },
   });
 
@@ -884,51 +846,6 @@ export default function CompanyDetailPage() {
                 )}
               </div>
 
-              {/* Deals */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Deals</h4>
-                  {(company as any).deals?.length > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setIsLinkDealOpen(true)}
-                      className="h-6 px-2 text-gray-500 hover:text-gray-700"
-                    >
-                      <Plus className="h-3 w-3 mr-1" />
-                      Add
-                    </Button>
-                  )}
-                </div>
-                {(company as any).deals?.length > 0 ? (
-                  <div className="space-y-2">
-                    {(company as any).deals.map((deal: any) => (
-                      <Link
-                        key={deal.id}
-                        href={`/deals/${deal.id}`}
-                        className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition-colors"
-                      >
-                        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                          <Briefcase className="h-4 w-4 text-green-600" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-gray-900 truncate">{deal.name}</p>
-                          {deal.amount && <p className="text-sm text-green-600">${parseFloat(deal.amount).toLocaleString()}</p>}
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                      </Link>
-                    ))}
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setIsLinkDealOpen(true)}
-                    className="w-full flex flex-col items-center gap-2 py-4 px-3 border border-dashed border-gray-300 rounded-lg text-gray-400 hover:border-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
-                  >
-                    <Briefcase className="h-5 w-5" />
-                    <span className="text-sm">Link a deal</span>
-                  </button>
-                )}
-              </div>
             </CardContent>
           </Card>
             </div>
@@ -1033,75 +950,6 @@ export default function CompanyDetailPage() {
               disabled={!selectedContactId || linkContactMutation.isPending}
             >
               {linkContactMutation.isPending ? "Linking..." : "Link Contact"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Link Deal Dialog */}
-      <Dialog open={isLinkDealOpen} onOpenChange={setIsLinkDealOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Link Deal</DialogTitle>
-            <DialogDescription>
-              Associate a deal with this company.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search deals..."
-                value={dealSearch}
-                onChange={(e) => setDealSearch(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-
-            {/* Deal List */}
-            <div className="max-h-64 overflow-y-auto border rounded-lg">
-              {filteredDeals.length > 0 ? (
-                filteredDeals.map((deal) => (
-                  <button
-                    key={deal.id}
-                    onClick={() => setSelectedDealId(deal.id.toString())}
-                    className={`w-full flex items-center gap-3 p-3 hover:bg-gray-50 border-b last:border-b-0 text-left transition-colors ${
-                      selectedDealId === deal.id.toString() ? "bg-blue-50 border-blue-200" : ""
-                    }`}
-                  >
-                    <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                      <Briefcase className="h-4 w-4 text-green-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm text-gray-900 truncate">{deal.name}</p>
-                      {deal.amount && (
-                        <p className="text-xs text-green-600">${parseFloat(deal.amount).toLocaleString()}</p>
-                      )}
-                    </div>
-                    {selectedDealId === deal.id.toString() && (
-                      <Check className="h-4 w-4 text-blue-600 flex-shrink-0" />
-                    )}
-                  </button>
-                ))
-              ) : (
-                <div className="p-4 text-center text-gray-500 text-sm">
-                  {dealSearch ? "No deals match your search" : "No available deals"}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsLinkDealOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => linkDealMutation.mutate(parseInt(selectedDealId))}
-              disabled={!selectedDealId || linkDealMutation.isPending}
-            >
-              {linkDealMutation.isPending ? "Linking..." : "Link Deal"}
             </Button>
           </DialogFooter>
         </DialogContent>

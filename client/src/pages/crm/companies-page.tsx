@@ -34,7 +34,6 @@ import {
   MapPin,
   Users,
   X,
-  Briefcase,
   List,
   LayoutGrid,
   ArrowUpDown,
@@ -159,7 +158,7 @@ export default function CompaniesPage() {
       return;
     }
 
-    const headers = ["Name", "Industry", "Website", "City", "State", "Contacts", "Deals", "Created"];
+    const headers = ["Name", "Industry", "Website", "City", "State", "Contacts", "Created"];
     const rows = allCompanies.map((c: any) => [
       c.name || "",
       c.industry || "",
@@ -167,7 +166,6 @@ export default function CompaniesPage() {
       c.city || "",
       c.state || "",
       c._count?.contacts || 0,
-      c._count?.deals || 0,
       c.createdAt ? new Date(c.createdAt).toLocaleDateString() : "",
     ]);
 
@@ -256,7 +254,7 @@ export default function CompaniesPage() {
     const selectedCompaniesList = allCompanies.filter((c: any) => selectedCompanies.has(c.id));
     if (selectedCompaniesList.length === 0) return;
 
-    const headers = ["Name", "Industry", "Website", "City", "State", "Contacts", "Deals", "Created"];
+    const headers = ["Name", "Industry", "Website", "City", "State", "Contacts", "Created"];
     const rows = selectedCompaniesList.map((c: any) => [
       c.name || "",
       c.industry || "",
@@ -264,7 +262,6 @@ export default function CompaniesPage() {
       c.city || "",
       c.state || "",
       c._count?.contacts || 0,
-      c._count?.deals || 0,
       c.createdAt ? new Date(c.createdAt).toLocaleDateString() : "",
     ]);
 
@@ -342,12 +339,6 @@ export default function CompaniesPage() {
         return (
           <span className="text-sm text-gray-600">
             {company._count?.contacts || 0}
-          </span>
-        );
-      case 'deals':
-        return (
-          <span className="text-sm text-gray-600">
-            {company._count?.deals || 0}
           </span>
         );
       case 'createdAt':
@@ -472,14 +463,6 @@ export default function CompaniesPage() {
             <Badge variant="secondary" className="gap-1">
               State: {filters.state}
               <button onClick={() => updateFilter('state', '')} className="ml-1 hover:text-red-600">
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
-          )}
-          {filters.hasDeals && (
-            <Badge variant="secondary" className="gap-1">
-              Has Deals
-              <button onClick={() => updateFilter('hasDeals', null)} className="ml-1 hover:text-red-600">
                 <X className="h-3 w-3" />
               </button>
             </Badge>
@@ -684,20 +667,12 @@ export default function CompaniesPage() {
                           <span>{company.city}{company.state ? `, ${company.state}` : ""}</span>
                         </div>
                       )}
-                      {(company._count?.contacts > 0 || company._count?.deals > 0) && (
+                      {company._count?.contacts > 0 && (
                         <div className="flex items-center gap-3 text-xs text-gray-400 mt-2">
-                          {company._count?.contacts > 0 && (
-                            <span className="flex items-center gap-1">
-                              <Users className="h-3 w-3" />
-                              {company._count.contacts} contacts
-                            </span>
-                          )}
-                          {company._count?.deals > 0 && (
-                            <span className="flex items-center gap-1">
-                              <Briefcase className="h-3 w-3" />
-                              {company._count.deals} deals
-                            </span>
-                          )}
+                          <span className="flex items-center gap-1">
+                            <Users className="h-3 w-3" />
+                            {company._count.contacts} contacts
+                          </span>
                         </div>
                       )}
                     </div>

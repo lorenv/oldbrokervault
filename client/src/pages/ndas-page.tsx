@@ -26,6 +26,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
   Search,
   Shield,
   Check,
@@ -42,6 +51,9 @@ import {
   Users,
   CheckCircle,
   XCircle,
+  Plus,
+  Copy,
+  Link as LinkIcon,
 } from "lucide-react";
 
 interface NdaSignature {
@@ -247,6 +259,92 @@ export default function NdasPage() {
       .map((s) => s.id);
   }, [signatures, selectedIds]);
 
+  // ---- Create NDA Dialog State ----
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createStep, setCreateStep] = useState(1);
+  const [selectedDealId, setSelectedDealId] = useState<string>("");
+  const [selectedCimId, setSelectedCimId] = useState<string>("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+  const [ndaName, setNdaName] = useState("");
+  const [ndaApprovalRequired, setNdaApprovalRequired] = useState(false);
+  const [ndaCopyMe, setNdaCopyMe] = useState(false);
+  const [createdNda, setCreatedNda] = useState<any>(null);
+
+  // Fetch deal documents when a deal is selected
+  const { data: dealCimsData } = useQuery({
+    queryKey: ["/api/deals", selectedDealId, "documents"],
+    queryFn: () =>
+      apiRequest("GET", `/api/deals/${selectedDealId}/documents`).then((res) => res.json()),
+    enabled: !!selectedDealId,
+  });
+
+  // Fetch NDA templates
+  const { data: templatesData } = useQuery({
+    queryKey: ["/api/nda-templates"],
+    queryFn: () => apiRequest("GET", "/api/nda-templates").then((res) => res.json()),
+    enabled: createDialogOpen,
+  });
+
+  const dealCims = Array.isArray(dealCimsData) ? dealCimsData : [];
+  const ndaTemplates = Array.isArray(templatesData) ? templatesData : [];
+
+  const createNdaMutation = useMutation({
+    mutationFn: (data: {
+      dealId: number;
+      cimDocumentId: number;
+      ndaTemplateId?: number;
+      approvalRequired: boolean;
+      copyMeOnEmails: boolean;
+      name?: string;
+    }) =>
+      apiRequest("POST", `/api/deals/${data.dealId}/ndas`, {
+        body: {
+          cimDocumentId: data.cimDocumentId,
+          ndaTemplateId: data.ndaTemplateId || null,
+          approvalRequired: data.approvalRequired,
+          copyMeOnEmails: data.copyMeOnEmails,
+          name: data.name || undefined,
+        },
+      }).then((res) => res.json()),
+    onSuccess: (data) => {
+      setCreatedNda(data);
+      setCreateStep(5); // show success with share URL
+      queryClient.invalidateQueries({ queryKey: ["/api/ndas"] });
+      toast({ title: "NDA created successfully" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to create NDA", variant: "destructive" });
+    },
+  });
+
+  const resetCreateDialog = () => {
+    setCreateStep(1);
+    setSelectedDealId("");
+    setSelectedCimId("");
+    setSelectedTemplateId("");
+    setNdaName("");
+    setNdaApprovalRequired(false);
+    setNdaCopyMe(false);
+    setCreatedNda(null);
+  };
+
+  const handleCreateNda = () => {
+    createNdaMutation.mutate({
+      dealId: parseInt(selectedDealId),
+      cimDocumentId: parseInt(selectedCimId),
+      ndaTemplateId: selectedTemplateId ? parseInt(selectedTemplateId) : undefined,
+      approvalRequired: ndaApprovalRequired,
+      copyMeOnEmails: ndaCopyMe,
+      name: ndaName || undefined,
+    });
+  };
+
+  const copyShareUrl = (slug: string) => {
+    const url = `${window.location.origin}/nda/${slug}`;
+    navigator.clipboard.writeText(url);
+    toast({ title: "Share URL copied" });
+  };
+
   const formatDate = (dateStr: string) => {
     try {
       return new Date(dateStr).toLocaleDateString("en-US", {
@@ -279,6 +377,16 @@ export default function NdasPage() {
               <Settings className="h-4 w-4 mr-1.5" />
               Whitelist Rules
             </Link>
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => {
+              resetCreateDialog();
+              setCreateDialogOpen(true);
+            }}
+          >
+            <Plus className="h-4 w-4 mr-1.5" />
+            Create NDA
           </Button>
         </div>
       </div>
@@ -613,6 +721,180 @@ export default function NdasPage() {
           onPageSizeChange={setPageSize}
         />
       </div>
+
+      {/* Create NDA Dialog */}
+      <Dialog
+        open={createDialogOpen}
+        onOpenChange={(open) => {
+          setCreateDialogOpen(open);
+          if (!open) resetCreateDialog();
+        }}
+        modal={false}
+      >
+        <DialogContent className="max-w-md" onPointerDownOutside={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="text-gray-900">
+              {createStep === 5 ? "NDA Created" : "Create Deal NDA"}
+            </DialogTitle>
+            {createStep < 5 && (
+              <DialogDescription className="text-gray-600">
+                Step {createStep} of 4 — {createStep === 1 ? "Select Deal" : createStep === 2 ? "Select CIM" : createStep === 3 ? "Select Template" : "Configure"}
+              </DialogDescription>
+            )}
+          </DialogHeader>
+
+          <div className="space-y-4 pt-2">
+            {/* Step 1: Select Deal */}
+            {createStep === 1 && (
+              <>
+                <div>
+                  <Label className="text-gray-700">Deal</Label>
+                  <Select value={selectedDealId} onValueChange={(val) => { setSelectedDealId(val); setSelectedCimId(""); }}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Choose a deal..." />
+                    </SelectTrigger>
+                    <SelectContent position="popper" className="z-[9999]">
+                      {allDeals.length === 0 ? (
+                        <div className="px-3 py-2 text-sm text-gray-500">No deals found</div>
+                      ) : (
+                        allDeals.map((deal: any) => (
+                          <SelectItem key={deal.id} value={deal.id.toString()}>
+                            {deal.name || `Deal #${deal.id}`}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex justify-end">
+                  <Button size="sm" disabled={!selectedDealId} onClick={() => setCreateStep(2)}>
+                    Next
+                  </Button>
+                </div>
+              </>
+            )}
+
+            {/* Step 2: Select CIM */}
+            {createStep === 2 && (
+              <>
+                <div>
+                  <Label className="text-gray-700">CIM Document</Label>
+                  <Select value={selectedCimId} onValueChange={setSelectedCimId}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Choose a CIM..." />
+                    </SelectTrigger>
+                    <SelectContent position="popper" className="z-[9999]">
+                      {dealCims.map((doc: any) => (
+                        <SelectItem key={doc.cimDocumentId || doc.id} value={(doc.cimDocumentId || doc.id).toString()}>
+                          {doc.title || doc.cimTitle || `Document #${doc.cimDocumentId || doc.id}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {dealCims.length === 0 && (
+                    <p className="text-xs text-gray-500 mt-1">No CIM documents linked to this deal yet.</p>
+                  )}
+                </div>
+                <div className="flex justify-between">
+                  <Button size="sm" variant="outline" onClick={() => setCreateStep(1)}>Back</Button>
+                  <Button size="sm" disabled={!selectedCimId} onClick={() => setCreateStep(3)}>Next</Button>
+                </div>
+              </>
+            )}
+
+            {/* Step 3: Select Template */}
+            {createStep === 3 && (
+              <>
+                <div>
+                  <Label className="text-gray-700">NDA Template</Label>
+                  <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Choose a template..." />
+                    </SelectTrigger>
+                    <SelectContent position="popper" className="z-[9999]">
+                      {ndaTemplates.map((tmpl: any) => (
+                        <SelectItem key={tmpl.id} value={tmpl.id.toString()}>
+                          {tmpl.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {ndaTemplates.length === 0 && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      No templates found.{" "}
+                      <Link href="/settings/nda-templates" className="text-blue-600 hover:underline">Create one</Link>
+                    </p>
+                  )}
+                </div>
+                <div className="flex justify-between">
+                  <Button size="sm" variant="outline" onClick={() => setCreateStep(2)}>Back</Button>
+                  <Button size="sm" disabled={!selectedTemplateId} onClick={() => setCreateStep(4)}>Next</Button>
+                </div>
+              </>
+            )}
+
+            {/* Step 4: Configure */}
+            {createStep === 4 && (
+              <>
+                <div>
+                  <Label className="text-gray-700">NDA Name (optional)</Label>
+                  <Input
+                    className="mt-1"
+                    placeholder="e.g., Project Phoenix NDA"
+                    value={ndaName}
+                    onChange={(e) => setNdaName(e.target.value)}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label className="text-gray-700">Require manual approval</Label>
+                  <Switch checked={ndaApprovalRequired} onCheckedChange={setNdaApprovalRequired} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label className="text-gray-700">Copy me on signing emails</Label>
+                  <Switch checked={ndaCopyMe} onCheckedChange={setNdaCopyMe} />
+                </div>
+                <div className="flex justify-between">
+                  <Button size="sm" variant="outline" onClick={() => setCreateStep(3)}>Back</Button>
+                  <Button size="sm" onClick={handleCreateNda} disabled={createNdaMutation.isPending}>
+                    {createNdaMutation.isPending ? (
+                      <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Creating...</>
+                    ) : (
+                      "Create NDA"
+                    )}
+                  </Button>
+                </div>
+              </>
+            )}
+
+            {/* Step 5: Success — show share URL */}
+            {createStep === 5 && createdNda && (
+              <>
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                  <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                  <p className="text-sm font-medium text-green-800">{createdNda.name || "NDA"} created</p>
+                </div>
+                <div>
+                  <Label className="text-gray-700 text-xs">Share URL</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Input
+                      readOnly
+                      value={`${window.location.origin}/nda/${createdNda.shareSlug}`}
+                      className="text-sm"
+                    />
+                    <Button size="sm" variant="outline" onClick={() => copyShareUrl(createdNda.shareSlug)}>
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Share this link with buyers to sign the NDA.</p>
+                </div>
+                <div className="flex justify-end">
+                  <Button size="sm" onClick={() => setCreateDialogOpen(false)}>Done</Button>
+                </div>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

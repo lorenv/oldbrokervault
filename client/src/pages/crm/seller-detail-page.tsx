@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { PhotoUpload } from "@/components/crm/photo-upload";
@@ -23,18 +22,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   ArrowLeft,
   Mail,
   Phone,
   MessageSquare,
-  Building2,
   Briefcase,
   Clock,
   FileText,
@@ -47,35 +38,11 @@ import {
   Video,
   FileUp,
   Copy,
-  DollarSign,
-  TrendingUp,
-  Calendar,
-  Upload,
-  Download,
   X,
   Search,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
-const REVENUE_RANGES: Record<string, string> = {
-  under_500k: 'Under $500K', '500k_1m': '$500K-$1M', '1m_5m': '$1M-$5M',
-  '5m_10m': '$5M-$10M', '10m_25m': '$10M-$25M', '25m_plus': '$25M+',
-};
-
-const PROFIT_RANGES: Record<string, string> = {
-  under_100k: 'Under $100K', '100k_250k': '$100K-$250K', '250k_500k': '$250K-$500K',
-  '500k_1m': '$500K-$1M', '1m_5m': '$1M-$5M',
-};
-
-const TIMELINE_LABELS: Record<string, string> = {
-  immediate: 'Immediate', '3_months': '3 Months', '6_months': '6 Months',
-  '12_months': '12 Months', flexible: 'Flexible',
-};
-
-const MOTIVATION_LABELS: Record<string, string> = {
-  retirement: 'Retirement', burnout: 'Burnout', partner_dispute: 'Partner Dispute',
-  health: 'Health', relocation: 'Relocation', new_venture: 'New Venture', other: 'Other',
-};
 
 function getActivityIcon(activityType: string) {
   switch (activityType) {
@@ -108,7 +75,6 @@ export default function SellerDetailPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("activity");
@@ -116,7 +82,6 @@ export default function SellerDetailPage() {
   const [mentionedUserIds, setMentionedUserIds] = useState<number[]>([]);
   const [copiedEmail, setCopiedEmail] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [uploadFileType, setUploadFileType] = useState("other");
   const [isLinkDealOpen, setIsLinkDealOpen] = useState(false);
   const [dealSearch, setDealSearch] = useState("");
   const [selectedDealId, setSelectedDealId] = useState<string>("");
@@ -222,40 +187,6 @@ export default function SellerDetailPage() {
     },
   });
 
-  // File upload
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('fileType', uploadFileType);
-
-    try {
-      const res = await fetch(`/api/crm/sellers/${id}/files`, {
-        method: 'POST',
-        body: formData,
-        credentials: 'include',
-      });
-      if (!res.ok) throw new Error('Upload failed');
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts", id] });
-      toast({ title: "File uploaded" });
-    } catch {
-      toast({ title: "Error", description: "Failed to upload file", variant: "destructive" });
-    }
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
-  const handleFileDelete = async (filename: string) => {
-    try {
-      await apiRequest("DELETE", `/api/crm/sellers/${id}/files/${filename}`);
-      queryClient.invalidateQueries({ queryKey: ["/api/crm/contacts", id] });
-      toast({ title: "File deleted" });
-    } catch {
-      toast({ title: "Error", description: "Failed to delete file", variant: "destructive" });
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="p-6">
@@ -283,27 +214,8 @@ export default function SellerDetailPage() {
     return null;
   }
 
-  const sellerStage = (contact as any).sellerStage || 'lead';
-  const sellerFiles = ((contact as any).sellerFiles || []) as any[];
-
-  const getStageBadgeColor = (stage: string) => {
-    const colors: Record<string, string> = {
-      lead: 'bg-gray-100 text-gray-700', meeting: 'bg-blue-100 text-blue-700',
-      proposal: 'bg-yellow-100 text-yellow-700', engaged: 'bg-green-100 text-green-700',
-    };
-    return colors[stage] || colors.lead;
-  };
-
-  const getFileTypeBadge = (type: string) => {
-    const colors: Record<string, string> = {
-      financials: 'bg-blue-100 text-blue-700', tax_returns: 'bg-purple-100 text-purple-700',
-      pnl: 'bg-green-100 text-green-700', other: 'bg-gray-100 text-gray-700',
-    };
-    const labels: Record<string, string> = {
-      financials: 'Financials', tax_returns: 'Tax Returns', pnl: 'P&L', other: 'Other',
-    };
-    return <Badge className={`${colors[type] || colors.other} text-xs`}>{labels[type] || type}</Badge>;
-  };
+  // Get linked deals from the contact query (already included in the response)
+  const linkedDeals = (contact as any)?.deals || [];
 
   return (
     <div className="p-4 md:p-6">
@@ -329,7 +241,7 @@ export default function SellerDetailPage() {
               <div className="flex items-center gap-2">
                 <InlineEdit value={(contact as any).firstName} onSave={(val) => handleContactUpdate('firstName', val)} emptyText="First" displayClassName="text-xl md:text-2xl font-semibold text-gray-900" />
                 <InlineEdit value={(contact as any).lastName} onSave={(val) => handleContactUpdate('lastName', val)} emptyText="Last" displayClassName="text-xl md:text-2xl font-semibold text-gray-900" />
-                <Badge className={`${getStageBadgeColor(sellerStage)} text-xs`}>{sellerStage.charAt(0).toUpperCase() + sellerStage.slice(1)}</Badge>
+                <Badge className="bg-gray-100 text-gray-700 text-xs">Seller</Badge>
               </div>
               <div className="flex items-center gap-1.5">
                 <p className="text-gray-500 text-sm truncate">{(contact as any).title || (contact as any).email}</p>
@@ -381,239 +293,52 @@ export default function SellerDetailPage() {
             </div>
           </div>
 
-          {/* Seller Profile */}
+          {/* Linked Deals */}
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <TrendingUp className="h-4 w-4" />
-                Seller Profile
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                <div>
-                  <Label className="text-xs text-gray-500">Stage</Label>
-                  <Select value={sellerStage} onValueChange={(val) => handleContactUpdate('sellerStage', val)}>
-                    <SelectTrigger className="h-7 text-xs mt-1"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="lead">Lead</SelectItem>
-                      <SelectItem value="meeting">Meeting</SelectItem>
-                      <SelectItem value="proposal">Proposal</SelectItem>
-                      <SelectItem value="engaged">Engaged</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs text-gray-500">Motivation</Label>
-                  <Select value={(contact as any).sellerMotivation || ''} onValueChange={(val) => handleContactUpdate('sellerMotivation', val)}>
-                    <SelectTrigger className="h-7 text-xs mt-1"><SelectValue placeholder="Select motivation" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="retirement">Retirement</SelectItem>
-                      <SelectItem value="burnout">Burnout</SelectItem>
-                      <SelectItem value="partner_dispute">Partner Dispute</SelectItem>
-                      <SelectItem value="health">Health</SelectItem>
-                      <SelectItem value="relocation">Relocation</SelectItem>
-                      <SelectItem value="new_venture">New Venture</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs text-gray-500">Timeline</Label>
-                  <Select value={(contact as any).sellerTimeline || ''} onValueChange={(val) => handleContactUpdate('sellerTimeline', val)}>
-                    <SelectTrigger className="h-7 text-xs mt-1"><SelectValue placeholder="Select timeline" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="immediate">Immediate</SelectItem>
-                      <SelectItem value="3_months">3 Months</SelectItem>
-                      <SelectItem value="6_months">6 Months</SelectItem>
-                      <SelectItem value="12_months">12 Months</SelectItem>
-                      <SelectItem value="flexible">Flexible</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs text-gray-500">Engagement Status</Label>
-                  <Select value={(contact as any).sellerEngagementStatus || ''} onValueChange={(val) => handleContactUpdate('sellerEngagementStatus', val)}>
-                    <SelectTrigger className="h-7 text-xs mt-1"><SelectValue placeholder="Select status" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="prospect">Prospect</SelectItem>
-                      <SelectItem value="contacted">Contacted</SelectItem>
-                      <SelectItem value="meeting_scheduled">Meeting Scheduled</SelectItem>
-                      <SelectItem value="proposal_sent">Proposal Sent</SelectItem>
-                      <SelectItem value="engaged">Engaged</SelectItem>
-                      <SelectItem value="on_hold">On Hold</SelectItem>
-                      <SelectItem value="lost">Lost</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs text-gray-500">Asking Price</Label>
-                  <InlineEdit value={(contact as any).sellerAskingPrice || ''} onSave={(val) => handleContactUpdate('sellerAskingPrice', val)} placeholder="e.g. $2.5M" className="text-sm mt-1" />
-                </div>
-                <div>
-                  <Label className="text-xs text-gray-500">Listing Status</Label>
-                  <Select value={(contact as any).sellerListingStatus || ''} onValueChange={(val) => handleContactUpdate('sellerListingStatus', val)}>
-                    <SelectTrigger className="h-7 text-xs mt-1"><SelectValue placeholder="Select status" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="not_listed">Not Listed</SelectItem>
-                      <SelectItem value="preparing">Preparing</SelectItem>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="under_loi">Under LOI</SelectItem>
-                      <SelectItem value="closed">Closed</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs text-gray-500">Source</Label>
-                  <Select value={(contact as any).sellerSource || ''} onValueChange={(val) => handleContactUpdate('sellerSource', val)}>
-                    <SelectTrigger className="h-7 text-xs mt-1"><SelectValue placeholder="Select source" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="referral">Referral</SelectItem>
-                      <SelectItem value="direct_marketing">Direct Marketing</SelectItem>
-                      <SelectItem value="inbound">Inbound</SelectItem>
-                      <SelectItem value="cold_outreach">Cold Outreach</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs text-gray-500">Referred By</Label>
-                  <InlineEdit value={(contact as any).sellerReferredBy || ''} onSave={(val) => handleContactUpdate('sellerReferredBy', val)} placeholder="Who referred them?" className="text-sm mt-1" />
-                </div>
-              </div>
-              {/* Seller Notes */}
-              <div className="mt-4 pt-3 border-t">
-                <Label className="text-xs text-gray-500 mb-1 block">Seller Notes</Label>
-                <Textarea
-                  value={(contact as any).sellerNotes || ''}
-                  onChange={(e) => handleContactUpdate('sellerNotes', e.target.value)}
-                  placeholder="Notes about this seller..."
-                  className="text-sm min-h-[60px]"
-                />
-              </div>
-
-              {/* Engaged CTA */}
-              {sellerStage === 'engaged' && (
-                <div className="mt-4 pt-3 border-t">
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-green-800">Seller is Engaged</p>
-                      <p className="text-xs text-green-600 mt-0.5">Create a deal to track this engagement</p>
-                    </div>
-                    <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => navigate('/deals')}>
-                      <Plus className="h-3.5 w-3.5 mr-1" />Create Deal
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Business Snapshot */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <Building2 className="h-4 w-4" />
-                Business Snapshot
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                <div>
-                  <Label className="text-xs text-gray-500">Revenue Range</Label>
-                  <Select value={(contact as any).sellerRevenueRange || ''} onValueChange={(val) => handleContactUpdate('sellerRevenueRange', val)}>
-                    <SelectTrigger className="h-7 text-xs mt-1"><SelectValue placeholder="Select range" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="under_500k">Under $500K</SelectItem>
-                      <SelectItem value="500k_1m">$500K-$1M</SelectItem>
-                      <SelectItem value="1m_5m">$1M-$5M</SelectItem>
-                      <SelectItem value="5m_10m">$5M-$10M</SelectItem>
-                      <SelectItem value="10m_25m">$10M-$25M</SelectItem>
-                      <SelectItem value="25m_plus">$25M+</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs text-gray-500">Profit/SDE Range</Label>
-                  <Select value={(contact as any).sellerProfitRange || ''} onValueChange={(val) => handleContactUpdate('sellerProfitRange', val)}>
-                    <SelectTrigger className="h-7 text-xs mt-1"><SelectValue placeholder="Select range" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="under_100k">Under $100K</SelectItem>
-                      <SelectItem value="100k_250k">$100K-$250K</SelectItem>
-                      <SelectItem value="250k_500k">$250K-$500K</SelectItem>
-                      <SelectItem value="500k_1m">$500K-$1M</SelectItem>
-                      <SelectItem value="1m_5m">$1M-$5M</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs text-gray-500">Industry</Label>
-                  <InlineEdit value={(contact as any).sellerIndustry || ''} onSave={(val) => handleContactUpdate('sellerIndustry', val)} placeholder="e.g. Manufacturing" className="text-sm mt-1" />
-                </div>
-                <div className="sm:col-span-2">
-                  <Label className="text-xs text-gray-500">Business Description</Label>
-                  <Textarea
-                    value={(contact as any).sellerBusinessDescription || ''}
-                    onChange={(e) => handleContactUpdate('sellerBusinessDescription', e.target.value)}
-                    placeholder="Brief description of the business..."
-                    className="text-sm min-h-[60px] mt-1"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Financial Documents */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <FileText className="h-4 w-4" />
-                Financial Documents
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2 mb-3">
-                <Select value={uploadFileType} onValueChange={setUploadFileType}>
-                  <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="financials">Financials</SelectItem>
-                    <SelectItem value="tax_returns">Tax Returns</SelectItem>
-                    <SelectItem value="pnl">P&L</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-                <input ref={fileInputRef} type="file" accept=".pdf,.xlsx,.xls,.csv,.jpg,.jpeg,.png" onChange={handleFileUpload} className="hidden" />
-                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                  <Upload className="h-3.5 w-3.5 mr-1" />Upload File
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <Briefcase className="h-4 w-4" />
+                  Linked Deals
+                </CardTitle>
+                <Button variant="outline" size="sm" onClick={() => setIsLinkDealOpen(true)} className="h-7">
+                  <Plus className="h-3.5 w-3.5 mr-1" />Link Deal
                 </Button>
               </div>
-
-              {sellerFiles.length > 0 ? (
+            </CardHeader>
+            <CardContent>
+              {linkedDeals && linkedDeals.length > 0 ? (
                 <div className="space-y-2">
-                  {sellerFiles.map((file: any, idx: number) => (
-                    <div key={idx} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <FileText className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                        <span className="text-sm text-gray-900 truncate">{file.name}</span>
-                        {getFileTypeBadge(file.type)}
+                  {linkedDeals.map((deal: any) => (
+                    <Link
+                      key={deal.id}
+                      href={`/deals/${deal.id}`}
+                      className="flex items-center justify-between p-3 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition-colors"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 truncate">{deal.name}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {deal.stage && (
+                            <Badge className="text-xs" style={{ backgroundColor: deal.stage.color + '20', color: deal.stage.color }}>
+                              {deal.stage.name}
+                            </Badge>
+                          )}
+                          {deal.industry && (
+                            <span className="text-xs text-gray-500">{deal.industry}</span>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        <span className="text-xs text-gray-500">{file.uploadedAt ? new Date(file.uploadedAt).toLocaleDateString() : ''}</span>
-                        <a href={`/api/crm/sellers/${id}/files/${file.path}`} className="text-gray-400 hover:text-blue-600 p-1">
-                          <Download className="h-3.5 w-3.5" />
-                        </a>
-                        <button onClick={() => handleFileDelete(file.path)} className="text-gray-400 hover:text-red-600 p-1">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </div>
+                      {deal.askingPrice && (
+                        <span className="text-sm font-medium text-gray-700 flex-shrink-0 ml-2">{deal.askingPrice}</span>
+                      )}
+                    </Link>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-6 border-2 border-dashed rounded-lg">
-                  <Upload className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-                  <p className="text-sm text-gray-500">No files uploaded yet</p>
-                  <p className="text-xs text-gray-400 mt-1">Upload financials, tax returns, P&L statements</p>
+                <div className="text-center py-6">
+                  <Briefcase className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500">No deals linked</p>
+                  <p className="text-xs text-gray-400 mt-1">Link this seller to deals they're associated with</p>
                 </div>
               )}
             </CardContent>
@@ -735,34 +460,14 @@ export default function SellerDetailPage() {
             <CardHeader><CardTitle className="text-sm">Quick Info</CardTitle></CardHeader>
             <CardContent>
               <div className="space-y-3 text-sm">
-                {sellerStage && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Type</span>
+                  <Badge className="bg-gray-100 text-gray-700 text-xs">Seller</Badge>
+                </div>
+                {linkedDeals && linkedDeals.length > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Stage</span>
-                    <Badge className={`${getStageBadgeColor(sellerStage)} text-xs`}>{sellerStage.charAt(0).toUpperCase() + sellerStage.slice(1)}</Badge>
-                  </div>
-                )}
-                {(contact as any).sellerMotivation && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Motivation</span>
-                    <span className="text-gray-900">{MOTIVATION_LABELS[(contact as any).sellerMotivation] || (contact as any).sellerMotivation}</span>
-                  </div>
-                )}
-                {(contact as any).sellerTimeline && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Timeline</span>
-                    <span className="text-gray-900">{TIMELINE_LABELS[(contact as any).sellerTimeline] || (contact as any).sellerTimeline}</span>
-                  </div>
-                )}
-                {(contact as any).sellerAskingPrice && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Asking Price</span>
-                    <span className="text-gray-900 font-medium">{(contact as any).sellerAskingPrice}</span>
-                  </div>
-                )}
-                {(contact as any).sellerRevenueRange && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Revenue</span>
-                    <span className="text-gray-900">{REVENUE_RANGES[(contact as any).sellerRevenueRange] || (contact as any).sellerRevenueRange}</span>
+                    <span className="text-gray-500">Linked Deals</span>
+                    <span className="text-gray-900 font-medium">{linkedDeals.length}</span>
                   </div>
                 )}
                 {(contact as any).lastActivityDate && (

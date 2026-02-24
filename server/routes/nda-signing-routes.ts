@@ -1263,7 +1263,8 @@ export function registerNdaSigningRoutes(app: Express) {
 
             // Handle object storage URLs - convert to full domain URLs for emails
             if (url.startsWith('/api/object-storage/')) {
-              return `https://brokervault.ai${url}`;
+              const reqBaseUrl = req.protocol + '://' + req.get('host');
+              return `${reqBaseUrl}${url}`;
             }
 
             return url;
