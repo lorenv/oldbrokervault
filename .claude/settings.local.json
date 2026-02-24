@@ -104,7 +104,9 @@
       "WebFetch(domain:www.surfcapadvisors.com)",
       "WebFetch(domain:kimberlyadvisors.com)",
       "WebFetch(domain:morganandwestfield.com)",
-      "WebFetch(domain:support.intralinks.com)"
+      "WebFetch(domain:support.intralinks.com)",
+      "Bash(git fetch origin 2>&1)",
+      "Bash(gh auth status 2>&1)"
     ],
     "deny": [],
     "ask": [],
