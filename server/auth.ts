@@ -436,11 +436,11 @@ export function setupAuth(app: Express) {
 
       // SEC-009: Enforce password strength requirements
       // Password must be at least 8 chars with upper, lower, number, special
-      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
       if (!passwordRegex.test(password)) {
         logger.warn("Registration password strength validation failed", { email });
         return res.status(400).json({
-          message: "Password must be at least 8 characters with uppercase, lowercase, number, and special character (@$!%*?&)"
+          message: "Password must be at least 8 characters with uppercase, lowercase, number, and special character"
         });
       }
 

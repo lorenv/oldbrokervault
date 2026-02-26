@@ -9,7 +9,7 @@ import { storage } from "../storage";
 import { db } from "../db";
 import { eq } from "drizzle-orm";
 import { userBranding } from "@shared/schema";
-import { upload, forgotPasswordLimiter } from "../route-utils";
+import { upload, forgotPasswordLimiter, readFileFromDisk, cleanupTempFile } from "../route-utils";
 import { imageManager } from "../image-manager";
 import { invalidateUserCache } from "../auth";
 import { escapeHtml } from "../utils/sanitize-filename";
@@ -954,12 +954,14 @@ export function registerProfileSettingsRoutes(app: Express) {
           const fieldName = `attachment_${i}`;
           if (files[fieldName] && files[fieldName][0]) {
             const file = files[fieldName][0];
+            const fileBuffer = await readFileFromDisk(file);
             attachments.push({
-              content: file.buffer.toString('base64'),
+              content: fileBuffer.toString('base64'),
               filename: file.originalname,
               type: file.mimetype,
               disposition: 'attachment'
             });
+            await cleanupTempFile(file);
           }
         }
       }

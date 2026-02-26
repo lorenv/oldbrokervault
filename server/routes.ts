@@ -592,9 +592,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Extract financial and cover image data for placeholder document
       const financials = data.financials;
       const coverImage = data.coverImage;
-      const coverImageUrl = coverImage?.url || data.coverImageUrl || null;
+      let coverImageUrl = coverImage?.url || data.coverImageUrl || null;
       const coverImagePosition = coverImage?.position ? JSON.stringify(coverImage.position) : data.coverImagePosition || null;
       const coverImageAttribution = coverImage?.attribution || data.coverImageAttribution || null;
+
+      // Never store blob: URLs - they are temporary browser-only URLs
+      if (coverImageUrl && coverImageUrl.startsWith('blob:')) {
+        console.warn('Rejecting blob: cover image URL - these are not accessible outside the browser session');
+        coverImageUrl = null;
+      }
+
+      // Download external cover images (e.g. Unsplash) to object storage
+      if (coverImageUrl && coverImageService.isExternalImageUrl(coverImageUrl)) {
+        try {
+          const downloadResult = await coverImageService.downloadAndStoreImage(coverImageUrl, req.user!.id);
+          coverImageUrl = downloadResult.publicUrl;
+          console.log('External cover image downloaded and stored:', downloadResult.publicUrl);
+        } catch (downloadError) {
+          console.error('Failed to download external cover image:', downloadError);
+        }
+      }
 
       // Generate automatic share link for new document
       const randomId = Math.random().toString(36).substring(2, 8);
@@ -706,24 +723,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Save the uploaded image using the image manager
+      const fileBuffer = await readFileFromDisk(req.file);
       const metadata = await imageManager.saveImageFromBuffer(
-        req.file.buffer,
+        fileBuffer,
         req.file.originalname,
         req.file.mimetype,
         req.user!.id,
         'business-images',
         { optimize: true, maxWidth: 1200, maxHeight: 800 }
       );
+      await cleanupTempFile(req.file);
 
       // Get current images and add the new one
       const currentImages = cim.selectedImages || [];
       const updatedImages = [...currentImages, metadata.publicPath];
-      
+
       // Update the CIM document with the new image
       await storage.updateCimImages(cimId, updatedImages);
 
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         imagePath: metadata.publicPath,
         metadata: metadata
       });
@@ -763,14 +782,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Save the logo using the new ImageManager
+      const fileBuffer = await readFileFromDisk(req.file);
       const metadata = await imageManager.saveImageFromBuffer(
-        req.file.buffer,
+        fileBuffer,
         req.file.originalname,
         req.file.mimetype,
         req.user!.id,
         'logos',
         { optimize: true, maxWidth: 800, maxHeight: 600 }
       );
+      await cleanupTempFile(req.file);
 
       // Update the CIM document with the new logo path
       await storage.updateCimDocument(cimId, { logoUrl: metadata.publicPath });
@@ -833,14 +854,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Save the uploaded image using the image manager (file-based storage)
+      const fileBuffer = await readFileFromDisk(req.file);
       const metadata = await imageManager.saveImageFromBuffer(
-        req.file.buffer,
+        fileBuffer,
         req.file.originalname,
         req.file.mimetype,
         req.user!.id,
         'business-images',
         { optimize: true, maxWidth: 1200, maxHeight: 800 }
       );
+      await cleanupTempFile(req.file);
 
       // Update the CIM document with the new file path
       const currentImages = cim.selectedImages || [];
@@ -2099,14 +2122,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const file of req.files) {
         try {
           // Use object storage image manager for consistency with other images
+          const fileBuffer = await readFileFromDisk(file);
           const metadata = await objectStorageImageManager.saveImageFromBuffer(
-            file.buffer,
+            fileBuffer,
             file.originalname,
             file.mimetype,
             req.user!.id,
             'business-images', // Store custom section images with business images for persistence
             { optimize: true, maxWidth: 800, maxHeight: 600 }
           );
+          await cleanupTempFile(file);
 
           imageUrls.push(metadata.publicPath);
           console.log('Custom section image saved to object storage:', metadata.publicPath);
@@ -2625,13 +2650,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const file of files) {
         try {
           console.log(`Uploading additional CIM file: ${file.originalname} (${file.size} bytes)`);
+          const fileBuffer = await readFileFromDisk(file);
           const fileMetadata = await fileStorageManager.saveFileFromBuffer(
-            file.buffer,
+            fileBuffer,
             file.originalname,
             file.mimetype,
             req.user!.id,
             'uploaded-cims'
           );
+          await cleanupTempFile(file);
 
           const uploadedFile = await storage.createUploadedFile({
             cimDocumentId: cimId,
@@ -2790,7 +2817,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         originalname: file.originalname,
         size: file.size,
         mimetype: file.mimetype,
-        bufferSize: file.buffer?.length
+        path: file.path
       } : "No file");
 
       if (!file) {
@@ -2807,14 +2834,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Upload file to object storage
       console.log("Uploading file to object storage...");
+      const fileBuffer = await readFileFromDisk(file);
       const fileMetadata = await fileStorageManager.saveFileFromBuffer(
-        file.buffer,
+        fileBuffer,
         file.originalname,
         file.mimetype,
         req.user.id,
         'financial-files'
       );
-      
+      await cleanupTempFile(file);
+
       console.log("File uploaded to object storage:", fileMetadata.publicPath);
       console.log("File storage key:", fileMetadata.filePath);
 
@@ -3037,16 +3066,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Handle file upload if present - save to persistent storage
       if (req.file) {
         try {
-          // Use persistent image storage instead of ephemeral uploads directory
+          // Read from disk (multer uses disk storage, not memory)
+          const fileBuffer = await readFileFromDisk(req.file);
           const coverImageMetadata = await imageManager.saveImageFromBuffer(
-            req.file.buffer,
+            fileBuffer,
             req.file.originalname,
             req.file.mimetype,
             req.user!.id,
-            'business-images' // Store cover images with business images for persistence
+            'business-images'
           );
           finalCoverImageUrl = coverImageMetadata.publicPath;
           console.log('Cover image saved to persistent storage:', coverImageMetadata.publicPath);
+          // Clean up temp file
+          await cleanupTempFile(req.file);
         } catch (saveError) {
           console.error('Failed to save cover image to persistent storage:', saveError);
           return res.status(500).json({ error: "Failed to save cover image" });

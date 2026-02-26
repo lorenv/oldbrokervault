@@ -528,7 +528,7 @@ export function CimGenerator({ onModeChange, dealId }: CimGeneratorProps = {}) {
         );
       }
 
-      if (data.transcript.length > 4000 || financialFiles.length > 0) {
+      if (data.transcript.length > 4000 || financialFiles.length > 0 || coverImageFile) {
         const file = new Blob([data.transcript], { type: 'text/plain' });
         const formData = new FormData();
         formData.append('transcript', file, 'transcript.txt');

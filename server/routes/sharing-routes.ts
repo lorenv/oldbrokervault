@@ -465,6 +465,8 @@ export function registerSharingRoutes(app: Express) {
       // Enhanced URL processing function for all image types
       const processImageUrl = (url: string | null) => {
         if (!url) return null;
+        // blob: URLs are temporary browser-only URLs that can't be accessed by others
+        if (url.startsWith('blob:')) return null;
         if (url.startsWith('data:') || url.startsWith('http')) return url;
 
         // Handle object storage URLs - these should be served as-is since they're internal API paths
@@ -550,7 +552,7 @@ export function registerSharingRoutes(app: Express) {
           revenueIncluded: cimDoc.revenueIncluded,
           ebitda: cimDoc.ebitda,
           ebitdaIncluded: cimDoc.ebitdaIncluded,
-          coverImageUrl: cimDoc.coverImageUrl,
+          coverImageUrl: processImageUrl(cimDoc.coverImageUrl),
           coverImagePosition: cimDoc.coverImagePosition,
           coverImageAttribution: cimDoc.coverImageAttribution,
           createdAt: cimDoc.createdAt ? cimDoc.createdAt.toISOString() : null,
@@ -703,6 +705,8 @@ export function registerSharingRoutes(app: Express) {
       // Process user profile images for PDF generation using same logic as share route
       const processImageUrl = (url: string | null) => {
         if (!url) return null;
+        // blob: URLs are temporary browser-only URLs that can't be accessed by others
+        if (url.startsWith('blob:')) return null;
         if (url.startsWith('data:') || url.startsWith('http')) return url;
 
         // Handle object storage URLs
