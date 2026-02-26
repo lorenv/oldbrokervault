@@ -300,6 +300,11 @@ function Router() {
   const [location] = useLocation();
   const { user, isLoading } = useAuth();
 
+  // Scroll to top on route change
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location]);
+
   // Track page views and user identification
   useTracking();
 

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, Plus, Edit, Trash2, Calendar, Grid3X3, List, Eye, MoreVertical, Users, FileCheck } from 'lucide-react';
+import { FileText, Plus, Edit, Trash2, Calendar, Grid3X3, List, Eye, MoreVertical, Users, FileCheck, Star, Check } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { apiRequest } from '@/lib/queryClient';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -13,6 +13,7 @@ import { SettingsLayout } from '@/components/layout/settings-layout';
 interface NdaTemplate {
   id: number;
   name: string;
+  isDefault: boolean;
   createdAt: string;
   signatureFields: any[];
 }
@@ -33,8 +34,8 @@ export default function NdaTemplatesPage() {
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes - cache templates to avoid repeated loads
-    cacheTime: 30 * 60 * 1000, // 30 minutes
+    staleTime: 30 * 1000, // 30 seconds
+    refetchOnMount: true
   });
 
   // Skeleton loader component
@@ -79,6 +80,29 @@ export default function NdaTemplatesPage() {
       });
     }
   });
+
+  const setDefaultMutation = useMutation({
+    mutationFn: (id: number) => apiRequest('PUT', `/api/nda-templates/${id}/set-default`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/nda-templates'] });
+      toast({
+        title: "Default template updated",
+        description: "This template will now be auto-selected when NDA protection is enabled"
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Update failed",
+        description: "Failed to set default template",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handleSetDefault = (id: number, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setDefaultMutation.mutate(id);
+  };
 
   const handleDelete = (id: number, name: string) => {
     if (window.confirm(`Are you sure you want to delete "${name}"?`)) {
@@ -155,9 +179,9 @@ export default function NdaTemplatesPage() {
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {templates.map((template: NdaTemplate) => (
-            <Card 
-              key={template.id} 
-              className="group hover:shadow-lg hover:shadow-blue-100/50 transition-all duration-200 h-full flex flex-col border-gray-200 hover:border-blue-200 cursor-pointer bg-white"
+            <Card
+              key={template.id}
+              className={`group hover:shadow-lg hover:shadow-blue-100/50 transition-all duration-200 h-full flex flex-col hover:border-blue-200 cursor-pointer bg-white ${template.isDefault ? 'border-blue-300 ring-1 ring-blue-200' : 'border-gray-200'}`}
               onClick={() => setLocation(`/nda-templates/${template.id}/edit`)}
             >
               <CardHeader className="flex-shrink-0 pb-4">
@@ -172,8 +196,8 @@ export default function NdaTemplatesPage() {
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         size="sm"
                         className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-100"
                         onClick={(e) => e.stopPropagation()}
@@ -182,7 +206,18 @@ export default function NdaTemplatesPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem 
+                      {!template.isDefault && (
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSetDefault(template.id, e as any);
+                          }}
+                        >
+                          <Star className="w-4 h-4 mr-2" />
+                          Set as Default
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem
                         onClick={(e) => {
                           e.stopPropagation();
                           setLocation(`/nda-templates/${template.id}/edit`);
@@ -191,16 +226,18 @@ export default function NdaTemplatesPage() {
                         <Edit className="w-4 h-4 mr-2" />
                         Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(template.id, template.name);
-                        }}
-                        className="text-red-600"
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
+                      {!template.isDefault && (
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(template.id, template.name);
+                          }}
+                          className="text-red-600"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -208,6 +245,12 @@ export default function NdaTemplatesPage() {
 
               <CardContent className="flex-1 flex flex-col justify-between pt-0">
                 <div className="space-y-3">
+                  {template.isDefault && (
+                    <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200 w-fit">
+                      <Check className="w-3 h-3 mr-1" />
+                      Default
+                    </Badge>
+                  )}
                   <div className="flex items-center gap-2 text-sm text-gray-500">
                     <Calendar className="w-4 h-4" />
                     <span>Created {new Date(template.createdAt).toLocaleDateString()}</span>
@@ -237,9 +280,9 @@ export default function NdaTemplatesPage() {
       ) : (
         <div className="space-y-3">
           {templates.map((template: NdaTemplate) => (
-            <Card 
-              key={template.id} 
-              className="group hover:shadow-md hover:shadow-blue-100/50 transition-all duration-200 border-gray-200 hover:border-blue-200 cursor-pointer bg-white"
+            <Card
+              key={template.id}
+              className={`group hover:shadow-md hover:shadow-blue-100/50 transition-all duration-200 hover:border-blue-200 cursor-pointer bg-white ${template.isDefault ? 'border-blue-300 ring-1 ring-blue-200' : 'border-gray-200'}`}
               onClick={() => setLocation(`/nda-templates/${template.id}/edit`)}
             >
               <CardContent className="p-6">
@@ -249,7 +292,15 @@ export default function NdaTemplatesPage() {
                       <FileText className="w-6 h-6 text-blue-600" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-semibold truncate group-hover:text-blue-600 transition-colors">{template.name}</h3>
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-lg font-semibold truncate group-hover:text-blue-600 transition-colors">{template.name}</h3>
+                        {template.isDefault && (
+                          <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200 flex-shrink-0">
+                            <Check className="w-3 h-3 mr-1" />
+                            Default
+                          </Badge>
+                        )}
+                      </div>
                       <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-4 h-4" />
@@ -272,8 +323,8 @@ export default function NdaTemplatesPage() {
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           size="sm"
                           className="opacity-60 group-hover:opacity-100 transition-opacity hover:bg-gray-100"
                           onClick={(e) => e.stopPropagation()}
@@ -282,7 +333,18 @@ export default function NdaTemplatesPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem 
+                        {!template.isDefault && (
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSetDefault(template.id, e as any);
+                            }}
+                          >
+                            <Star className="w-4 h-4 mr-2" />
+                            Set as Default
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem
                           onClick={(e) => {
                             e.stopPropagation();
                             setLocation(`/nda-templates/${template.id}/edit`);
@@ -291,16 +353,18 @@ export default function NdaTemplatesPage() {
                           <Edit className="w-4 h-4 mr-2" />
                           Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(template.id, template.name);
-                          }}
-                          className="text-red-600"
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
+                        {!template.isDefault && (
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(template.id, template.name);
+                            }}
+                            className="text-red-600"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>

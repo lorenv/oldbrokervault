@@ -151,7 +151,8 @@ export default function DocumentsPage() {
       if (!response.ok) throw new Error('Failed to fetch documents');
       return response.json();
     },
-    staleTime: 60000,
+    staleTime: 30000,
+    refetchOnMount: true,
     refetchOnWindowFocus: false
   });
 

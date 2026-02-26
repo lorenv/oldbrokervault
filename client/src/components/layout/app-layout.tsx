@@ -22,7 +22,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <AppSidebar />
         <SidebarInset className="flex flex-col">
           {/* Main content area */}
-          <main className={`flex-1 overflow-x-hidden overflow-y-auto max-w-full ${isMobile ? 'pb-20' : ''}`}>
+          <main className={`flex-1 overflow-x-clip max-w-full ${isMobile ? 'pb-20' : ''}`}>
             {children}
           </main>
         </SidebarInset>

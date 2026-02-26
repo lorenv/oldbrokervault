@@ -40,7 +40,8 @@ import {
   Settings,
   Search,
   X,
-  BarChart3
+  BarChart3,
+  AlertTriangle
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -767,13 +768,13 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                       }}
                       disabled={updateNdaSettingsMutation.isPending}
                     >
-                      <SelectTrigger className="w-[200px]">
-                        <SelectValue placeholder="Choose template" />
+                      <SelectTrigger className={`w-[200px] ${!ndaSettings.ndaTemplateId ? 'border-orange-400 bg-orange-50 text-orange-700 ring-1 ring-orange-300' : ''}`}>
+                        <SelectValue placeholder="⚠ Choose template" />
                       </SelectTrigger>
                       <SelectContent>
                         {ndaTemplates.map((template: any) => (
                           <SelectItem key={template.id} value={template.id.toString()}>
-                            {template.name}
+                            {template.name}{template.isDefault ? ' (Default)' : ''}
                           </SelectItem>
                         ))}
                         <SelectItem
@@ -789,9 +790,23 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                 <Switch
                   id="nda-protection"
                   checked={ndaSettings.ndaProtected}
-                  onCheckedChange={(checked) =>
-                    handleSettingChange('ndaProtected', checked)
-                  }
+                  onCheckedChange={(checked) => {
+                    if (checked && !ndaSettings.ndaTemplateId) {
+                      const defaultTemplate = ndaTemplates.find((t: any) => t.isDefault);
+                      if (defaultTemplate) {
+                        const newSettings = { ...ndaSettings, ndaProtected: true, ndaTemplateId: defaultTemplate.id };
+                        setNdaSettings(newSettings);
+                        updateNdaSettingsMutation.mutate({
+                          ndaProtected: true,
+                          ndaApprovalRequired: newSettings.ndaApprovalRequired,
+                          ndaTemplateId: defaultTemplate.id,
+                          copyMeOnEmails: newSettings.copyMeOnEmails
+                        });
+                        return;
+                      }
+                    }
+                    handleSettingChange('ndaProtected', checked);
+                  }}
                 />
               </div>
             </div>
@@ -799,6 +814,13 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
             {ndaSettings.ndaProtected && ndaTemplates.length === 0 && (
               <p className="text-sm text-orange-600 bg-orange-50 p-3 rounded-md mt-3">
                 No templates available. Create one to enable NDA protection.
+              </p>
+            )}
+            {/* Warning if NDA enabled but no template selected */}
+            {ndaSettings.ndaProtected && ndaTemplates.length > 0 && !ndaSettings.ndaTemplateId && (
+              <p className="text-sm text-orange-600 bg-orange-50 p-3 rounded-md mt-3 flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                Please select an NDA template. NDA protection won't work without a template.
               </p>
             )}
           </div>

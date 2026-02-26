@@ -4,7 +4,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Upload, FileText, CheckCircle, Shield, UserCheck, Settings2, ExternalLink, Info } from "lucide-react";
+import { Loader2, Upload, FileText, CheckCircle, Shield, UserCheck, Settings2, ExternalLink, Info, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -349,8 +349,8 @@ export function CimFileUpload({ onSuccess, dealId }: CimFileUploadProps) {
                       setNdaSettings(prev => ({ ...prev, ndaTemplateId: value ? parseInt(value) : null }));
                     }}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select an NDA template" />
+                    <SelectTrigger className={!ndaSettings.ndaTemplateId ? 'border-orange-400 bg-orange-50 text-orange-700 ring-1 ring-orange-300' : ''}>
+                      <SelectValue placeholder="⚠ Select an NDA template" />
                     </SelectTrigger>
                     <SelectContent>
                       {ndaTemplates.length > 0 ? (
@@ -379,6 +379,12 @@ export function CimFileUpload({ onSuccess, dealId }: CimFileUploadProps) {
                       </div>
                     </SelectContent>
                   </Select>
+                  {!ndaSettings.ndaTemplateId && (
+                    <p className="text-sm text-orange-600 flex items-center gap-1.5 mt-1">
+                      <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
+                      Please select a template for NDA protection to work.
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex items-center space-x-2">
