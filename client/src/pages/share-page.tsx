@@ -215,6 +215,13 @@ export function SharePage() {
     gcTime: 0
   });
 
+  // Redirect to deal NDA signing page when ndaShareSlug is present
+  useEffect(() => {
+    if (ndaCheck?.requiresNda && ndaCheck?.ndaShareSlug && !hasSignedNda && !accessToken) {
+      window.location.href = `/nda/${ndaCheck.ndaShareSlug}`;
+    }
+  }, [ndaCheck?.requiresNda, ndaCheck?.ndaShareSlug, hasSignedNda, accessToken]);
+
   useEffect(() => {
 
     // Don't show bypass screen anymore - the server already handles owner bypass
@@ -539,6 +546,21 @@ export function SharePage() {
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
             <p className="text-gray-600">Loading document...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // External URL CIM: redirect to external link (view already tracked by API)
+  if (cimData?.externalUrl && !shareData?.isOwner) {
+    window.location.href = cimData.externalUrl;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/40 p-4">
+        <div className="flex justify-center items-center min-h-[50vh]">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+            <p className="text-gray-600">Redirecting to document...</p>
           </div>
         </div>
       </div>

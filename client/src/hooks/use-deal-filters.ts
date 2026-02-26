@@ -14,7 +14,6 @@ export interface DealFilters {
   status: 'all' | 'open' | 'won' | 'lost';
   ownerId: number | null;
   owners: number[];
-  companies: number[];
   amountMin: number | null;
   amountMax: number | null;
   closeDateFrom: string | null;
@@ -41,14 +40,13 @@ export interface ColumnConfig {
 
 export const DEFAULT_COLUMNS: ColumnConfig[] = [
   { id: 'name', label: 'Deal Name', visible: true, order: 0 },
-  { id: 'company', label: 'Company', visible: true, order: 1 },
-  { id: 'stage', label: 'Stage', visible: true, order: 2 },
-  { id: 'amount', label: 'Value', visible: true, order: 3 },
-  { id: 'closeDate', label: 'Close Date', visible: true, order: 4 },
-  { id: 'owner', label: 'Owner', visible: true, order: 5 },
-  { id: 'priority', label: 'Priority', visible: false, order: 6 },
-  { id: 'source', label: 'Source', visible: false, order: 7 },
-  { id: 'createdAt', label: 'Created', visible: false, order: 8 },
+  { id: 'stage', label: 'Stage', visible: true, order: 1 },
+  { id: 'amount', label: 'Value', visible: true, order: 2 },
+  { id: 'closeDate', label: 'Close Date', visible: true, order: 3 },
+  { id: 'owner', label: 'Owner', visible: true, order: 4 },
+  { id: 'priority', label: 'Priority', visible: false, order: 5 },
+  { id: 'source', label: 'Source', visible: false, order: 6 },
+  { id: 'createdAt', label: 'Created', visible: false, order: 7 },
 ];
 
 export const DEFAULT_FILTERS: DealFilters = {
@@ -57,7 +55,6 @@ export const DEFAULT_FILTERS: DealFilters = {
   status: 'all',
   ownerId: null,
   owners: [],
-  companies: [],
   amountMin: null,
   amountMax: null,
   closeDateFrom: null,
@@ -99,7 +96,6 @@ export function useDealFilters() {
     if (filters.status !== 'all') count++;
     if (filters.ownerId) count++;
     if (filters.owners.length > 0) count++;
-    if (filters.companies.length > 0) count++;
     if (filters.amountMin !== null) count++;
     if (filters.amountMax !== null) count++;
     if (filters.closeDateFrom) count++;
@@ -131,7 +127,6 @@ export function useDealFilters() {
     if (filters.status !== 'all') params.set('status', filters.status);
     if (filters.ownerId) params.set('ownerId', filters.ownerId.toString());
     if (filters.owners.length > 0) params.set('owners', filters.owners.join(','));
-    if (filters.companies.length > 0) params.set('companies', filters.companies.join(','));
     if (filters.amountMin !== null) params.set('amountMin', filters.amountMin.toString());
     if (filters.amountMax !== null) params.set('amountMax', filters.amountMax.toString());
     if (filters.priority.length > 0) params.set('priority', filters.priority.join(','));

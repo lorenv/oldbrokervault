@@ -631,6 +631,8 @@ export class DatabaseStorage implements IStorage {
       // Generation status tracking
       generationStatus: doc.generationStatus || 'ready',
       generationStartedAt: doc.generationStartedAt || null,
+      // External URL CIM
+      externalUrl: doc.externalUrl || null,
     };
 
     console.log("Data being inserted into database:", insertData);

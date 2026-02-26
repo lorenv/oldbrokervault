@@ -6,7 +6,6 @@ interface DealsFilterBuilderProps {
   filters: DealFilters;
   onFilterChange: <K extends keyof DealFilters>(key: K, value: DealFilters[K]) => void;
   onClearFilters: () => void;
-  companies: { id: number; name: string }[];
   owners: { id: number; name: string; profilePhoto?: string | null }[];
   customFields?: any[];
   activeFilterCount: number;
@@ -14,19 +13,12 @@ interface DealsFilterBuilderProps {
 
 // Define available filter fields for deals
 const getFilterFields = (
-  companies: { id: number; name: string }[],
   owners: { id: number; name: string; profilePhoto?: string | null }[]
 ): FilterField[] => [
   { id: 'dealName', label: 'Deal Name', type: 'text' },
   { id: 'amount', label: 'Value', type: 'number' },
   { id: 'closeDate', label: 'Close Date', type: 'date' },
   { id: 'createdDate', label: 'Created Date', type: 'date' },
-  {
-    id: 'company',
-    label: 'Company',
-    type: 'select',
-    options: companies.filter(c => c.id != null).map(c => ({ value: c.id.toString(), label: c.name }))
-  },
   {
     id: 'owner',
     label: 'Owner',
@@ -118,17 +110,6 @@ function filtersToConditions(filters: DealFilters): FilterCondition[] {
     });
   }
 
-  if (filters.companies.length > 0) {
-    filters.companies.forEach((companyId) => {
-      conditions.push({
-        id: `company-${companyId}-${Date.now()}`,
-        fieldId: 'company',
-        operator: 'equals',
-        value: companyId.toString(),
-      });
-    });
-  }
-
   if (filters.owners.length > 0) {
     filters.owners.forEach((ownerId) => {
       conditions.push({
@@ -167,7 +148,6 @@ function applyConditionsToFilters(
   onFilterChange('closeDateTo', null);
   onFilterChange('createdFrom', null);
   onFilterChange('createdTo', null);
-  onFilterChange('companies', []);
   onFilterChange('owners', []);
   onFilterChange('priority', []);
   onFilterChange('status', 'all');
@@ -216,12 +196,6 @@ function applyConditionsToFilters(
         }
         break;
 
-      case 'company':
-        if (condition.operator === 'equals') {
-          onFilterChange('companies', [parseInt(value)]);
-        }
-        break;
-
       case 'owner':
         if (condition.operator === 'equals') {
           onFilterChange('owners', [parseInt(value)]);
@@ -247,12 +221,11 @@ export function DealsFilterBuilderIntegration({
   filters,
   onFilterChange,
   onClearFilters,
-  companies,
   owners,
   activeFilterCount,
 }: DealsFilterBuilderProps) {
   const [conditions, setConditions] = useState<FilterCondition[]>([]);
-  const filterFields = getFilterFields(companies, owners);
+  const filterFields = getFilterFields(owners);
 
   // Initialize conditions from existing filters
   useEffect(() => {

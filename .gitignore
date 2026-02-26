@@ -24,10 +24,10 @@ vite.config.ts.*
 .cache/
 .local/
 
-# Attached assets - exclude system/config files
-attached_assets/*.zip
-attached_assets/cache_*
-attached_assets/config_*
-attached_assets/dist_*
-attached_assets/client_*
-attached_assets/env_*
+# Large binary formats
+*.tiff
+*.xlsx
+
+# Replit scratch folder and user data
+attached_assets/
+private/

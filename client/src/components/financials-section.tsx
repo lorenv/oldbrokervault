@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -238,10 +239,10 @@ export function FinancialsSection({ docId, isSharedView = false, cimDocument: pr
                   </div>
                 )
               ) : (
-                <Input
+                <CurrencyInput
                   placeholder="$1,000,000"
                   value={financials?.askingPrice || ''}
-                  onChange={(e) => handleFieldUpdate('askingPrice', e.target.value)}
+                  onChange={(formatted) => handleFieldUpdate('askingPrice', formatted)}
                 />
               )}
             </div>
@@ -267,10 +268,10 @@ export function FinancialsSection({ docId, isSharedView = false, cimDocument: pr
                   </div>
                 )
               ) : (
-                <Input
+                <CurrencyInput
                   placeholder="$500,000"
                   value={financials?.revenue || ''}
-                  onChange={(e) => handleFieldUpdate('revenue', e.target.value)}
+                  onChange={(formatted) => handleFieldUpdate('revenue', formatted)}
                 />
               )}
             </div>
@@ -296,10 +297,10 @@ export function FinancialsSection({ docId, isSharedView = false, cimDocument: pr
                   </div>
                 )
               ) : (
-                <Input
+                <CurrencyInput
                   placeholder="$150,000"
                   value={financials?.ebitda || ''}
-                  onChange={(e) => handleFieldUpdate('ebitda', e.target.value)}
+                  onChange={(formatted) => handleFieldUpdate('ebitda', formatted)}
                 />
               )}
             </div>

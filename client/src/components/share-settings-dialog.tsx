@@ -123,8 +123,8 @@ export function ShareSettingsDialog({ open, onOpenChange, docId }: ShareSettings
 
   // For displaying the domain prefix in the custom slug input
   const displayDomain = user?.customSubdomain
-    ? `${user.customSubdomain}.brokervault.ai/share/`
-    : 'brokervault.ai/share/';
+    ? `${user.customSubdomain}.${window.location.hostname}/share/`
+    : `${window.location.hostname}/share/`;
 
   // Check if the input differs from saved value (needs saving)
   const hasUnsavedChanges = customSlugInput !== (shareSettings.customSlug || '');

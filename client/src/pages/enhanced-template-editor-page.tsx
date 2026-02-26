@@ -105,7 +105,7 @@ export default function EnhancedTemplateEditorPage() {
 
   // Full-screen layout without navbar constraints
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
+    <div className="h-[calc(100vh-4rem)] flex flex-col bg-gray-50">
       {/* Header with back button and save button */}
       <div className="bg-white border-b px-6 py-4 flex-shrink-0">
         <div className="flex items-center justify-between">

@@ -108,7 +108,7 @@ router.post('/templates/:id/powerform', async (req: Request, res: Response) => {
         .returning();
 
       // Generate full URL
-      const baseUrl = process.env.BASE_URL || 'https://brokervault.ai';
+      const baseUrl = process.env.BASE_URL || '';
       const powerFormUrl = `${baseUrl}/esign/form/${slug}`;
 
       res.json({
@@ -451,7 +451,7 @@ router.post('/form/:slug/start', async (req: Request, res: Response) => {
     }
 
     // Generate signing URL
-    const baseUrl = process.env.BASE_URL || 'https://brokervault.ai';
+    const baseUrl = process.env.BASE_URL || '';
     const signingUrl = `${baseUrl}/esign/sign/${firstSigner.accessToken}`;
 
     res.json({
@@ -604,7 +604,7 @@ router.post('/form/envelope/:envelopeId/add-signer', async (req: Request, res: R
       userAgent: req.headers['user-agent'],
     });
 
-    const baseUrl = process.env.BASE_URL || 'https://brokervault.ai';
+    const baseUrl = process.env.BASE_URL || '';
     const signingUrl = `${baseUrl}/esign/sign/${accessToken}`;
 
     // Send email if requested
@@ -669,7 +669,7 @@ router.get('/powerforms', async (req: Request, res: Response) => {
       )
       .orderBy(desc(esignTemplates.powerFormCreatedAt));
 
-    const baseUrl = process.env.BASE_URL || 'https://brokervault.ai';
+    const baseUrl = process.env.BASE_URL || '';
 
     const powerForms = templates.map(t => ({
       id: t.id,

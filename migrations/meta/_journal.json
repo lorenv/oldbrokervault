@@ -29,6 +29,20 @@
       "when": 1770237539257,
       "tag": "0003_clean_marrow",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1771637809360,
+      "tag": "0004_swift_jean_grey",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1771887953975,
+      "tag": "0005_marvelous_fat_cobra",
+      "breakpoints": true
     }
   ]
 }

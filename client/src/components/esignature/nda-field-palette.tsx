@@ -60,8 +60,8 @@ export default function NdaFieldPalette({ className = '' }: NdaFieldPaletteProps
   return (
     <Card className={className}>
       <CardHeader className="pb-4">
-        <CardTitle className="flex items-center gap-2 text-xl">
-          <Palette className="w-6 h-6" />
+        <CardTitle className="flex items-center gap-2 text-xl text-gray-900">
+          <Palette className="w-6 h-6 text-gray-700" />
           Signature Fields
         </CardTitle>
         <p className="text-sm text-gray-600 mt-2">

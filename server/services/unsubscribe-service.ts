@@ -33,7 +33,7 @@ class UnsubscribeService {
    */
   async getUnsubscribeLink(userId: number): Promise<string> {
     const token = await this.generateUnsubscribeToken(userId);
-    const baseUrl = process.env.FRONTEND_URL || 'https://brokervault.ai';
+    const baseUrl = process.env.FRONTEND_URL || process.env.BASE_URL || '';
     return `${baseUrl}/unsubscribe?token=${token}`;
   }
 

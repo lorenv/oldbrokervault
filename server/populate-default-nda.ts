@@ -7,6 +7,35 @@ import path from 'path';
 // Read the actual PDF content from the base64 file
 const DEFAULT_NDA_BASE64 = fs.readFileSync(path.join(process.cwd(), 'nda_base64.txt'), 'utf8').trim();
 
+// Default signature fields for new user NDA templates
+// All coordinates and dimensions are percentages (0-100) of the page
+const DEFAULT_SIGNATURE_FIELDS = [
+  {
+    id: 'default_name',
+    type: 'name',
+    label: 'Full Name',
+    x: 10,
+    y: 85,
+    width: 15,
+    height: 3,
+    pageNumber: 1,
+    required: true,
+    fontSize: 12,
+  },
+  {
+    id: 'default_signature',
+    type: 'signature',
+    label: 'Signature',
+    x: 10,
+    y: 90,
+    width: 18,
+    height: 6,
+    pageNumber: 1,
+    required: true,
+    fontSize: 12,
+  },
+];
+
 export async function populateDefaultNDAForAllUsers() {
   try {
     console.log('Starting default NDA population for all users...');
@@ -30,7 +59,8 @@ export async function populateDefaultNDAForAllUsers() {
           userId: user.id,
           name: "Broker Vault NDA",
           fileContent: DEFAULT_NDA_BASE64,
-          isDefault: true
+          isDefault: true,
+          signatureFields: DEFAULT_SIGNATURE_FIELDS,
         });
         
         console.log(`Created "Broker Vault NDA" template for user ${user.id} (${user.email})`);
@@ -63,7 +93,8 @@ export async function populateDefaultNDAForUser(userId: number) {
         userId: userId,
         name: "Default Confidentiality Agreement",
         fileContent: DEFAULT_NDA_BASE64,
-        isDefault: true
+        isDefault: true,
+        signatureFields: DEFAULT_SIGNATURE_FIELDS,
       });
       
       console.log(`Created "Broker Vault NDA" template for user ${userId}`);

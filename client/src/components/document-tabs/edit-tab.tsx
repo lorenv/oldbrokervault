@@ -45,8 +45,7 @@ export function DocumentEditTab({ cimDocument, financialFiles, customSections }:
           <div className="flex-shrink-0">
             <button
               onClick={() => {
-                const baseUrl = window.location.hostname === 'localhost' ? window.location.origin : 'https://app.brokervault.ai';
-                const shareUrl = `${baseUrl}/share/${cimDocument.shareSlug || 'not-shared'}`;
+                const shareUrl = `${window.location.origin}/share/${cimDocument.shareSlug || 'not-shared'}`;
                 if (cimDocument.shareSlug) {
                   window.open(shareUrl, '_blank');
                 } else {

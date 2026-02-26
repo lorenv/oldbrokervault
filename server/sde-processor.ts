@@ -163,7 +163,7 @@ export class SDEProcessor {
           filename: analysisData.originalFilename,
           processing_time: processingTime,
           expiration_date: expirationDate,
-          download_url: `${process.env.VITE_APP_URL || 'https://brokervault.ai'}/sde-analyzer`,
+          download_url: `${process.env.VITE_APP_URL || process.env.BASE_URL || ''}/sde-analyzer`,
           analysis_id: analysisData.id
         }
       });

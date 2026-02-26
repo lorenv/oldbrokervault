@@ -59,6 +59,7 @@ import {
   CheckSquare,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Link } from "wouter";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -151,12 +152,15 @@ function DraggableBuyerCard({
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm truncate">
-                {buyer.company?.name ||
-                  (buyer.contact
-                    ? `${buyer.contact.firstName} ${buyer.contact.lastName}`
-                    : "Unknown Buyer")}
-              </p>
+              {buyer.contact ? (
+                <Link href={`/buyers/${buyer.contact.id}`} className="font-medium text-sm truncate block text-gray-900 hover:text-blue-600 transition-colors">
+                  {buyer.company?.name || `${buyer.contact.firstName} ${buyer.contact.lastName}`}
+                </Link>
+              ) : (
+                <p className="font-medium text-sm truncate text-gray-900">
+                  {buyer.company?.name || "Unknown Buyer"}
+                </p>
+              )}
               {buyer.contact && (
                 <p className="text-xs text-gray-500 truncate">
                   {buyer.contact.email}
@@ -294,12 +298,15 @@ function BuyerListRow({
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-sm truncate text-gray-900">
-          {buyer.company?.name ||
-            (buyer.contact
-              ? `${buyer.contact.firstName} ${buyer.contact.lastName}`
-              : "Unknown Buyer")}
-        </p>
+        {buyer.contact ? (
+          <Link href={`/buyers/${buyer.contact.id}`} className="font-medium text-sm truncate block text-gray-900 hover:text-blue-600 transition-colors">
+            {buyer.company?.name || `${buyer.contact.firstName} ${buyer.contact.lastName}`}
+          </Link>
+        ) : (
+          <p className="font-medium text-sm truncate text-gray-900">
+            {buyer.company?.name || "Unknown Buyer"}
+          </p>
+        )}
       </div>
 
       <div className="w-48 flex items-center gap-1">

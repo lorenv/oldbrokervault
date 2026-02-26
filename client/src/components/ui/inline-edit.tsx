@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
+import { formatWithCommas, stripToNumeric } from "@/components/ui/currency-input";
 import {
   Select,
   SelectContent,
@@ -189,9 +190,17 @@ export function InlineEdit({
       <div className={cn("inline-flex items-center gap-1 relative", className)}>
         <Input
           ref={inputRef}
-          type={type === 'currency' ? 'number' : type === 'phone' ? 'tel' : type}
-          value={editValue}
-          onChange={(e) => setEditValue(e.target.value)}
+          type={type === 'currency' ? 'text' : type === 'phone' ? 'tel' : type}
+          inputMode={type === 'currency' ? 'numeric' : undefined}
+          value={type === 'currency' ? (editValue ? '$' + formatWithCommas(stripToNumeric(editValue)) : '') : editValue}
+          onChange={(e) => {
+            if (type === 'currency') {
+              const numeric = stripToNumeric(e.target.value);
+              setEditValue(numeric);
+            } else {
+              setEditValue(e.target.value);
+            }
+          }}
           onKeyDown={handleKeyDown}
           onBlur={handleBlur}
           placeholder={placeholder}

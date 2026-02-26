@@ -528,7 +528,7 @@ export function CimGenerator({ onModeChange, dealId }: CimGeneratorProps = {}) {
         );
       }
 
-      if (data.transcript.length > 4000 || financialFiles.length > 0) {
+      if (data.transcript.length > 4000 || financialFiles.length > 0 || coverImageFile) {
         const file = new Blob([data.transcript], { type: 'text/plain' });
         const formData = new FormData();
         formData.append('transcript', file, 'transcript.txt');
@@ -686,6 +686,9 @@ export function CimGenerator({ onModeChange, dealId }: CimGeneratorProps = {}) {
       if (cimGeneration) {
         cimGeneration.startGeneration(result.id, docTitle);
       }
+
+      // Invalidate document list cache so the new CIM appears immediately
+      queryClient.invalidateQueries({ queryKey: ["/api/cim"] });
 
       // Navigate to the dedicated generation page
       setGenerationStage(null);
@@ -1535,9 +1538,15 @@ export function CimGenerator({ onModeChange, dealId }: CimGeneratorProps = {}) {
                   id="nda-protected"
                   checked={ndaSettings.ndaProtected}
                   onCheckedChange={(checked) => {
-                    setNdaSettings(prev => ({ ...prev, ndaProtected: checked }));
-                    if (!checked) {
-                      setNdaSettings(prev => ({ ...prev, ndaTemplateId: null, ndaApprovalRequired: false }));
+                    if (checked) {
+                      const defaultTemplate = ndaTemplates.find((t: any) => t.isDefault);
+                      setNdaSettings(prev => ({
+                        ...prev,
+                        ndaProtected: true,
+                        ndaTemplateId: defaultTemplate ? defaultTemplate.id : prev.ndaTemplateId
+                      }));
+                    } else {
+                      setNdaSettings(prev => ({ ...prev, ndaProtected: false, ndaTemplateId: null, ndaApprovalRequired: false }));
                     }
                   }}
                   data-testid="switch-nda-protected"
@@ -1567,7 +1576,7 @@ export function CimGenerator({ onModeChange, dealId }: CimGeneratorProps = {}) {
                               {ndaTemplates.length > 0 ? (
                                 ndaTemplates.map((template: any) => (
                                   <SelectItem key={template.id} value={template.id.toString()}>
-                                    {template.name}
+                                    {template.name}{template.isDefault ? ' (Default)' : ''}
                                   </SelectItem>
                                 ))
                               ) : (
@@ -1678,7 +1687,7 @@ export function CimGenerator({ onModeChange, dealId }: CimGeneratorProps = {}) {
 
           {/* Sticky Summary Sidebar - Desktop Only */}
           <div className="hidden lg:block lg:col-span-3">
-            <div className="sticky top-4 space-y-3 bg-white lg:p-4 lg:rounded-xl lg:shadow-sm">
+            <div className="sticky top-20 space-y-3 bg-white lg:p-4 lg:rounded-xl lg:shadow-sm">
               {/* Progress Checklist Card */}
               <Card className="border-0 shadow-none bg-transparent">
                 <CardHeader className="pb-2">
@@ -1812,9 +1821,15 @@ export function CimGenerator({ onModeChange, dealId }: CimGeneratorProps = {}) {
                       id="nda-protected-sidebar"
                       checked={ndaSettings.ndaProtected}
                       onCheckedChange={(checked) => {
-                        setNdaSettings(prev => ({ ...prev, ndaProtected: checked }));
-                        if (!checked) {
-                          setNdaSettings(prev => ({ ...prev, ndaTemplateId: null, ndaApprovalRequired: false }));
+                        if (checked) {
+                          const defaultTemplate = ndaTemplates.find((t: any) => t.isDefault);
+                          setNdaSettings(prev => ({
+                            ...prev,
+                            ndaProtected: true,
+                            ndaTemplateId: defaultTemplate ? defaultTemplate.id : prev.ndaTemplateId
+                          }));
+                        } else {
+                          setNdaSettings(prev => ({ ...prev, ndaProtected: false, ndaTemplateId: null, ndaApprovalRequired: false }));
                         }
                       }}
                     />
@@ -1840,7 +1855,7 @@ export function CimGenerator({ onModeChange, dealId }: CimGeneratorProps = {}) {
                             {ndaTemplates.length > 0 ? (
                               ndaTemplates.map((template: any) => (
                                 <SelectItem key={template.id} value={template.id.toString()}>
-                                  {template.name}
+                                  {template.name}{template.isDefault ? ' (Default)' : ''}
                                 </SelectItem>
                               ))
                             ) : (

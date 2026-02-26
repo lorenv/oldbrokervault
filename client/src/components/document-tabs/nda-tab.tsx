@@ -40,7 +40,8 @@ import {
   Settings,
   Search,
   X,
-  BarChart3
+  BarChart3,
+  AlertTriangle
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -191,6 +192,19 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
       return response.json();
     },
     enabled: !!analyticsSignerEmail
+  });
+
+  // Check if this CIM has a deal NDA protecting it
+  const { data: dealNdaInfo } = useQuery<any>({
+    queryKey: ['/api/cim-deal-nda', cimDocument.id, cimDocument.dealId],
+    queryFn: async () => {
+      if (!cimDocument.dealId) return null;
+      const res = await apiRequest("GET", `/api/deals/${cimDocument.dealId}/ndas`);
+      const ndas = await res.json();
+      // Find the one protecting this specific CIM
+      return Array.isArray(ndas) ? ndas.find((n: any) => n.cimDocumentId === cimDocument.id) || null : null;
+    },
+    enabled: !!cimDocument.dealId,
   });
 
   // Helper to format time spent
@@ -588,8 +602,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
 
   // Generate share link for a specific signer
   const generateSignerShareLink = (signature: any) => {
-    const baseUrl = window.location.hostname === 'localhost' ? window.location.origin : 'https://brokervault.ai';
-    return `${baseUrl}/share/${cimDocument.shareSlug}?token=${signature.accessToken}`;
+    return `${window.location.origin}/share/${cimDocument.shareSlug}?token=${signature.accessToken}`;
   };
 
   // Copy share link
@@ -679,6 +692,46 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
 
   return (
     <div className="space-y-6">
+      {/* Deal NDA Banner — shown when a deal-level NDA protects this CIM */}
+      {dealNdaInfo && (
+        <Card className="border-indigo-200 bg-indigo-50">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-indigo-100 rounded-lg flex-shrink-0">
+                <Shield className="h-5 w-5 text-indigo-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-indigo-900">
+                  Protected by Deal NDA: {dealNdaInfo.name || "Untitled NDA"}
+                </p>
+                <p className="text-xs text-indigo-700 mt-0.5">
+                  {dealNdaInfo.approvalRequired ? "Manual approval required" : "Auto-approve"} &middot;{" "}
+                  {dealNdaInfo.signatureStats?.total || 0} signed, {dealNdaInfo.signatureStats?.approved || 0} approved
+                </p>
+                <div className="flex items-center gap-2 mt-2">
+                  <Input
+                    readOnly
+                    value={`${window.location.origin}/nda/${dealNdaInfo.shareSlug}`}
+                    className="h-7 text-xs bg-white border-indigo-200 flex-1"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 px-2 border-indigo-200"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/nda/${dealNdaInfo.shareSlug}`);
+                      toast({ title: "NDA share URL copied" });
+                    }}
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* NDA Protection Settings - Enhanced Professional Design */}
       <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
         <CardHeader className="bg-gradient-to-r from-cyan-600 to-cyan-700 pb-4 pt-6 px-6 shadow-lg">
@@ -715,13 +768,13 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                       }}
                       disabled={updateNdaSettingsMutation.isPending}
                     >
-                      <SelectTrigger className="w-[200px]">
-                        <SelectValue placeholder="Choose template" />
+                      <SelectTrigger className={`w-[200px] ${!ndaSettings.ndaTemplateId ? 'border-orange-400 bg-orange-50 text-orange-700 ring-1 ring-orange-300' : ''}`}>
+                        <SelectValue placeholder="⚠ Choose template" />
                       </SelectTrigger>
                       <SelectContent>
                         {ndaTemplates.map((template: any) => (
                           <SelectItem key={template.id} value={template.id.toString()}>
-                            {template.name}
+                            {template.name}{template.isDefault ? ' (Default)' : ''}
                           </SelectItem>
                         ))}
                         <SelectItem
@@ -737,9 +790,23 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                 <Switch
                   id="nda-protection"
                   checked={ndaSettings.ndaProtected}
-                  onCheckedChange={(checked) =>
-                    handleSettingChange('ndaProtected', checked)
-                  }
+                  onCheckedChange={(checked) => {
+                    if (checked && !ndaSettings.ndaTemplateId) {
+                      const defaultTemplate = ndaTemplates.find((t: any) => t.isDefault);
+                      if (defaultTemplate) {
+                        const newSettings = { ...ndaSettings, ndaProtected: true, ndaTemplateId: defaultTemplate.id };
+                        setNdaSettings(newSettings);
+                        updateNdaSettingsMutation.mutate({
+                          ndaProtected: true,
+                          ndaApprovalRequired: newSettings.ndaApprovalRequired,
+                          ndaTemplateId: defaultTemplate.id,
+                          copyMeOnEmails: newSettings.copyMeOnEmails
+                        });
+                        return;
+                      }
+                    }
+                    handleSettingChange('ndaProtected', checked);
+                  }}
                 />
               </div>
             </div>
@@ -747,6 +814,13 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
             {ndaSettings.ndaProtected && ndaTemplates.length === 0 && (
               <p className="text-sm text-orange-600 bg-orange-50 p-3 rounded-md mt-3">
                 No templates available. Create one to enable NDA protection.
+              </p>
+            )}
+            {/* Warning if NDA enabled but no template selected */}
+            {ndaSettings.ndaProtected && ndaTemplates.length > 0 && !ndaSettings.ndaTemplateId && (
+              <p className="text-sm text-orange-600 bg-orange-50 p-3 rounded-md mt-3 flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                Please select an NDA template. NDA protection won't work without a template.
               </p>
             )}
           </div>
@@ -1539,6 +1613,14 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                           title="View engagement analytics"
                         >
                           <BarChart3 className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setLocation(`/ndas/${signature.id}`)}
+                          title="Open in NDA Hub"
+                        >
+                          <ExternalLink className="h-3 w-3" />
                         </Button>
                       </div>
                     </TableCell>

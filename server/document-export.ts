@@ -3391,7 +3391,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             includedFiles.forEach((file: any) => {
               console.log("Adding financial file to PDF:", file.filename);
               // Use the dynamic base URL for file downloads - handle both regular and shared document downloads
-              const domain = baseUrl || 'https://brokervault.ai';
+              const domain = baseUrl || '';
               // Use share URL if shareSlug is provided, otherwise use regular authenticated URL
               const downloadUrl = shareSlug 
                 ? `${domain}/api/share/${shareSlug}/financial-files/${file.id}/download`
@@ -4249,7 +4249,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               
               // Convert object storage paths to full URLs
               if (userProfile.businessLogo.startsWith('/api/object-storage/')) {
-                fetchUrl = baseUrl ? `${baseUrl}${userProfile.businessLogo}` : `https://brokervault.ai${userProfile.businessLogo}`;
+                fetchUrl = baseUrl ? `${baseUrl}${userProfile.businessLogo}` : userProfile.businessLogo;
               }
               
               // Convert localhost HTTPS to HTTP for internal fetching
@@ -4438,7 +4438,7 @@ async function addHyperlinksToFinalPdf(pdfBuffer: Buffer, financialFiles: any[],
     const pages = pdfDoc.getPages();
     
     // Generate URLs for each financial file
-    const domain = baseUrl || 'https://brokervault.ai';
+    const domain = baseUrl || '';
     
     // Use tracked positions if available, otherwise fall back to estimated positions
     if (globalFinancialFilePositions.length > 0) {

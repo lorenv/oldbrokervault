@@ -10,8 +10,8 @@ export default function NdaSignerDisplay({ className = '' }: NdaSignerDisplayPro
   return (
     <Card className={`${className} border-0`}>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Users className="w-5 h-5" />
+        <CardTitle className="flex items-center gap-2 text-gray-900">
+          <Users className="w-5 h-5 text-gray-700" />
           Document Signer
         </CardTitle>
       </CardHeader>

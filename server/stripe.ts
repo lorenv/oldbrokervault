@@ -181,25 +181,12 @@ export async function createSubscriptionSessionDirect(planId: keyof typeof subsc
   console.log("Price ID:", priceId);
   console.log("Request host:", requestHost);
 
-  // Determine the correct base URL for redirects
-  let baseUrl = `https://brokervault.ai`; // Default to production domain
-  
-  // Use request host if it's the production domain
-  if (requestHost && requestHost.includes('brokervault.ai')) {
-    baseUrl = `https://${requestHost}`;
-  } 
-  // Only use Replit domain for development/testing
-  else if (requestHost && requestHost.includes('replit')) {
-    baseUrl = `https://${requestHost}`;
-    console.log("🔧 Replit development environment: Using Replit domain for testing");
+  // Determine the correct base URL for redirects from the request host
+  let baseUrl = requestHost ? `https://${requestHost}` : (process.env.BASE_URL || '');
+  if (!baseUrl && process.env.REPLIT_DOMAINS) {
+    baseUrl = `https://${process.env.REPLIT_DOMAINS.split(',')[0]}`;
   }
-  // Fallback check if no requestHost but we're clearly in Replit dev
-  else if (!requestHost && process.env.REPLIT_DOMAINS && process.env.NODE_ENV === 'development') {
-    const replitDomain = process.env.REPLIT_DOMAINS.split(',')[0];
-    baseUrl = `https://${replitDomain}`;
-    console.log("🔧 Replit dev environment detected: Using Replit domain");
-  }
-  
+
   console.log("Using base URL for redirects:", baseUrl);
   console.log("Request host provided:", requestHost);
 
@@ -284,25 +271,12 @@ export async function createSubscriptionSession(planId: keyof typeof subscriptio
   if (!user) throw new Error("User not found");
   const customerId = await getOrCreateCustomer(userId, user.email);
 
-  // Determine the correct base URL for redirects
-  let baseUrl = `https://brokervault.ai`; // Default to production domain
-  
-  // Use request host if it's the production domain
-  if (requestHost && requestHost.includes('brokervault.ai')) {
-    baseUrl = `https://${requestHost}`;
-  } 
-  // Only use Replit domain for development/testing
-  else if (requestHost && requestHost.includes('replit')) {
-    baseUrl = `https://${requestHost}`;
-    console.log("🔧 Replit development environment: Using Replit domain for testing");
+  // Determine the correct base URL for redirects from the request host
+  let baseUrl = requestHost ? `https://${requestHost}` : (process.env.BASE_URL || '');
+  if (!baseUrl && process.env.REPLIT_DOMAINS) {
+    baseUrl = `https://${process.env.REPLIT_DOMAINS.split(',')[0]}`;
   }
-  // Fallback check if no requestHost but we're clearly in Replit dev
-  else if (!requestHost && process.env.REPLIT_DOMAINS && process.env.NODE_ENV === 'development') {
-    const replitDomain = process.env.REPLIT_DOMAINS.split(',')[0];
-    baseUrl = `https://${replitDomain}`;
-    console.log("🔧 Replit dev environment detected: Using Replit domain");
-  }
-  
+
   console.log("Using base URL for redirects:", baseUrl);
   console.log("Request host provided:", requestHost);
 
@@ -366,10 +340,8 @@ export async function createCustomerPortalSession(userId: number) {
     throw new Error("No Stripe customer ID found");
   }
 
-  // Use production domain or development domain based on environment
-  const baseUrl = process.env.NODE_ENV === 'production'
-    ? 'https://brokervault.ai'
-    : `https://${process.env.REPL_SLUG}.replit.dev`;
+  // Use BASE_URL or derive from environment
+  const baseUrl = process.env.BASE_URL || (process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}` : '');
 
   return stripe.billingPortal.sessions.create({
     customer: user.stripeCustomerId,

@@ -141,6 +141,27 @@ export function registerNdaTemplateRoutes(app: Express) {
     }
   });
 
+  // Set default NDA template
+  app.put("/api/nda-templates/:id/set-default", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const templateId = parseInt(req.params.id);
+
+      // Verify ownership
+      const template = await storage.getNdaTemplate(templateId);
+      if (!template || template.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+
+      await storage.setDefaultNdaTemplate(req.user!.id, templateId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error setting default NDA template:", error);
+      res.status(500).json({ error: "Failed to set default template" });
+    }
+  });
+
   // Get template for signature process (public endpoint for signers)
   app.get("/api/share/:shareSlug/nda-template", async (req, res) => {
     try {

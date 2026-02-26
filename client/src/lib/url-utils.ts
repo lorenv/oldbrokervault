@@ -1,48 +1,36 @@
 /**
- * Utility functions for URL generation that work consistently across environments
+ * Utility functions for URL generation that work consistently across environments.
+ * Always uses the current window.location.origin so links work on any domain.
  */
 
-const PRODUCTION_DOMAIN = 'brokervault.ai';
-
 /**
- * Get the base URL for the application, handling both development and production environments
+ * Get the base URL for the application based on the current browser location
  */
 export function getBaseUrl(): string {
   if (typeof window === 'undefined') {
-    // Server-side rendering fallback
-    return `https://${PRODUCTION_DOMAIN}`;
+    return '';
   }
-
-  // Use localhost for development, production domain for everything else
-  return window.location.hostname === 'localhost'
-    ? window.location.origin
-    : `https://${PRODUCTION_DOMAIN}`;
+  return window.location.origin;
 }
 
 /**
  * Get the base URL with an optional custom subdomain
- * @param customSubdomain - Optional subdomain (e.g., "acme" for acme.brokervault.ai)
+ * @param customSubdomain - Optional subdomain (e.g., "acme" for acme.example.com)
  */
 export function getBaseUrlWithSubdomain(customSubdomain?: string | null): string {
   if (typeof window === 'undefined') {
-    // Server-side rendering fallback
-    if (customSubdomain) {
-      return `https://${customSubdomain}.${PRODUCTION_DOMAIN}`;
-    }
-    return `https://${PRODUCTION_DOMAIN}`;
+    return '';
   }
 
-  // Use localhost for development (no subdomain support locally)
-  if (window.location.hostname === 'localhost') {
+  if (!customSubdomain) {
     return window.location.origin;
   }
 
-  // Production with custom subdomain
-  if (customSubdomain) {
-    return `https://${customSubdomain}.${PRODUCTION_DOMAIN}`;
-  }
-
-  return `https://${PRODUCTION_DOMAIN}`;
+  // Build subdomain URL from current hostname
+  const { protocol, hostname, port } = window.location;
+  const subdomainHost = `${customSubdomain}.${hostname}`;
+  const portSuffix = port ? `:${port}` : '';
+  return `${protocol}//${subdomainHost}${portSuffix}`;
 }
 
 /**

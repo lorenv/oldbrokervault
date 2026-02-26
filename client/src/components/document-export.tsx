@@ -8,7 +8,7 @@ import {
 import { Copy, FileText, File, Globe, FileDown, Link, Share2, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { getBaseUrlWithSubdomain } from "@/lib/url-utils";
+import { getBaseUrl, getBaseUrlWithSubdomain, generateShareUrl } from "@/lib/url-utils";
 import { useCimDocument, useNdaSignatures } from "@/hooks/use-cim-document";
 import { EmailShareDialog } from "./email-share-dialog";
 import {
@@ -175,7 +175,7 @@ export function DocumentExport({
         const result = await response.json();
 
         if (result.shareSlug) {
-          const baseUrl = window.location.hostname === 'localhost' ? window.location.origin : 'https://brokervault.ai';
+          const baseUrl = getBaseUrl();
           const url = `${baseUrl}/share/${result.shareSlug}`;
           setShareUrl(url);
         }
@@ -398,7 +398,7 @@ export function DocumentExport({
 
       // Set share URL if sharing is enabled
       if (doc.shareEnabled && doc.shareSlug) {
-        const baseUrl = window.location.hostname === 'localhost' ? window.location.origin : 'https://brokervault.ai';
+        const baseUrl = getBaseUrl();
         const url = `${baseUrl}/share/${doc.shareSlug}`;
         setShareUrl(url);
       } else {
@@ -429,7 +429,7 @@ export function DocumentExport({
 
         // Set share URL if sharing is enabled
         if (doc.shareEnabled && doc.shareSlug) {
-          const baseUrl = window.location.hostname === 'localhost' ? window.location.origin : 'https://brokervault.ai';
+          const baseUrl = getBaseUrl();
           const url = `${baseUrl}/share/${doc.shareSlug}`;
           setShareUrl(url);
         } else {
@@ -1180,7 +1180,7 @@ export function DocumentExport({
                             const randomId = Math.random().toString(36).substring(2, 8);
                             const newSlug = `cim-${randomId}`;
                             setShareSettings(prev => ({ ...prev, shareSlug: newSlug }));
-                            const baseUrl = window.location.hostname === 'localhost' ? window.location.origin : 'https://brokervault.ai';
+                            const baseUrl = getBaseUrl();
                             setShareUrl(`${baseUrl}/share/${newSlug}`);
                           }
                         }}
@@ -1209,7 +1209,7 @@ export function DocumentExport({
                 <div className="space-y-2">
                   <Label htmlFor="custom-slug">Custom URL (optional)</Label>
                   <div className="flex items-center space-x-2">
-                    <span className="text-sm text-muted-foreground">{user?.customSubdomain ? `${user.customSubdomain}.brokervault.ai/share/` : 'brokervault.ai/share/'}</span>
+                    <span className="text-sm text-muted-foreground">{user?.customSubdomain ? `${user.customSubdomain}.${window.location.hostname}/share/` : `${window.location.hostname}/share/`}</span>
                     <Input
                       id="custom-slug"
                       placeholder="my-business-name"

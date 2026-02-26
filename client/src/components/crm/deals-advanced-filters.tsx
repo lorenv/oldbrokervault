@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -18,11 +19,6 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronDown, ChevronUp, Filter, X, Plus } from "lucide-react";
 import type { DealFilters, CustomFieldFilterValue } from "@/hooks/use-deal-filters";
-
-interface Company {
-  id: number;
-  name: string;
-}
 
 interface Owner {
   id: number;
@@ -43,7 +39,6 @@ interface AdvancedFiltersProps {
   onFilterChange: <K extends keyof DealFilters>(key: K, value: DealFilters[K]) => void;
   onCustomFieldFilterChange: (fieldName: string, value: CustomFieldFilterValue) => void;
   onClearFilters: () => void;
-  companies: Company[];
   owners: Owner[];
   customFields?: CustomField[];
   activeFilterCount: number;
@@ -54,7 +49,6 @@ export function DealsAdvancedFilters({
   onFilterChange,
   onCustomFieldFilterChange,
   onClearFilters,
-  companies,
   owners,
   customFields = [],
   activeFilterCount,
@@ -111,19 +105,17 @@ export function DealsAdvancedFilters({
             <div className="space-y-2">
               <Label className="text-xs font-medium text-muted-foreground">Value Range</Label>
               <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  placeholder="Min"
+                <CurrencyInput
+                  placeholder="$0"
                   value={filters.amountMin ?? ''}
-                  onChange={(e) => onFilterChange('amountMin', e.target.value ? parseFloat(e.target.value) : null)}
+                  onValueChange={(num) => onFilterChange('amountMin', num)}
                   className="h-8 text-sm bg-background"
                 />
                 <span className="text-muted-foreground text-sm">to</span>
-                <Input
-                  type="number"
-                  placeholder="Max"
+                <CurrencyInput
+                  placeholder="$0"
                   value={filters.amountMax ?? ''}
-                  onChange={(e) => onFilterChange('amountMax', e.target.value ? parseFloat(e.target.value) : null)}
+                  onValueChange={(num) => onFilterChange('amountMax', num)}
                   className="h-8 text-sm bg-background"
                 />
               </div>
@@ -167,33 +159,6 @@ export function DealsAdvancedFilters({
                   className="h-8 text-sm bg-background"
                 />
               </div>
-            </div>
-
-            {/* Company Filter */}
-            <div className="space-y-2">
-              <Label className="text-xs font-medium text-muted-foreground">Company</Label>
-              <Select
-                value={filters.companies.length === 1 ? filters.companies[0].toString() : 'all'}
-                onValueChange={(value) => {
-                  if (value === 'all') {
-                    onFilterChange('companies', []);
-                  } else {
-                    onFilterChange('companies', [parseInt(value)]);
-                  }
-                }}
-              >
-                <SelectTrigger className="h-8 text-sm bg-background">
-                  <SelectValue placeholder="All Companies" />
-                </SelectTrigger>
-                <SelectContent position="popper" className="z-50 max-h-60">
-                  <SelectItem value="all">All Companies</SelectItem>
-                  {companies.map((company) => (
-                    <SelectItem key={company.id} value={company.id.toString()}>
-                      {company.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
 
             {/* Owner Filter */}
@@ -334,29 +299,29 @@ export function DealsAdvancedFilters({
                         </div>
                       ) : field.fieldType === 'number' || field.fieldType === 'currency' ? (
                         <div className="flex items-center gap-2">
-                          <Input
-                            type="number"
-                            placeholder="Min"
+                          <CurrencyInput
+                            placeholder="$0"
+                            showPrefix={field.fieldType === 'currency'}
                             value={(currentValue as { min?: number; max?: number })?.min ?? ''}
-                            onChange={(e) => {
+                            onValueChange={(num) => {
                               const current = (currentValue as { min?: number; max?: number }) || {};
                               onCustomFieldFilterChange(field.name, {
                                 ...current,
-                                min: e.target.value ? parseFloat(e.target.value) : undefined,
+                                min: num ?? undefined,
                               });
                             }}
                             className="h-8 text-sm bg-background"
                           />
                           <span className="text-muted-foreground text-sm">to</span>
-                          <Input
-                            type="number"
-                            placeholder="Max"
+                          <CurrencyInput
+                            placeholder="$0"
+                            showPrefix={field.fieldType === 'currency'}
                             value={(currentValue as { min?: number; max?: number })?.max ?? ''}
-                            onChange={(e) => {
+                            onValueChange={(num) => {
                               const current = (currentValue as { min?: number; max?: number }) || {};
                               onCustomFieldFilterChange(field.name, {
                                 ...current,
-                                max: e.target.value ? parseFloat(e.target.value) : undefined,
+                                max: num ?? undefined,
                               });
                             }}
                             className="h-8 text-sm bg-background"

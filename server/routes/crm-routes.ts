@@ -16,7 +16,9 @@ import {
   crmTasks,
   users,
   cimDocuments,
+  ndaSignatures,
   investorContacts,
+  ndaWhitelistRules,
   buyerPipelineStages,
   dealBuyers,
   integrationConnections,
@@ -238,11 +240,11 @@ async function getUserOrganization(userId: number) {
       const companiesMap = new Map<string, number>();
 
       // Collect unique companies for batch insert
-      const uniqueCompanyNames = [...new Set(
+      const uniqueCompanyNames = Array.from(new Set(
         existingInvestorContacts
           .filter(contact => contact.company)
           .map(contact => contact.company!)
-      )];
+      ));
 
       if (uniqueCompanyNames.length > 0) {
         const companyValues = uniqueCompanyNames.map(companyName => ({
@@ -726,7 +728,7 @@ router.post('/migrate-cims-to-deals', async (req, res) => {
     for (const cim of orphanCims) {
       // Extract deal name from CIM title or company name
       const dealName = cim.title ||
-        (cim.content as any)?.companyInfo?.companyName ||
+        (cim.analysis as any)?.companyInfo?.companyName ||
         `Deal from CIM ${cim.id}`;
 
       // Create the deal
@@ -2330,7 +2332,6 @@ router.get('/companies', async (req, res) => {
       industry,
       city,
       state,
-      hasDeals,
       hasContacts,
       createdFrom,
       createdTo,
@@ -2409,21 +2410,20 @@ router.get('/companies', async (req, res) => {
         orderClause = sortDir(companies.createdAt);
     }
 
-    // For hasDeals and hasContacts, we need subqueries
+    // For hasContacts, we need subqueries
     // These are post-filtered for now to keep the query simpler
     let companyList = await db
       .select()
       .from(companies)
       .where(and(...conditions))
       .orderBy(orderClause)
-      .limit(parseInt(limit as string) * 2) // Fetch extra to account for hasDeals/hasContacts filtering
+      .limit(parseInt(limit as string) * 2) // Fetch extra to account for hasContacts filtering
       .offset(offset);
 
     // Get contact and deal counts for each company
     const companyIds = companyList.map(c => c.id);
 
     let contactCounts: Record<number, number> = {};
-    let dealCounts: Record<number, number> = {};
 
     if (companyIds.length > 0) {
       const contactCountResults = await db
@@ -2438,31 +2438,9 @@ router.get('/companies', async (req, res) => {
       contactCounts = Object.fromEntries(
         contactCountResults.map(r => [r.companyId, Number(r.count)])
       );
-
-      const dealCountResults = await db
-        .select({
-          companyId: deals.companyId,
-          count: sql<number>`count(*)`,
-        })
-        .from(deals)
-        .where(and(
-          inArray(deals.companyId, companyIds),
-          isNull(deals.deletedAt)
-        ))
-        .groupBy(deals.companyId);
-
-      dealCounts = Object.fromEntries(
-        dealCountResults.map(r => [r.companyId, Number(r.count)])
-      );
     }
 
-    // Apply hasDeals and hasContacts filters
-    if (hasDeals === 'true') {
-      companyList = companyList.filter(c => (dealCounts[c.id] || 0) > 0);
-    } else if (hasDeals === 'false') {
-      companyList = companyList.filter(c => (dealCounts[c.id] || 0) === 0);
-    }
-
+    // Apply hasContacts filter
     if (hasContacts === 'true') {
       companyList = companyList.filter(c => (contactCounts[c.id] || 0) > 0);
     } else if (hasContacts === 'false') {
@@ -2482,7 +2460,6 @@ router.get('/companies', async (req, res) => {
       companies: companyList.map(c => ({
         ...c,
         contactCount: contactCounts[c.id] || 0,
-        dealCount: dealCounts[c.id] || 0,
       })),
       total: Number(countResult?.count || 0),
       page: parseInt(page as string),
@@ -2524,15 +2501,7 @@ router.get('/companies/:id', async (req, res) => {
       .where(eq(crmContacts.companyId, companyId))
       .limit(100);
 
-    // Get associated deals
-    const companyDeals = await db
-      .select()
-      .from(deals)
-      .where(and(eq(deals.companyId, companyId), isNull(deals.deletedAt)))
-      .orderBy(desc(deals.createdAt))
-      .limit(50);
-
-    res.json({ ...company, contacts, deals: companyDeals });
+    res.json({ ...company, contacts });
   } catch (error) {
     console.error('[CRM] Error fetching company:', error);
     res.status(500).json({ error: 'Failed to fetch company' });
@@ -2689,16 +2658,11 @@ router.delete('/companies/:id', async (req, res) => {
       return res.status(404).json({ error: 'Company not found' });
     }
 
-    // Remove company associations from contacts and deals
+    // Remove company associations from contacts
     await db
       .update(crmContacts)
       .set({ companyId: null, updatedAt: new Date() })
       .where(eq(crmContacts.companyId, companyId));
-
-    await db
-      .update(deals)
-      .set({ companyId: null, updatedAt: new Date() })
-      .where(eq(deals.companyId, companyId));
 
     await db.delete(companies).where(eq(companies.id, companyId));
 
@@ -2901,10 +2865,33 @@ router.get('/contacts', async (req, res) => {
       .from(crmContacts)
       .where(and(...conditions));
 
+    // Get NDA signature counts per contact email
+    const contactEmails = contactList
+      .map((c) => c.contact.email?.toLowerCase().trim())
+      .filter((e): e is string => !!e);
+
+    let ndaCountMap: Record<string, number> = {};
+    if (contactEmails.length > 0) {
+      const ndaCounts = await db
+        .select({
+          email: sql<string>`LOWER(${ndaSignatures.signerEmail})`,
+          count: sql<number>`count(*)`,
+        })
+        .from(ndaSignatures)
+        .innerJoin(cimDocuments, eq(cimDocuments.id, ndaSignatures.cimDocumentId))
+        .where(sql`LOWER(${ndaSignatures.signerEmail}) IN (${sql.join(contactEmails.map(e => sql`${e}`), sql`, `)})`)
+        .groupBy(sql`LOWER(${ndaSignatures.signerEmail})`);
+
+      for (const row of ndaCounts) {
+        ndaCountMap[row.email] = Number(row.count);
+      }
+    }
+
     res.json({
       contacts: contactList.map((c) => ({
         ...c.contact,
         company: c.company,
+        ndaCount: c.contact.email ? (ndaCountMap[c.contact.email.toLowerCase().trim()] || 0) : 0,
       })),
       total: Number(countResult?.count || 0),
       page: parseInt(page as string),
@@ -2943,17 +2930,72 @@ router.get('/contacts/:id', async (req, res) => {
       return res.status(404).json({ error: 'Contact not found' });
     }
 
-    // Get associated deals
+    // Get associated deals from dealContacts (seller/other contacts)
     const contactDeals = await db
       .select({ deal: deals, association: dealContacts })
       .from(dealContacts)
       .innerJoin(deals, eq(deals.id, dealContacts.dealId))
       .where(and(eq(dealContacts.contactId, contactId), isNull(deals.deletedAt)));
 
+    // Also get deals from dealBuyers (buyer pipeline)
+    const buyerDeals = await db
+      .select({ deal: deals, buyerRecord: dealBuyers })
+      .from(dealBuyers)
+      .innerJoin(deals, eq(deals.id, dealBuyers.dealId))
+      .where(and(eq(dealBuyers.contactId, contactId), isNull(deals.deletedAt)));
+
+    // Get NDA signatures for this contact's email (for buyer view) with deal info
+    let ndaHistory: Array<{ id: number; cimDocumentId: number; documentTitle: string; signedAt: Date; approved: boolean; rejected: boolean; dealId: number | null; dealName: string | null }> = [];
+    if (result.contact.email) {
+      const signatures = await db
+        .select({
+          id: ndaSignatures.id,
+          cimDocumentId: ndaSignatures.cimDocumentId,
+          documentTitle: cimDocuments.title,
+          signedAt: ndaSignatures.signedAt,
+          approved: ndaSignatures.approved,
+          rejected: ndaSignatures.rejected,
+          dealId: cimDocuments.dealId,
+          dealName: deals.name,
+        })
+        .from(ndaSignatures)
+        .innerJoin(cimDocuments, eq(cimDocuments.id, ndaSignatures.cimDocumentId))
+        .leftJoin(deals, eq(deals.id, cimDocuments.dealId))
+        .where(sql`LOWER(${ndaSignatures.signerEmail}) = ${result.contact.email.toLowerCase().trim()}`)
+        .orderBy(desc(ndaSignatures.signedAt));
+      ndaHistory = signatures;
+    }
+
+    // Check if contact email is whitelisted
+    let isWhitelisted = false;
+    if (result.contact.email) {
+      const emailLower = result.contact.email.toLowerCase().trim();
+      const [whitelistRule] = await db
+        .select()
+        .from(ndaWhitelistRules)
+        .where(
+          and(
+            eq(ndaWhitelistRules.userId, req.user!.id),
+            eq(ndaWhitelistRules.ruleType, 'email'),
+            eq(ndaWhitelistRules.isActive, true),
+            sql`LOWER(${ndaWhitelistRules.ruleValue}) = ${emailLower}`,
+          ),
+        )
+        .limit(1);
+      isWhitelisted = !!whitelistRule;
+    }
+
     res.json({
       ...result.contact,
       company: result.company,
-      deals: contactDeals.map((d) => ({ ...d.deal, role: d.association.role })),
+      deals: [
+        ...contactDeals.map((d) => ({ ...d.deal, role: d.association.role })),
+        ...buyerDeals
+          .filter((bd) => !contactDeals.some((cd) => cd.deal.id === bd.deal.id))
+          .map((bd) => ({ ...bd.deal, role: 'buyer', dealBuyerId: bd.buyerRecord.id })),
+      ],
+      ndaHistory,
+      isWhitelisted,
     });
   } catch (error) {
     console.error('[CRM] Error fetching contact:', error);
@@ -3047,6 +3089,13 @@ router.patch('/contacts/:id', async (req, res) => {
       'avatarUrl',
       'notes',
       'tags',
+      // Buyer-specific fields
+      'buyerType',
+      'acquisitionCriteria',
+      'financialCapability',
+      'estimatedBudget',
+      'priorAcquisitions',
+      'isActiveBuyer',
     ];
 
     for (const field of allowedFields) {
@@ -3439,7 +3488,6 @@ router.get('/deals', async (req, res) => {
       search,
       stages, // comma-separated stage IDs
       owners, // comma-separated owner IDs
-      companies: companyIds, // comma-separated company IDs
       amountMin,
       amountMax,
       closeDateFrom,
@@ -3506,14 +3554,6 @@ router.get('/deals', async (req, res) => {
       }
     }
 
-    // Companies filter
-    if (companyIds) {
-      const compIds = (companyIds as string).split(',').map(c => parseInt(c.trim())).filter(c => !isNaN(c));
-      if (compIds.length > 0) {
-        conditions.push(inArray(deals.companyId, compIds));
-      }
-    }
-
     // Amount range filter
     if (amountMin) {
       conditions.push(sql`CAST(${deals.amount} AS DECIMAL) >= ${parseFloat(amountMin as string)}`);
@@ -3558,15 +3598,10 @@ router.get('/deals', async (req, res) => {
       }
     }
 
-    // Search filter (searches deal name and company name)
+    // Search filter
     if (search) {
       const searchTerm = `%${search}%`;
-      conditions.push(
-        or(
-          ilike(deals.name, searchTerm),
-          ilike(companies.name, searchTerm)
-        )
-      );
+      conditions.push(ilike(deals.name, searchTerm));
     }
 
     // Build sort order
@@ -3578,7 +3613,6 @@ router.get('/deals', async (req, res) => {
       updatedAt: deals.updatedAt,
       priority: deals.priority,
       stage: pipelineStages.displayOrder,
-      company: companies.name,
     };
 
     const sortColumn = sortFieldMap[sortField as string] || deals.createdAt;
@@ -3589,12 +3623,10 @@ router.get('/deals', async (req, res) => {
       .select({
         deal: deals,
         stage: pipelineStages,
-        company: companies,
         owner: users,
       })
       .from(deals)
       .leftJoin(pipelineStages, eq(pipelineStages.id, deals.stageId))
-      .leftJoin(companies, eq(companies.id, deals.companyId))
       .leftJoin(users, eq(users.id, deals.ownerId))
       .where(and(...conditions))
       .orderBy(orderDirection)
@@ -3613,14 +3645,12 @@ router.get('/deals', async (req, res) => {
       })
       .from(deals)
       .leftJoin(pipelineStages, eq(pipelineStages.id, deals.stageId))
-      .leftJoin(companies, eq(companies.id, deals.companyId))
       .where(and(...conditions));
 
     res.json({
       deals: dealList.map((d) => ({
         ...d.deal,
         stage: d.stage,
-        company: d.company,
         owner: d.owner ? {
           id: d.owner.id,
           email: d.owner.email,
@@ -3704,7 +3734,6 @@ router.get('/deals/kanban/:pipelineId', async (req, res) => {
     const allDeals = await db
       .select({
         deal: deals,
-        company: companies,
         owner: {
           id: users.id,
           email: users.email,
@@ -3715,7 +3744,6 @@ router.get('/deals/kanban/:pipelineId', async (req, res) => {
         },
       })
       .from(deals)
-      .leftJoin(companies, eq(companies.id, deals.companyId))
       .leftJoin(users, eq(users.id, deals.ownerId))
       .where(and(...baseConditions))
       .orderBy(desc(deals.updatedAt))
@@ -3738,7 +3766,6 @@ router.get('/deals/kanban/:pipelineId', async (req, res) => {
       ...stage,
       deals: (dealsByStage.get(stage.id) || []).map((d) => ({
         ...d.deal,
-        company: d.company,
         owner: d.owner?.id ? d.owner : null,
       })),
     }));
@@ -3767,7 +3794,6 @@ router.get('/deals/:id', async (req, res) => {
         deal: deals,
         stage: pipelineStages,
         pipeline: pipelines,
-        company: companies,
         owner: {
           id: users.id,
           email: users.email,
@@ -3780,7 +3806,6 @@ router.get('/deals/:id', async (req, res) => {
       .from(deals)
       .leftJoin(pipelineStages, eq(pipelineStages.id, deals.stageId))
       .leftJoin(pipelines, eq(pipelines.id, deals.pipelineId))
-      .leftJoin(companies, eq(companies.id, deals.companyId))
       .leftJoin(users, eq(users.id, deals.ownerId))
       .where(
         and(
@@ -3867,7 +3892,6 @@ router.get('/deals/:id', async (req, res) => {
       ...result.deal,
       stage: result.stage,
       pipeline: result.pipeline,
-      company: result.company,
       owner: result.owner?.id ? result.owner : null,
       contacts: contacts.map((c) => ({ ...c.contact, role: c.association.role })),
       documents: allDocuments,
@@ -4000,18 +4024,34 @@ router.patch('/deals/:id', async (req, res) => {
       'closeDate',
       'probability',
       'ownerId',
-      'companyId',
       'customProperties',
       'source',
       'lostReason',
       'description',
       'priority',
+      // Business details
+      'askingPrice',
+      'revenueRange',
+      'profitRange',
+      'industry',
+      'businessDescription',
+      'listingStatus',
+      // Seller engagement context
+      'sellerMotivation',
+      'sellerTimeline',
+      'engagementStatus',
+      'engagementSignedAt',
+      // Source tracking
+      'dealSource',
+      'referredBy',
+      // Files
+      'files',
     ];
 
     for (const field of allowedFields) {
       if (req.body[field] !== undefined) {
         // Convert date strings to Date objects for timestamp fields
-        if (field === 'closeDate' && req.body[field]) {
+        if ((field === 'closeDate' || field === 'engagementSignedAt') && req.body[field]) {
           updateData[field] = new Date(req.body[field]);
         } else {
           updateData[field] = req.body[field];
@@ -5450,7 +5490,7 @@ router.get('/activity-feed/:objectType/:objectId', async (req, res) => {
               fileSize: attachmentData.attachment.fileSize,
               mimeType: attachmentData.attachment.mimeType,
               uploader: attachmentData.uploader,
-              createdAt: attachmentData.attachment.createdAt,
+              createdAt: attachmentData.attachment.uploadedAt,
               downloadUrl: `/api/crm/attachments/${attachmentData.attachment.id}/download`,
             },
           };
@@ -6230,7 +6270,7 @@ router.get('/tasks', async (req, res) => {
 
     // Get creator info separately to avoid complex join
     const taskIds = tasks.map(t => t.task.id);
-    const creatorIds = [...new Set(tasks.map(t => t.task.createdBy))];
+    const creatorIds = Array.from(new Set(tasks.map(t => t.task.createdBy)));
 
     const creators = creatorIds.length > 0 ? await db
       .select({
@@ -6366,7 +6406,7 @@ router.get('/tasks/:objectType/:objectId', async (req, res) => {
       );
 
     // Get creator info
-    const creatorIds = [...new Set(tasks.map(t => t.task.createdBy))];
+    const creatorIds = Array.from(new Set(tasks.map(t => t.task.createdBy)));
     const creators = creatorIds.length > 0 ? await db
       .select({
         id: users.id,
@@ -6904,11 +6944,11 @@ router.post('/contacts/:id/emails', async (req, res) => {
     // Log activity
     await db.insert(crmActivities).values({
       organizationId: orgData.organization.id,
-      contactId: contactId,
-      type: 'email',
-      subject: `Sent: ${subject}`,
-      description: `Email sent to ${contact.email}`,
-      createdById: req.user!.id,
+      objectType: 'contact',
+      objectId: contactId,
+      activityType: 'email',
+      performedBy: req.user!.id,
+      metadata: { subject: `Sent: ${subject}`, description: `Email sent to ${contact.email}` },
     });
 
     // Update last used timestamp
@@ -7041,7 +7081,7 @@ router.get('/deals/:id/emails', async (req, res) => {
           .map(email => ({
             ...email,
             contactEmail,
-            contactName: contacts.find(c => c.email?.toLowerCase() === contactEmail)?.name,
+            contactName: (() => { const c = contacts.find(c => c.email?.toLowerCase() === contactEmail); return c ? `${c.firstName || ''} ${c.lastName || ''}`.trim() || c.email : undefined; })(),
           }));
 
         allEmails = [...allEmails, ...emails];
@@ -7709,10 +7749,8 @@ router.get('/search', async (req, res) => {
         .select({
           id: deals.id,
           name: deals.name,
-          companyName: companies.name,
         })
         .from(deals)
-        .leftJoin(companies, eq(companies.id, deals.companyId))
         .where(
           and(
             eq(deals.organizationId, orgData.organization.id),
@@ -7727,7 +7765,6 @@ router.get('/search', async (req, res) => {
           type: 'deal' as const,
           id: d.id,
           title: d.name,
-          subtitle: d.companyName || undefined,
         }))
       );
     }
@@ -8132,8 +8169,6 @@ const IMPORT_FIELD_DEFINITIONS = {
       { key: 'description', label: 'Description', required: false },
     ],
     associations: [
-      { key: 'companyName', label: 'Company Name', required: false },
-      { key: 'companyDomain', label: 'Company Domain', required: false },
       { key: 'contactEmails', label: 'Contact Emails', required: false },
       { key: 'pipelineName', label: 'Pipeline', required: false },
       { key: 'stageName', label: 'Stage', required: false },
@@ -8471,7 +8506,6 @@ router.post('/import/preview', async (req, res) => {
         .select({
           id: deals.id,
           name: deals.name,
-          companyId: deals.companyId
         })
         .from(deals)
         .where(and(
@@ -8561,21 +8595,10 @@ router.post('/import/preview', async (req, res) => {
           }
         }
       } else if (entityType === 'deal' && mappedRow.name) {
-        // For deals: exact name match + same company = duplicate
+        // For deals: exact name match = duplicate
         const normalizedName = mappedRow.name.toLowerCase().trim();
-        // First resolve company association
-        let companyId: number | null = null;
-        if (mappedRow.companyDomain) {
-          const company = allCompanies.find(c => c.domain?.toLowerCase() === mappedRow.companyDomain.toLowerCase());
-          if (company) companyId = company.id;
-        } else if (mappedRow.companyName) {
-          const company = allCompanies.find(c => c.name?.toLowerCase() === mappedRow.companyName.toLowerCase());
-          if (company) companyId = company.id;
-        }
-
         const match = existingRecords.find(r =>
-          r.name?.toLowerCase() === normalizedName &&
-          (companyId === null || r.companyId === companyId)
+          r.name?.toLowerCase() === normalizedName
         );
         if (match) {
           duplicateOf = { id: match.id, displayName: match.name };
@@ -8583,7 +8606,7 @@ router.post('/import/preview', async (req, res) => {
       }
 
       // Resolve associations
-      if (entityType === 'contact' || entityType === 'deal') {
+      if (entityType === 'contact') {
         // Company association
         if (mappedRow.companyDomain || mappedRow.companyName) {
           let matchedCompany = null;
@@ -8669,7 +8692,7 @@ router.post('/import/preview', async (req, res) => {
       valid: preview.filter(r => r.errors.length === 0 && !r.duplicateOf).length,
       duplicates: preview.filter(r => r.duplicateOf).length,
       errors: preview.filter(r => r.errors.length > 0).length,
-      newCompanies: entityType !== 'company' ?
+      newCompanies: entityType === 'contact' ?
         new Set(preview.filter(r => r.associations.company?.action === 'create').map(r => r.associations.company?.inputValue?.toLowerCase())).size : 0,
     };
 
@@ -8870,28 +8893,6 @@ router.post('/import/execute', async (req, res) => {
           });
           importedCount++;
         } else if (entityType === 'deal') {
-          // Resolve company association
-          let companyId: number | null = null;
-          if (associations.company) {
-            if (associations.company.action === 'link' && associations.company.match) {
-              companyId = associations.company.match.id;
-            } else if (associations.company.action === 'create' && associations.company.inputValue) {
-              const cacheKey = associations.company.inputValue.toLowerCase();
-              if (createdCompanies.has(cacheKey)) {
-                companyId = createdCompanies.get(cacheKey)!;
-              } else {
-                const [newCompany] = await db.insert(companies).values({
-                  organizationId: orgData.organization.id,
-                  name: associations.company.inputValue,
-                  domain: mappedData.companyDomain || null,
-                  ownerId: orgData.membership.id,
-                }).returning();
-                companyId = newCompany.id;
-                createdCompanies.set(cacheKey, companyId);
-              }
-            }
-          }
-
           // Resolve pipeline and stage
           const pipelineId = associations.pipeline?.match?.id || defaultPipeline?.id;
           const stageId = associations.stage?.match?.id || defaultStage?.id;
@@ -8942,7 +8943,6 @@ router.post('/import/execute', async (req, res) => {
             priority: ['low', 'normal', 'high'].includes(mappedData.priority) ? mappedData.priority : 'normal',
             source: mappedData.source || 'import',
             description: mappedData.description || null,
-            companyId,
             ownerId,
             customProperties,
           }).returning();
@@ -9068,6 +9068,303 @@ router.get('/import/:id', async (req, res) => {
   } catch (error) {
     console.error('[CRM] Error fetching import details:', error);
     res.status(500).json({ error: 'Failed to fetch import details' });
+  }
+});
+
+// ============================================
+// SELLER-SPECIFIC ENDPOINTS
+// ============================================
+
+// GET /sellers - Convenience endpoint for seller contacts
+router.get('/sellers', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    const { search, sortField = 'createdAt', sortOrder = 'desc' } = req.query;
+
+    let conditions: any[] = [
+      eq(crmContacts.organizationId, orgData.organization.id),
+      eq(crmContacts.contactType, 'seller'),
+    ];
+
+    if (search && typeof search === 'string' && search.trim()) {
+      const searchTerm = `%${search.trim().toLowerCase()}%`;
+      conditions.push(
+        or(
+          ilike(crmContacts.email, searchTerm),
+          ilike(crmContacts.firstName, searchTerm),
+          ilike(crmContacts.lastName, searchTerm),
+          sql`CONCAT(${crmContacts.firstName}, ' ', ${crmContacts.lastName}) ILIKE ${searchTerm}`
+        )!
+      );
+    }
+
+    const sortDir = sortOrder === 'asc' ? asc : desc;
+    let orderClause;
+    switch (sortField) {
+      case 'name': orderClause = sortDir(crmContacts.firstName); break;
+      default: orderClause = sortDir(crmContacts.createdAt);
+    }
+
+    const contactList = await db
+      .select({ contact: crmContacts, company: companies })
+      .from(crmContacts)
+      .leftJoin(companies, eq(companies.id, crmContacts.companyId))
+      .where(and(...conditions))
+      .orderBy(orderClause);
+
+    res.json({
+      contacts: contactList.map((c) => ({
+        ...c.contact,
+        company: c.company,
+      })),
+      total: contactList.length,
+    });
+  } catch (error) {
+    console.error('[CRM] Error fetching sellers:', error);
+    res.status(500).json({ error: 'Failed to fetch sellers' });
+  }
+});
+
+// GET /buyers - Convenience endpoint for buyer contacts
+router.get('/buyers', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    const { search, sortField = 'createdAt', sortOrder = 'desc' } = req.query;
+
+    let conditions: any[] = [
+      eq(crmContacts.organizationId, orgData.organization.id),
+      eq(crmContacts.contactType, 'buyer'),
+    ];
+
+    if (search && typeof search === 'string' && search.trim()) {
+      const searchTerm = `%${search.trim().toLowerCase()}%`;
+      conditions.push(
+        or(
+          ilike(crmContacts.email, searchTerm),
+          ilike(crmContacts.firstName, searchTerm),
+          ilike(crmContacts.lastName, searchTerm),
+          sql`CONCAT(${crmContacts.firstName}, ' ', ${crmContacts.lastName}) ILIKE ${searchTerm}`
+        )!
+      );
+    }
+
+    const sortDir = sortOrder === 'asc' ? asc : desc;
+    let orderClause;
+    switch (sortField) {
+      case 'qualificationScore': orderClause = sortDir(crmContacts.qualificationScore); break;
+      case 'name': orderClause = sortDir(crmContacts.firstName); break;
+      default: orderClause = sortDir(crmContacts.createdAt);
+    }
+
+    const contactList = await db
+      .select({ contact: crmContacts, company: companies })
+      .from(crmContacts)
+      .leftJoin(companies, eq(companies.id, crmContacts.companyId))
+      .where(and(...conditions))
+      .orderBy(orderClause);
+
+    res.json({
+      contacts: contactList.map((c) => ({
+        ...c.contact,
+        company: c.company,
+      })),
+      total: contactList.length,
+    });
+  } catch (error) {
+    console.error('[CRM] Error fetching buyers:', error);
+    res.status(500).json({ error: 'Failed to fetch buyers' });
+  }
+});
+
+// GET /sellers/stats - Seller pipeline statistics
+router.get('/sellers/stats', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    const [countResult] = await db
+      .select({
+        count: sql<number>`count(*)`,
+      })
+      .from(crmContacts)
+      .where(
+        and(
+          eq(crmContacts.organizationId, orgData.organization.id),
+          eq(crmContacts.contactType, 'seller')
+        )
+      );
+
+    res.json({
+      total: Number(countResult?.count || 0),
+    });
+  } catch (error) {
+    console.error('[CRM] Error fetching seller stats:', error);
+    res.status(500).json({ error: 'Failed to fetch seller stats' });
+  }
+});
+
+// Deal file upload configuration
+const dealUploadsDir = path.join(process.cwd(), 'private', 'deal-files');
+fs.mkdir(dealUploadsDir, { recursive: true }).catch(console.error);
+
+const dealFileUpload = multer({
+  storage: multer.diskStorage({
+    destination: dealUploadsDir,
+    filename: (req, file, cb) => {
+      const uniqueSuffix = crypto.randomBytes(8).toString('hex');
+      const sanitizedName = sanitizeFilename(file.originalname);
+      cb(null, `${uniqueSuffix}-${sanitizedName}`);
+    },
+  }),
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB
+  fileFilter: (req, file, cb) => {
+    const allowed = [
+      'application/pdf',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'text/csv',
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+    ];
+    if (allowed.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('File type not allowed. Accepted: PDF, Excel, CSV, JPEG, PNG'));
+    }
+  },
+});
+
+// POST /deals/:id/files - Upload files to a deal
+router.post('/deals/:id/files', dealFileUpload.single('file'), async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const dealId = parseInt(req.params.id);
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) return res.status(404).json({ error: 'Organization not found' });
+
+    const [deal] = await db
+      .select()
+      .from(deals)
+      .where(and(eq(deals.id, dealId), eq(deals.organizationId, orgData.organization.id), isNull(deals.deletedAt)));
+
+    if (!deal) return res.status(404).json({ error: 'Deal not found' });
+
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+    const fileType = req.body.fileType || 'other'; // financials, tax_returns, pnl, other
+    const existingFiles = (deal.files as any[]) || [];
+    const newFile = {
+      name: req.file.originalname,
+      path: req.file.filename,
+      uploadedAt: new Date().toISOString(),
+      type: fileType,
+      size: req.file.size,
+    };
+
+    const [updated] = await db
+      .update(deals)
+      .set({
+        files: [...existingFiles, newFile],
+        updatedAt: new Date(),
+      })
+      .where(eq(deals.id, dealId))
+      .returning();
+
+    res.json({ file: newFile, deal: updated });
+  } catch (error) {
+    console.error('[CRM] Error uploading deal file:', error);
+    res.status(500).json({ error: 'Failed to upload file' });
+  }
+});
+
+// DELETE /deals/:id/files/:filename - Remove an uploaded deal file
+router.delete('/deals/:id/files/:filename', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const dealId = parseInt(req.params.id);
+    const filename = req.params.filename;
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) return res.status(404).json({ error: 'Organization not found' });
+
+    const [deal] = await db
+      .select()
+      .from(deals)
+      .where(and(eq(deals.id, dealId), eq(deals.organizationId, orgData.organization.id), isNull(deals.deletedAt)));
+
+    if (!deal) return res.status(404).json({ error: 'Deal not found' });
+
+    const existingFiles = (deal.files as any[]) || [];
+    const updatedFiles = existingFiles.filter((f: any) => f.path !== filename);
+
+    if (updatedFiles.length === existingFiles.length) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    // Delete file from disk
+    const filePath = path.join(dealUploadsDir, filename);
+    await fs.unlink(filePath).catch(() => {});
+
+    const [updated] = await db
+      .update(deals)
+      .set({
+        files: updatedFiles,
+        updatedAt: new Date(),
+      })
+      .where(eq(deals.id, dealId))
+      .returning();
+
+    res.json(updated);
+  } catch (error) {
+    console.error('[CRM] Error deleting deal file:', error);
+    res.status(500).json({ error: 'Failed to delete file' });
+  }
+});
+
+// GET /deals/:id/files/:filename - Download a deal file
+router.get('/deals/:id/files/:filename', async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+
+  try {
+    const dealId = parseInt(req.params.id);
+    const filename = req.params.filename;
+    const orgData = await getUserOrganization(req.user!.id);
+    if (!orgData) return res.status(404).json({ error: 'Organization not found' });
+
+    const [deal] = await db
+      .select()
+      .from(deals)
+      .where(and(eq(deals.id, dealId), eq(deals.organizationId, orgData.organization.id), isNull(deals.deletedAt)));
+
+    if (!deal) return res.status(404).json({ error: 'Deal not found' });
+
+    const existingFiles = (deal.files as any[]) || [];
+    const file = existingFiles.find((f: any) => f.path === filename);
+    if (!file) return res.status(404).json({ error: 'File not found' });
+
+    const filePath = path.join(dealUploadsDir, filename);
+    res.download(filePath, file.name);
+  } catch (error) {
+    console.error('[CRM] Error downloading deal file:', error);
+    res.status(500).json({ error: 'Failed to download file' });
   }
 });
 

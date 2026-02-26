@@ -451,7 +451,7 @@ export default function EnhancedNdaTemplateEditor({
           const input = document.createElement('input');
           input.type = 'text';
           input.value = templateName;
-          input.className = 'text-xl font-semibold bg-transparent border-b-2 border-blue-500 focus:outline-none focus:border-blue-600 min-w-0 flex-1';
+          input.className = 'text-xl font-semibold text-gray-900 bg-transparent border-b-2 border-blue-500 focus:outline-none focus:border-blue-600 min-w-0 flex-1';
           input.style.minWidth = '200px';
           
           const handleSave = () => {
@@ -481,7 +481,7 @@ export default function EnhancedNdaTemplateEditor({
           
           const title = document.createElement('span');
           title.textContent = templateName;
-          title.className = 'text-xl font-semibold group-hover:text-blue-600 transition-colors';
+          title.className = 'text-xl font-semibold text-gray-900 group-hover:text-blue-600 transition-colors';
           
           const editIcon = document.createElement('div');
           editIcon.innerHTML = `
@@ -557,7 +557,7 @@ export default function EnhancedNdaTemplateEditor({
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className={`flex flex-col ${fullScreen ? 'h-screen' : 'h-full'} bg-gray-50`}>
+      <div className={`flex flex-col h-full bg-gray-50`}>
         {/* Header - only show when not in fullScreen mode */}
         {!fullScreen && (
           <div className="bg-white border-b shadow-sm">
@@ -605,7 +605,7 @@ export default function EnhancedNdaTemplateEditor({
         {/* Main Content */}
         <div className="flex-1 flex overflow-hidden">
           {/* Left Sidebar */}
-          <div className="w-80 bg-gray-50 border-r border-gray-200 flex flex-col" style={{ height: 'calc(100vh - 180px)' }}>
+          <div className="w-80 bg-gray-50 border-r border-gray-200 flex flex-col">
             {/* NDA Signer Section */}
             <div className="flex-shrink-0 border-b border-gray-200 bg-white">
               <NdaSignerDisplay />
@@ -620,7 +620,7 @@ export default function EnhancedNdaTemplateEditor({
           </div>
 
           {/* Document Editor */}
-          <div className="flex-1 flex flex-col" style={{ height: 'calc(100vh - 180px)' }}>
+          <div className="flex-1 flex flex-col overflow-hidden">
             
 
             {/* Document Viewer */}
