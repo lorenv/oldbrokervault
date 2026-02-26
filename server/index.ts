@@ -254,28 +254,28 @@ async function setupMiddleware() {
       console.log('✅ Vite middleware configured');
     }
     
+    // Error handling middleware - MUST be registered AFTER all routes
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
+
+      // Log errors (memory details only in development)
+      console.error(`Error ${status}: ${message}`);
+
+      if (process.env.NODE_ENV === 'development') {
+        const memUsage = process.memoryUsage();
+        console.log(`Memory usage: RSS=${(memUsage.rss / 1024 / 1024).toFixed(2)}MB, Heap=${(memUsage.heapUsed / 1024 / 1024).toFixed(2)}MB`);
+      }
+
+      res.status(status).json({ message });
+    });
+
     log('✅ All middleware configured before server start');
   } catch (error) {
     console.error('❌ Error setting up middleware before startup:', error);
     throw error;
   }
 }
-
-// Error handling middleware - must be AFTER routes
-app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-  const status = err.status || err.statusCode || 500;
-  const message = err.message || "Internal Server Error";
-  
-  // Log errors (memory details only in development)
-  console.error(`Error ${status}: ${message}`);
-  
-  if (process.env.NODE_ENV === 'development') {
-    const memUsage = process.memoryUsage();
-    console.log(`Memory usage: RSS=${(memUsage.rss / 1024 / 1024).toFixed(2)}MB, Heap=${(memUsage.heapUsed / 1024 / 1024).toFixed(2)}MB`);
-  }
-  
-  res.status(status).json({ message });
-});
 
 // Setup middleware first, then start server
 async function startServer() {

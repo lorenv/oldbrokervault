@@ -2,6 +2,7 @@ import { useRef, useState, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
@@ -334,10 +335,10 @@ export function OwnerFinancialsSection({ docId, cimDocument: propCimDocument }: 
                 <DollarSign className="h-4 w-4 text-green-600" />
                 Asking Price
               </Label>
-              <Input
+              <CurrencyInput
                 placeholder="$1,000,000"
                 value={localFinancials.askingPrice}
-                onChange={(e) => handleFieldChange('askingPrice', e.target.value)}
+                onChange={(formatted) => handleFieldChange('askingPrice', formatted)}
                 className="h-11 text-base"
               />
             </div>
@@ -348,10 +349,10 @@ export function OwnerFinancialsSection({ docId, cimDocument: propCimDocument }: 
                 <TrendingUp className="h-4 w-4 text-blue-600" />
                 Annual Revenue
               </Label>
-              <Input
+              <CurrencyInput
                 placeholder="$500,000"
                 value={localFinancials.revenue}
-                onChange={(e) => handleFieldChange('revenue', e.target.value)}
+                onChange={(formatted) => handleFieldChange('revenue', formatted)}
                 className="h-11 text-base"
               />
             </div>
@@ -362,10 +363,10 @@ export function OwnerFinancialsSection({ docId, cimDocument: propCimDocument }: 
                 <Banknote className="h-4 w-4 text-purple-600" />
                 EBITDA
               </Label>
-              <Input
+              <CurrencyInput
                 placeholder="$150,000"
                 value={localFinancials.ebitda}
-                onChange={(e) => handleFieldChange('ebitda', e.target.value)}
+                onChange={(formatted) => handleFieldChange('ebitda', formatted)}
                 className="h-11 text-base"
               />
             </div>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -104,19 +105,17 @@ export function DealsAdvancedFilters({
             <div className="space-y-2">
               <Label className="text-xs font-medium text-muted-foreground">Value Range</Label>
               <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  placeholder="Min"
+                <CurrencyInput
+                  placeholder="$0"
                   value={filters.amountMin ?? ''}
-                  onChange={(e) => onFilterChange('amountMin', e.target.value ? parseFloat(e.target.value) : null)}
+                  onValueChange={(num) => onFilterChange('amountMin', num)}
                   className="h-8 text-sm bg-background"
                 />
                 <span className="text-muted-foreground text-sm">to</span>
-                <Input
-                  type="number"
-                  placeholder="Max"
+                <CurrencyInput
+                  placeholder="$0"
                   value={filters.amountMax ?? ''}
-                  onChange={(e) => onFilterChange('amountMax', e.target.value ? parseFloat(e.target.value) : null)}
+                  onValueChange={(num) => onFilterChange('amountMax', num)}
                   className="h-8 text-sm bg-background"
                 />
               </div>
@@ -300,29 +299,29 @@ export function DealsAdvancedFilters({
                         </div>
                       ) : field.fieldType === 'number' || field.fieldType === 'currency' ? (
                         <div className="flex items-center gap-2">
-                          <Input
-                            type="number"
-                            placeholder="Min"
+                          <CurrencyInput
+                            placeholder="$0"
+                            showPrefix={field.fieldType === 'currency'}
                             value={(currentValue as { min?: number; max?: number })?.min ?? ''}
-                            onChange={(e) => {
+                            onValueChange={(num) => {
                               const current = (currentValue as { min?: number; max?: number }) || {};
                               onCustomFieldFilterChange(field.name, {
                                 ...current,
-                                min: e.target.value ? parseFloat(e.target.value) : undefined,
+                                min: num ?? undefined,
                               });
                             }}
                             className="h-8 text-sm bg-background"
                           />
                           <span className="text-muted-foreground text-sm">to</span>
-                          <Input
-                            type="number"
-                            placeholder="Max"
+                          <CurrencyInput
+                            placeholder="$0"
+                            showPrefix={field.fieldType === 'currency'}
                             value={(currentValue as { min?: number; max?: number })?.max ?? ''}
-                            onChange={(e) => {
+                            onValueChange={(num) => {
                               const current = (currentValue as { min?: number; max?: number }) || {};
                               onCustomFieldFilterChange(field.name, {
                                 ...current,
-                                max: e.target.value ? parseFloat(e.target.value) : undefined,
+                                max: num ?? undefined,
                               });
                             }}
                             className="h-8 text-sm bg-background"

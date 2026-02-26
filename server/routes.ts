@@ -38,6 +38,7 @@ import { sanitizeUser, sanitizeUserForSharing, sanitizeForLogging, validateRespo
 import { responseSanitizationMiddleware, securityHeadersMiddleware, sensitiveEndpointLimiter } from "./security-middleware";
 import { isUrlSafeForFetch } from "./security";
 import { invalidateUserCache } from "./auth";
+import { getServerBaseUrl } from "./utils";
 import { logger } from "./logger";
 import { exec } from 'child_process';
 import { promisify } from 'util';
@@ -219,7 +220,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     userId: number,
     data: any,
     ndaSettings: any,
-    customStyleConfig: any
+    customStyleConfig: any,
+    baseUrl?: string
   ) {
     console.log(`[Background CIM] Starting generation for doc ${docId}`);
 
@@ -359,7 +361,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const cimCreatedPayload = {
           cim_id: doc.id,
           title: doc.title,
-          share_url: doc.shareSlug ? `${req.protocol}://${req.get('host')}/share/${doc.shareSlug}` : null,
+          share_url: doc.shareSlug ? `${baseUrl || getServerBaseUrl()}/share/${doc.shareSlug}` : null,
           created_at: doc.createdAt,
           document: { id: doc.id, title: doc.title },
         };
@@ -657,7 +659,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Fire off background generation (don't await - fire and forget)
-      generateCimInBackground(doc.id, req.user!.id, data, ndaSettings, customStyleConfig)
+      generateCimInBackground(doc.id, req.user!.id, data, ndaSettings, customStyleConfig, getServerBaseUrl(req))
         .catch(err => console.error(`[Background CIM] Unhandled error for doc ${doc.id}:`, err));
     } catch (error) {
       console.error("CIM generation error:", error instanceof Error ? error.message : String(error));
@@ -1295,7 +1297,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Fire off background generation (don't await - fire and forget)
       // Pass the transcript since it was read from the file
       const backgroundData = { ...data, transcript, financials: parsedFinancials };
-      generateCimInBackground(doc.id, req.user!.id, backgroundData, ndaSettings, customStyleConfig)
+      generateCimInBackground(doc.id, req.user!.id, backgroundData, ndaSettings, customStyleConfig, getServerBaseUrl(req))
         .catch(err => console.error(`[Background CIM] Unhandled error for doc ${doc.id}:`, err));
     } catch (error) {
       console.error("File upload error:", error);

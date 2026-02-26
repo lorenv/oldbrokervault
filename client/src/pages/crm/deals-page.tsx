@@ -15,6 +15,7 @@ import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import {
   Dialog,
   DialogContent,
@@ -1290,12 +1291,11 @@ export default function DealsPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="amount">Deal Value</Label>
-              <Input
+              <CurrencyInput
                 id="amount"
-                type="number"
                 value={newDeal.amount}
-                onChange={(e) => setNewDeal({ ...newDeal, amount: e.target.value })}
-                placeholder="e.g., 500000"
+                onChange={(formatted) => setNewDeal({ ...newDeal, amount: formatted })}
+                placeholder="$500,000"
               />
             </div>
             <div className="space-y-2">
