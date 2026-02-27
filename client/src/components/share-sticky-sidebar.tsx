@@ -112,7 +112,7 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl, 
   };
 
   return (
-    <div className="sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto">
+    <div className="sticky top-8">
       {/* Combined Contact Information and Form Card */}
       <Card className="border-0 shadow-2xl bg-white/95 backdrop-blur-sm rounded-2xl ring-1 ring-gray-200/50">
         {/* Contact Information Section */}

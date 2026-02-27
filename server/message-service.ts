@@ -522,7 +522,7 @@ export class MessageService {
             <p style="margin: 0; font-size: 14px; color: #1e40af;">
               <strong>Reply Options:</strong><br>
               • Reply directly to this email to respond<br>
-              • View in your <a href="${process.env.BASE_URL || ''}/dashboard" style="color: #2563eb;">Message Center</a>
+              • View in your <a href="${process.env.BASE_URL || 'https://app.brokervault.ai'}/messages" style="color: #2563eb;">Message Center</a>
             </p>
           </div>
         </div>
