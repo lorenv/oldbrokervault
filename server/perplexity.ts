@@ -503,7 +503,12 @@ CRITICAL: Never reference "the transcript" or "business owner's notes" in the ou
     const response = await createClaudeMessage(
       anthropic,
       {
-        max_tokens: 8000,
+        // Raised from 8000: a full CIM (many 150-300 word sections + HTML markup,
+        // enriched with website data) routinely exceeds 8000 output tokens. When it
+        // does, Claude truncates mid-JSON and the response fails to parse, surfacing
+        // as "The AI service returned an invalid response." Sonnet 4.6 supports far
+        // larger output, so give generous headroom.
+        max_tokens: 16000,
         system: systemPrompt,
         messages: [
           { role: 'user', content: userPrompt }
@@ -511,6 +516,15 @@ CRITICAL: Never reference "the transcript" or "business owner's notes" in the ou
       },
       { label: 'CIM generation' },
     );
+
+    // If Claude hit the output cap, the JSON is truncated mid-object and will fail
+    // to parse. Fail loudly with a clear message instead of letting the downstream
+    // parser choke on an incomplete object.
+    if (response.stop_reason === 'max_tokens') {
+      throw new Error(
+        `CIM generation truncated: Claude hit the max_tokens output cap (used ${response.usage.output_tokens} tokens). The document is too large to generate in one pass.`,
+      );
+    }
 
     // Extract text content from Claude response
     const textContent = response.content.find(c => c.type === 'text');
