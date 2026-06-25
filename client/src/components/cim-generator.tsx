@@ -1580,9 +1580,12 @@ export function CimGenerator({ onModeChange, dealId }: CimGeneratorProps = {}) {
                                   </SelectItem>
                                 ))
                               ) : (
-                                <SelectItem value="" disabled>
+                                // Non-interactive placeholder. A <SelectItem> with an
+                                // empty-string value throws in @radix-ui/react-select v2,
+                                // which crashed/hid the sidebar when no templates existed.
+                                <div className="px-2 py-1.5 text-sm text-muted-foreground">
                                   {ndaTemplatesLoading ? "Loading templates..." : "No NDA templates available"}
-                                </SelectItem>
+                                </div>
                               )}
                               <div className="border-t mt-2 pt-2">
                                 <a
@@ -1667,6 +1670,15 @@ export function CimGenerator({ onModeChange, dealId }: CimGeneratorProps = {}) {
               )}
             </Tooltip>
           </TooltipProvider>
+          {/* Visible reason when the button is disabled by the plan limit */}
+          {userLimits && !userLimits.canCreateDocument && !generateMutation.isPending && (
+            <p className="mt-2 text-sm text-gray-600 text-center">
+              You've reached your plan's limit ({userLimits.documentsCreated}/{userLimits.documentLimit} this month).{' '}
+              <a href="/pricing" className="font-medium text-blue-600 hover:text-blue-700 underline">
+                Upgrade to generate more
+              </a>.
+            </p>
+          )}
 
               {/* Show progress during generation and completion */}
               {generationStage && (
@@ -1859,9 +1871,12 @@ export function CimGenerator({ onModeChange, dealId }: CimGeneratorProps = {}) {
                                 </SelectItem>
                               ))
                             ) : (
-                              <SelectItem value="" disabled>
+                              // Non-interactive placeholder. A <SelectItem> with an
+                              // empty-string value throws in @radix-ui/react-select v2,
+                              // which crashed/hid the sidebar when no templates existed.
+                              <div className="px-2 py-1.5 text-sm text-muted-foreground">
                                 {ndaTemplatesLoading ? "Loading..." : "No templates"}
-                              </SelectItem>
+                              </div>
                             )}
                             <div className="border-t mt-2 pt-2">
                               <a
@@ -1938,6 +1953,15 @@ export function CimGenerator({ onModeChange, dealId }: CimGeneratorProps = {}) {
                   )}
                 </Tooltip>
               </TooltipProvider>
+              {/* Visible reason when the button is disabled by the plan limit */}
+              {userLimits && !userLimits.canCreateDocument && !generateMutation.isPending && (
+                <p className="mt-2 text-sm text-gray-600 text-center">
+                  You've reached your plan's limit ({userLimits.documentsCreated}/{userLimits.documentLimit} this month).{' '}
+                  <a href="/pricing" className="font-medium text-blue-600 hover:text-blue-700 underline">
+                    Upgrade to generate more
+                  </a>.
+                </p>
+              )}
 
               {/* Show progress during generation and completion */}
               {generationStage && (

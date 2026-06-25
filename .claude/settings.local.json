@@ -106,7 +106,9 @@
       "WebFetch(domain:morganandwestfield.com)",
       "WebFetch(domain:support.intralinks.com)",
       "Bash(git fetch origin 2>&1)",
-      "Bash(gh auth status 2>&1)"
+      "Bash(gh auth status 2>&1)",
+      "Bash(ps -eo pid,lstart,etime,cmd)",
+      "Bash(ps -o lstart= -p 407)"
     ],
     "deny": [],
     "ask": [],
