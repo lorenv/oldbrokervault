@@ -1580,9 +1580,12 @@ export function CimGenerator({ onModeChange, dealId }: CimGeneratorProps = {}) {
                                   </SelectItem>
                                 ))
                               ) : (
-                                <SelectItem value="" disabled>
+                                // Non-interactive placeholder. A <SelectItem> with an
+                                // empty-string value throws in @radix-ui/react-select v2,
+                                // which crashed/hid the sidebar when no templates existed.
+                                <div className="px-2 py-1.5 text-sm text-muted-foreground">
                                   {ndaTemplatesLoading ? "Loading templates..." : "No NDA templates available"}
-                                </SelectItem>
+                                </div>
                               )}
                               <div className="border-t mt-2 pt-2">
                                 <a
@@ -1859,9 +1862,12 @@ export function CimGenerator({ onModeChange, dealId }: CimGeneratorProps = {}) {
                                 </SelectItem>
                               ))
                             ) : (
-                              <SelectItem value="" disabled>
+                              // Non-interactive placeholder. A <SelectItem> with an
+                              // empty-string value throws in @radix-ui/react-select v2,
+                              // which crashed/hid the sidebar when no templates existed.
+                              <div className="px-2 py-1.5 text-sm text-muted-foreground">
                                 {ndaTemplatesLoading ? "Loading..." : "No templates"}
-                              </SelectItem>
+                              </div>
                             )}
                             <div className="border-t mt-2 pt-2">
                               <a

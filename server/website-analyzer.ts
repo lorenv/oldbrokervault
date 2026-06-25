@@ -115,6 +115,27 @@ export function normalizeUrl(urlString: string): string {
 }
 
 /**
+ * Builds a normalized key for de-duplicating image URLs.
+ *
+ * The raw URL is kept for downloading, but duplicates are detected on this key so
+ * the same underlying image isn't collected multiple times when it's referenced
+ * with cache-busting/size query strings (logo.png?v=1, ?w=200), a fragment,
+ * http vs https, a different host case, or path quirks (double or trailing slash).
+ */
+function normalizeImageKey(rawUrl: string): string {
+  try {
+    const u = new URL(rawUrl);
+    // host (incl. port), lowercased; path with collapsed/trailing slashes removed.
+    // Protocol, query string, and hash are intentionally ignored for dedup.
+    const host = u.host.toLowerCase();
+    const path = u.pathname.replace(/\/{2,}/g, '/').replace(/\/+$/, '');
+    return `${host}${path}`;
+  } catch {
+    return rawUrl.trim().toLowerCase();
+  }
+}
+
+/**
  * Extracts image URLs from a website using lightweight HTML parsing
  * @param websiteUrl The URL of the website to extract images from
  * @returns Promise resolving to an array of image URLs
@@ -211,6 +232,9 @@ export async function extractWebsiteImages(websiteUrl: string): Promise<string[]
     
     // Extract image URLs using multiple patterns
     const imageUrls: string[] = [];
+    // Tracks normalized keys of images already collected so the same image
+    // referenced with query-string/protocol/slash variants isn't duplicated.
+    const seenImageKeys = new Set<string>();
     const patterns = [
       // Standard img tags
       /<img[^>]+src=["']([^"']+)["'][^>]*>/gi,
@@ -247,11 +271,16 @@ export async function extractWebsiteImages(websiteUrl: string): Promise<string[]
           imageUrl = baseUrl + '/' + imageUrl;
         }
         
-        // Skip duplicates
-        if (imageUrls.includes(imageUrl)) {
+        // Skip duplicates (normalized so cache-busting/size query strings,
+        // fragments, protocol, host case, and path quirks collapse to one image)
+        const imageKey = normalizeImageKey(imageUrl);
+        if (seenImageKeys.has(imageKey)) {
           continue;
         }
-        
+        // Mark as seen up front so the same image isn't re-validated via repeated
+        // HEAD requests when it appears again under a different variant.
+        seenImageKeys.add(imageKey);
+
         // Quick validation - check if it's a reasonable image URL
         if (imageUrl.match(/\.(jpg|jpeg|png|gif|webp|bmp)(\?|$)/i)) {
           imageUrls.push(imageUrl);
