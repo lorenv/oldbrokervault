@@ -206,3 +206,23 @@
 .animate-progress-indeterminate {
   animation: progress-indeterminate 2s ease-in-out infinite;
 }
+
+/*
+ * Fix: position:sticky elements jumping to the top while a Radix Select / Dialog /
+ * Popover is open.
+ *
+ * Radix overlays lock background scrolling via react-remove-scroll, which injects
+ * `body[data-scroll-locked] { overflow: hidden !important }`. Because this app scrolls
+ * on the window (body grows with content), `overflow: hidden` turns <body> into its own
+ * scroll container at scrollTop 0. Any `position: sticky` element (e.g. the create-CIM
+ * NDA sidebar) then resolves against the unscrolled body instead of the scrolled window,
+ * so it snaps to the top while the overlay is open and snaps back when it closes.
+ *
+ * `overflow: clip` still prevents background scrolling (preserving the lock's intent) but
+ * does NOT establish a scroll container, so sticky offsets stay correct. The `html`
+ * prefix raises specificity above react-remove-scroll's runtime-injected rule so this
+ * wins the cascade. Unlayered on purpose — must not sit inside an @layer.
+ */
+html body[data-scroll-locked] {
+  overflow: clip !important;
+}
