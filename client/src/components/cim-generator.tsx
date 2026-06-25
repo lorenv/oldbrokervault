@@ -1670,6 +1670,15 @@ export function CimGenerator({ onModeChange, dealId }: CimGeneratorProps = {}) {
               )}
             </Tooltip>
           </TooltipProvider>
+          {/* Visible reason when the button is disabled by the plan limit */}
+          {userLimits && !userLimits.canCreateDocument && !generateMutation.isPending && (
+            <p className="mt-2 text-sm text-gray-600 text-center">
+              You've reached your plan's limit ({userLimits.documentsCreated}/{userLimits.documentLimit} this month).{' '}
+              <a href="/pricing" className="font-medium text-blue-600 hover:text-blue-700 underline">
+                Upgrade to generate more
+              </a>.
+            </p>
+          )}
 
               {/* Show progress during generation and completion */}
               {generationStage && (
@@ -1944,6 +1953,15 @@ export function CimGenerator({ onModeChange, dealId }: CimGeneratorProps = {}) {
                   )}
                 </Tooltip>
               </TooltipProvider>
+              {/* Visible reason when the button is disabled by the plan limit */}
+              {userLimits && !userLimits.canCreateDocument && !generateMutation.isPending && (
+                <p className="mt-2 text-sm text-gray-600 text-center">
+                  You've reached your plan's limit ({userLimits.documentsCreated}/{userLimits.documentLimit} this month).{' '}
+                  <a href="/pricing" className="font-medium text-blue-600 hover:text-blue-700 underline">
+                    Upgrade to generate more
+                  </a>.
+                </p>
+              )}
 
               {/* Show progress during generation and completion */}
               {generationStage && (

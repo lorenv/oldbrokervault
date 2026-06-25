@@ -106,10 +106,12 @@ async function seed() {
   // 1. User (idempotent)
   let [user] = await db.select().from(users).where(eq(users.email, DEMO_EMAIL));
   if (user) {
-    console.log(`User ${DEMO_EMAIL} already exists (ID ${user.id}). Resetting password.`);
+    console.log(`User ${DEMO_EMAIL} already exists (ID ${user.id}). Resetting password + plan.`);
     [user] = await db
       .update(users)
-      .set({ password: await hashPassword(DEMO_PASSWORD) })
+      // 'pro' plan has an unlimited document/regeneration limit, so the demo
+      // account can freely generate CIMs without hitting the free-tier cap of 1.
+      .set({ password: await hashPassword(DEMO_PASSWORD), subscriptionStatus: 'pro' })
       .where(eq(users.id, user.id))
       .returning();
   } else {
@@ -122,7 +124,9 @@ async function seed() {
         lastName: 'Broker',
         businessName: 'BrokerVault Demo Advisory',
         emailVerified: true,
-        subscriptionStatus: 'free',
+        // 'pro' plan = unlimited CIMs so the demo account isn't blocked by the
+        // free-tier 1-document cap.
+        subscriptionStatus: 'pro',
         authProvider: 'local',
       })
       .returning();
