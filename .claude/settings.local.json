@@ -111,7 +111,8 @@
       "Bash(ps -o lstart= -p 407)",
       "Read(//home/runner/.cache/**)",
       "Bash(find / -name \"chrome\" -type f)",
-      "Bash(npx postcss *)"
+      "Bash(npx postcss *)",
+      "Bash(break)"
     ],
     "deny": [],
     "ask": [],
