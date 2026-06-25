@@ -4,6 +4,7 @@ export const PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions";
 
 // Anthropic client for Claude-based CIM generation
 import Anthropic from '@anthropic-ai/sdk';
+import { createClaudeMessage, PRIMARY_CLAUDE_MODEL } from './anthropic-models';
 
 // Import timeout utilities for external API calls (PERF-013)
 import { fetchWithTimeout, API_TIMEOUTS } from './utils/fetch-with-timeout';
@@ -486,48 +487,30 @@ CRITICAL: Never reference "the transcript" or "business owner's notes" in the ou
   const useAnthropic = !!process.env.ANTHROPIC_API_KEY2;
   const useOpenAI = !useAnthropic && !!process.env.OPENAI_API_KEY;
 
-  // Claude model configuration with fallback
-  // claude-sonnet-4-20250514 is Claude Sonnet 4 (stable)
-  const PRIMARY_MODEL = 'claude-sonnet-4-20250514';
-  const FALLBACK_MODEL = 'claude-3-5-sonnet-20241022';
-
   let content: string;
 
   if (useAnthropic) {
-    // Use Claude Sonnet for high-quality CIM writing
+    // Use Claude for high-quality CIM writing
     // Initialize with timeout to prevent hanging requests (PERF-013)
     const anthropic = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY2,
       timeout: API_TIMEOUTS.LONG, // 3 minute timeout for CIM generation
     });
 
-    console.log(`Using Anthropic Claude for CIM generation (primary: ${PRIMARY_MODEL})`);
+    console.log(`Using Anthropic Claude for CIM generation (primary: ${PRIMARY_CLAUDE_MODEL})`);
 
-    let response;
-    try {
-      response = await anthropic.messages.create({
-        model: PRIMARY_MODEL,
+    // Try each model in the chain so a single model retirement can't break generation.
+    const response = await createClaudeMessage(
+      anthropic,
+      {
         max_tokens: 8000,
         system: systemPrompt,
         messages: [
           { role: 'user', content: userPrompt }
         ],
-      });
-    } catch (primaryError: any) {
-      console.warn(`Primary model ${PRIMARY_MODEL} failed, trying fallback: ${primaryError.message}`);
-
-      // Try fallback model
-      response = await anthropic.messages.create({
-        model: FALLBACK_MODEL,
-        max_tokens: 8000,
-        system: systemPrompt,
-        messages: [
-          { role: 'user', content: userPrompt }
-        ],
-      });
-
-      console.log(`Successfully used fallback model ${FALLBACK_MODEL}`);
-    }
+      },
+      { label: 'CIM generation' },
+    );
 
     // Extract text content from Claude response
     const textContent = response.content.find(c => c.type === 'text');

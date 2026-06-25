@@ -10,6 +10,7 @@
  */
 
 import { db } from '../db';
+import { CLAUDE_MODEL_CHAIN } from '../anthropic-models';
 import { sql } from 'drizzle-orm';
 import { objectStorage } from '../object-storage';
 
@@ -262,10 +263,10 @@ export async function checkAnthropicHealth(): Promise<HealthCheckResult> {
   const startTime = Date.now();
   const name = 'Anthropic Claude API';
 
-  // Models to check - primary and fallback
-  // claude-sonnet-4-20250514 is Claude Sonnet 4 (stable)
-  const PRIMARY_MODEL = 'claude-sonnet-4-20250514';
-  const FALLBACK_MODEL = 'claude-3-5-sonnet-20241022';
+  // Models to check - primary and fallback, sourced from the shared model chain
+  // so health checks track the same models CIM generation actually uses.
+  const PRIMARY_MODEL = CLAUDE_MODEL_CHAIN[0];
+  const FALLBACK_MODEL = CLAUDE_MODEL_CHAIN[1];
 
   try {
     const apiKey = process.env.ANTHROPIC_API_KEY2 || process.env.ANTHROPIC_API_KEY;
