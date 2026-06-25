@@ -244,6 +244,57 @@ Provide detailed, factual information found on the website. Include specific num
   }
 }
 
+/**
+ * Tool schema used to force Claude to return the CIM as structured data.
+ *
+ * Free-text JSON responses regularly broke JSON.parse: when section content
+ * contained an unescaped double-quote (a quoted phrase, an HTML attribute), the
+ * inner `"` closed the string early and parsing failed ("Expected ',' or '}'…"),
+ * surfacing as "The AI service returned an invalid response." Forcing a tool call
+ * means the SDK hands back an already-parsed object whose strings are guaranteed
+ * well-formed, so this whole class of failure disappears.
+ */
+const CIM_OUTPUT_TOOL = {
+  name: 'emit_cim_document',
+  description: 'Return the completed Confidential Information Memorandum as structured data. Always respond by calling this tool with the full document.',
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      title: { type: 'string' },
+      companyName: { type: 'string' },
+      generatedAt: { type: 'string' },
+      sections: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            title: { type: 'string' },
+            content: { type: 'string', description: 'Rich text using HTML tags: <p>paragraphs</p>, <strong>bold</strong>, <em>italic</em>, <ul><li>lists</li></ul>, <ol><li>numbered</li></ol>' },
+            order: { type: 'number' },
+            type: { type: 'string', enum: ['text', 'table', 'list'] },
+          },
+          required: ['id', 'title', 'content', 'order', 'type'],
+        },
+      },
+      metadata: {
+        type: 'object',
+        properties: {
+          purpose: { type: 'string' },
+          tone: { type: 'string' },
+          audience: { type: 'string' },
+          customDirections: { type: 'string' },
+          wordCount: { type: 'number' },
+          hasFinancials: { type: 'boolean' },
+          hasImages: { type: 'boolean' },
+        },
+        required: ['purpose', 'tone', 'audience', 'customDirections', 'wordCount', 'hasFinancials', 'hasImages'],
+      },
+    },
+    required: ['title', 'generatedAt', 'sections', 'metadata'],
+  },
+};
+
 // New flexible CIM generation function
 async function generateFlexibleCim(
   transcript: string,
@@ -418,8 +469,9 @@ Include these financial details appropriately:
 ${JSON.stringify(financials)}` : ''}
 
 RESPONSE FORMAT:
-Return ONLY a valid JSON object - no markdown headers, explanations, or formatting.
-Start directly with the opening brace and end with the closing brace:
+Return the document by calling the emit_cim_document tool. Provide each field directly as
+structured data — in particular, "sections" MUST be a real array of section objects, NOT a
+string containing serialized JSON. Use this shape:
 {
   "title": "Document title",
   "companyName": "Company name if mentioned",
@@ -444,7 +496,7 @@ Start directly with the opening brace and end with the closing brace:
   }
 }
 
-CRITICAL: Return ONLY the JSON object above. Do not include any markdown headers (# ## ###), explanations, or text before or after the JSON.`;
+CRITICAL: Call the emit_cim_document tool with these fields. Do not wrap arrays or objects in strings; "sections" is an array and "metadata" is an object.`;
 
   const userPrompt = `═══════════════════════════════════════════════════════════════
 PRIMARY DATA SOURCE - TRANSCRIPT/NOTES FROM BUSINESS OWNER:
@@ -510,6 +562,11 @@ CRITICAL: Never reference "the transcript" or "business owner's notes" in the ou
         // larger output, so give generous headroom.
         max_tokens: 16000,
         system: systemPrompt,
+        // Force structured output via a tool call. The model returns the document
+        // as a tool_use block whose `input` is already a valid object, eliminating
+        // the unescaped-quote JSON.parse failures that free-text responses caused.
+        tools: [CIM_OUTPUT_TOOL],
+        tool_choice: { type: 'tool', name: CIM_OUTPUT_TOOL.name },
         messages: [
           { role: 'user', content: userPrompt }
         ],
@@ -526,12 +583,44 @@ CRITICAL: Never reference "the transcript" or "business owner's notes" in the ou
       );
     }
 
-    // Extract text content from Claude response
-    const textContent = response.content.find(c => c.type === 'text');
-    if (!textContent || textContent.type !== 'text') {
-      throw new Error('No text response from Claude');
+    // Prefer the structured tool output. The SDK gives us an already-parsed
+    // object, so use it directly instead of round-tripping through JSON.
+    // If Claude stringified `sections` (a known quirk), un-nest it here
+    // where we can handle unescaped-quote errors that JSON.parse can't fix.
+    const toolUse = response.content.find(c => c.type === 'tool_use');
+    if (toolUse && toolUse.type === 'tool_use' && toolUse.input) {
+      const input = toolUse.input as Record<string, any>;
+
+      // Fix stringified sections/metadata inline before any JSON round-trip
+      for (const key of ['sections', 'metadata']) {
+        if (typeof input[key] === 'string') {
+          try {
+            input[key] = JSON.parse(input[key]);
+            console.log(`Un-nested stringified "${key}" from tool_use input`);
+          } catch {
+            // Unescaped quotes inside HTML content (e.g. <em>"phrase"</em>)
+            // break JSON.parse. Replace bare double-quotes inside HTML tags
+            // with curly/smart quotes, then retry.
+            try {
+              const fixed = (input[key] as string)
+                .replace(/<(em|strong)>"([^<]*)"<\/\1>/g, '<$1>\u201c$2\u201d</$1>');
+              input[key] = JSON.parse(fixed);
+              console.log(`Un-nested stringified "${key}" after fixing HTML quotes`);
+            } catch (e2) {
+              console.error(`Failed to un-nest "${key}" even after quote fix:`, e2);
+            }
+          }
+        }
+      }
+
+      content = JSON.stringify(input);
+    } else {
+      const textContent = response.content.find(c => c.type === 'text');
+      if (!textContent || textContent.type !== 'text') {
+        throw new Error('No text response from Claude');
+      }
+      content = textContent.text;
     }
-    content = textContent.text;
   } else {
     // Fallback to OpenAI or Perplexity
     const apiUrl = useOpenAI ? "https://api.openai.com/v1/chat/completions" : PERPLEXITY_API_URL;
@@ -702,7 +791,30 @@ CRITICAL: Never reference "the transcript" or "business owner's notes" in the ou
     console.log("About to parse JSON, first 200 chars:", jsonContent.substring(0, 200));
     const result = JSON.parse(jsonContent);
     console.log("JSON parsing successful");
-    
+
+    // Defensive: when forced to use the output tool, Claude sometimes serializes
+    // the `sections` array (or `metadata` object) into a JSON *string* rather than
+    // emitting it inline. Un-nest them back into proper structures.
+    for (const key of ['sections', 'metadata'] as const) {
+      if (typeof result[key] === 'string') {
+        try {
+          result[key] = JSON.parse(result[key]);
+          console.log(`Un-nested stringified "${key}" field from tool output`);
+        } catch {
+          // Unescaped quotes inside HTML (e.g. <em>"phrase"</em>) break JSON.parse.
+          // Replace them with smart quotes and retry.
+          try {
+            const fixed = (result[key] as string)
+              .replace(/<(em|strong)>"([^<]*)"<\/\1>/g, '<$1>\u201c$2\u201d</$1>');
+            result[key] = JSON.parse(fixed);
+            console.log(`Un-nested stringified "${key}" after fixing HTML quotes`);
+          } catch (e2) {
+            console.error(`Failed to un-nest "${key}" even after quote fix:`, e2);
+          }
+        }
+      }
+    }
+
     // Remove Perplexity source references like [1] [2] [3] from all content
     if (result.sections && Array.isArray(result.sections)) {
       result.sections = result.sections.map((section: any) => {
@@ -749,6 +861,19 @@ CRITICAL: Never reference "the transcript" or "business owner's notes" in the ou
       }
     }
     
+    // Final validation: sections must be a non-empty array. If it's still a
+    // string (un-nesting failed) or empty, the document would render blank.
+    if (!Array.isArray(result.sections) || result.sections.length === 0) {
+      const actualType = typeof result.sections;
+      const preview = typeof result.sections === 'string'
+        ? (result.sections as string).substring(0, 200)
+        : JSON.stringify(result.sections);
+      console.error(`CIM sections invalid: type=${actualType}, preview=${preview}`);
+      throw new Error(
+        `CIM generation produced ${actualType === 'string' ? 'unparseable' : 'empty'} sections. Please try regenerating.`
+      );
+    }
+
     console.log("Generated flexible CIM document successfully");
     return result as FlexibleCimDocument;
   } catch (error) {
