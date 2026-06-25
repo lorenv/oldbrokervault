@@ -298,12 +298,17 @@ async function processReport(report: SystemHealthReport, alertConfig: AlertConfi
     return;
   }
 
-  // Check alert rate limiting using database (shared across all instances)
-  const unhealthyChecks = report.checks.filter(c => c.status === 'unhealthy');
+  // Alert on degraded checks too (not just unhealthy) so we get an earlier
+  // warning — e.g. when a primary Claude model retires but the fallback chain
+  // is still serving requests (status 'degraded'), rather than waiting until
+  // every model fails (status 'unhealthy').
+  const failingChecks = report.checks.filter(
+    c => c.status === 'unhealthy' || c.status === 'degraded',
+  );
 
   // Find checks that haven't exceeded their daily alert limit
-  const checksToAlert: typeof unhealthyChecks = [];
-  for (const check of unhealthyChecks) {
+  const checksToAlert: typeof failingChecks = [];
+  for (const check of failingChecks) {
     const alertCount = await getAlertCountForCheck(check.name);
     if (alertCount < MAX_ALERTS_PER_CHECK_TYPE) {
       checksToAlert.push(check);

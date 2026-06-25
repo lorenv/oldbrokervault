@@ -1,16 +1,12 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { API_TIMEOUTS } from '../utils/fetch-with-timeout';
+import { createClaudeMessage } from '../anthropic-models';
 
 // Initialize Anthropic client with the secondary API key and timeout (PERF-013)
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY2,
   timeout: API_TIMEOUTS.AI_API, // 60 second timeout for AI API calls
 });
-
-// Primary and fallback models for vision tasks
-// claude-sonnet-4-20250514 is Claude Sonnet 4 (stable)
-const PRIMARY_MODEL = 'claude-sonnet-4-20250514';
-const FALLBACK_MODEL = 'claude-3-5-sonnet-20241022';
 
 interface DocumentSummary {
   summary: string;
@@ -126,11 +122,10 @@ Respond ONLY with the JSON object, no additional text.`,
       },
     ];
 
-    // Call Claude API with vision (with fallback model support)
-    let response;
-    try {
-      response = await anthropic.messages.create({
-        model: PRIMARY_MODEL,
+    // Call Claude API with vision, falling back through the model chain.
+    const response = await createClaudeMessage(
+      anthropic,
+      {
         max_tokens: 2000,
         messages: [
           {
@@ -138,24 +133,9 @@ Respond ONLY with the JSON object, no additional text.`,
             content: messageContent,
           },
         ],
-      });
-    } catch (primaryError: any) {
-      console.warn(`[ANTHROPIC] Primary model ${PRIMARY_MODEL} failed, trying fallback: ${primaryError.message}`);
-
-      // Try fallback model
-      response = await anthropic.messages.create({
-        model: FALLBACK_MODEL,
-        max_tokens: 2000,
-        messages: [
-          {
-            role: 'user',
-            content: messageContent,
-          },
-        ],
-      });
-
-      console.log(`[ANTHROPIC] Successfully used fallback model ${FALLBACK_MODEL}`);
-    }
+      },
+      { label: 'ANTHROPIC vision' },
+    );
 
     // Extract text response
     const textContent = response.content.find(c => c.type === 'text');
